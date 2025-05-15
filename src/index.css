@@ -16,7 +16,7 @@
     --popover: 0 0% 100%;
     --popover-foreground: 224 71.4% 4.1%;
 
-    --primary: 210 100% 50.2%;
+    --primary: 210 100% 45%;
     --primary-foreground: 210 40% 98%;
 
     --secondary: 220 14.3% 95.9%;
@@ -33,7 +33,7 @@
 
     --border: 220 13% 91%;
     --input: 220 13% 91%;
-    --ring: 210 100% 50.2%;
+    --ring: 210 100% 45%;
 
     --radius: 0.5rem;
 
@@ -57,7 +57,7 @@
     --popover: 224 71.4% 4.1%;
     --popover-foreground: 210 20% 98%;
 
-    --primary: 210 100% 50.2%;
+    --primary: 210 100% 45%;
     --primary-foreground: 210 40% 98%;
 
     --secondary: 215 27.9% 16.9%;
@@ -93,7 +93,7 @@
 
 @layer components {
   .hero-gradient {
-    @apply bg-gradient-to-br from-ttc-blue-500 to-ttc-blue-700;
+    @apply bg-gradient-to-br from-ttc-blue-700 to-ttc-blue-900;
   }
   .container-custom {
     @apply container mx-auto px-4;
@@ -102,12 +102,12 @@
     @apply transition-all duration-200 hover:shadow-lg hover:-translate-y-1;
   }
   .btn-primary {
-    @apply bg-ttc-blue-500 hover:bg-ttc-blue-600 text-white font-semibold py-2 px-4 rounded transition-colors;
+    @apply bg-ttc-blue-700 hover:bg-ttc-blue-800 text-white font-semibold py-2 px-4 rounded transition-colors;
   }
   .btn-secondary {
     @apply bg-ttc-green-500 hover:bg-ttc-green-600 text-white font-semibold py-2 px-4 rounded transition-colors; 
   }
   .btn-outline {
-    @apply border border-ttc-blue-500 text-ttc-blue-500 hover:bg-ttc-blue-500 hover:text-white font-semibold py-2 px-4 rounded transition-colors;
+    @apply border border-ttc-blue-700 text-ttc-blue-700 hover:bg-ttc-blue-700 hover:text-white font-semibold py-2 px-4 rounded transition-colors;
   }
 }

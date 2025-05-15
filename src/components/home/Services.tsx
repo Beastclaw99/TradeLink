@@ -6,59 +6,59 @@ import { Link } from 'react-router-dom';
 const serviceCategories = [
   {
     id: 1,
-    title: "Plumbing",
-    description: "Professional plumbers for repairs, installations and maintenance.",
-    icon: "🔧", // Using an emoji as placeholder, would be replaced with actual icons
-    href: "/find-pros/plumbing",
+    title: "Carpentry",
+    description: "Professional carpenters for custom woodwork and furniture.",
+    image: "/lovable-uploads/848377f4-0205-491b-a416-42eea8acae4b.png",
+    href: "/find-pros/carpentry",
   },
   {
     id: 2,
     title: "Electrical",
     description: "Licensed electricians for all your electrical needs.",
-    icon: "⚡",
+    image: "/lovable-uploads/848377f4-0205-491b-a416-42eea8acae4b.png",
     href: "/find-pros/electrical",
   },
   {
     id: 3,
-    title: "Carpentry",
-    description: "Expert carpenters for custom woodwork and furniture.",
-    icon: "🔨",
-    href: "/find-pros/carpentry",
+    title: "Plumbing",
+    description: "Expert plumbers for repairs, installations and maintenance.",
+    image: "/lovable-uploads/848377f4-0205-491b-a416-42eea8acae4b.png",
+    href: "/find-pros/plumbing",
   },
   {
     id: 4,
-    title: "Masonry",
-    description: "Skilled masons for brickwork, concrete and stone projects.",
-    icon: "🧱",
-    href: "/find-pros/masonry",
+    title: "Painting",
+    description: "Professional painters for interior and exterior painting.",
+    image: "/lovable-uploads/848377f4-0205-491b-a416-42eea8acae4b.png",
+    href: "/find-pros/painting",
   },
   {
     id: 5,
-    title: "Painting",
-    description: "Professional painters for interior and exterior painting.",
-    icon: "🖌️",
-    href: "/find-pros/painting",
+    title: "Roofing",
+    description: "Roofing professionals for repairs and installations.",
+    image: "/lovable-uploads/848377f4-0205-491b-a416-42eea8acae4b.png",
+    href: "/find-pros/roofing",
   },
   {
     id: 6,
     title: "Landscaping",
     description: "Transform your outdoor space with our landscape experts.",
-    icon: "🌱",
+    image: "/lovable-uploads/848377f4-0205-491b-a416-42eea8acae4b.png",
     href: "/find-pros/landscaping",
   },
   {
     id: 7,
-    title: "Roofing",
-    description: "Roofing professionals for repairs and installations.",
-    icon: "🏠",
-    href: "/find-pros/roofing",
+    title: "Masonry",
+    description: "Skilled masons for brickwork, concrete and stone projects.",
+    image: "/lovable-uploads/848377f4-0205-491b-a416-42eea8acae4b.png",
+    href: "/find-pros/masonry",
   },
   {
     id: 8,
-    title: "Air Conditioning",
-    description: "HVAC technicians for installation and maintenance.",
-    icon: "❄️",
-    href: "/find-pros/air-conditioning",
+    title: "Flooring",
+    description: "Flooring specialists for installation and refinishing.",
+    image: "/lovable-uploads/848377f4-0205-491b-a416-42eea8acae4b.png",
+    href: "/find-pros/flooring",
   },
 ];
 
@@ -80,22 +80,32 @@ const Services: React.FC = () => {
             <Link
               key={category.id}
               to={category.href}
-              className="bg-white rounded-lg p-6 shadow-sm card-hover flex flex-col h-full"
+              className="bg-white rounded-lg shadow-sm card-hover flex flex-col h-full overflow-hidden"
             >
-              <div className="text-3xl mb-4">{category.icon}</div>
-              <h3 className="text-xl font-semibold text-ttc-neutral-800 mb-2">{category.title}</h3>
-              <p className="text-ttc-neutral-600 text-sm flex-grow">{category.description}</p>
-              <div className="mt-4 text-ttc-blue-500 font-medium text-sm flex items-center">
-                Find pros
-                <svg
-                  className="ml-1 w-4 h-4"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
-                </svg>
+              <div className="relative h-48 w-full">
+                <img 
+                  src={category.image} 
+                  alt={category.title} 
+                  className="w-full h-full object-cover"
+                />
+                <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/70 flex items-end">
+                  <h3 className="text-xl font-semibold text-white p-4">{category.title}</h3>
+                </div>
+              </div>
+              <div className="p-4">
+                <p className="text-ttc-neutral-600 text-sm">{category.description}</p>
+                <div className="mt-4 text-ttc-blue-700 font-medium text-sm flex items-center">
+                  Find professionals
+                  <svg
+                    className="ml-1 w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+                  </svg>
+                </div>
               </div>
             </Link>
           ))}
@@ -104,7 +114,7 @@ const Services: React.FC = () => {
         <div className="mt-10 text-center">
           <Link
             to="/find-pros"
-            className="inline-block text-ttc-blue-500 hover:text-ttc-blue-700 font-semibold transition-colors"
+            className="inline-block text-ttc-blue-700 hover:text-ttc-blue-800 font-semibold transition-colors"
           >
             View all service categories
             <svg
