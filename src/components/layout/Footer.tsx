@@ -10,9 +10,8 @@ const Footer: React.FC = () => {
           <div>
             <div className="flex items-center mb-4">
               <Link to="/" className="flex items-center">
-                <span className="text-xl font-bold text-white">Trini</span>
-                <span className="text-xl font-bold text-ttc-green-400">Trade</span>
-                <span className="text-xl font-bold text-ttc-neutral-400">Connect</span>
+                <span className="text-xl font-bold text-white">Trade</span>
+                <span className="text-xl font-bold text-ttc-neutral-400">Link</span>
               </Link>
             </div>
             <p className="text-ttc-neutral-400 text-sm mb-4">
@@ -52,7 +51,7 @@ const Footer: React.FC = () => {
           <div>
             <h3 className="text-white font-semibold text-lg mb-4">For Professionals</h3>
             <ul className="space-y-2">
-              <li><Link to="/pro-signup" className="text-ttc-neutral-400 hover:text-white transition-colors">Join as a Pro</Link></li>
+              <li><Link to="/signup" className="text-ttc-neutral-400 hover:text-white transition-colors">Join as a Pro</Link></li>
               <li><Link to="/pro-resources" className="text-ttc-neutral-400 hover:text-white transition-colors">Resources</Link></li>
               <li><Link to="/pro-success" className="text-ttc-neutral-400 hover:text-white transition-colors">Success Stories</Link></li>
               <li><Link to="/pro-help" className="text-ttc-neutral-400 hover:text-white transition-colors">Help & Support</Link></li>
@@ -73,7 +72,7 @@ const Footer: React.FC = () => {
         </div>
         
         <div className="mt-8 pt-8 border-t border-ttc-neutral-700 text-center text-ttc-neutral-400 text-sm">
-          <p>&copy; {new Date().getFullYear()} Trini Trade Connect. All rights reserved.</p>
+          <p>&copy; {new Date().getFullYear()} Trade Link. All rights reserved.</p>
         </div>
       </div>
     </footer>
