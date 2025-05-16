@@ -1,11 +1,8 @@
-
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
-
 const Hero: React.FC = () => {
-  return (
-    <section className="bg-ttc-blue-800 py-16 md:py-24 text-white">
+  return <section className="bg-ttc-blue-800 py-16 md:py-24 text-white">
       <div className="container-custom">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           <div className="animate-fade-in">
@@ -31,11 +28,9 @@ const Hero: React.FC = () => {
             
             <div className="flex items-center">
               <div className="flex -space-x-2">
-                {[1, 2, 3, 4].map((i) => (
-                  <div key={i} className="w-10 h-10 rounded-full border-2 border-white bg-ttc-blue-300 overflow-hidden flex items-center justify-center text-xs font-bold">
+                {[1, 2, 3, 4].map(i => <div key={i} className="w-10 h-10 rounded-full border-2 border-white bg-ttc-blue-300 overflow-hidden flex items-center justify-center text-xs font-bold">
                     {i}
-                  </div>
-                ))}
+                  </div>)}
               </div>
               <p className="ml-4 text-sm">
                 <span className="font-bold">1,000+ professionals</span> ready to help with your projects
@@ -45,24 +40,14 @@ const Hero: React.FC = () => {
           
           <div className="hidden lg:grid lg:grid-cols-2 gap-4">
             <div className="rounded-lg overflow-hidden h-80">
-              <img 
-                src="/lovable-uploads/8bbf4ce1-7690-4c37-9adf-b2751ac81a84.png" 
-                alt="Solar panel installation" 
-                className="w-full h-full object-cover"
-              />
+              <img src="/lovable-uploads/8bbf4ce1-7690-4c37-9adf-b2751ac81a84.png" alt="Solar panel installation" className="w-full h-full object-cover" />
             </div>
             <div className="rounded-lg overflow-hidden h-80">
-              <img 
-                src="/lovable-uploads/848377f4-0205-491b-a416-42eea8acae4b.png" 
-                alt="Professional tradesman working" 
-                className="w-full h-full object-cover"
-              />
+              <img alt="Professional tradesman working" className="w-full h-full object-cover" src="/lovable-uploads/bdca5a09-3b4b-4b3d-b094-5a9848a5ace0.jpg" />
             </div>
           </div>
         </div>
       </div>
-    </section>
-  );
+    </section>;
 };
-
 export default Hero;
