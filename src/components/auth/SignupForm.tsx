@@ -69,7 +69,7 @@ const SignupForm: React.FC = () => {
         description: "Your account has been created successfully. Please check your email for verification.",
       });
       
-      // Navigate to home page
+      // Navigate to home page after successful signup
       navigate('/');
     } catch (error: any) {
       toast({
@@ -77,6 +77,7 @@ const SignupForm: React.FC = () => {
         description: error.message || "Something went wrong. Please try again later.",
         variant: "destructive"
       });
+      console.error("Signup error:", error);
     } finally {
       setIsLoading(false);
     }

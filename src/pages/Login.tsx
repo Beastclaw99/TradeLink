@@ -9,7 +9,7 @@ const Login: React.FC = () => {
     <Layout>
       <AuthCard 
         title="Welcome Back" 
-        description="Sign in to your Trini Trade Connect account"
+        description="Sign in to your Trade Link account"
       >
         <LoginForm />
       </AuthCard>
