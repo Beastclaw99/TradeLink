@@ -119,8 +119,8 @@ const ProjectMarketplace: React.FC = () => {
   const filteredProjects = projects.filter(project => {
     const matchesSearch = project.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
                           project.description.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = categoryFilter === "" || project.category === categoryFilter;
-    const matchesLocation = locationFilter === "" || project.location === locationFilter;
+    const matchesCategory = categoryFilter === "" || categoryFilter === "all" || project.category === categoryFilter;
+    const matchesLocation = locationFilter === "" || locationFilter === "all" || project.location === locationFilter;
     let matchesBudget = true;
     
     if (budgetFilter === "under5k") {
@@ -175,7 +175,7 @@ const ProjectMarketplace: React.FC = () => {
                     <SelectValue placeholder="All Categories" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Categories</SelectItem>
+                    <SelectItem value="all">All Categories</SelectItem>
                     <SelectItem value="Carpentry">Carpentry</SelectItem>
                     <SelectItem value="Electrical">Electrical</SelectItem>
                     <SelectItem value="Plumbing">Plumbing</SelectItem>
@@ -195,7 +195,7 @@ const ProjectMarketplace: React.FC = () => {
                     <SelectValue placeholder="All Locations" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Locations</SelectItem>
+                    <SelectItem value="all">All Locations</SelectItem>
                     <SelectItem value="Port of Spain">Port of Spain</SelectItem>
                     <SelectItem value="San Fernando">San Fernando</SelectItem>
                     <SelectItem value="Arima">Arima</SelectItem>
@@ -213,7 +213,7 @@ const ProjectMarketplace: React.FC = () => {
                     <SelectValue placeholder="Any Budget" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Any Budget</SelectItem>
+                    <SelectItem value="any">Any Budget</SelectItem>
                     <SelectItem value="under5k">Under $5,000</SelectItem>
                     <SelectItem value="5k-10k">$5,000 - $10,000</SelectItem>
                     <SelectItem value="over10k">Over $10,000</SelectItem>
