@@ -40,10 +40,10 @@ const Hero: React.FC = () => {
           
           <div className="hidden lg:grid lg:grid-cols-2 gap-4">
             <div className="rounded-lg overflow-hidden h-80">
-              <img src="/lovable-uploads/8bbf4ce1-7690-4c37-9adf-b2751ac81a84.png" alt="Solar panel installation" className="w-full h-full object-cover" />
+              <img alt="Solar panel installation" className="w-full h-full object-cover" src="/lovable-uploads/93c3c189-5561-4881-a790-6565fbe4f664.jpg" />
             </div>
             <div className="rounded-lg overflow-hidden h-80">
-              <img alt="Professional tradesman working" className="w-full h-full object-cover" src="/lovable-uploads/bdca5a09-3b4b-4b3d-b094-5a9848a5ace0.jpg" />
+              <img alt="Professional tradesman working" className="w-full h-full object-cover" src="/lovable-uploads/e9e54bb8-66ec-480c-9ca6-85914ac0e861.jpg" />
             </div>
           </div>
         </div>
