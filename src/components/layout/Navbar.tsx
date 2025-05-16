@@ -2,10 +2,20 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
-import { Menu, X, Briefcase } from 'lucide-react';
+import { Menu, X, Briefcase, User, LogOut } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const Navbar: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { user, signOut, isLoading } = useAuth();
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
@@ -40,16 +50,49 @@ const Navbar: React.FC = () => {
 
         {/* Desktop Auth Buttons */}
         <div className="hidden md:flex items-center gap-4">
-          <Link to="/login">
-            <Button variant="outline" size="sm" className="border-ttc-blue-700 text-ttc-blue-700 hover:bg-ttc-blue-50 hover:text-ttc-blue-700">
-              Login
-            </Button>
-          </Link>
-          <Link to="/signup">
-            <Button size="sm" className="bg-ttc-blue-700 text-white hover:bg-ttc-blue-800">
-              Register
-            </Button>
-          </Link>
+          {isLoading ? (
+            <div className="h-9 w-20 bg-gray-100 animate-pulse rounded-md"></div>
+          ) : user ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="border-ttc-blue-700 text-ttc-blue-700 hover:bg-ttc-blue-50 hover:text-ttc-blue-700"
+                >
+                  <User className="h-4 w-4 mr-2" /> 
+                  {user.user_metadata.first_name || 'Account'}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link to="/profile" className="cursor-pointer">Profile</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/dashboard" className="cursor-pointer">Dashboard</Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={signOut} className="cursor-pointer text-red-600 hover:text-red-700">
+                  <LogOut className="h-4 w-4 mr-2" /> Logout
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <>
+              <Link to="/login">
+                <Button variant="outline" size="sm" className="border-ttc-blue-700 text-ttc-blue-700 hover:bg-ttc-blue-50 hover:text-ttc-blue-700">
+                  Login
+                </Button>
+              </Link>
+              <Link to="/signup">
+                <Button size="sm" className="bg-ttc-blue-700 text-white hover:bg-ttc-blue-800">
+                  Register
+                </Button>
+              </Link>
+            </>
+          )}
         </div>
 
         {/* Mobile Menu Button */}
@@ -100,20 +143,42 @@ const Navbar: React.FC = () => {
             </nav>
 
             <div className="pt-2 flex flex-col space-y-2 border-t border-gray-200">
-              <Link 
-                to="/login" 
-                className="w-full py-2 text-center border border-ttc-blue-700 text-ttc-blue-700 rounded-md hover:bg-ttc-blue-50"
-                onClick={toggleMenu}
-              >
-                Login
-              </Link>
-              <Link 
-                to="/signup" 
-                className="w-full py-2 text-center bg-ttc-blue-700 text-white rounded-md hover:bg-ttc-blue-800"
-                onClick={toggleMenu}
-              >
-                Register
-              </Link>
+              {isLoading ? (
+                <div className="h-10 bg-gray-100 animate-pulse rounded-md"></div>
+              ) : user ? (
+                <>
+                  <Link 
+                    to="/dashboard" 
+                    className="w-full py-2 text-center border border-ttc-blue-700 text-ttc-blue-700 rounded-md hover:bg-ttc-blue-50"
+                    onClick={toggleMenu}
+                  >
+                    Dashboard
+                  </Link>
+                  <button 
+                    onClick={() => { toggleMenu(); signOut(); }}
+                    className="w-full py-2 text-center bg-red-500 text-white rounded-md hover:bg-red-600"
+                  >
+                    Logout
+                  </button>
+                </>
+              ) : (
+                <>
+                  <Link 
+                    to="/login" 
+                    className="w-full py-2 text-center border border-ttc-blue-700 text-ttc-blue-700 rounded-md hover:bg-ttc-blue-50"
+                    onClick={toggleMenu}
+                  >
+                    Login
+                  </Link>
+                  <Link 
+                    to="/signup" 
+                    className="w-full py-2 text-center bg-ttc-blue-700 text-white rounded-md hover:bg-ttc-blue-800"
+                    onClick={toggleMenu}
+                  >
+                    Register
+                  </Link>
+                </>
+              )}
             </div>
           </div>
         </div>
