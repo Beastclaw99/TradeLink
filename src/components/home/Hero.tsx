@@ -1,8 +1,11 @@
+
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
+
 const Hero: React.FC = () => {
-  return <section className="bg-ttc-blue-800 py-16 md:py-24 text-white">
+  return (
+    <section className="bg-ttc-blue-800 py-16 md:py-24 text-white">
       <div className="container-custom">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           <div className="animate-fade-in">
@@ -44,6 +47,8 @@ const Hero: React.FC = () => {
           </div>
         </div>
       </div>
-    </section>;
+    </section>
+  );
 };
+
 export default Hero;

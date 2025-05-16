@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Link } from 'react-router-dom';
 
@@ -51,9 +52,11 @@ const serviceCategories = [{
   image: "/lovable-uploads/848377f4-0205-491b-a416-42eea8acae4b.png",
   href: "/find-pros/flooring"
 }];
+
 const Services: React.FC = () => {
-  return <section className="py-16 bg-ttc-neutral-100">
-      <div className="container-custom bg-slate-50">
+  return (
+    <section className="py-16 bg-ttc-neutral-100">
+      <div className="container-custom">
         <div className="text-center max-w-3xl mx-auto mb-12">
           <h2 className="text-3xl md:text-4xl font-bold mb-4 text-ttc-neutral-800">
             Find Services You Need
@@ -64,10 +67,15 @@ const Services: React.FC = () => {
         </div>
         
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {serviceCategories.map(category => <Link key={category.id} to={category.href} className="bg-white rounded-lg shadow-sm card-hover flex flex-col h-full overflow-hidden">
+          {serviceCategories.map(category => (
+            <Link 
+              key={category.id} 
+              to={category.href} 
+              className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow flex flex-col h-full overflow-hidden"
+            >
               <div className="relative h-48 w-full">
                 <img src={category.image} alt={category.title} className="w-full h-full object-cover" />
-                <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/70 flex items-end bg-slate-400">
+                <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/70 flex items-end">
                   <h3 className="text-xl font-semibold text-white p-4">{category.title}</h3>
                 </div>
               </div>
@@ -80,7 +88,8 @@ const Services: React.FC = () => {
                   </svg>
                 </div>
               </div>
-            </Link>)}
+            </Link>
+          ))}
         </div>
         
         <div className="mt-10 text-center">
@@ -92,6 +101,8 @@ const Services: React.FC = () => {
           </Link>
         </div>
       </div>
-    </section>;
+    </section>
+  );
 };
+
 export default Services;
