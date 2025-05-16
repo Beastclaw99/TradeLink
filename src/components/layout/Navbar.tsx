@@ -68,10 +68,10 @@ const Navbar: React.FC = () => {
                 <DropdownMenuLabel>My Account</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
-                  <Link to="/profile" className="cursor-pointer">Profile</Link>
+                  <Link to="/dashboard" className="cursor-pointer">Dashboard</Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
-                  <Link to="/dashboard" className="cursor-pointer">Dashboard</Link>
+                  <Link to="/profile" className="cursor-pointer">Profile</Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={signOut} className="cursor-pointer text-red-600 hover:text-red-700">

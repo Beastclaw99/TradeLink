@@ -16,6 +16,7 @@ import NotFound from "./pages/NotFound";
 import ProjectMarketplace from "./pages/ProjectMarketplace";
 import ProjectDetails from "./pages/ProjectDetails";
 import JoinNetwork from "./pages/JoinNetwork";
+import Dashboard from "./pages/Dashboard";
 
 const queryClient = new QueryClient();
 
@@ -38,6 +39,7 @@ const App = () => (
             <Route path="/project-marketplace" element={<ProjectMarketplace />} />
             <Route path="/project/:projectId" element={<ProjectDetails />} />
             <Route path="/join-network" element={<JoinNetwork />} />
+            <Route path="/dashboard" element={<Dashboard />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
