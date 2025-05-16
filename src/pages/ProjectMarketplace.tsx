@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import Layout from '@/components/layout/Layout';
 import { Button } from "@/components/ui/button";
@@ -170,7 +169,7 @@ const ProjectMarketplace: React.FC = () => {
                     <SelectValue placeholder="All Categories" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Categories</SelectItem>
+                    <SelectItem value="all">All Categories</SelectItem>
                     <SelectItem value="Carpentry">Carpentry</SelectItem>
                     <SelectItem value="Electrical">Electrical</SelectItem>
                     <SelectItem value="Plumbing">Plumbing</SelectItem>
@@ -190,7 +189,7 @@ const ProjectMarketplace: React.FC = () => {
                     <SelectValue placeholder="All Locations" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Locations</SelectItem>
+                    <SelectItem value="all">All Locations</SelectItem>
                     <SelectItem value="Port of Spain">Port of Spain</SelectItem>
                     <SelectItem value="San Fernando">San Fernando</SelectItem>
                     <SelectItem value="Arima">Arima</SelectItem>
@@ -208,7 +207,7 @@ const ProjectMarketplace: React.FC = () => {
                     <SelectValue placeholder="Any Budget" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Any Budget</SelectItem>
+                    <SelectItem value="any">Any Budget</SelectItem>
                     <SelectItem value="under5k">Under $5,000</SelectItem>
                     <SelectItem value="5k-10k">$5,000 - $10,000</SelectItem>
                     <SelectItem value="over10k">Over $10,000</SelectItem>
