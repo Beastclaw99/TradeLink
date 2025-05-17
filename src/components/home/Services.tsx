@@ -19,7 +19,7 @@ const serviceCategories = [{
   id: 3,
   title: "Plumbing",
   description: "Expert plumbers for repairs, installations and maintenance.",
-  image: "/lovable-uploads/plumbing.jfif", // Plumbing image
+  image: "/lovable-uploads/plumbing.jpg", // Plumbing image
   href: "/find-pros/plumbing"
 }, {
   id: 4,
