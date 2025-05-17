@@ -57,6 +57,8 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ userId }) => {
   const fetchProjects = async () => {
     try {
       setIsLoading(true);
+      
+      // Fix: Use typed explicit response for projects query
       const { data: projectsData, error: projectsError } = await supabase
         .from('projects')
         .select('*')
@@ -65,8 +67,8 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ userId }) => {
 
       if (projectsError) throw projectsError;
       
-      // Set projects
-      setProjects(projectsData || []);
+      // Properly cast data to Project[] type
+      setProjects(projectsData as Project[] || []);
       
       // Fetch applications for all projects
       if (projectsData && projectsData.length > 0) {
@@ -81,7 +83,7 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ userId }) => {
           .in('project_id', projectIds);
           
         if (applicationsError) throw applicationsError;
-        setApplications(applicationsData || []);
+        setApplications(applicationsData as Application[] || []);
       }
     } catch (error: any) {
       console.error('Error fetching data:', error);
@@ -110,17 +112,16 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ userId }) => {
     try {
       setIsSubmitting(true);
       
+      // Fix: Use properly typed insert operation
       const { data, error } = await supabase
         .from('projects')
-        .insert([
-          {
-            title: newProject.title,
-            description: newProject.description,
-            budget: parseFloat(newProject.budget),
-            status: 'open',
-            client_id: userId
-          }
-        ])
+        .insert({
+          title: newProject.title,
+          description: newProject.description,
+          budget: parseFloat(newProject.budget),
+          status: 'open',
+          client_id: userId
+        })
         .select();
       
       if (error) throw error;
@@ -153,6 +154,7 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ userId }) => {
 
   const handleApplicationUpdate = async (applicationId: string, newStatus: string) => {
     try {
+      // Fix: Use properly typed update operation
       const { error } = await supabase
         .from('applications')
         .update({ status: newStatus })
@@ -179,6 +181,7 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ userId }) => {
 
   const markProjectAsPaid = async (projectId: string) => {
     try {
+      // Fix: Use properly typed update operation
       const { error } = await supabase
         .from('projects')
         .update({ status: 'paid' })
@@ -223,7 +226,12 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ userId }) => {
             <Button 
               variant="outline" 
               className="mt-4"
-              onClick={() => document.querySelector('[data-value="create"]')?.click()}
+              onClick={() => {
+                const createTab = document.querySelector('[data-value="create"]');
+                if (createTab) {
+                  (createTab as HTMLElement).click();
+                }
+              }}
             >
               <Plus className="w-4 h-4 mr-2" /> Post Your First Project
             </Button>

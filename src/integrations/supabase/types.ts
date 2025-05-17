@@ -9,6 +9,100 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      applications: {
+        Row: {
+          cover_letter: string | null
+          created_at: string | null
+          id: string
+          professional_id: string | null
+          project_id: string | null
+          status: string | null
+        }
+        Insert: {
+          cover_letter?: string | null
+          created_at?: string | null
+          id?: string
+          professional_id?: string | null
+          project_id?: string | null
+          status?: string | null
+        }
+        Update: {
+          cover_letter?: string | null
+          created_at?: string | null
+          id?: string
+          professional_id?: string | null
+          project_id?: string | null
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "applications_professional_id_fkey"
+            columns: ["professional_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "applications_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payments: {
+        Row: {
+          amount: number
+          client_id: string | null
+          id: string
+          paid_at: string | null
+          professional_id: string | null
+          project_id: string | null
+          status: string | null
+        }
+        Insert: {
+          amount: number
+          client_id?: string | null
+          id?: string
+          paid_at?: string | null
+          professional_id?: string | null
+          project_id?: string | null
+          status?: string | null
+        }
+        Update: {
+          amount?: number
+          client_id?: string | null
+          id?: string
+          paid_at?: string | null
+          professional_id?: string | null
+          project_id?: string | null
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payments_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_professional_id_fkey"
+            columns: ["professional_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       Policies: {
         Row: {
           created_at: string
@@ -26,30 +120,74 @@ export type Database = {
       }
       profiles: {
         Row: {
-          account_type: string
+          account_type: Database["public"]["Enums"]["account_type_enum"]
           created_at: string
           first_name: string | null
           id: string
           last_name: string | null
+          rating: number | null
+          skills: string[] | null
           updated_at: string
         }
         Insert: {
-          account_type: string
+          account_type: Database["public"]["Enums"]["account_type_enum"]
           created_at?: string
           first_name?: string | null
           id: string
           last_name?: string | null
+          rating?: number | null
+          skills?: string[] | null
           updated_at?: string
         }
         Update: {
-          account_type?: string
+          account_type?: Database["public"]["Enums"]["account_type_enum"]
           created_at?: string
           first_name?: string | null
           id?: string
           last_name?: string | null
+          rating?: number | null
+          skills?: string[] | null
           updated_at?: string
         }
         Relationships: []
+      }
+      projects: {
+        Row: {
+          budget: number | null
+          client_id: string | null
+          created_at: string | null
+          description: string | null
+          id: string
+          status: string | null
+          title: string
+        }
+        Insert: {
+          budget?: number | null
+          client_id?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          status?: string | null
+          title: string
+        }
+        Update: {
+          budget?: number | null
+          client_id?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          status?: string | null
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projects_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
@@ -59,7 +197,7 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      account_type_enum: "client" | "professional"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -174,6 +312,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      account_type_enum: ["client", "professional"],
+    },
   },
 } as const
