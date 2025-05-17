@@ -5,7 +5,7 @@ import { Link } from 'react-router-dom';
 // Service category data
 const serviceCategories = [{
   id: 1,
-  title: "Carpentry",
+  title: "Masonry",
   description: "Professional carpenters for custom woodwork and furniture.",
   image: "lovable-uploads/83edf7f3-bcae-47be-bd73-826afca8a7c3.jpg", // Carpentry image
   href: "/find-pros/carpentry"
