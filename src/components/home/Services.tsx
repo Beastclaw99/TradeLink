@@ -7,7 +7,7 @@ const serviceCategories = [{
   id: 1,
   title: "Carpentry",
   description: "Professional carpenters for custom woodwork and furniture.",
-  image: "/lovable-uploads/carlosSainz.jpg", // Carpentry image
+  image: "lovable-uploads/83edf7f3-bcae-47be-bd73-826afca8a7c3.jpg", // Carpentry image
   href: "/find-pros/carpentry"
 }, {
   id: 2,
