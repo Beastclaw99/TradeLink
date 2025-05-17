@@ -5,51 +5,51 @@ import { Link } from 'react-router-dom';
 // Service category data
 const serviceCategories = [{
   id: 1,
-  title: "Masonry",
+  title: "Carpentry",
   description: "Professional carpenters for custom woodwork and furniture.",
-  image: "lovable-uploads/carlosSainz.jpg", // Carpentry image
+  image: "lovable-uploads/carpenter-working.jpg", // Carpentry image
   href: "/find-pros/carpentry"
 }, {
   id: 2,
   title: "Electrical",
   description: "Licensed electricians for all your electrical needs.",
-  image: "/lovable-uploads/8bbf4ce1-7690-4c37-9adf-b2751ac81a84.png", // Electrical image
+  image: "/lovable-uploads/electrical.jpg", // Electrical image
   href: "/find-pros/electrical"
 }, {
   id: 3,
   title: "Plumbing",
   description: "Expert plumbers for repairs, installations and maintenance.",
-  image: "/lovable-uploads/bdca5a09-3b4b-4b3d-b094-5a9848a5ace0.jpg", // Plumbing image
+  image: "/lovable-uploads/plumbing.jfif", // Plumbing image
   href: "/find-pros/plumbing"
 }, {
   id: 4,
   title: "Painting",
   description: "Professional painters for interior and exterior painting.",
-  image: "/lovable-uploads/b895389d-d481-4e54-9d12-e9e52e4af165.jpg", // Painting image
+  image: "/lovable-uploads/painting.jpg", // Painting image
   href: "/find-pros/painting"
 }, {
   id: 5,
   title: "Roofing",
   description: "Roofing professionals for repairs and installations.",
-  image: "/lovable-uploads/93c3c189-5561-4881-a790-6565fbe4f664.jpg", // Roofing image
+  image: "/lovable-uploads/roofing.jpg", // Roofing image
   href: "/find-pros/roofing"
 }, {
   id: 6,
   title: "Landscaping",
   description: "Transform your outdoor space with our landscape experts.",
-  image: "/lovable-uploads/848377f4-0205-491b-a416-42eea8acae4b.png", // Landscaping image
+  image: "/lovable-uploads/landscaping.jpg", // Landscaping image
   href: "/find-pros/landscaping"
 }, {
   id: 7,
   title: "Masonry",
   description: "Skilled masons for brickwork, concrete and stone projects.",
-  image: "/lovable-uploads/83edf7f3-bcae-47be-bd73-826afca8a7c3.jpg", // Masonry image
+  image: "/lovable-uploads/masonry.jpg", // Masonry image
   href: "/find-pros/masonry"
 }, {
   id: 8,
   title: "Flooring",
   description: "Flooring specialists for installation and refinishing.",
-  image: "/lovable-uploads/e9e54bb8-66ec-480c-9ca6-85914ac0e861.jpg", // Flooring image
+  image: "/lovable-uploads/flooring.jpg", // Flooring image
   href: "/find-pros/flooring"
 }];
 
