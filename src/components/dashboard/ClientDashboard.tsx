@@ -9,15 +9,16 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { AlertDialog, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { AlertDialog, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { FileText, Plus, Check, X, Edit, Trash, AlertCircle } from "lucide-react";
 import { Project, Application, ProjectChangeRequest } from './types';
 
 interface ClientDashboardProps {
   userId: string;
+  initialTab?: string;
 }
 
-const ClientDashboard: React.FC<ClientDashboardProps> = ({ userId }) => {
+const ClientDashboard: React.FC<ClientDashboardProps> = ({ userId, initialTab = 'projects' }) => {
   const { toast } = useToast();
   const [projects, setProjects] = useState<Project[]>([]);
   const [applications, setApplications] = useState<Application[]>([]);
@@ -83,7 +84,19 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ userId }) => {
           .eq('client_id', userId);
           
         if (changeRequestsError) throw changeRequestsError;
-        setChangeRequests(changeRequestsData || []);
+        
+        // Ensure change_payload is correctly typed
+        const typedChangeRequests = changeRequestsData?.map(request => ({
+          ...request,
+          change_payload: request.change_payload as unknown as {
+            title?: string;
+            description?: string;
+            budget?: number;
+            status?: string;
+          }
+        })) as ProjectChangeRequest[];
+        
+        setChangeRequests(typedChangeRequests || []);
       }
     } catch (error: any) {
       console.error('Error fetching data:', error);
@@ -398,7 +411,7 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ userId }) => {
   };
 
   return (
-    <Tabs defaultValue="projects">
+    <Tabs defaultValue={initialTab}>
       <TabsList className="mb-6">
         <TabsTrigger value="projects">Your Projects</TabsTrigger>
         <TabsTrigger value="applications">Applications</TabsTrigger>
@@ -590,7 +603,7 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ userId }) => {
                   <TableRow key={app.id}>
                     <TableCell className="font-medium">{project?.title || 'Unknown Project'}</TableCell>
                     <TableCell>
-                      {app.professional?.first_name} {app.professional?.last_name}
+                      {app.professional ? `${app.professional.first_name} ${app.professional.last_name}` : 'Unknown Applicant'}
                     </TableCell>
                     <TableCell className="max-w-xs truncate">{app.cover_letter}</TableCell>
                     <TableCell>

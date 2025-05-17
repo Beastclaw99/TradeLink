@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState } from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from '@/contexts/AuthContext';
 import Layout from '@/components/layout/Layout';
@@ -14,6 +14,8 @@ const Dashboard: React.FC = () => {
   const { toast } = useToast();
   const [accountType, setAccountType] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const location = useLocation();
+  const activeTab = location.state?.activeTab || 'projects';
 
   useEffect(() => {
     const fetchUserProfile = async () => {
@@ -73,7 +75,7 @@ const Dashboard: React.FC = () => {
         <h1 className="text-3xl font-bold mb-6">Your Dashboard</h1>
         
         {accountType === 'client' ? (
-          <ClientDashboard userId={user.id} />
+          <ClientDashboard userId={user.id} initialTab={activeTab} />
         ) : accountType === 'professional' ? (
           <ProfessionalDashboard userId={user.id} />
         ) : (

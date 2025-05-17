@@ -26,6 +26,10 @@ export interface Application {
     status: string | null;
     budget: number | null;
   };
+  professional?: {
+    first_name: string | null;
+    last_name: string | null;
+  };
 }
 
 export interface Payment {
@@ -34,6 +38,9 @@ export interface Payment {
   amount: number;
   status: string | null;
   created_at: string;
+  paid_at?: string | null;
+  professional_id?: string | null;
+  client_id?: string | null;
   project?: {
     title: string;
   };
