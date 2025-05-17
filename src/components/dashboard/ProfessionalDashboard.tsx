@@ -7,53 +7,14 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Star, Briefcase, FileText } from "lucide-react";
-
-interface Project {
-  id: string;
-  title: string;
-  description: string;
-  budget: number;
-  status: string;
-  created_at: string;
-  client: {
-    first_name: string;
-    last_name: string;
-  };
-}
-
-interface Application {
-  id: string;
-  project_id: string;
-  professional_id: string;
-  status: string;
-  cover_letter: string;
-  created_at: string;
-  project: {
-    title: string;
-    status: string;
-    budget: number;
-  };
-}
-
-interface Payment {
-  id: string;
-  project_id: string;
-  amount: number;
-  status: string;
-  created_at: string;
-  project: {
-    title: string;
-  };
-}
-
-interface Review {
-  id: string;
-  project_id: string;
-  rating: number;
-  comment: string;
-  created_at: string;
-}
+import { Star, Briefcase, FileText, AlertCircle } from "lucide-react";
+import { 
+  Project, 
+  Application, 
+  Payment, 
+  Review,
+  ProjectChangeRequest 
+} from './types';
 
 interface ProfessionalDashboardProps {
   userId: string;
@@ -65,9 +26,11 @@ const ProfessionalDashboard: React.FC<ProfessionalDashboardProps> = ({ userId })
   const [applications, setApplications] = useState<Application[]>([]);
   const [payments, setPayments] = useState<Payment[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
+  const [changeRequests, setChangeRequests] = useState<ProjectChangeRequest[]>([]);
   const [skills, setSkills] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isApplying, setIsApplying] = useState(false);
+  const [isResponding, setIsResponding] = useState(false);
   const [coverLetter, setCoverLetter] = useState('');
   const [selectedProject, setSelectedProject] = useState<string | null>(null);
 
@@ -112,7 +75,7 @@ const ProfessionalDashboard: React.FC<ProfessionalDashboardProps> = ({ userId })
           return userSkills.some((skill: string) => 
             projTags.includes(skill) || 
             project.title.toLowerCase().includes(skill.toLowerCase()) ||
-            project.description.toLowerCase().includes(skill.toLowerCase())
+            project.description?.toLowerCase().includes(skill.toLowerCase())
           );
         });
       }
@@ -138,7 +101,7 @@ const ProfessionalDashboard: React.FC<ProfessionalDashboardProps> = ({ userId })
           *,
           project:projects(title)
         `)
-        .eq('recipient_id', userId);
+        .eq('professional_id', userId);
       
       if (paymentsError) throw paymentsError;
       setPayments(paymentsData || []);
@@ -151,6 +114,26 @@ const ProfessionalDashboard: React.FC<ProfessionalDashboardProps> = ({ userId })
       
       if (reviewsError) throw reviewsError;
       setReviews(reviewsData || []);
+      
+      // Fetch change requests for projects where professional is accepted
+      const acceptedProjectIds = applications
+        .filter(app => app.status === 'accepted')
+        .map(app => app.project_id)
+        .filter(Boolean) as string[];
+
+      if (acceptedProjectIds.length > 0) {
+        const { data: changeRequestData, error: changeRequestError } = await supabase
+          .from('project_change_requests')
+          .select(`
+            *,
+            project:projects(title)
+          `)
+          .eq('professional_id', userId)
+          .in('status', ['pending']);
+        
+        if (changeRequestError) throw changeRequestError;
+        setChangeRequests(changeRequestData || []);
+      }
       
     } catch (error: any) {
       console.error('Error fetching data:', error);
@@ -166,7 +149,7 @@ const ProfessionalDashboard: React.FC<ProfessionalDashboardProps> = ({ userId })
 
   const calculateAverageRating = () => {
     if (reviews.length === 0) return 0;
-    const total = reviews.reduce((sum, review) => sum + review.rating, 0);
+    const total = reviews.reduce((sum, review) => sum + (review.rating || 0), 0);
     return (total / reviews.length).toFixed(1);
   };
 
@@ -233,11 +216,60 @@ const ProfessionalDashboard: React.FC<ProfessionalDashboardProps> = ({ userId })
     }
   };
 
+  const handleChangeRequest = async (changeRequestId: string, decision: 'approved' | 'rejected') => {
+    try {
+      setIsResponding(true);
+      
+      const { error } = await supabase
+        .from('project_change_requests')
+        .update({ 
+          status: decision,
+          decision_at: new Date().toISOString()
+        })
+        .eq('id', changeRequestId);
+      
+      if (error) throw error;
+      
+      toast({
+        title: "Response Submitted",
+        description: `You have ${decision} the requested change.`
+      });
+      
+      // Refresh data
+      fetchDashboardData();
+      
+    } catch (error: any) {
+      console.error('Error responding to change request:', error);
+      toast({
+        title: "Error",
+        description: "Failed to submit your response. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsResponding(false);
+    }
+  };
+
+  const formatChangeRequestDescription = (changeRequest: ProjectChangeRequest) => {
+    if (!changeRequest.change_payload) return 'No changes specified';
+    
+    const changes = [];
+    const payload = changeRequest.change_payload;
+    
+    if (payload.title) changes.push(`Title changed to: "${payload.title}"`);
+    if (payload.description) changes.push(`Description updated`);
+    if (payload.budget !== undefined) changes.push(`Budget changed to: $${payload.budget}`);
+    if (payload.status) changes.push(`Status changed to: ${payload.status}`);
+    
+    return changes.length > 0 ? changes.join(', ') : 'No changes specified';
+  };
+
   return (
     <Tabs defaultValue="featured">
       <TabsList className="mb-6">
         <TabsTrigger value="featured">Featured Projects</TabsTrigger>
         <TabsTrigger value="applications">Your Applications</TabsTrigger>
+        <TabsTrigger value="changes">Change Requests</TabsTrigger>
         <TabsTrigger value="payments">Payments</TabsTrigger>
         <TabsTrigger value="reviews">Reviews</TabsTrigger>
       </TabsList>
@@ -282,7 +314,7 @@ const ProfessionalDashboard: React.FC<ProfessionalDashboardProps> = ({ userId })
                   <CardHeader>
                     <CardTitle>{project.title}</CardTitle>
                     <CardDescription className="flex items-center justify-between">
-                      <span>Posted on {new Date(project.created_at).toLocaleDateString()}</span>
+                      <span>Posted on {new Date(project.created_at || '').toLocaleDateString()}</span>
                       <span>by {project.client?.first_name} {project.client?.last_name}</span>
                     </CardDescription>
                   </CardHeader>
@@ -300,7 +332,10 @@ const ProfessionalDashboard: React.FC<ProfessionalDashboardProps> = ({ userId })
                         className="w-full bg-ttc-blue-700 hover:bg-ttc-blue-800"
                         onClick={() => {
                           setSelectedProject(project.id);
-                          document.querySelector('[data-value="apply"]')?.click();
+                          const applyTab = document.querySelector('[data-value="apply"]');
+                          if (applyTab) {
+                            (applyTab as HTMLElement).click();
+                          }
                         }}
                       >
                         Apply for this Project
@@ -362,7 +397,12 @@ const ProfessionalDashboard: React.FC<ProfessionalDashboardProps> = ({ userId })
             <Button 
               variant="outline" 
               className="mt-4"
-              onClick={() => document.querySelector('[data-value="featured"]')?.click()}
+              onClick={() => {
+                const featuredTab = document.querySelector('[data-value="featured"]');
+                if (featuredTab) {
+                  (featuredTab as HTMLElement).click();
+                }
+              }}
             >
               Browse Available Projects
             </Button>
@@ -381,7 +421,7 @@ const ProfessionalDashboard: React.FC<ProfessionalDashboardProps> = ({ userId })
               {applications.map(app => (
                 <TableRow key={app.id}>
                   <TableCell className="font-medium">{app.project?.title || 'Unknown Project'}</TableCell>
-                  <TableCell>{new Date(app.created_at).toLocaleDateString()}</TableCell>
+                  <TableCell>{new Date(app.created_at || '').toLocaleDateString()}</TableCell>
                   <TableCell>${app.project?.budget || 'N/A'}</TableCell>
                   <TableCell>
                     <span className={`px-2 py-1 text-xs rounded-full ${
@@ -396,6 +436,70 @@ const ProfessionalDashboard: React.FC<ProfessionalDashboardProps> = ({ userId })
               ))}
             </TableBody>
           </Table>
+        )}
+      </TabsContent>
+      
+      <TabsContent value="changes">
+        <div className="flex items-center mb-4">
+          <div className="flex-1">
+            <h2 className="text-2xl font-bold">Project Change Requests</h2>
+            <p className="text-ttc-neutral-600">Clients need your approval for project changes</p>
+          </div>
+        </div>
+        
+        {isLoading ? (
+          <p>Loading change requests...</p>
+        ) : changeRequests.length === 0 ? (
+          <div className="text-center py-8">
+            <AlertCircle className="w-12 h-12 mx-auto text-ttc-neutral-400" />
+            <p className="mt-4 text-ttc-neutral-600">No pending change requests.</p>
+          </div>
+        ) : (
+          <div className="space-y-6">
+            {changeRequests.map(request => (
+              <Card key={request.id} className="border-yellow-200">
+                <CardHeader className="bg-yellow-50 border-b border-yellow-100">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-lg flex items-center">
+                      <AlertCircle className="mr-2 h-5 w-5 text-yellow-600" />
+                      Change Request: {request.project?.title}
+                    </CardTitle>
+                    <span className="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded-full">
+                      Pending Approval
+                    </span>
+                  </div>
+                  <CardDescription>
+                    Requested on {new Date(request.created_at || '').toLocaleDateString()}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="pt-4">
+                  <p className="text-ttc-neutral-700 font-medium mb-2">
+                    Change Type: {request.change_type || 'Update'}
+                  </p>
+                  <p className="text-ttc-neutral-700 mb-4">
+                    {formatChangeRequestDescription(request)}
+                  </p>
+                </CardContent>
+                <CardFooter className="flex justify-end gap-2 pt-2 border-t">
+                  <Button 
+                    variant="outline" 
+                    className="border-red-200 text-red-700 hover:bg-red-50" 
+                    onClick={() => handleChangeRequest(request.id, 'rejected')}
+                    disabled={isResponding}
+                  >
+                    Reject Changes
+                  </Button>
+                  <Button 
+                    className="bg-green-600 hover:bg-green-700"
+                    onClick={() => handleChangeRequest(request.id, 'approved')}
+                    disabled={isResponding}
+                  >
+                    Approve Changes
+                  </Button>
+                </CardFooter>
+              </Card>
+            ))}
+          </div>
         )}
       </TabsContent>
       
@@ -511,7 +615,7 @@ const ProfessionalDashboard: React.FC<ProfessionalDashboardProps> = ({ userId })
                         <Star 
                           key={star} 
                           className={`w-4 h-4 ${
-                            star <= review.rating 
+                            star <= (review.rating || 0)
                               ? 'text-yellow-400 fill-yellow-400' 
                               : 'text-gray-300'
                           }`}

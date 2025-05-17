@@ -151,6 +151,64 @@ export type Database = {
         }
         Relationships: []
       }
+      project_change_requests: {
+        Row: {
+          change_payload: Json | null
+          change_type: string | null
+          client_id: string | null
+          created_at: string | null
+          decision_at: string | null
+          id: string
+          professional_id: string | null
+          project_id: string | null
+          status: string | null
+        }
+        Insert: {
+          change_payload?: Json | null
+          change_type?: string | null
+          client_id?: string | null
+          created_at?: string | null
+          decision_at?: string | null
+          id?: string
+          professional_id?: string | null
+          project_id?: string | null
+          status?: string | null
+        }
+        Update: {
+          change_payload?: Json | null
+          change_type?: string | null
+          client_id?: string | null
+          created_at?: string | null
+          decision_at?: string | null
+          id?: string
+          professional_id?: string | null
+          project_id?: string | null
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_change_requests_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_change_requests_professional_id_fkey"
+            columns: ["professional_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_change_requests_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       projects: {
         Row: {
           budget: number | null
@@ -185,6 +243,58 @@ export type Database = {
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reviews: {
+        Row: {
+          client_id: string | null
+          comment: string | null
+          created_at: string | null
+          id: string
+          professional_id: string | null
+          project_id: string | null
+          rating: number | null
+        }
+        Insert: {
+          client_id?: string | null
+          comment?: string | null
+          created_at?: string | null
+          id?: string
+          professional_id?: string | null
+          project_id?: string | null
+          rating?: number | null
+        }
+        Update: {
+          client_id?: string | null
+          comment?: string | null
+          created_at?: string | null
+          id?: string
+          professional_id?: string | null
+          project_id?: string | null
+          rating?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reviews_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reviews_professional_id_fkey"
+            columns: ["professional_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reviews_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
             referencedColumns: ["id"]
           },
         ]

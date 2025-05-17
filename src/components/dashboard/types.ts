@@ -1,0 +1,68 @@
+
+// Shared interfaces for dashboard components
+export interface Project {
+  id: string;
+  title: string;
+  description: string | null;
+  budget: number | null;
+  status: string | null;
+  created_at: string | null;
+  client_id: string | null;
+  client?: {
+    first_name: string | null;
+    last_name: string | null;
+  };
+}
+
+export interface Application {
+  id: string;
+  project_id: string | null;
+  professional_id: string | null;
+  status: string | null;
+  cover_letter: string | null;
+  created_at: string | null;
+  project?: {
+    title: string;
+    status: string | null;
+    budget: number | null;
+  };
+}
+
+export interface Payment {
+  id: string;
+  project_id: string | null;
+  amount: number;
+  status: string | null;
+  created_at: string;
+  project?: {
+    title: string;
+  };
+}
+
+export interface Review {
+  id: string;
+  project_id: string | null;
+  rating: number | null;
+  comment: string | null;
+  created_at: string;
+}
+
+export interface ProjectChangeRequest {
+  id: string;
+  project_id: string | null;
+  professional_id: string | null;
+  client_id: string | null;
+  status: string | null;
+  change_type: string | null;
+  created_at: string | null;
+  decision_at: string | null;
+  change_payload: {
+    title?: string;
+    description?: string;
+    budget?: number;
+    status?: string;
+  } | null;
+  project?: {
+    title: string;
+  };
+}

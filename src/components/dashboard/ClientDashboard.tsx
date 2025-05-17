@@ -9,29 +9,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { FileText, Plus, Check, X } from "lucide-react";
-
-interface Project {
-  id: string;
-  title: string;
-  description: string;
-  budget: number;
-  status: string;
-  created_at: string;
-}
-
-interface Application {
-  id: string;
-  project_id: string;
-  professional_id: string;
-  status: string;
-  cover_letter: string;
-  created_at: string;
-  professional: {
-    first_name: string;
-    last_name: string;
-  };
-}
+import { AlertDialog, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { FileText, Plus, Check, X, Edit, Trash, AlertCircle } from "lucide-react";
+import { Project, Application, ProjectChangeRequest } from './types';
 
 interface ClientDashboardProps {
   userId: string;
@@ -41,10 +21,20 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ userId }) => {
   const { toast } = useToast();
   const [projects, setProjects] = useState<Project[]>([]);
   const [applications, setApplications] = useState<Application[]>([]);
+  const [changeRequests, setChangeRequests] = useState<ProjectChangeRequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
+  const [editProject, setEditProject] = useState<Project | null>(null);
+  const [projectToDelete, setProjectToDelete] = useState<string | null>(null);
+  
   const [newProject, setNewProject] = useState({
+    title: '',
+    description: '',
+    budget: ''
+  });
+  
+  const [editedProject, setEditedProject] = useState({
     title: '',
     description: '',
     budget: ''
@@ -58,7 +48,7 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ userId }) => {
     try {
       setIsLoading(true);
       
-      // Fix: Use typed explicit response for projects query
+      // Fetch projects
       const { data: projectsData, error: projectsError } = await supabase
         .from('projects')
         .select('*')
@@ -66,9 +56,7 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ userId }) => {
         .order('created_at', { ascending: false });
 
       if (projectsError) throw projectsError;
-      
-      // Properly cast data to Project[] type
-      setProjects(projectsData as Project[] || []);
+      setProjects(projectsData || []);
       
       // Fetch applications for all projects
       if (projectsData && projectsData.length > 0) {
@@ -83,7 +71,19 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ userId }) => {
           .in('project_id', projectIds);
           
         if (applicationsError) throw applicationsError;
-        setApplications(applicationsData as Application[] || []);
+        setApplications(applicationsData || []);
+        
+        // Fetch change requests
+        const { data: changeRequestsData, error: changeRequestsError } = await supabase
+          .from('project_change_requests')
+          .select(`
+            *,
+            project:projects(title)
+          `)
+          .eq('client_id', userId);
+          
+        if (changeRequestsError) throw changeRequestsError;
+        setChangeRequests(changeRequestsData || []);
       }
     } catch (error: any) {
       console.error('Error fetching data:', error);
@@ -112,7 +112,6 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ userId }) => {
     try {
       setIsSubmitting(true);
       
-      // Fix: Use properly typed insert operation
       const { data, error } = await supabase
         .from('projects')
         .insert({
@@ -151,16 +150,184 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ userId }) => {
       setIsSubmitting(false);
     }
   };
+  
+  const handleEditInitiate = (project: Project) => {
+    setEditProject(project);
+    setEditedProject({
+      title: project.title,
+      description: project.description || '',
+      budget: project.budget ? project.budget.toString() : ''
+    });
+  };
+  
+  const handleEditCancel = () => {
+    setEditProject(null);
+  };
+  
+  const handleUpdateProject = async (project: Project) => {
+    if (!editedProject.title || !editedProject.description || !editedProject.budget) {
+      toast({
+        title: "Missing information",
+        description: "Please fill in all fields",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    try {
+      setIsSubmitting(true);
+      
+      // Check if this project has any accepted applications
+      const acceptedApplications = applications.filter(
+        app => app.project_id === project.id && app.status === 'accepted'
+      );
+      
+      if (acceptedApplications.length > 0) {
+        // Create a change request for the professional to approve
+        const professionalId = acceptedApplications[0].professional_id;
+        
+        const { error: changeRequestError } = await supabase
+          .from('project_change_requests')
+          .insert({
+            project_id: project.id,
+            professional_id: professionalId,
+            client_id: userId,
+            change_type: 'update',
+            status: 'pending',
+            change_payload: {
+              title: editedProject.title,
+              description: editedProject.description,
+              budget: parseFloat(editedProject.budget)
+            }
+          });
+        
+        if (changeRequestError) throw changeRequestError;
+        
+        toast({
+          title: "Change Request Sent",
+          description: "Your changes require approval from the assigned professional."
+        });
+      } else {
+        // No accepted applications, update directly
+        const { error } = await supabase
+          .from('projects')
+          .update({
+            title: editedProject.title,
+            description: editedProject.description,
+            budget: parseFloat(editedProject.budget),
+          })
+          .eq('id', project.id);
+        
+        if (error) throw error;
+        
+        toast({
+          title: "Project Updated",
+          description: "Your project has been updated successfully!"
+        });
+      }
+      
+      setEditProject(null);
+      fetchProjects();
+    } catch (error: any) {
+      console.error('Error updating project:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update project. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+  
+  const handleDeleteInitiate = (projectId: string) => {
+    setProjectToDelete(projectId);
+  };
+  
+  const handleDeleteCancel = () => {
+    setProjectToDelete(null);
+  };
+  
+  const handleDeleteProject = async (projectId: string) => {
+    try {
+      setIsSubmitting(true);
+      
+      // Check if this project has any accepted applications
+      const acceptedApplications = applications.filter(
+        app => app.project_id === projectId && app.status === 'accepted'
+      );
+      
+      if (acceptedApplications.length > 0) {
+        // Create a change request for the professional to approve
+        const professionalId = acceptedApplications[0].professional_id;
+        
+        const { error: changeRequestError } = await supabase
+          .from('project_change_requests')
+          .insert({
+            project_id: projectId,
+            professional_id: professionalId,
+            client_id: userId,
+            change_type: 'delete',
+            status: 'pending'
+          });
+        
+        if (changeRequestError) throw changeRequestError;
+        
+        toast({
+          title: "Delete Request Sent",
+          description: "Your request to delete this project requires approval from the assigned professional."
+        });
+      } else {
+        // No accepted applications, delete directly
+        const { error } = await supabase
+          .from('projects')
+          .delete()
+          .eq('id', projectId);
+        
+        if (error) throw error;
+        
+        toast({
+          title: "Project Deleted",
+          description: "Your project has been deleted successfully!"
+        });
+      }
+      
+      setProjectToDelete(null);
+      fetchProjects();
+    } catch (error: any) {
+      console.error('Error deleting project:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete project. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const handleApplicationUpdate = async (applicationId: string, newStatus: string) => {
     try {
-      // Fix: Use properly typed update operation
       const { error } = await supabase
         .from('applications')
         .update({ status: newStatus })
         .eq('id', applicationId);
       
       if (error) throw error;
+      
+      // If accepted, also update project status
+      if (newStatus === 'accepted') {
+        const application = applications.find(app => app.id === applicationId);
+        
+        if (application && application.project_id) {
+          const { error: projectError } = await supabase
+            .from('projects')
+            .update({ status: 'in_progress' })
+            .eq('id', application.project_id);
+          
+          if (projectError) throw projectError;
+        }
+      }
       
       toast({
         title: "Application Updated",
@@ -181,7 +348,6 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ userId }) => {
 
   const markProjectAsPaid = async (projectId: string) => {
     try {
-      // Fix: Use properly typed update operation
       const { error } = await supabase
         .from('projects')
         .update({ status: 'paid' })
@@ -205,6 +371,31 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ userId }) => {
       });
     }
   };
+  
+  const getChangeRequestStatus = (changeRequest: ProjectChangeRequest) => {
+    if (changeRequest.status === 'pending') {
+      return {
+        label: 'Pending Approval',
+        className: 'bg-yellow-100 text-yellow-800'
+      };
+    } else if (changeRequest.status === 'approved') {
+      return {
+        label: 'Approved',
+        className: 'bg-green-100 text-green-800'
+      };
+    } else {
+      return {
+        label: 'Rejected',
+        className: 'bg-red-100 text-red-800'
+      };
+    }
+  };
+  
+  const formatChangeType = (changeType: string | null) => {
+    if (!changeType) return 'Update';
+    
+    return changeType.charAt(0).toUpperCase() + changeType.slice(1);
+  };
 
   return (
     <Tabs defaultValue="projects">
@@ -212,6 +403,7 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ userId }) => {
         <TabsTrigger value="projects">Your Projects</TabsTrigger>
         <TabsTrigger value="applications">Applications</TabsTrigger>
         <TabsTrigger value="create">Create Project</TabsTrigger>
+        <TabsTrigger value="changes">Change Requests</TabsTrigger>
         <TabsTrigger value="payments">Payments</TabsTrigger>
       </TabsList>
       
@@ -241,15 +433,35 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ userId }) => {
             {projects.map(project => (
               <Card key={project.id}>
                 <CardHeader>
-                  <CardTitle>{project.title}</CardTitle>
+                  <div className="flex justify-between items-start">
+                    <CardTitle className="mr-2">{project.title}</CardTitle>
+                    <div className="flex gap-2">
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-8 w-8" 
+                        onClick={() => handleEditInitiate(project)}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-8 w-8 text-red-500" 
+                        onClick={() => handleDeleteInitiate(project.id)}
+                      >
+                        <Trash className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
                   <CardDescription className="flex items-center justify-between">
-                    <span>Posted on {new Date(project.created_at).toLocaleDateString()}</span>
+                    <span>Posted on {new Date(project.created_at || '').toLocaleDateString()}</span>
                     <span className={`px-2 py-1 text-xs rounded-full ${
                       project.status === 'open' ? 'bg-green-100 text-green-800' : 
                       project.status === 'in_progress' ? 'bg-yellow-100 text-yellow-800' : 
                       'bg-blue-100 text-blue-800'
                     }`}>
-                      {project.status.replace('_', ' ')}
+                      {project.status?.replace('_', ' ')}
                     </span>
                   </CardDescription>
                 </CardHeader>
@@ -266,6 +478,89 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ userId }) => {
               </Card>
             ))}
           </div>
+        )}
+        
+        {/* Edit Project Dialog */}
+        {editProject && (
+          <Card className="mt-6 border-blue-200">
+            <CardHeader className="bg-blue-50">
+              <CardTitle>Edit Project</CardTitle>
+              <CardDescription>Make changes to your project details</CardDescription>
+            </CardHeader>
+            <CardContent className="pt-4">
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-title">Project Title</Label>
+                  <Input 
+                    id="edit-title" 
+                    value={editedProject.title}
+                    onChange={e => setEditedProject({...editedProject, title: e.target.value})}
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="edit-description">Description</Label>
+                  <Textarea 
+                    id="edit-description" 
+                    className="min-h-[120px]"
+                    value={editedProject.description}
+                    onChange={e => setEditedProject({...editedProject, description: e.target.value})}
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="edit-budget">Budget ($)</Label>
+                  <Input 
+                    id="edit-budget" 
+                    type="number" 
+                    value={editedProject.budget}
+                    onChange={e => setEditedProject({...editedProject, budget: e.target.value})}
+                  />
+                </div>
+              </div>
+            </CardContent>
+            <CardFooter className="flex justify-between">
+              <Button 
+                variant="outline" 
+                onClick={handleEditCancel}
+              >
+                Cancel
+              </Button>
+              <Button 
+                className="bg-ttc-blue-700 hover:bg-ttc-blue-800"
+                onClick={() => handleUpdateProject(editProject)}
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? "Updating..." : "Update Project"}
+              </Button>
+            </CardFooter>
+          </Card>
+        )}
+        
+        {/* Delete Project Confirmation Dialog */}
+        {projectToDelete && (
+          <AlertDialog open={!!projectToDelete} onOpenChange={() => handleDeleteCancel()}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Are you sure you want to delete this project?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This action cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <Button variant="outline" onClick={() => handleDeleteCancel()}>
+                  Cancel
+                </Button>
+                <Button 
+                  variant="destructive" 
+                  onClick={() => handleDeleteProject(projectToDelete)}
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? "Deleting..." : "Delete Project"}
+                </Button>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         )}
       </TabsContent>
       
@@ -391,6 +686,46 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ userId }) => {
             </CardFooter>
           </form>
         </Card>
+      </TabsContent>
+      
+      <TabsContent value="changes">
+        <h2 className="text-2xl font-bold mb-4">Change Request History</h2>
+        {isLoading ? (
+          <p>Loading change requests...</p>
+        ) : changeRequests.length === 0 ? (
+          <div className="text-center py-8">
+            <AlertCircle className="w-12 h-12 mx-auto text-ttc-neutral-400" />
+            <p className="mt-4 text-ttc-neutral-600">No change requests found.</p>
+          </div>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Project</TableHead>
+                <TableHead>Change Type</TableHead>
+                <TableHead>Requested On</TableHead>
+                <TableHead>Status</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {changeRequests.map(request => {
+                const statusInfo = getChangeRequestStatus(request);
+                return (
+                  <TableRow key={request.id}>
+                    <TableCell className="font-medium">{request.project?.title}</TableCell>
+                    <TableCell>{formatChangeType(request.change_type)}</TableCell>
+                    <TableCell>{new Date(request.created_at || '').toLocaleDateString()}</TableCell>
+                    <TableCell>
+                      <span className={`px-2 py-1 text-xs rounded-full ${statusInfo.className}`}>
+                        {statusInfo.label}
+                      </span>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        )}
       </TabsContent>
       
       <TabsContent value="payments">
