@@ -13,7 +13,8 @@ import {
   Application, 
   Payment, 
   Review,
-  ProjectChangeRequest 
+  ProjectChangeRequest,
+  ChangePayload
 } from './types';
 
 interface ProfessionalDashboardProps {
@@ -104,7 +105,14 @@ const ProfessionalDashboard: React.FC<ProfessionalDashboardProps> = ({ userId })
         .eq('professional_id', userId);
       
       if (paymentsError) throw paymentsError;
-      setPayments(paymentsData || []);
+      
+      // Ensure each payment has a created_at field, using current date as fallback
+      const paymentsWithCreatedAt = (paymentsData || []).map(payment => ({
+        ...payment,
+        created_at: payment.created_at || new Date().toISOString()
+      }));
+      
+      setPayments(paymentsWithCreatedAt);
       
       // Fetch reviews for the professional
       const { data: reviewsData, error: reviewsError } = await supabase
@@ -132,7 +140,14 @@ const ProfessionalDashboard: React.FC<ProfessionalDashboardProps> = ({ userId })
           .in('status', ['pending']);
         
         if (changeRequestError) throw changeRequestError;
-        setChangeRequests(changeRequestData || []);
+        
+        // Ensure the change_payload is properly typed
+        const typedChangeRequests = (changeRequestData || []).map(request => ({
+          ...request,
+          change_payload: request.change_payload as ChangePayload
+        }));
+        
+        setChangeRequests(typedChangeRequests);
       }
       
     } catch (error: any) {

@@ -162,6 +162,7 @@ export type Database = {
           professional_id: string | null
           project_id: string | null
           status: string | null
+          "updated at": string | null
         }
         Insert: {
           change_payload?: Json | null
@@ -173,6 +174,7 @@ export type Database = {
           professional_id?: string | null
           project_id?: string | null
           status?: string | null
+          "updated at"?: string | null
         }
         Update: {
           change_payload?: Json | null
@@ -184,6 +186,7 @@ export type Database = {
           professional_id?: string | null
           project_id?: string | null
           status?: string | null
+          "updated at"?: string | null
         }
         Relationships: [
           {
@@ -218,6 +221,7 @@ export type Database = {
           id: string
           status: string | null
           title: string
+          "updated at": string | null
         }
         Insert: {
           budget?: number | null
@@ -227,6 +231,7 @@ export type Database = {
           id?: string
           status?: string | null
           title: string
+          "updated at"?: string | null
         }
         Update: {
           budget?: number | null
@@ -236,6 +241,7 @@ export type Database = {
           id?: string
           status?: string | null
           title?: string
+          "updated at"?: string | null
         }
         Relationships: [
           {
@@ -256,6 +262,7 @@ export type Database = {
           professional_id: string | null
           project_id: string | null
           rating: number | null
+          "updated at": string | null
         }
         Insert: {
           client_id?: string | null
@@ -265,6 +272,7 @@ export type Database = {
           professional_id?: string | null
           project_id?: string | null
           rating?: number | null
+          "updated at"?: string | null
         }
         Update: {
           client_id?: string | null
@@ -274,6 +282,7 @@ export type Database = {
           professional_id?: string | null
           project_id?: string | null
           rating?: number | null
+          "updated at"?: string | null
         }
         Relationships: [
           {

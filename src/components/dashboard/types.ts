@@ -54,6 +54,13 @@ export interface Review {
   created_at: string;
 }
 
+export type ChangePayload = {
+  title?: string;
+  description?: string;
+  budget?: number;
+  status?: string;
+} | null;
+
 export interface ProjectChangeRequest {
   id: string;
   project_id: string | null;
@@ -63,12 +70,7 @@ export interface ProjectChangeRequest {
   change_type: string | null;
   created_at: string | null;
   decision_at: string | null;
-  change_payload: {
-    title?: string;
-    description?: string;
-    budget?: number;
-    status?: string;
-  } | null;
+  change_payload: ChangePayload;
   project?: {
     title: string;
   };
