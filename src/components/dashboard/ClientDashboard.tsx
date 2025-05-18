@@ -10,8 +10,8 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertDialog, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { FileText, Plus, Check, X, Edit, Trash, AlertCircle } from "lucide-react";
-import { Project, Application, ProjectChangeRequest } from './types';
+import { FileText, Plus, Check, X, Edit, Trash } from "lucide-react";
+import { Project, Application } from './types';
 
 interface ClientDashboardProps {
   userId: string;
@@ -22,7 +22,6 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ userId, initialTab = 
   const { toast } = useToast();
   const [projects, setProjects] = useState<Project[]>([]);
   const [applications, setApplications] = useState<Application[]>([]);
-  const [changeRequests, setChangeRequests] = useState<ProjectChangeRequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
@@ -73,30 +72,6 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ userId, initialTab = 
           
         if (applicationsError) throw applicationsError;
         setApplications(applicationsData || []);
-        
-        // Fetch change requests
-        const { data: changeRequestsData, error: changeRequestsError } = await supabase
-          .from('project_change_requests')
-          .select(`
-            *,
-            project:projects(title)
-          `)
-          .eq('client_id', userId);
-          
-        if (changeRequestsError) throw changeRequestsError;
-        
-        // Ensure change_payload is correctly typed
-        const typedChangeRequests = changeRequestsData?.map(request => ({
-          ...request,
-          change_payload: request.change_payload as unknown as {
-            title?: string;
-            description?: string;
-            budget?: number;
-            status?: string;
-          }
-        })) as ProjectChangeRequest[];
-        
-        setChangeRequests(typedChangeRequests || []);
       }
     } catch (error: any) {
       console.error('Error fetching data:', error);
@@ -190,54 +165,22 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ userId, initialTab = 
     try {
       setIsSubmitting(true);
       
-      // Check if this project has any accepted applications
-      const acceptedApplications = applications.filter(
-        app => app.project_id === project.id && app.status === 'accepted'
-      );
+      // Update project directly without change requests
+      const { error } = await supabase
+        .from('projects')
+        .update({
+          title: editedProject.title,
+          description: editedProject.description,
+          budget: parseFloat(editedProject.budget),
+        })
+        .eq('id', project.id);
       
-      if (acceptedApplications.length > 0) {
-        // Create a change request for the professional to approve
-        const professionalId = acceptedApplications[0].professional_id;
-        
-        const { error: changeRequestError } = await supabase
-          .from('project_change_requests')
-          .insert({
-            project_id: project.id,
-            professional_id: professionalId,
-            client_id: userId,
-            change_type: 'update',
-            status: 'pending',
-            change_payload: {
-              title: editedProject.title,
-              description: editedProject.description,
-              budget: parseFloat(editedProject.budget)
-            }
-          });
-        
-        if (changeRequestError) throw changeRequestError;
-        
-        toast({
-          title: "Change Request Sent",
-          description: "Your changes require approval from the assigned professional."
-        });
-      } else {
-        // No accepted applications, update directly
-        const { error } = await supabase
-          .from('projects')
-          .update({
-            title: editedProject.title,
-            description: editedProject.description,
-            budget: parseFloat(editedProject.budget),
-          })
-          .eq('id', project.id);
-        
-        if (error) throw error;
-        
-        toast({
-          title: "Project Updated",
-          description: "Your project has been updated successfully!"
-        });
-      }
+      if (error) throw error;
+      
+      toast({
+        title: "Project Updated",
+        description: "Your project has been updated successfully!"
+      });
       
       setEditProject(null);
       fetchProjects();
@@ -265,45 +208,18 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ userId, initialTab = 
     try {
       setIsSubmitting(true);
       
-      // Check if this project has any accepted applications
-      const acceptedApplications = applications.filter(
-        app => app.project_id === projectId && app.status === 'accepted'
-      );
+      // Delete project directly without change requests
+      const { error } = await supabase
+        .from('projects')
+        .delete()
+        .eq('id', projectId);
       
-      if (acceptedApplications.length > 0) {
-        // Create a change request for the professional to approve
-        const professionalId = acceptedApplications[0].professional_id;
-        
-        const { error: changeRequestError } = await supabase
-          .from('project_change_requests')
-          .insert({
-            project_id: projectId,
-            professional_id: professionalId,
-            client_id: userId,
-            change_type: 'delete',
-            status: 'pending'
-          });
-        
-        if (changeRequestError) throw changeRequestError;
-        
-        toast({
-          title: "Delete Request Sent",
-          description: "Your request to delete this project requires approval from the assigned professional."
-        });
-      } else {
-        // No accepted applications, delete directly
-        const { error } = await supabase
-          .from('projects')
-          .delete()
-          .eq('id', projectId);
-        
-        if (error) throw error;
-        
-        toast({
-          title: "Project Deleted",
-          description: "Your project has been deleted successfully!"
-        });
-      }
+      if (error) throw error;
+      
+      toast({
+        title: "Project Deleted",
+        description: "Your project has been deleted successfully!"
+      });
       
       setProjectToDelete(null);
       fetchProjects();
@@ -384,31 +300,6 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ userId, initialTab = 
       });
     }
   };
-  
-  const getChangeRequestStatus = (changeRequest: ProjectChangeRequest) => {
-    if (changeRequest.status === 'pending') {
-      return {
-        label: 'Pending Approval',
-        className: 'bg-yellow-100 text-yellow-800'
-      };
-    } else if (changeRequest.status === 'approved') {
-      return {
-        label: 'Approved',
-        className: 'bg-green-100 text-green-800'
-      };
-    } else {
-      return {
-        label: 'Rejected',
-        className: 'bg-red-100 text-red-800'
-      };
-    }
-  };
-  
-  const formatChangeType = (changeType: string | null) => {
-    if (!changeType) return 'Update';
-    
-    return changeType.charAt(0).toUpperCase() + changeType.slice(1);
-  };
 
   return (
     <Tabs defaultValue={initialTab}>
@@ -416,7 +307,6 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ userId, initialTab = 
         <TabsTrigger value="projects">Your Projects</TabsTrigger>
         <TabsTrigger value="applications">Applications</TabsTrigger>
         <TabsTrigger value="create">Create Project</TabsTrigger>
-        <TabsTrigger value="changes">Change Requests</TabsTrigger>
         <TabsTrigger value="payments">Payments</TabsTrigger>
       </TabsList>
       
@@ -699,46 +589,6 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ userId, initialTab = 
             </CardFooter>
           </form>
         </Card>
-      </TabsContent>
-      
-      <TabsContent value="changes">
-        <h2 className="text-2xl font-bold mb-4">Change Request History</h2>
-        {isLoading ? (
-          <p>Loading change requests...</p>
-        ) : changeRequests.length === 0 ? (
-          <div className="text-center py-8">
-            <AlertCircle className="w-12 h-12 mx-auto text-ttc-neutral-400" />
-            <p className="mt-4 text-ttc-neutral-600">No change requests found.</p>
-          </div>
-        ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Project</TableHead>
-                <TableHead>Change Type</TableHead>
-                <TableHead>Requested On</TableHead>
-                <TableHead>Status</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {changeRequests.map(request => {
-                const statusInfo = getChangeRequestStatus(request);
-                return (
-                  <TableRow key={request.id}>
-                    <TableCell className="font-medium">{request.project?.title}</TableCell>
-                    <TableCell>{formatChangeType(request.change_type)}</TableCell>
-                    <TableCell>{new Date(request.created_at || '').toLocaleDateString()}</TableCell>
-                    <TableCell>
-                      <span className={`px-2 py-1 text-xs rounded-full ${statusInfo.className}`}>
-                        {statusInfo.label}
-                      </span>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        )}
       </TabsContent>
       
       <TabsContent value="payments">
