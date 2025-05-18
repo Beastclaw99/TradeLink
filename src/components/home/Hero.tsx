@@ -1,27 +1,20 @@
-
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
-
 const Hero: React.FC = () => {
-  return (
-    <section className="bg-ttc-blue-800 py-16 md:py-24 text-white">
+  return <section className="bg-ttc-blue-800 py-16 md:py-24 text-white">
       <div className="container-custom">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           <div className="animate-fade-in">
-            <h1 className="text-4xl md:text-5xl font-bold mb-6">
-              Connect with skilled tradesmen for your projects
-            </h1>
-            <p className="text-lg md:text-xl mb-8 text-blue-50">
-              Find, hire, and work with professional tradesmen. Manage contracts, track progress, and make secure payments all in one place.
-            </p>
+            <h1 className="text-4xl md:text-5xl font-bold mb-6">Connect with skilled trade professionals for your projects</h1>
+            <p className="text-lg md:text-xl mb-8 text-blue-50">Find, hire, and work with professionals. Manage contracts, track progress, and make secure payments all in one place.</p>
             
             <div className="flex flex-col sm:flex-row gap-4 mb-8">
               <Link to="/find-pros" className="flex-1">
-                <Button className="w-full bg-white text-ttc-blue-700 hover:bg-blue-50 hover:text-ttc-blue-800 py-6 font-semibold text-lg">Find Contractor</Button>
+                <Button className="w-full bg-white text-ttc-blue-700 hover:bg-blue-50 hover:text-ttc-blue-800 py-6 font-semibold text-lg">Find a Professional</Button>
               </Link>
               <Link to="/join-network" className="flex-1">
-                <Button className="w-full bg-ttc-green-500 hover:bg-ttc-green-600 text-white py-6 font-semibold text-lg">Join as a Contractor</Button>
+                <Button className="w-full bg-ttc-green-500 hover:bg-ttc-green-600 text-white py-6 font-semibold text-lg">Join as a Professional</Button>
               </Link>
             </div>
             
@@ -47,8 +40,6 @@ const Hero: React.FC = () => {
           </div>
         </div>
       </div>
-    </section>
-  );
+    </section>;
 };
-
 export default Hero;
