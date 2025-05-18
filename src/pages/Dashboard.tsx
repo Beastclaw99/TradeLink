@@ -1,14 +1,13 @@
 
 import React, { useEffect, useState } from 'react';
-import { Link, Navigate, useLocation } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from '@/contexts/AuthContext';
 import Layout from '@/components/layout/Layout';
-import { Loader2, User } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { supabase } from "@/integrations/supabase/client";
 import ClientDashboard from '@/components/dashboard/ClientDashboard';
 import ProfessionalDashboard from '@/components/dashboard/ProfessionalDashboard';
-import { Button } from '@/components/ui/button';
 
 const Dashboard: React.FC = () => {
   const { user, isLoading: authLoading } = useAuth();
@@ -73,15 +72,7 @@ const Dashboard: React.FC = () => {
   return (
     <Layout>
       <div className="container-custom py-8">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold">Your Dashboard</h1>
-          <Button asChild variant="outline">
-            <Link to="/profile" className="flex items-center gap-2">
-              <User size={18} />
-              <span>View Profile</span>
-            </Link>
-          </Button>
-        </div>
+        <h1 className="text-3xl font-bold mb-6">Your Dashboard</h1>
         
         {accountType === 'client' ? (
           <ClientDashboard userId={user.id} initialTab={activeTab} />
