@@ -67,11 +67,11 @@ const Navbar: React.FC = () => {
               <DropdownMenuContent align="end" className="w-56">
                 <DropdownMenuLabel>My Account</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
-                  <Link to="/dashboard">Dashboard</Link>
+                <DropdownMenuItem onClick={() => navigate('/dashboard')}>
+                  Dashboard
                 </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link to="/profile">Profile</Link>
+                <DropdownMenuItem onClick={() => navigate('/profile')}>
+                  Profile
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleLogout}>Logout</DropdownMenuItem>
