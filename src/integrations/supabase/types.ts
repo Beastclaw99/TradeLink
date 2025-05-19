@@ -55,6 +55,7 @@ export type Database = {
         Row: {
           amount: number
           client_id: string | null
+          created_at: string | null
           id: string
           paid_at: string | null
           professional_id: string | null
@@ -64,6 +65,7 @@ export type Database = {
         Insert: {
           amount: number
           client_id?: string | null
+          created_at?: string | null
           id?: string
           paid_at?: string | null
           professional_id?: string | null
@@ -73,6 +75,7 @@ export type Database = {
         Update: {
           amount?: number
           client_id?: string | null
+          created_at?: string | null
           id?: string
           paid_at?: string | null
           professional_id?: string | null

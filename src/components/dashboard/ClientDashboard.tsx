@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
@@ -18,7 +17,7 @@ interface ClientDashboardProps {
   initialTab?: string;
 }
 
-const ClientDashboard: React.FC<ClientDashboardProps> = ({ userId, initialTab = 'projects' }) => {
+const ClientDashboard: React.FC<ClientDashboardProps> = ({ userId, initialTab }) => {
   const { toast } = useToast();
   const [projects, setProjects] = useState<Project[]>([]);
   const [applications, setApplications] = useState<Application[]>([]);
@@ -471,12 +470,13 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ userId, initialTab = 
   };
 
   return (
-    <Tabs defaultValue={initialTab}>
+    <Tabs defaultValue={initialTab || "projects"}>
       <TabsList className="mb-6">
         <TabsTrigger value="projects">Your Projects</TabsTrigger>
-        <TabsTrigger value="applications">Applications</TabsTrigger>
         <TabsTrigger value="create">Create Project</TabsTrigger>
-        <TabsTrigger value="completed">Completed Projects</TabsTrigger>
+        <TabsTrigger value="applications">Applications</TabsTrigger>
+        <TabsTrigger value="payments">Payments</TabsTrigger>
+        <TabsTrigger value="profile">Profile</TabsTrigger>
       </TabsList>
       
       <TabsContent value="projects">
@@ -849,26 +849,23 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ userId, initialTab = 
         </Card>
       </TabsContent>
       
-      <TabsContent value="completed">
-        <h2 className="text-2xl font-bold mb-4">Completed Projects</h2>
+      <TabsContent value="payments">
+        <h2 className="text-2xl font-bold mb-4">Payments</h2>
         {isLoading ? (
-          <p>Loading completed projects...</p>
-        ) : projects.filter(p => p.status === 'completed' || p.status === 'archived').length === 0 ? (
+          <p>Loading payments...</p>
+        ) : projects.filter(p => p.status === 'paid').length === 0 ? (
           <div className="text-center py-8">
-            <p className="text-ttc-neutral-600">You don't have any completed projects yet.</p>
+            <p className="text-ttc-neutral-600">You don't have any paid projects yet.</p>
           </div>
         ) : (
           <div className="grid gap-6 md:grid-cols-2">
             {projects
-              .filter(p => p.status === 'completed' || p.status === 'archived')
+              .filter(p => p.status === 'paid')
               .map(project => {
                 // Find the accepted application for this project to get professional info
                 const acceptedApp = applications.find(app => 
                   app.project_id === project.id && app.status === 'accepted'
                 );
-                
-                // Check if this project has a review
-                const hasReview = reviews.some(r => r.project_id === project.id);
                 
                 return (
                   <Card key={project.id}>
@@ -975,6 +972,68 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ userId, initialTab = 
               </Button>
             </CardFooter>
           </Card>
+        )}
+      </TabsContent>
+      
+      <TabsContent value="profile">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-2xl font-bold">Your Profile</h2>
+          <Button 
+            onClick={() => navigate('/profile')}
+            className="bg-ttc-blue-700 hover:bg-ttc-blue-800"
+          >
+            View Full Profile
+          </Button>
+        </div>
+        
+        {profile ? (
+          <div className="grid gap-6 md:grid-cols-2">
+            <Card>
+              <CardHeader>
+                <CardTitle>Profile Information</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-500">Name</h3>
+                    <p>{profile.first_name} {profile.last_name}</p>
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-500">Account Type</h3>
+                    <p className="capitalize">{profile.account_type}</p>
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-500">Member Since</h3>
+                    <p>{new Date(profile.created_at).toLocaleDateString()}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader>
+                <CardTitle>Account Statistics</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-500">Projects Posted</h3>
+                    <p>{projects.length}</p>
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-500">Active Projects</h3>
+                    <p>{projects.filter(p => p.status === 'assigned').length}</p>
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-500">Completed Projects</h3>
+                    <p>{projects.filter(p => p.status === 'completed').length}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        ) : (
+          <p>Loading profile information...</p>
         )}
       </TabsContent>
     </Tabs>
