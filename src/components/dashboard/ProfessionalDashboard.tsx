@@ -31,6 +31,8 @@ const ProfessionalDashboard: React.FC<ProfessionalDashboardProps> = ({ userId })
   const [coverLetter, setCoverLetter] = useState('');
   const [selectedProject, setSelectedProject] = useState<string | null>(null);
   const [profile, setProfile] = useState<any>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     fetchDashboardData();
@@ -272,6 +274,69 @@ const ProfessionalDashboard: React.FC<ProfessionalDashboardProps> = ({ userId })
         description: "Failed to mark project as completed.",
         variant: "destructive"
       });
+    }
+  };
+
+  const fetchProfileData = async () => {
+    try {
+      setIsLoading(true);
+      
+      // Fetch profile data
+      const { data: profileInfo, error: profileFetchError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+      
+      if (profileFetchError) throw profileFetchError;
+      
+      setProfile(profileInfo);
+      
+    } catch (error) {
+      console.error('Error fetching profile data:', error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch profile data. Please try again later.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const updateProfile = async (data: { skills: string[] }) => {
+    try {
+      setIsSubmitting(true);
+      
+      // Update profile with new skills
+      const { data: updatedProfileInfo, error: profileUpdateError } = await supabase
+        .from('profiles')
+        .update({
+          skills: data.skills,
+        })
+        .eq('id', userId)
+        .select()
+        .single();
+      
+      if (profileUpdateError) throw profileUpdateError;
+      
+      setProfile(updatedProfileInfo);
+      
+      toast({
+        title: "Profile updated",
+        description: "Your skills have been updated successfully!",
+      });
+      
+      setIsEditing(false);
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update your profile. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 

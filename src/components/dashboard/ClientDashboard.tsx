@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,6 +13,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { AlertDialog, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { FileText, Plus, Check, X, Edit, Trash, Star } from "lucide-react";
 import { Project, Application, Review } from './types';
+import { ProfileData } from '@/components/profile/types';
 
 interface ClientDashboardProps {
   userId: string;
@@ -19,11 +22,13 @@ interface ClientDashboardProps {
 
 const ClientDashboard: React.FC<ClientDashboardProps> = ({ userId, initialTab }) => {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [projects, setProjects] = useState<Project[]>([]);
   const [applications, setApplications] = useState<Application[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [profileData, setProfileData] = useState<ProfileData | null>(null);
   
   const [editProject, setEditProject] = useState<Project | null>(null);
   const [projectToDelete, setProjectToDelete] = useState<string | null>(null);
@@ -44,7 +49,23 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ userId, initialTab })
 
   useEffect(() => {
     fetchProjects();
+    fetchProfileData();
   }, [userId]);
+
+  const fetchProfileData = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+        
+      if (error) throw error;
+      setProfileData(data);
+    } catch (error) {
+      console.error('Error fetching profile data:', error);
+    }
+  };
 
   const fetchProjects = async () => {
     try {
@@ -867,6 +888,9 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ userId, initialTab })
                   app.project_id === project.id && app.status === 'accepted'
                 );
                 
+                // Check if this project has a review
+                const hasReview = reviews.some(r => r.project_id === project.id);
+                
                 return (
                   <Card key={project.id}>
                     <CardHeader>
@@ -986,7 +1010,7 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ userId, initialTab })
           </Button>
         </div>
         
-        {profile ? (
+        {profileData ? (
           <div className="grid gap-6 md:grid-cols-2">
             <Card>
               <CardHeader>
@@ -996,15 +1020,15 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ userId, initialTab })
                 <div className="space-y-4">
                   <div>
                     <h3 className="text-sm font-medium text-gray-500">Name</h3>
-                    <p>{profile.first_name} {profile.last_name}</p>
+                    <p>{profileData.first_name} {profileData.last_name}</p>
                   </div>
                   <div>
                     <h3 className="text-sm font-medium text-gray-500">Account Type</h3>
-                    <p className="capitalize">{profile.account_type}</p>
+                    <p className="capitalize">{profileData.account_type}</p>
                   </div>
                   <div>
                     <h3 className="text-sm font-medium text-gray-500">Member Since</h3>
-                    <p>{new Date(profile.created_at).toLocaleDateString()}</p>
+                    <p>{new Date(profileData.created_at).toLocaleDateString()}</p>
                   </div>
                 </div>
               </CardContent>

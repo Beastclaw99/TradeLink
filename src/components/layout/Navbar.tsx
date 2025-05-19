@@ -1,5 +1,6 @@
+
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Menu, X, Briefcase, User, LogOut } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
@@ -8,6 +9,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 const Navbar: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const navigate = useNavigate();
   const {
     user,
     signOut,
@@ -36,7 +38,7 @@ const Navbar: React.FC = () => {
         {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center gap-6">
           <Link to="/find-pros" className="text-ttc-neutral-700 hover:text-ttc-blue-700 transition-colors">Our Professionals</Link>
-          <Link to="/project-marketplace" className="text-ttc-neutral-700 hover:text-ttc-blue-700 transition-colors">
+          <Link to="/marketplace" className="text-ttc-neutral-700 hover:text-ttc-blue-700 transition-colors">
             Project Marketplace
           </Link>
           <Link to="/how-it-works" className="text-ttc-neutral-700 hover:text-ttc-blue-700 transition-colors">
@@ -50,7 +52,7 @@ const Navbar: React.FC = () => {
         {/* Desktop Auth Buttons */}
         <div className="hidden md:flex items-center gap-4">
           {isLoading ? <div className="h-9 w-20 bg-gray-100 animate-pulse rounded-md"></div> : user ? (
-            <>
+            <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="flex items-center gap-2 h-9 px-2">
                   <Avatar className="h-8 w-8">
@@ -74,7 +76,7 @@ const Navbar: React.FC = () => {
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleLogout}>Logout</DropdownMenuItem>
               </DropdownMenuContent>
-            </>
+            </DropdownMenu>
           ) : <>
             <Link to="/login">
               <Button variant="outline" size="sm" className="border-ttc-blue-700 text-ttc-blue-700 hover:bg-ttc-blue-50 hover:text-ttc-blue-700">
@@ -104,7 +106,7 @@ const Navbar: React.FC = () => {
               <Link to="/find-pros" className="px-2 py-2 text-ttc-neutral-700 hover:bg-ttc-blue-50 hover:text-ttc-blue-700 rounded-md" onClick={toggleMenu}>
                 Find Tradesmen
               </Link>
-              <Link to="/project-marketplace" className="px-2 py-2 text-ttc-neutral-700 hover:bg-ttc-blue-50 hover:text-ttc-blue-700 rounded-md" onClick={toggleMenu}>
+              <Link to="/marketplace" className="px-2 py-2 text-ttc-neutral-700 hover:bg-ttc-blue-50 hover:text-ttc-blue-700 rounded-md" onClick={toggleMenu}>
                 Project Marketplace
               </Link>
               <Link to="/how-it-works" className="px-2 py-2 text-ttc-neutral-700 hover:bg-ttc-blue-50 hover:text-ttc-blue-700 rounded-md" onClick={toggleMenu}>
