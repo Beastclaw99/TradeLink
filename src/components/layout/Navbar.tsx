@@ -111,10 +111,13 @@ const Navbar: React.FC = () => {
                   <Link to="/dashboard" className="w-full py-2 text-center border border-ttc-blue-700 text-ttc-blue-700 rounded-md hover:bg-ttc-blue-50" onClick={toggleMenu}>
                     Dashboard
                   </Link>
+                  <Link to="/profile" className="w-full py-2 text-center border border-ttc-blue-700 text-ttc-blue-700 rounded-md hover:bg-ttc-blue-50" onClick={toggleMenu}>
+                    Profile
+                  </Link>
                   <button onClick={() => {
-              toggleMenu();
-              signOut();
-            }} className="w-full py-2 text-center bg-red-500 text-white rounded-md hover:bg-red-600">
+                    toggleMenu();
+                    signOut();
+                  }} className="w-full py-2 text-center bg-red-500 text-white rounded-md hover:bg-red-600">
                     Logout
                   </button>
                 </> : <>

@@ -52,7 +52,7 @@ const ProfessionalDashboard: React.FC<ProfessionalDashboardProps> = ({ userId })
       const userSkills = profileData?.skills || [];
       setSkills(userSkills);
       
-      // Fetch projects that match skills (if skills are available)
+      // Fetch projects that match skills (if skills are available) and are open
       const { data: projectsData, error: projectsError } = await supabase
         .from('projects')
         .select(`
@@ -91,7 +91,24 @@ const ProfessionalDashboard: React.FC<ProfessionalDashboardProps> = ({ userId })
       if (appsError) throw appsError;
       setApplications(appsData || []);
       
-      // Fetch payments for completed projects
+      // Fetch assigned projects (status = "assigned" and assigned_to = userId)
+      const { data: assignedProjectsData, error: assignedProjectsError } = await supabase
+        .from('projects')
+        .select(`
+          *,
+          client:profiles!projects_client_id_fkey(first_name, last_name)
+        `)
+        .eq('assigned_to', userId)
+        .eq('status', 'assigned');
+        
+      if (assignedProjectsError) throw assignedProjectsError;
+      
+      // Add assigned projects to the professional's view
+      if (assignedProjectsData && assignedProjectsData.length > 0) {
+        setProjects(prev => [...prev, ...assignedProjectsData]);
+      }
+      
+      // Fetch payments for the professional
       const { data: paymentsData, error: paymentsError } = await supabase
         .from('payments')
         .select(`
@@ -102,13 +119,13 @@ const ProfessionalDashboard: React.FC<ProfessionalDashboardProps> = ({ userId })
       
       if (paymentsError) throw paymentsError;
       
-      // Ensure each payment has a created_at field, using current date as fallback
-      const paymentsWithCreatedAt = (paymentsData || []).map(payment => ({
+      // Ensure each payment has a created_at field
+      const paymentsWithDates = (paymentsData || []).map(payment => ({
         ...payment,
         created_at: payment.created_at || new Date().toISOString()
       }));
       
-      setPayments(paymentsWithCreatedAt);
+      setPayments(paymentsWithDates);
       
       // Fetch reviews for the professional
       const { data: reviewsData, error: reviewsError } = await supabase
@@ -162,6 +179,26 @@ const ProfessionalDashboard: React.FC<ProfessionalDashboardProps> = ({ userId })
     try {
       setIsApplying(true);
       
+      // Check if project is still open before applying
+      const { data: projectData, error: projectError } = await supabase
+        .from('projects')
+        .select('status')
+        .eq('id', selectedProject)
+        .single();
+        
+      if (projectError) throw projectError;
+      
+      if (projectData.status !== 'open') {
+        toast({
+          title: "Project Unavailable",
+          description: "This project is no longer accepting applications.",
+          variant: "destructive"
+        });
+        setSelectedProject(null);
+        setCoverLetter('');
+        return;
+      }
+      
       const { data, error } = await supabase
         .from('applications')
         .insert([
@@ -200,18 +237,45 @@ const ProfessionalDashboard: React.FC<ProfessionalDashboardProps> = ({ userId })
     }
   };
 
+  const markProjectComplete = async (projectId: string) => {
+    try {
+      const { error } = await supabase
+        .from('projects')
+        .update({ status: 'completed' })
+        .eq('id', projectId)
+        .eq('assigned_to', userId);
+      
+      if (error) throw error;
+      
+      toast({
+        title: "Project Completed",
+        description: "The project has been marked as completed. The client can now leave a review."
+      });
+      
+      fetchDashboardData();
+    } catch (error: any) {
+      console.error('Error completing project:', error);
+      toast({
+        title: "Error",
+        description: "Failed to mark project as completed.",
+        variant: "destructive"
+      });
+    }
+  };
+
   return (
     <Tabs defaultValue="featured">
       <TabsList className="mb-6">
-        <TabsTrigger value="featured">Featured Projects</TabsTrigger>
+        <TabsTrigger value="featured">Available Projects</TabsTrigger>
         <TabsTrigger value="applications">Your Applications</TabsTrigger>
+        <TabsTrigger value="active">Active Projects</TabsTrigger>
         <TabsTrigger value="payments">Payments</TabsTrigger>
         <TabsTrigger value="reviews">Reviews</TabsTrigger>
       </TabsList>
       
       <TabsContent value="featured">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-2xl font-bold">Featured Projects</h2>
+          <h2 className="text-2xl font-bold">Available Projects</h2>
           {skills.length > 0 && (
             <div className="flex flex-wrap gap-2">
               {skills.map((skill, index) => (
@@ -228,7 +292,7 @@ const ProfessionalDashboard: React.FC<ProfessionalDashboardProps> = ({ userId })
         
         {isLoading ? (
           <p>Loading projects...</p>
-        ) : projects.length === 0 ? (
+        ) : projects.filter(p => p.status === 'open').length === 0 ? (
           <div className="text-center py-8">
             <Briefcase className="w-12 h-12 mx-auto text-ttc-neutral-400" />
             <p className="mt-4 text-ttc-neutral-600">No matching projects available at the moment.</p>
@@ -240,7 +304,7 @@ const ProfessionalDashboard: React.FC<ProfessionalDashboardProps> = ({ userId })
           </div>
         ) : (
           <div className="grid gap-6 md:grid-cols-2">
-            {projects.map(project => {
+            {projects.filter(p => p.status === 'open').map(project => {
               // Check if user has already applied to this project
               const hasApplied = applications.some(app => app.project_id === project.id);
               
@@ -267,10 +331,6 @@ const ProfessionalDashboard: React.FC<ProfessionalDashboardProps> = ({ userId })
                         className="w-full bg-ttc-blue-700 hover:bg-ttc-blue-800"
                         onClick={() => {
                           setSelectedProject(project.id);
-                          const applyTab = document.querySelector('[data-value="apply"]');
-                          if (applyTab) {
-                            (applyTab as HTMLElement).click();
-                          }
                         }}
                       >
                         Apply for this Project
@@ -371,6 +431,79 @@ const ProfessionalDashboard: React.FC<ProfessionalDashboardProps> = ({ userId })
               ))}
             </TableBody>
           </Table>
+        )}
+      </TabsContent>
+      
+      <TabsContent value="active">
+        <h2 className="text-2xl font-bold mb-4">Your Active Projects</h2>
+        {isLoading ? (
+          <p>Loading active projects...</p>
+        ) : projects.filter(p => p.status === 'assigned' && p.assigned_to === userId).length === 0 ? (
+          <div className="text-center py-8">
+            <Briefcase className="w-12 h-12 mx-auto text-ttc-neutral-400" />
+            <p className="mt-4 text-ttc-neutral-600">You don't have any active projects at the moment.</p>
+          </div>
+        ) : (
+          <div className="grid gap-6 md:grid-cols-2">
+            {projects
+              .filter(p => p.status === 'assigned' && p.assigned_to === userId)
+              .map(project => (
+                <Card key={project.id}>
+                  <CardHeader>
+                    <CardTitle>{project.title}</CardTitle>
+                    <CardDescription className="flex items-center justify-between">
+                      <span>Started on {new Date(project.created_at || '').toLocaleDateString()}</span>
+                      <span className="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800">
+                        In Progress
+                      </span>
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-ttc-neutral-600 mb-4">{project.description}</p>
+                    <p className="font-medium">Budget: ${project.budget}</p>
+                    <p className="text-sm mt-4">Client: {project.client?.first_name} {project.client?.last_name}</p>
+                  </CardContent>
+                  <CardFooter>
+                    <Button 
+                      className="w-full bg-green-600 hover:bg-green-700"
+                      onClick={() => markProjectComplete(project.id)}
+                    >
+                      Mark as Completed
+                    </Button>
+                  </CardFooter>
+                </Card>
+            ))}
+          </div>
+        )}
+        
+        <h2 className="text-2xl font-bold mb-4 mt-8">Completed Projects</h2>
+        {projects.filter(p => p.status === 'completed' && p.assigned_to === userId).length === 0 ? (
+          <div className="text-center py-8">
+            <p className="text-ttc-neutral-600">You don't have any completed projects yet.</p>
+          </div>
+        ) : (
+          <div className="grid gap-6 md:grid-cols-2">
+            {projects
+              .filter(p => p.status === 'completed' && p.assigned_to === userId)
+              .map(project => (
+                <Card key={project.id}>
+                  <CardHeader>
+                    <CardTitle>{project.title}</CardTitle>
+                    <CardDescription className="flex items-center justify-between">
+                      <span>Completed</span>
+                      <span className="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">
+                        Completed
+                      </span>
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-ttc-neutral-600 mb-4">{project.description}</p>
+                    <p className="font-medium">Budget: ${project.budget}</p>
+                    <p className="text-sm mt-4">Client: {project.client?.first_name} {project.client?.last_name}</p>
+                  </CardContent>
+                </Card>
+            ))}
+          </div>
         )}
       </TabsContent>
       

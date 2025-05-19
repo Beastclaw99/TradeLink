@@ -10,8 +10,8 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertDialog, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { FileText, Plus, Check, X, Edit, Trash } from "lucide-react";
-import { Project, Application } from './types';
+import { FileText, Plus, Check, X, Edit, Trash, Star } from "lucide-react";
+import { Project, Application, Review } from './types';
 
 interface ClientDashboardProps {
   userId: string;
@@ -22,11 +22,14 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ userId, initialTab = 
   const { toast } = useToast();
   const [projects, setProjects] = useState<Project[]>([]);
   const [applications, setApplications] = useState<Application[]>([]);
+  const [reviews, setReviews] = useState<Review[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   const [editProject, setEditProject] = useState<Project | null>(null);
   const [projectToDelete, setProjectToDelete] = useState<string | null>(null);
+  const [projectToReview, setProjectToReview] = useState<Project | null>(null);
+  const [reviewData, setReviewData] = useState({ rating: 0, comment: '' });
   
   const [newProject, setNewProject] = useState({
     title: '',
@@ -72,6 +75,15 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ userId, initialTab = 
           
         if (applicationsError) throw applicationsError;
         setApplications(applicationsData || []);
+        
+        // Fetch reviews for completed projects
+        const { data: reviewsData, error: reviewsError } = await supabase
+          .from('reviews')
+          .select('*')
+          .in('project_id', projectIds);
+          
+        if (reviewsError) throw reviewsError;
+        setReviews(reviewsData || []);
       }
     } catch (error: any) {
       console.error('Error fetching data:', error);
@@ -140,6 +152,16 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ userId, initialTab = 
   };
   
   const handleEditInitiate = (project: Project) => {
+    // Only allow editing if project is still open
+    if (project.status !== 'open') {
+      toast({
+        title: "Cannot Edit",
+        description: "Projects that are assigned or completed cannot be edited.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     setEditProject(project);
     setEditedProject({
       title: project.title,
@@ -162,38 +184,36 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ userId, initialTab = 
       return;
     }
     
+    // Double check that project is still in 'open' status
+    if (project.status !== 'open') {
+      toast({
+        title: "Cannot Edit",
+        description: "This project has changed status and can no longer be edited.",
+        variant: "destructive"
+      });
+      setEditProject(null);
+      return;
+    }
+    
     try {
       setIsSubmitting(true);
       
-      // Check if this project has any accepted applications
-      const acceptedApplications = applications.filter(
-        app => app.project_id === project.id && app.status === 'accepted'
-      );
+      const { error } = await supabase
+        .from('projects')
+        .update({
+          title: editedProject.title,
+          description: editedProject.description,
+          budget: parseFloat(editedProject.budget),
+        })
+        .eq('id', project.id)
+        .eq('status', 'open');
       
-      if (acceptedApplications.length > 0) {
-        toast({
-          title: "Cannot Edit Project",
-          description: "This project already has an accepted application and cannot be modified.",
-          variant: "destructive"
-        });
-      } else {
-        // No accepted applications, update directly
-        const { error } = await supabase
-          .from('projects')
-          .update({
-            title: editedProject.title,
-            description: editedProject.description,
-            budget: parseFloat(editedProject.budget),
-          })
-          .eq('id', project.id);
-        
-        if (error) throw error;
-        
-        toast({
-          title: "Project Updated",
-          description: "Your project has been updated successfully!"
-        });
-      }
+      if (error) throw error;
+      
+      toast({
+        title: "Project Updated",
+        description: "Your project has been updated successfully!"
+      });
       
       setEditProject(null);
       fetchProjects();
@@ -210,6 +230,17 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ userId, initialTab = 
   };
   
   const handleDeleteInitiate = (projectId: string) => {
+    // Check if project can be deleted
+    const project = projects.find(p => p.id === projectId);
+    if (project && project.status !== 'open') {
+      toast({
+        title: "Cannot Delete",
+        description: "Projects that are assigned or completed cannot be deleted.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     setProjectToDelete(projectId);
   };
   
@@ -221,26 +252,30 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ userId, initialTab = 
     try {
       setIsSubmitting(true);
       
-      // Check if this project has any accepted applications
-      const acceptedApplications = applications.filter(
-        app => app.project_id === projectId && app.status === 'accepted'
-      );
+      // Double-check that project is still in 'open' status
+      const { data: projectData, error: projectError } = await supabase
+        .from('projects')
+        .select('status')
+        .eq('id', projectId)
+        .single();
+        
+      if (projectError) throw projectError;
       
-      if (acceptedApplications.length > 0) {
+      if (projectData.status !== 'open') {
         toast({
-          title: "Cannot Delete Project",
-          description: "This project already has an accepted application and cannot be deleted.",
+          title: "Cannot Delete",
+          description: "This project has changed status and can no longer be deleted.",
           variant: "destructive"
         });
         setProjectToDelete(null);
         return;
       }
       
-      // No accepted applications, delete directly
       const { error } = await supabase
         .from('projects')
         .delete()
-        .eq('id', projectId);
+        .eq('id', projectId)
+        .eq('status', 'open');
       
       if (error) throw error;
       
@@ -263,32 +298,43 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ userId, initialTab = 
     }
   };
 
-  const handleApplicationUpdate = async (applicationId: string, newStatus: string) => {
+  const handleApplicationUpdate = async (applicationId: string, newStatus: string, projectId: string, professionalId: string) => {
     try {
-      const { error } = await supabase
+      // First, update the application status
+      const { error: appUpdateError } = await supabase
         .from('applications')
         .update({ status: newStatus })
         .eq('id', applicationId);
       
-      if (error) throw error;
+      if (appUpdateError) throw appUpdateError;
       
-      // If accepted, also update project status
+      // If accepting, also update project status and assigned_to
       if (newStatus === 'accepted') {
-        const application = applications.find(app => app.id === applicationId);
+        const { error: projectUpdateError } = await supabase
+          .from('projects')
+          .update({ 
+            status: 'assigned',
+            assigned_to: professionalId
+          })
+          .eq('id', projectId);
         
-        if (application && application.project_id) {
-          const { error: projectError } = await supabase
-            .from('projects')
-            .update({ status: 'in_progress' })
-            .eq('id', application.project_id);
+        if (projectUpdateError) throw projectUpdateError;
+        
+        // Reject all other applications for this project
+        const { error: rejectError } = await supabase
+          .from('applications')
+          .update({ status: 'rejected' })
+          .eq('project_id', projectId)
+          .neq('id', applicationId);
           
-          if (projectError) throw projectError;
-        }
+        if (rejectError) throw rejectError;
       }
       
       toast({
         title: "Application Updated",
-        description: `Application has been ${newStatus}`
+        description: newStatus === 'accepted' 
+          ? "Professional has been assigned to this project." 
+          : "Application has been rejected."
       });
       
       // Refresh data
@@ -328,6 +374,101 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ userId, initialTab = 
       });
     }
   };
+  
+  const handleReviewInitiate = (project: Project) => {
+    // Check if project is completed and doesn't have a review yet
+    if (project.status !== 'completed') {
+      toast({
+        title: "Cannot Review Yet",
+        description: "You can only review completed projects.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    // Check if review already exists
+    const existingReview = reviews.find(r => r.project_id === project.id);
+    if (existingReview) {
+      toast({
+        title: "Review Exists",
+        description: "You have already submitted a review for this project.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    setProjectToReview(project);
+    setReviewData({ rating: 0, comment: '' });
+  };
+  
+  const handleReviewCancel = () => {
+    setProjectToReview(null);
+  };
+  
+  const handleReviewSubmit = async () => {
+    if (!projectToReview || reviewData.rating === 0) {
+      toast({
+        title: "Missing Information",
+        description: "Please provide a rating before submitting.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    try {
+      setIsSubmitting(true);
+      
+      // Get the professional_id for the project
+      const { data: applicationData, error: applicationError } = await supabase
+        .from('applications')
+        .select('professional_id')
+        .eq('project_id', projectToReview.id)
+        .eq('status', 'accepted')
+        .single();
+        
+      if (applicationError) throw applicationError;
+      
+      const professional_id = applicationData.professional_id;
+      
+      // Create the review
+      const { error: reviewError } = await supabase
+        .from('reviews')
+        .insert({
+          project_id: projectToReview.id,
+          client_id: userId,
+          professional_id: professional_id,
+          rating: reviewData.rating,
+          comment: reviewData.comment,
+        });
+        
+      if (reviewError) throw reviewError;
+      
+      // Update project status to indicate it's been reviewed
+      const { error: projectError } = await supabase
+        .from('projects')
+        .update({ status: 'archived' })
+        .eq('id', projectToReview.id);
+        
+      if (projectError) throw projectError;
+      
+      toast({
+        title: "Review Submitted",
+        description: "Thank you for your feedback!"
+      });
+      
+      setProjectToReview(null);
+      fetchProjects();
+    } catch (error: any) {
+      console.error('Error submitting review:', error);
+      toast({
+        title: "Error",
+        description: "Failed to submit review. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <Tabs defaultValue={initialTab}>
@@ -335,17 +476,17 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ userId, initialTab = 
         <TabsTrigger value="projects">Your Projects</TabsTrigger>
         <TabsTrigger value="applications">Applications</TabsTrigger>
         <TabsTrigger value="create">Create Project</TabsTrigger>
-        <TabsTrigger value="payments">Payments</TabsTrigger>
+        <TabsTrigger value="completed">Completed Projects</TabsTrigger>
       </TabsList>
       
       <TabsContent value="projects">
-        <h2 className="text-2xl font-bold mb-4">Your Posted Projects</h2>
+        <h2 className="text-2xl font-bold mb-4">Your Open Projects</h2>
         {isLoading ? (
           <p>Loading your projects...</p>
-        ) : projects.length === 0 ? (
+        ) : projects.filter(p => p.status === 'open').length === 0 ? (
           <div className="text-center py-8">
             <FileText className="w-12 h-12 mx-auto text-ttc-neutral-400" />
-            <p className="mt-4 text-ttc-neutral-600">You haven't posted any projects yet.</p>
+            <p className="mt-4 text-ttc-neutral-600">You don't have any open projects.</p>
             <Button 
               variant="outline" 
               className="mt-4"
@@ -356,12 +497,12 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ userId, initialTab = 
                 }
               }}
             >
-              <Plus className="w-4 h-4 mr-2" /> Post Your First Project
+              <Plus className="w-4 h-4 mr-2" /> Post New Project
             </Button>
           </div>
         ) : (
           <div className="grid gap-6 md:grid-cols-2">
-            {projects.map(project => (
+            {projects.filter(p => p.status === 'open').map(project => (
               <Card key={project.id}>
                 <CardHeader>
                   <div className="flex justify-between items-start">
@@ -387,12 +528,8 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ userId, initialTab = 
                   </div>
                   <CardDescription className="flex items-center justify-between">
                     <span>Posted on {new Date(project.created_at || '').toLocaleDateString()}</span>
-                    <span className={`px-2 py-1 text-xs rounded-full ${
-                      project.status === 'open' ? 'bg-green-100 text-green-800' : 
-                      project.status === 'in_progress' ? 'bg-yellow-100 text-yellow-800' : 
-                      'bg-blue-100 text-blue-800'
-                    }`}>
-                      {project.status?.replace('_', ' ')}
+                    <span className="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">
+                      Open
                     </span>
                   </CardDescription>
                 </CardHeader>
@@ -408,6 +545,47 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ userId, initialTab = 
                 </CardContent>
               </Card>
             ))}
+          </div>
+        )}
+        
+        <h2 className="text-2xl font-bold mb-4 mt-8">Assigned Projects</h2>
+        {projects.filter(p => p.status === 'assigned').length === 0 ? (
+          <div className="text-center py-8">
+            <p className="text-ttc-neutral-600">You don't have any assigned projects.</p>
+          </div>
+        ) : (
+          <div className="grid gap-6 md:grid-cols-2">
+            {projects.filter(p => p.status === 'assigned').map(project => {
+              // Find the accepted application for this project
+              const acceptedApp = applications.find(app => 
+                app.project_id === project.id && app.status === 'accepted'
+              );
+              
+              return (
+                <Card key={project.id}>
+                  <CardHeader>
+                    <CardTitle>{project.title}</CardTitle>
+                    <CardDescription className="flex items-center justify-between">
+                      <span>Posted on {new Date(project.created_at || '').toLocaleDateString()}</span>
+                      <span className="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800">
+                        In Progress
+                      </span>
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-ttc-neutral-600 mb-4">{project.description}</p>
+                    <p className="font-medium">Budget: ${project.budget}</p>
+                    
+                    {acceptedApp && (
+                      <div className="mt-4 p-3 bg-gray-50 rounded-md">
+                        <p className="font-medium">Assigned to:</p>
+                        <p>{acceptedApp.professional?.first_name} {acceptedApp.professional?.last_name}</p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
         )}
         
@@ -499,9 +677,9 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ userId, initialTab = 
         <h2 className="text-2xl font-bold mb-4">Applications to Your Projects</h2>
         {isLoading ? (
           <p>Loading applications...</p>
-        ) : applications.length === 0 ? (
+        ) : applications.filter(app => app.status === 'pending').length === 0 ? (
           <div className="text-center py-8">
-            <p className="text-ttc-neutral-600">No applications received yet.</p>
+            <p className="text-ttc-neutral-600">No pending applications at the moment.</p>
           </div>
         ) : (
           <Table>
@@ -515,32 +693,37 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ userId, initialTab = 
               </TableRow>
             </TableHeader>
             <TableBody>
-              {applications.map(app => {
-                const project = projects.find(p => p.id === app.project_id);
-                return (
-                  <TableRow key={app.id}>
-                    <TableCell className="font-medium">{project?.title || 'Unknown Project'}</TableCell>
-                    <TableCell>
-                      {app.professional ? `${app.professional.first_name} ${app.professional.last_name}` : 'Unknown Applicant'}
-                    </TableCell>
-                    <TableCell className="max-w-xs truncate">{app.cover_letter}</TableCell>
-                    <TableCell>
-                      <span className={`px-2 py-1 text-xs rounded-full ${
-                        app.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 
-                        app.status === 'accepted' ? 'bg-green-100 text-green-800' : 
-                        'bg-red-100 text-red-800'
-                      }`}>
-                        {app.status}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      {app.status === 'pending' && (
+              {applications
+                .filter(app => app.status === 'pending')
+                .map(app => {
+                  const project = projects.find(p => p.id === app.project_id);
+                  // Only show applications for projects that are still open
+                  if (!project || project.status !== 'open') return null;
+                  
+                  return (
+                    <TableRow key={app.id}>
+                      <TableCell className="font-medium">{project?.title || 'Unknown Project'}</TableCell>
+                      <TableCell>
+                        {app.professional ? `${app.professional.first_name} ${app.professional.last_name}` : 'Unknown Applicant'}
+                      </TableCell>
+                      <TableCell className="max-w-xs truncate">{app.cover_letter}</TableCell>
+                      <TableCell>
+                        <span className="px-2 py-1 text-xs rounded-full bg-yellow-100 text-yellow-800">
+                          Pending
+                        </span>
+                      </TableCell>
+                      <TableCell>
                         <div className="flex space-x-2">
                           <Button 
                             variant="outline" 
                             size="sm"
                             className="bg-green-50 text-green-700 hover:bg-green-100 border-green-200"
-                            onClick={() => handleApplicationUpdate(app.id, 'accepted')}
+                            onClick={() => handleApplicationUpdate(
+                              app.id, 
+                              'accepted', 
+                              app.project_id || '', 
+                              app.professional_id || ''
+                            )}
                           >
                             <Check className="w-4 h-4 mr-1" /> Accept
                           </Button>
@@ -548,16 +731,63 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ userId, initialTab = 
                             variant="outline" 
                             size="sm"
                             className="bg-red-50 text-red-700 hover:bg-red-100 border-red-200"
-                            onClick={() => handleApplicationUpdate(app.id, 'rejected')}
+                            onClick={() => handleApplicationUpdate(
+                              app.id, 
+                              'rejected', 
+                              app.project_id || '', 
+                              app.professional_id || ''
+                            )}
                           >
                             <X className="w-4 h-4 mr-1" /> Reject
                           </Button>
                         </div>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+            </TableBody>
+          </Table>
+        )}
+        
+        <h2 className="text-2xl font-bold mb-4 mt-8">Past Applications</h2>
+        {applications.filter(app => app.status !== 'pending').length === 0 ? (
+          <div className="text-center py-8">
+            <p className="text-ttc-neutral-600">No past applications.</p>
+          </div>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Project</TableHead>
+                <TableHead>Applicant</TableHead>
+                <TableHead>Applied On</TableHead>
+                <TableHead>Status</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {applications
+                .filter(app => app.status !== 'pending')
+                .map(app => {
+                  const project = projects.find(p => p.id === app.project_id);
+                  
+                  return (
+                    <TableRow key={app.id}>
+                      <TableCell className="font-medium">{project?.title || 'Unknown Project'}</TableCell>
+                      <TableCell>
+                        {app.professional ? `${app.professional.first_name} ${app.professional.last_name}` : 'Unknown Applicant'}
+                      </TableCell>
+                      <TableCell>{new Date(app.created_at || '').toLocaleDateString()}</TableCell>
+                      <TableCell>
+                        <span className={`px-2 py-1 text-xs rounded-full ${
+                          app.status === 'accepted' ? 'bg-green-100 text-green-800' : 
+                          'bg-red-100 text-red-800'
+                        }`}>
+                          {app.status}
+                        </span>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
             </TableBody>
           </Table>
         )}
@@ -619,58 +849,132 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ userId, initialTab = 
         </Card>
       </TabsContent>
       
-      <TabsContent value="payments">
-        <h2 className="text-2xl font-bold mb-4">Payment Management</h2>
+      <TabsContent value="completed">
+        <h2 className="text-2xl font-bold mb-4">Completed Projects</h2>
         {isLoading ? (
-          <p>Loading payment information...</p>
+          <p>Loading completed projects...</p>
+        ) : projects.filter(p => p.status === 'completed' || p.status === 'archived').length === 0 ? (
+          <div className="text-center py-8">
+            <p className="text-ttc-neutral-600">You don't have any completed projects yet.</p>
+          </div>
         ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Project</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Budget</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {projects
-                .filter(project => project.status === 'in_progress' || project.status === 'paid')
-                .map(project => (
-                  <TableRow key={project.id}>
-                    <TableCell className="font-medium">{project.title}</TableCell>
-                    <TableCell>
-                      <span className={`px-2 py-1 text-xs rounded-full ${
-                        project.status === 'in_progress' ? 'bg-yellow-100 text-yellow-800' : 
-                        'bg-green-100 text-green-800'
-                      }`}>
-                        {project.status === 'in_progress' ? 'Payment Due' : 'Paid'}
-                      </span>
-                    </TableCell>
-                    <TableCell>${project.budget}</TableCell>
-                    <TableCell>
-                      {project.status === 'in_progress' && (
-                        <Button 
-                          variant="outline"
-                          className="bg-green-50 text-green-700 hover:bg-green-100 border-green-200"
-                          onClick={() => markProjectAsPaid(project.id)}
-                        >
-                          Mark as Paid
-                        </Button>
+          <div className="grid gap-6 md:grid-cols-2">
+            {projects
+              .filter(p => p.status === 'completed' || p.status === 'archived')
+              .map(project => {
+                // Find the accepted application for this project to get professional info
+                const acceptedApp = applications.find(app => 
+                  app.project_id === project.id && app.status === 'accepted'
+                );
+                
+                // Check if this project has a review
+                const hasReview = reviews.some(r => r.project_id === project.id);
+                
+                return (
+                  <Card key={project.id}>
+                    <CardHeader>
+                      <CardTitle>{project.title}</CardTitle>
+                      <CardDescription className="flex items-center justify-between">
+                        <span>Completed</span>
+                        <span className={`px-2 py-1 text-xs rounded-full ${
+                          project.status === 'archived' ? 'bg-purple-100 text-purple-800' : 'bg-green-100 text-green-800'
+                        }`}>
+                          {project.status === 'archived' ? 'Reviewed' : 'Completed'}
+                        </span>
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-sm text-ttc-neutral-600 mb-4">{project.description}</p>
+                      <p className="font-medium">Budget: ${project.budget}</p>
+                      
+                      {acceptedApp && (
+                        <div className="mt-4 p-3 bg-gray-50 rounded-md">
+                          <p className="font-medium">Completed by:</p>
+                          <p>{acceptedApp.professional?.first_name} {acceptedApp.professional?.last_name}</p>
+                        </div>
                       )}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              
-              {projects.filter(project => project.status === 'in_progress' || project.status === 'paid').length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={4} className="text-center py-4">
-                    No active projects requiring payment.
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
+                    </CardContent>
+                    <CardFooter>
+                      {!hasReview && project.status === 'completed' ? (
+                        <Button 
+                          className="w-full bg-yellow-600 hover:bg-yellow-700"
+                          onClick={() => handleReviewInitiate(project)}
+                        >
+                          <Star className="w-4 h-4 mr-2" /> Leave a Review
+                        </Button>
+                      ) : hasReview ? (
+                        <p className="text-sm text-center w-full text-green-600">
+                          Review submitted
+                        </p>
+                      ) : (
+                        <p className="text-sm text-center w-full text-gray-500">
+                          Project archived
+                        </p>
+                      )}
+                    </CardFooter>
+                  </Card>
+                );
+              })}
+          </div>
+        )}
+        
+        {/* Review Dialog */}
+        {projectToReview && (
+          <Card className="mt-6 border-yellow-200">
+            <CardHeader className="bg-yellow-50">
+              <CardTitle>Leave a Review</CardTitle>
+              <CardDescription>
+                Share your experience with the professional who completed your project.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="pt-4">
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="rating" className="block mb-2">Rating</Label>
+                  <div className="flex gap-1">
+                    {[1, 2, 3, 4, 5].map(star => (
+                      <Button 
+                        key={star}
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className={`p-1 ${reviewData.rating >= star ? 'text-yellow-500' : 'text-gray-300'}`}
+                        onClick={() => setReviewData(prev => ({ ...prev, rating: star }))}
+                      >
+                        <Star className={`h-8 w-8 ${reviewData.rating >= star ? 'fill-yellow-500' : ''}`} />
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="review-comment">Your Comments</Label>
+                  <Textarea 
+                    id="review-comment" 
+                    className="min-h-[120px]"
+                    placeholder="Share details about your experience working with this professional..."
+                    value={reviewData.comment}
+                    onChange={e => setReviewData(prev => ({ ...prev, comment: e.target.value }))}
+                  />
+                </div>
+              </div>
+            </CardContent>
+            <CardFooter className="flex justify-between">
+              <Button 
+                variant="outline" 
+                onClick={handleReviewCancel}
+              >
+                Cancel
+              </Button>
+              <Button 
+                className="bg-yellow-600 hover:bg-yellow-700"
+                onClick={handleReviewSubmit}
+                disabled={isSubmitting || reviewData.rating === 0}
+              >
+                {isSubmitting ? "Submitting..." : "Submit Review"}
+              </Button>
+            </CardFooter>
+          </Card>
         )}
       </TabsContent>
     </Tabs>

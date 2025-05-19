@@ -34,17 +34,32 @@ const ProjectMarketplace: React.FC = () => {
     try {
       setLoading(true);
       
+      // Fix the query by specifying the exact relationship
       const { data, error } = await supabase
         .from('projects')
         .select(`
           *,
-          client:profiles(first_name, last_name)
+          client:profiles!projects_client_id_fkey(first_name, last_name)
         `)
         .eq('status', 'open')
         .order('created_at', { ascending: false });
         
       if (error) throw error;
-      setProjects(data || []);
+      
+      // Ensure the data is properly typed as Project[]
+      const typedProjects: Project[] = data?.map(project => ({
+        id: project.id,
+        title: project.title,
+        description: project.description,
+        budget: project.budget,
+        status: project.status,
+        created_at: project.created_at,
+        client_id: project.client_id,
+        assigned_to: project.assigned_to,
+        client: project.client
+      })) || [];
+      
+      setProjects(typedProjects);
     } catch (error: any) {
       console.error('Error fetching projects:', error);
       toast({

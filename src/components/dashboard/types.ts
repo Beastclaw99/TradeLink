@@ -8,6 +8,7 @@ export interface Project {
   status: string | null;
   created_at: string | null;
   client_id: string | null;
+  assigned_to: string | null;
   client?: {
     first_name: string | null;
     last_name: string | null;
@@ -52,4 +53,6 @@ export interface Review {
   rating: number | null;
   comment: string | null;
   created_at: string;
+  professional_id?: string | null;
+  client_id?: string | null;
 }
