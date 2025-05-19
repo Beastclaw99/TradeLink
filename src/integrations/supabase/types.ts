@@ -103,21 +103,6 @@ export type Database = {
           },
         ]
       }
-      Policies: {
-        Row: {
-          created_at: string
-          id: number
-        }
-        Insert: {
-          created_at?: string
-          id?: number
-        }
-        Update: {
-          created_at?: string
-          id?: number
-        }
-        Relationships: []
-      }
       profiles: {
         Row: {
           account_type: Database["public"]["Enums"]["account_type_enum"]
@@ -151,69 +136,9 @@ export type Database = {
         }
         Relationships: []
       }
-      project_change_requests: {
-        Row: {
-          change_payload: Json | null
-          change_type: string | null
-          client_id: string | null
-          created_at: string | null
-          decision_at: string | null
-          id: string
-          professional_id: string | null
-          project_id: string | null
-          status: string | null
-          "updated at": string | null
-        }
-        Insert: {
-          change_payload?: Json | null
-          change_type?: string | null
-          client_id?: string | null
-          created_at?: string | null
-          decision_at?: string | null
-          id?: string
-          professional_id?: string | null
-          project_id?: string | null
-          status?: string | null
-          "updated at"?: string | null
-        }
-        Update: {
-          change_payload?: Json | null
-          change_type?: string | null
-          client_id?: string | null
-          created_at?: string | null
-          decision_at?: string | null
-          id?: string
-          professional_id?: string | null
-          project_id?: string | null
-          status?: string | null
-          "updated at"?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "project_change_requests_client_id_fkey"
-            columns: ["client_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "project_change_requests_professional_id_fkey"
-            columns: ["professional_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "project_change_requests_project_id_fkey"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "projects"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       projects: {
         Row: {
+          assigned_to: string | null
           budget: number | null
           client_id: string | null
           created_at: string | null
@@ -224,6 +149,7 @@ export type Database = {
           "updated at": string | null
         }
         Insert: {
+          assigned_to?: string | null
           budget?: number | null
           client_id?: string | null
           created_at?: string | null
@@ -234,6 +160,7 @@ export type Database = {
           "updated at"?: string | null
         }
         Update: {
+          assigned_to?: string | null
           budget?: number | null
           client_id?: string | null
           created_at?: string | null
@@ -244,6 +171,13 @@ export type Database = {
           "updated at"?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "projects_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "projects_client_id_fkey"
             columns: ["client_id"]

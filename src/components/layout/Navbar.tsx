@@ -1,9 +1,11 @@
+
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Menu, X, Briefcase, User, LogOut } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+
 const Navbar: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const {
@@ -11,10 +13,13 @@ const Navbar: React.FC = () => {
     signOut,
     isLoading
   } = useAuth();
+  
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
   };
-  return <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+  
+  return (
+    <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container-custom flex h-16 items-center justify-between">
         <div className="flex items-center gap-2">
           <Link to="/" className="flex items-center">
@@ -123,6 +128,8 @@ const Navbar: React.FC = () => {
             </div>
           </div>
         </div>}
-    </header>;
+    </header>
+  );
 };
+
 export default Navbar;
