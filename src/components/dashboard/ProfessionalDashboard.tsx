@@ -35,6 +35,7 @@ const ProfessionalDashboard: React.FC<ProfessionalDashboardProps> = ({ userId })
   const [profile, setProfile] = useState<any>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchDashboardData();
@@ -43,19 +44,28 @@ const ProfessionalDashboard: React.FC<ProfessionalDashboardProps> = ({ userId })
   const fetchDashboardData = async () => {
     try {
       setIsLoading(true);
+      setError(null);
+      
+      console.log('Fetching professional dashboard data for user:', userId);
       
       // First get the professional's profile to get their skills
       const { data: userProfileData, error: userProfileError } = await supabase
         .from('profiles')
-        .select('skills')
+        .select('skills, first_name, last_name, created_at')
         .eq('id', userId)
         .single();
       
-      if (userProfileError) throw userProfileError;
+      if (userProfileError) {
+        console.error('Profile fetch error:', userProfileError);
+        throw userProfileError;
+      }
+      
+      console.log('Profile data:', userProfileData);
       
       // Set skills array or default to empty array
       const userSkills = userProfileData?.skills || [];
       setSkills(userSkills);
+      setProfile(userProfileData);
       
       // Fetch projects that match skills (if skills are available) and are open
       const { data: projectsData, error: projectsError } = await supabase
@@ -66,7 +76,12 @@ const ProfessionalDashboard: React.FC<ProfessionalDashboardProps> = ({ userId })
         `)
         .eq('status', 'open');
       
-      if (projectsError) throw projectsError;
+      if (projectsError) {
+        console.error('Projects fetch error:', projectsError);
+        throw projectsError;
+      }
+      
+      console.log('Projects data:', projectsData);
       
       // Filter projects by skills if skills are available
       let filteredProjects = projectsData || [];
@@ -93,7 +108,12 @@ const ProfessionalDashboard: React.FC<ProfessionalDashboardProps> = ({ userId })
         `)
         .eq('professional_id', userId);
       
-      if (appsError) throw appsError;
+      if (appsError) {
+        console.error('Applications fetch error:', appsError);
+        throw appsError;
+      }
+      
+      console.log('Applications data:', appsData);
       setApplications(appsData || []);
       
       // Fetch assigned projects (status = "assigned" and assigned_to = userId)
@@ -106,7 +126,12 @@ const ProfessionalDashboard: React.FC<ProfessionalDashboardProps> = ({ userId })
         .eq('assigned_to', userId)
         .eq('status', 'assigned');
         
-      if (assignedProjectsError) throw assignedProjectsError;
+      if (assignedProjectsError) {
+        console.error('Assigned projects fetch error:', assignedProjectsError);
+        throw assignedProjectsError;
+      }
+      
+      console.log('Assigned projects data:', assignedProjectsData);
       
       // Add assigned projects to the professional's view
       if (assignedProjectsData && assignedProjectsData.length > 0) {
@@ -122,7 +147,12 @@ const ProfessionalDashboard: React.FC<ProfessionalDashboardProps> = ({ userId })
         `)
         .eq('professional_id', userId);
       
-      if (paymentsError) throw paymentsError;
+      if (paymentsError) {
+        console.error('Payments fetch error:', paymentsError);
+        throw paymentsError;
+      }
+      
+      console.log('Payments data:', paymentsData);
       
       // Ensure each payment has a created_at field
       const paymentsWithDates = (paymentsData || []).map(payment => ({
@@ -138,22 +168,17 @@ const ProfessionalDashboard: React.FC<ProfessionalDashboardProps> = ({ userId })
         .select('*')
         .eq('professional_id', userId);
       
-      if (reviewsError) throw reviewsError;
+      if (reviewsError) {
+        console.error('Reviews fetch error:', reviewsError);
+        throw reviewsError;
+      }
+      
+      console.log('Reviews data:', reviewsData);
       setReviews(reviewsData || []);
       
-      // Fetch the professional's profile
-      const { data: profileInfo, error: profileFetchError } = await supabase
-        .from('profiles')
-        .select('first_name, last_name, skills, created_at')
-        .eq('id', userId)
-        .single();
-      
-      if (profileFetchError) throw profileFetchError;
-      
-      setProfile(profileInfo);
-      
     } catch (error: any) {
-      console.error('Error fetching data:', error);
+      console.error('Error fetching dashboard data:', error);
+      setError('Failed to load dashboard data. Please try again later.');
       toast({
         title: "Error",
         description: "Failed to load dashboard data. Please try again later.",
@@ -345,6 +370,22 @@ const ProfessionalDashboard: React.FC<ProfessionalDashboardProps> = ({ userId })
     setIsEditing,
     isSubmitting
   };
+
+  if (error) {
+    return (
+      <div className="bg-red-50 border border-red-200 p-4 rounded-md mb-6">
+        <p className="text-red-700">{error}</p>
+        <Button 
+          onClick={fetchDashboardData} 
+          variant="outline" 
+          className="mt-2"
+          disabled={isLoading}
+        >
+          {isLoading ? "Loading..." : "Try Again"}
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <Tabs defaultValue="featured">
