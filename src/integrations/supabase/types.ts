@@ -11,28 +11,37 @@ export type Database = {
     Tables: {
       applications: {
         Row: {
+          bid_amount: number | null
           cover_letter: string | null
           created_at: string | null
           id: string
           professional_id: string | null
           project_id: string | null
+          proposal_message: string | null
           status: string | null
+          updated_at: string | null
         }
         Insert: {
+          bid_amount?: number | null
           cover_letter?: string | null
           created_at?: string | null
           id?: string
           professional_id?: string | null
           project_id?: string | null
+          proposal_message?: string | null
           status?: string | null
+          updated_at?: string | null
         }
         Update: {
+          bid_amount?: number | null
           cover_letter?: string | null
           created_at?: string | null
           id?: string
           professional_id?: string | null
           project_id?: string | null
+          proposal_message?: string | null
           status?: string | null
+          updated_at?: string | null
         }
         Relationships: [
           {

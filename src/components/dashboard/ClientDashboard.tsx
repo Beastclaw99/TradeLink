@@ -2,160 +2,121 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
-import { useNavigate } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Project, Application, Review } from './types';
-import { ProfileData } from '@/components/profile/types';
 import ProjectsTab from './client/ProjectsTab';
 import ApplicationsTab from './client/ApplicationsTab';
 import CreateProjectTab from './client/CreateProjectTab';
 import PaymentsTab from './client/PaymentsTab';
 import ProfileTab from './client/ProfileTab';
+import { Project, Application, Payment } from './types';
 
 interface ClientDashboardProps {
   userId: string;
   initialTab?: string;
 }
 
-const ClientDashboard: React.FC<ClientDashboardProps> = ({ userId, initialTab }) => {
+const ClientDashboard: React.FC<ClientDashboardProps> = ({ userId, initialTab = 'projects' }) => {
   const { toast } = useToast();
-  const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState(initialTab);
   const [projects, setProjects] = useState<Project[]>([]);
   const [applications, setApplications] = useState<Application[]>([]);
-  const [reviews, setReviews] = useState<Review[]>([]);
+  const [payments, setPayments] = useState<Payment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [profileData, setProfileData] = useState<ProfileData | null>(null);
-  
   const [editProject, setEditProject] = useState<Project | null>(null);
   const [projectToDelete, setProjectToDelete] = useState<string | null>(null);
-  const [projectToReview, setProjectToReview] = useState<Project | null>(null);
-  const [reviewData, setReviewData] = useState({ rating: 0, comment: '' });
-  
-  const [newProject, setNewProject] = useState({
-    title: '',
-    description: '',
-    budget: ''
-  });
-  
   const [editedProject, setEditedProject] = useState({
     title: '',
     description: '',
     budget: ''
   });
-
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
   useEffect(() => {
-    fetchProjects();
-    fetchProfileData();
+    fetchDashboardData();
   }, [userId]);
-
-  const fetchProfileData = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .single();
-        
-      if (error) throw error;
-      setProfileData(data);
-    } catch (error) {
-      console.error('Error fetching profile data:', error);
-    }
-  };
-
-  const fetchProjects = async () => {
+  
+  const fetchDashboardData = async () => {
     try {
       setIsLoading(true);
       
-      // Fetch projects
+      // Fetch client's projects
       const { data: projectsData, error: projectsError } = await supabase
         .from('projects')
         .select('*')
         .eq('client_id', userId)
         .order('created_at', { ascending: false });
-
+      
       if (projectsError) throw projectsError;
       setProjects(projectsData || []);
       
-      // Fetch applications for all projects
-      if (projectsData && projectsData.length > 0) {
-        const projectIds = projectsData.map(project => project.id);
-        
-        const { data: applicationsData, error: applicationsError } = await supabase
-          .from('applications')
-          .select(`
-            *,
-            professional:profiles(first_name, last_name)
-          `)
-          .in('project_id', projectIds);
-          
-        if (applicationsError) throw applicationsError;
-        setApplications(applicationsData || []);
-        
-        // Fetch reviews for completed projects
-        const { data: reviewsData, error: reviewsError } = await supabase
-          .from('reviews')
-          .select('*')
-          .in('project_id', projectIds);
-          
-        if (reviewsError) throw reviewsError;
-        setReviews(reviewsData || []);
-      }
+      // Fetch applications for client's projects
+      const { data: appsData, error: appsError } = await supabase
+        .from('applications')
+        .select(`
+          *,
+          project:projects(title, status, budget),
+          professional:profiles!applications_professional_id_fkey(first_name, last_name)
+        `)
+        .in('project_id', projectsData.map(project => project.id) || []);
+      
+      if (appsError) throw appsError;
+      setApplications(appsData || []);
+      
+      // Fetch payments for client's projects
+      const { data: paymentsData, error: paymentsError } = await supabase
+        .from('payments')
+        .select(`
+          *,
+          project:projects(title),
+          professional:profiles!payments_professional_id_fkey(first_name, last_name)
+        `)
+        .eq('client_id', userId);
+      
+      if (paymentsError) throw paymentsError;
+      setPayments(paymentsData || []);
+      
     } catch (error: any) {
       console.error('Error fetching data:', error);
       toast({
         title: "Error",
-        description: "Failed to load your projects. Please try again later.",
+        description: "Failed to load dashboard data. Please try again.",
         variant: "destructive"
       });
     } finally {
       setIsLoading(false);
     }
   };
-
-  const handleCreateProject = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!newProject.title || !newProject.description || !newProject.budget) {
-      toast({
-        title: "Missing information",
-        description: "Please fill in all fields",
-        variant: "destructive"
-      });
-      return;
-    }
-    
+  
+  const handleCreateProject = async (projectData: { title: string, description: string, budget: string }) => {
     try {
       setIsSubmitting(true);
       
       const { data, error } = await supabase
         .from('projects')
-        .insert({
-          title: newProject.title,
-          description: newProject.description,
-          budget: parseFloat(newProject.budget),
-          status: 'open',
-          client_id: userId
-        })
+        .insert([
+          {
+            title: projectData.title,
+            description: projectData.description,
+            budget: parseFloat(projectData.budget),
+            client_id: userId,
+            status: 'open'
+          }
+        ])
         .select();
       
       if (error) throw error;
       
       toast({
         title: "Project Created",
-        description: "Your new project has been posted successfully!"
+        description: "Your new project has been created successfully!"
       });
       
-      // Reset form
-      setNewProject({
-        title: '',
-        description: '',
-        budget: ''
-      });
+      // Refresh projects data
+      fetchDashboardData();
       
-      // Refresh projects list
-      fetchProjects();
+      // Switch to projects tab
+      setActiveTab('projects');
+      
     } catch (error: any) {
       console.error('Error creating project:', error);
       toast({
@@ -169,53 +130,28 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ userId, initialTab })
   };
   
   const handleEditInitiate = (project: Project) => {
-    // Only allow editing if project is still open
-    if (project.status !== 'open') {
-      toast({
-        title: "Cannot Edit",
-        description: "Projects that are assigned or completed cannot be edited.",
-        variant: "destructive"
-      });
-      return;
-    }
-    
     setEditProject(project);
     setEditedProject({
       title: project.title,
       description: project.description || '',
-      budget: project.budget ? project.budget.toString() : ''
+      budget: project.budget?.toString() || ''
     });
   };
   
   const handleEditCancel = () => {
     setEditProject(null);
+    setEditedProject({
+      title: '',
+      description: '',
+      budget: ''
+    });
   };
   
   const handleUpdateProject = async (project: Project) => {
-    if (!editedProject.title || !editedProject.description || !editedProject.budget) {
-      toast({
-        title: "Missing information",
-        description: "Please fill in all fields",
-        variant: "destructive"
-      });
-      return;
-    }
-    
-    // Double check that project is still in 'open' status
-    if (project.status !== 'open') {
-      toast({
-        title: "Cannot Edit",
-        description: "This project has changed status and can no longer be edited.",
-        variant: "destructive"
-      });
-      setEditProject(null);
-      return;
-    }
-    
     try {
       setIsSubmitting(true);
       
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('projects')
         .update({
           title: editedProject.title,
@@ -223,7 +159,8 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ userId, initialTab })
           budget: parseFloat(editedProject.budget),
         })
         .eq('id', project.id)
-        .eq('status', 'open');
+        .eq('client_id', userId)
+        .select();
       
       if (error) throw error;
       
@@ -232,8 +169,12 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ userId, initialTab })
         description: "Your project has been updated successfully!"
       });
       
-      setEditProject(null);
-      fetchProjects();
+      // Refresh projects data
+      fetchDashboardData();
+      
+      // Reset edit state
+      handleEditCancel();
+      
     } catch (error: any) {
       console.error('Error updating project:', error);
       toast({
@@ -247,17 +188,6 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ userId, initialTab })
   };
   
   const handleDeleteInitiate = (projectId: string) => {
-    // Check if project can be deleted
-    const project = projects.find(p => p.id === projectId);
-    if (project && project.status !== 'open') {
-      toast({
-        title: "Cannot Delete",
-        description: "Projects that are assigned or completed cannot be deleted.",
-        variant: "destructive"
-      });
-      return;
-    }
-    
     setProjectToDelete(projectId);
   };
   
@@ -269,30 +199,30 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ userId, initialTab })
     try {
       setIsSubmitting(true);
       
-      // Double-check that project is still in 'open' status
-      const { data: projectData, error: projectError } = await supabase
-        .from('projects')
-        .select('status')
-        .eq('id', projectId)
-        .single();
-        
-      if (projectError) throw projectError;
+      // First check if the project has any applications
+      const { data: apps, error: appsError } = await supabase
+        .from('applications')
+        .select('id')
+        .eq('project_id', projectId);
       
-      if (projectData.status !== 'open') {
-        toast({
-          title: "Cannot Delete",
-          description: "This project has changed status and can no longer be deleted.",
-          variant: "destructive"
-        });
-        setProjectToDelete(null);
-        return;
+      if (appsError) throw appsError;
+      
+      // If there are applications, delete them first
+      if (apps && apps.length > 0) {
+        const { error: deleteAppsError } = await supabase
+          .from('applications')
+          .delete()
+          .eq('project_id', projectId);
+        
+        if (deleteAppsError) throw deleteAppsError;
       }
       
+      // Now delete the project
       const { error } = await supabase
         .from('projects')
         .delete()
         .eq('id', projectId)
-        .eq('status', 'open');
+        .eq('client_id', userId);
       
       if (error) throw error;
       
@@ -301,8 +231,12 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ userId, initialTab })
         description: "Your project has been deleted successfully!"
       });
       
-      setProjectToDelete(null);
-      fetchProjects();
+      // Refresh projects data
+      fetchDashboardData();
+      
+      // Reset delete state
+      handleDeleteCancel();
+      
     } catch (error: any) {
       console.error('Error deleting project:', error);
       toast({
@@ -314,28 +248,29 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ userId, initialTab })
       setIsSubmitting(false);
     }
   };
-
-  const handleApplicationUpdate = async (applicationId: string, newStatus: string, projectId: string, professionalId: string) => {
+  
+  const handleApplicationUpdate = async (
+    applicationId: string, 
+    newStatus: string, 
+    projectId: string, 
+    professionalId: string
+  ) => {
     try {
-      // First, update the application status
-      const { error: appUpdateError } = await supabase
-        .from('applications')
-        .update({ status: newStatus })
-        .eq('id', applicationId);
+      setIsSubmitting(true);
       
-      if (appUpdateError) throw appUpdateError;
-      
-      // If accepting, also update project status and assigned_to
+      // Start a transaction
       if (newStatus === 'accepted') {
-        const { error: projectUpdateError } = await supabase
+        // If accepting, update project to assigned
+        const { error: projectError } = await supabase
           .from('projects')
-          .update({ 
+          .update({
             status: 'assigned',
             assigned_to: professionalId
           })
-          .eq('id', projectId);
+          .eq('id', projectId)
+          .eq('client_id', userId);
         
-        if (projectUpdateError) throw projectUpdateError;
+        if (projectError) throw projectError;
         
         // Reject all other applications for this project
         const { error: rejectError } = await supabase
@@ -343,211 +278,110 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ userId, initialTab })
           .update({ status: 'rejected' })
           .eq('project_id', projectId)
           .neq('id', applicationId);
-          
+        
         if (rejectError) throw rejectError;
       }
       
+      // Update the specific application status
+      const { error: appError } = await supabase
+        .from('applications')
+        .update({ status: newStatus })
+        .eq('id', applicationId);
+      
+      if (appError) throw appError;
+      
       toast({
-        title: "Application Updated",
+        title: `Application ${newStatus === 'accepted' ? 'Accepted' : 'Rejected'}`,
         description: newStatus === 'accepted' 
-          ? "Professional has been assigned to this project." 
-          : "Application has been rejected."
+          ? "The professional has been assigned to your project."
+          : "The application has been rejected."
       });
       
       // Refresh data
-      fetchProjects();
+      fetchDashboardData();
+      
     } catch (error: any) {
       console.error('Error updating application:', error);
       toast({
         title: "Error",
-        description: "Failed to update application status.",
-        variant: "destructive"
-      });
-    }
-  };
-
-  const markProjectAsPaid = async (projectId: string) => {
-    try {
-      const { error } = await supabase
-        .from('projects')
-        .update({ status: 'paid' })
-        .eq('id', projectId);
-      
-      if (error) throw error;
-      
-      toast({
-        title: "Payment Recorded",
-        description: "The project has been marked as paid"
-      });
-      
-      // Refresh data
-      fetchProjects();
-    } catch (error: any) {
-      console.error('Error marking project as paid:', error);
-      toast({
-        title: "Error",
-        description: "Failed to update payment status.",
-        variant: "destructive"
-      });
-    }
-  };
-  
-  const handleReviewInitiate = (project: Project) => {
-    // Check if project is completed and doesn't have a review yet
-    if (project.status !== 'completed') {
-      toast({
-        title: "Cannot Review Yet",
-        description: "You can only review completed projects.",
-        variant: "destructive"
-      });
-      return;
-    }
-    
-    // Check if review already exists
-    const existingReview = reviews.find(r => r.project_id === project.id);
-    if (existingReview) {
-      toast({
-        title: "Review Exists",
-        description: "You have already submitted a review for this project.",
-        variant: "destructive"
-      });
-      return;
-    }
-    
-    setProjectToReview(project);
-    setReviewData({ rating: 0, comment: '' });
-  };
-  
-  const handleReviewCancel = () => {
-    setProjectToReview(null);
-  };
-  
-  const handleReviewSubmit = async () => {
-    if (!projectToReview || reviewData.rating === 0) {
-      toast({
-        title: "Missing Information",
-        description: "Please provide a rating before submitting.",
-        variant: "destructive"
-      });
-      return;
-    }
-    
-    try {
-      setIsSubmitting(true);
-      
-      // Get the professional_id for the project
-      const { data: applicationData, error: applicationError } = await supabase
-        .from('applications')
-        .select('professional_id')
-        .eq('project_id', projectToReview.id)
-        .eq('status', 'accepted')
-        .single();
-        
-      if (applicationError) throw applicationError;
-      
-      const professional_id = applicationData.professional_id;
-      
-      // Create the review
-      const { error: reviewError } = await supabase
-        .from('reviews')
-        .insert({
-          project_id: projectToReview.id,
-          client_id: userId,
-          professional_id: professional_id,
-          rating: reviewData.rating,
-          comment: reviewData.comment,
-        });
-        
-      if (reviewError) throw reviewError;
-      
-      // Update project status to indicate it's been reviewed
-      const { error: projectError } = await supabase
-        .from('projects')
-        .update({ status: 'archived' })
-        .eq('id', projectToReview.id);
-        
-      if (projectError) throw projectError;
-      
-      toast({
-        title: "Review Submitted",
-        description: "Thank you for your feedback!"
-      });
-      
-      setProjectToReview(null);
-      fetchProjects();
-    } catch (error: any) {
-      console.error('Error submitting review:', error);
-      toast({
-        title: "Error",
-        description: "Failed to submit review. Please try again.",
+        description: "Failed to update application. Please try again.",
         variant: "destructive"
       });
     } finally {
       setIsSubmitting(false);
     }
   };
-
-  // Shared props for all tabs
-  const sharedProps = {
+  
+  // Set the active tab based on initialTab prop
+  useEffect(() => {
+    if (initialTab && ['projects', 'applications', 'create', 'payments', 'profile'].includes(initialTab)) {
+      setActiveTab(initialTab);
+    }
+  }, [initialTab]);
+  
+  // Props to pass to tab components
+  const projectsTabProps = {
     isLoading,
     projects,
     applications,
-    reviews,
-    profileData,
-    userId,
-    navigate,
-    handleApplicationUpdate,
-    handleDeleteInitiate,
-    handleDeleteCancel,
-    handleDeleteProject,
-    handleEditInitiate,
-    handleEditCancel,
-    handleUpdateProject,
     editProject,
     projectToDelete,
     editedProject,
-    setEditedProject,
     isSubmitting,
-    handleReviewInitiate,
-    handleReviewCancel,
-    handleReviewSubmit,
-    projectToReview,
-    reviewData,
-    setReviewData,
-    markProjectAsPaid,
-    newProject,
-    setNewProject,
+    setEditedProject,
+    handleEditInitiate,
+    handleEditCancel,
+    handleUpdateProject,
+    handleDeleteInitiate,
+    handleDeleteCancel,
+    handleDeleteProject
+  };
+  
+  const applicationsTabProps = {
+    isLoading,
+    projects,
+    applications,
+    handleApplicationUpdate
+  };
+  
+  const createProjectTabProps = {
+    isSubmitting,
     handleCreateProject
   };
-
+  
+  const paymentsTabProps = {
+    isLoading,
+    payments
+  };
+  
   return (
-    <Tabs defaultValue={initialTab || "projects"}>
+    <Tabs value={activeTab} onValueChange={setActiveTab}>
       <TabsList className="mb-6">
-        <TabsTrigger value="projects">Your Projects</TabsTrigger>
-        <TabsTrigger value="create">Create Project</TabsTrigger>
-        <TabsTrigger value="applications">Applications</TabsTrigger>
-        <TabsTrigger value="payments">Payments</TabsTrigger>
-        <TabsTrigger value="profile">Profile</TabsTrigger>
+        <TabsTrigger value="projects" data-value="projects">Your Projects</TabsTrigger>
+        <TabsTrigger value="applications" data-value="applications">Applications</TabsTrigger>
+        <TabsTrigger value="create" data-value="create">Post New Project</TabsTrigger>
+        <TabsTrigger value="payments" data-value="payments">Payments</TabsTrigger>
+        <TabsTrigger value="profile" data-value="profile">Profile</TabsTrigger>
       </TabsList>
       
       <TabsContent value="projects">
-        <ProjectsTab {...sharedProps} />
-      </TabsContent>
-      
-      <TabsContent value="create">
-        <CreateProjectTab {...sharedProps} />
+        <ProjectsTab {...projectsTabProps} />
       </TabsContent>
       
       <TabsContent value="applications">
-        <ApplicationsTab {...sharedProps} />
+        <ApplicationsTab {...applicationsTabProps} />
+      </TabsContent>
+      
+      <TabsContent value="create">
+        <CreateProjectTab {...createProjectTabProps} />
       </TabsContent>
       
       <TabsContent value="payments">
-        <PaymentsTab {...sharedProps} />
+        <PaymentsTab {...paymentsTabProps} />
       </TabsContent>
       
       <TabsContent value="profile">
-        <ProfileTab {...sharedProps} />
+        <ProfileTab userId={userId} />
       </TabsContent>
     </Tabs>
   );

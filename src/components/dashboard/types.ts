@@ -21,7 +21,10 @@ export interface Application {
   professional_id: string | null;
   status: string | null;
   cover_letter: string | null;
+  bid_amount: number | null;
+  proposal_message: string | null;
   created_at: string | null;
+  updated_at: string | null;
   project?: {
     title: string;
     status: string | null;

@@ -2,19 +2,13 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Star, Briefcase, FileText } from "lucide-react";
 import { 
   Project, 
   Application, 
   Payment, 
   Review
 } from './types';
-import { Badge } from "@/components/ui/badge";
 import AvailableProjectsTab from './professional/AvailableProjectsTab';
 import ApplicationsTab from './professional/ApplicationsTab';
 import ActiveProjectsTab from './professional/ActiveProjectsTab';
@@ -36,6 +30,7 @@ const ProfessionalDashboard: React.FC<ProfessionalDashboardProps> = ({ userId })
   const [isLoading, setIsLoading] = useState(true);
   const [isApplying, setIsApplying] = useState(false);
   const [coverLetter, setCoverLetter] = useState('');
+  const [bidAmount, setBidAmount] = useState<number | null>(null);
   const [selectedProject, setSelectedProject] = useState<string | null>(null);
   const [profile, setProfile] = useState<any>(null);
   const [isEditing, setIsEditing] = useState(false);
@@ -188,10 +183,10 @@ const ProfessionalDashboard: React.FC<ProfessionalDashboardProps> = ({ userId })
   };
 
   const handleApplyToProject = async () => {
-    if (!selectedProject || !coverLetter.trim()) {
+    if (!selectedProject || !coverLetter.trim() || bidAmount === null) {
       toast({
         title: "Missing information",
-        description: "Please write a cover letter for your application",
+        description: "Please provide both a bid amount and proposal message",
         variant: "destructive"
       });
       return;
@@ -217,6 +212,7 @@ const ProfessionalDashboard: React.FC<ProfessionalDashboardProps> = ({ userId })
         });
         setSelectedProject(null);
         setCoverLetter('');
+        setBidAmount(null);
         return;
       }
       
@@ -227,6 +223,8 @@ const ProfessionalDashboard: React.FC<ProfessionalDashboardProps> = ({ userId })
             project_id: selectedProject,
             professional_id: userId,
             cover_letter: coverLetter,
+            bid_amount: bidAmount,
+            proposal_message: coverLetter, // Using the same field for both for backward compatibility
             status: 'pending'
           }
         ])
@@ -242,6 +240,7 @@ const ProfessionalDashboard: React.FC<ProfessionalDashboardProps> = ({ userId })
       // Reset form
       setCoverLetter('');
       setSelectedProject(null);
+      setBidAmount(null);
       
       // Refresh data
       fetchDashboardData();
@@ -332,6 +331,8 @@ const ProfessionalDashboard: React.FC<ProfessionalDashboardProps> = ({ userId })
     profile,
     coverLetter,
     setCoverLetter,
+    bidAmount,
+    setBidAmount,
     selectedProject,
     setSelectedProject,
     isApplying,
@@ -348,12 +349,12 @@ const ProfessionalDashboard: React.FC<ProfessionalDashboardProps> = ({ userId })
   return (
     <Tabs defaultValue="featured">
       <TabsList className="mb-6">
-        <TabsTrigger value="featured">Available Projects</TabsTrigger>
-        <TabsTrigger value="applications">Your Applications</TabsTrigger>
-        <TabsTrigger value="active">Active Projects</TabsTrigger>
-        <TabsTrigger value="payments">Payments</TabsTrigger>
-        <TabsTrigger value="reviews">Reviews</TabsTrigger>
-        <TabsTrigger value="profile">Profile</TabsTrigger>
+        <TabsTrigger value="featured" data-value="featured">Available Projects</TabsTrigger>
+        <TabsTrigger value="applications" data-value="applications">Your Applications</TabsTrigger>
+        <TabsTrigger value="active" data-value="active">Active Projects</TabsTrigger>
+        <TabsTrigger value="payments" data-value="payments">Payments</TabsTrigger>
+        <TabsTrigger value="reviews" data-value="reviews">Reviews</TabsTrigger>
+        <TabsTrigger value="profile" data-value="profile">Profile</TabsTrigger>
       </TabsList>
       
       <TabsContent value="featured">
@@ -361,7 +362,11 @@ const ProfessionalDashboard: React.FC<ProfessionalDashboardProps> = ({ userId })
       </TabsContent>
       
       <TabsContent value="applications">
-        <ApplicationsTab {...sharedProps} />
+        <ApplicationsTab 
+          isLoading={isLoading} 
+          applications={applications}
+          userId={userId}
+        />
       </TabsContent>
       
       <TabsContent value="active">
