@@ -16,9 +16,10 @@ import { Project } from '@/components/dashboard/types';
 
 interface ProjectCardProps {
   project: Project;
+  onClick?: () => void;
 }
 
-const ProjectCard: React.FC<ProjectCardProps> = ({ project }) => {
+const ProjectCard: React.FC<ProjectCardProps> = ({ project, onClick }) => {
   return (
     <Card className="hover:shadow-lg transition-shadow">
       <CardHeader className="pb-2">
@@ -69,11 +70,21 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project }) => {
             {project.client?.first_name} {project.client?.last_name}
           </span>
         </div>
-        <Link to={`/project/${project.id}`}>
-          <Button variant="outline" className="border-ttc-blue-700 text-ttc-blue-700 hover:bg-ttc-blue-50">
+        {onClick ? (
+          <Button 
+            variant="outline" 
+            className="border-ttc-blue-700 text-ttc-blue-700 hover:bg-ttc-blue-50"
+            onClick={onClick}
+          >
             View Details
           </Button>
-        </Link>
+        ) : (
+          <Link to={`/project/${project.id}`}>
+            <Button variant="outline" className="border-ttc-blue-700 text-ttc-blue-700 hover:bg-ttc-blue-50">
+              View Details
+            </Button>
+          </Link>
+        )}
       </CardFooter>
     </Card>
   );

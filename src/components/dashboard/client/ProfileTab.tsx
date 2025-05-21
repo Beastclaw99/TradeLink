@@ -1,21 +1,82 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ProfileData } from '@/components/profile/types';
 import { Project } from '../types';
 
 interface ProfileTabProps {
-  profileData: ProfileData | null;
-  projects: Project[];
-  navigate: (path: string) => void;
+  navigate?: (path: string) => void;
+  userId?: string;
+  profileData?: ProfileData | null;
+  projects?: Project[];
 }
 
 const ProfileTab: React.FC<ProfileTabProps> = ({ 
-  profileData, 
-  projects, 
-  navigate 
+  profileData: propProfileData, 
+  projects: propProjects, 
+  navigate: propNavigate,
+  userId
 }) => {
+  const navigateHook = useNavigate();
+  const navigate = propNavigate || navigateHook;
+  
+  const [loading, setLoading] = useState(false);
+  const [profileData, setProfileData] = useState<ProfileData | null>(propProfileData || null);
+  const [projects, setProjects] = useState<Project[]>(propProjects || []);
+  
+  useEffect(() => {
+    if (propProfileData) setProfileData(propProfileData);
+    if (propProjects) setProjects(propProjects);
+  }, [propProfileData, propProjects]);
+  
+  useEffect(() => {
+    if (!userId) return;
+    if (!propProfileData || !propProjects) {
+      fetchData();
+    }
+  }, [userId]);
+  
+  const fetchData = async () => {
+    if (!userId) return;
+    
+    try {
+      setLoading(true);
+      
+      // Fetch profile data
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+      
+      if (profileError) throw profileError;
+      setProfileData(profileData);
+      
+      // Fetch projects if client
+      if (profileData.account_type === 'client') {
+        const { data: projectsData, error: projectsError } = await supabase
+          .from('projects')
+          .select('*')
+          .eq('client_id', userId);
+        
+        if (projectsError) throw projectsError;
+        setProjects(projectsData || []);
+      }
+      
+    } catch (error) {
+      console.error('Error fetching profile data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  if (loading) {
+    return <p>Loading profile information...</p>;
+  }
+  
   return (
     <>
       <div className="flex justify-between items-center mb-6">
@@ -75,7 +136,7 @@ const ProfileTab: React.FC<ProfileTabProps> = ({
           </Card>
         </div>
       ) : (
-        <p>Loading profile information...</p>
+        <p>No profile information available.</p>
       )}
     </>
   );

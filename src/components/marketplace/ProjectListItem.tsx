@@ -8,9 +8,10 @@ import { Project } from '@/components/dashboard/types';
 
 interface ProjectListItemProps {
   project: Project;
+  onClick?: () => void;
 }
 
-const ProjectListItem: React.FC<ProjectListItemProps> = ({ project }) => {
+const ProjectListItem: React.FC<ProjectListItemProps> = ({ project, onClick }) => {
   return (
     <div className="bg-white border rounded-lg p-4 hover:shadow-md transition-shadow">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -56,11 +57,21 @@ const ProjectListItem: React.FC<ProjectListItemProps> = ({ project }) => {
             </div>
           </div>
           
-          <Link to={`/project/${project.id}`}>
-            <Button variant="outline" className="border-ttc-blue-700 text-ttc-blue-700 hover:bg-ttc-blue-50 whitespace-nowrap">
+          {onClick ? (
+            <Button 
+              variant="outline" 
+              className="border-ttc-blue-700 text-ttc-blue-700 hover:bg-ttc-blue-50 whitespace-nowrap"
+              onClick={onClick}
+            >
               View Details
             </Button>
-          </Link>
+          ) : (
+            <Link to={`/project/${project.id}`}>
+              <Button variant="outline" className="border-ttc-blue-700 text-ttc-blue-700 hover:bg-ttc-blue-50 whitespace-nowrap">
+                View Details
+              </Button>
+            </Link>
+          )}
         </div>
       </div>
     </div>

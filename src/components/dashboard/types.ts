@@ -48,6 +48,10 @@ export interface Payment {
   project?: {
     title: string;
   };
+  professional?: {
+    first_name: string | null;
+    last_name: string | null;
+  };
 }
 
 export interface Review {
@@ -58,4 +62,11 @@ export interface Review {
   created_at: string;
   professional_id?: string | null;
   client_id?: string | null;
+  project?: {
+    title: string;
+  };
+  professional?: {
+    first_name: string | null;
+    last_name: string | null;
+  };
 }
