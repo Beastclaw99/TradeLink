@@ -11,7 +11,7 @@ const Hero: React.FC = () => {
             
             <div className="flex flex-col sm:flex-row gap-4 mb-8">
               <Link to="/find-pros" className="flex-1">
-                <Button className="w-full bg-white text-ttc-blue-700 hover:bg-blue-50 hover:text-ttc-blue-800 py-6 font-semibold text-lg">Find a Professional</Button>
+                <Button className="w-full bg-white text-ttc-blue-700 hover:bg-blue-50 hover:text-ttc-blue-800 py-6 font-semibold text-lg">Sign up as Client</Button>
               </Link>
               <Link to="/join-network" className="flex-1">
                 <Button className="w-full bg-ttc-green-500 hover:bg-ttc-green-600 text-white py-6 font-semibold text-lg">Join as a Professional</Button>
