@@ -7,7 +7,7 @@ import { Review } from '../types';
 interface ReviewsTabProps {
   isLoading: boolean;
   reviews: Review[];
-  calculateAverageRating: () => string;
+  calculateAverageRating: () => string | number;
 }
 
 const ReviewsTab: React.FC<ReviewsTabProps> = ({ 

@@ -12,7 +12,7 @@ interface ProfileTabProps {
   reviews: Review[];
   projects: Project[];
   userId: string;
-  calculateAverageRating: () => string;
+  calculateAverageRating: () => string | number;
 }
 
 const ProfileTab: React.FC<ProfileTabProps> = ({ 

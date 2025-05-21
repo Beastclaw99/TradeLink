@@ -125,7 +125,7 @@ const PaymentsTab: React.FC<PaymentsTabProps> = ({
                       variant="ghost"
                       size="sm"
                       className={`p-1 ${reviewData.rating >= star ? 'text-yellow-500' : 'text-gray-300'}`}
-                      onClick={() => setReviewData(prev => ({ ...prev, rating: star }))}
+                      onClick={() => setReviewData({ ...reviewData, rating: star })}
                     >
                       <Star className={`h-8 w-8 ${reviewData.rating >= star ? 'fill-yellow-500' : ''}`} />
                     </Button>
@@ -140,7 +140,7 @@ const PaymentsTab: React.FC<PaymentsTabProps> = ({
                   className="min-h-[120px]"
                   placeholder="Share details about your experience working with this professional..."
                   value={reviewData.comment}
-                  onChange={e => setReviewData(prev => ({ ...prev, comment: e.target.value }))}
+                  onChange={e => setReviewData({ ...reviewData, comment: e.target.value })}
                 />
               </div>
             </div>
