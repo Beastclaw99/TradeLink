@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -5,6 +6,7 @@ import { Menu, X, Briefcase, User, LogOut } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+
 const Navbar: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const navigate = useNavigate();
@@ -13,13 +15,17 @@ const Navbar: React.FC = () => {
     signOut,
     isLoading
   } = useAuth();
+  
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
   };
+  
   const handleLogout = () => {
     signOut();
   };
-  return <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+  
+  return (
+    <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container-custom flex h-16 items-center justify-between">
         <div className="flex items-center gap-2">
           <Link to="/" className="flex items-center">
@@ -38,12 +44,15 @@ const Navbar: React.FC = () => {
           <Link to="/how-it-works" className="text-ttc-neutral-700 hover:text-ttc-blue-700 transition-colors">
             How It Works
           </Link>
-          <Link to="/about" className="text-ttc-neutral-700 hover:text-ttc-blue-700 transition-colors">About Us</Link>
+          <Link to="/about" className="text-ttc-neutral-700 hover:text-ttc-blue-700 transition-colors">
+            About
+          </Link>
         </nav>
 
         {/* Desktop Auth Buttons */}
         <div className="hidden md:flex items-center gap-4">
-          {isLoading ? <div className="h-9 w-20 bg-gray-100 animate-pulse rounded-md"></div> : user ? <DropdownMenu>
+          {isLoading ? <div className="h-9 w-20 bg-gray-100 animate-pulse rounded-md"></div> : user ? (
+            <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="flex items-center gap-2 h-9 px-2">
                   <Avatar className="h-8 w-8">
@@ -67,7 +76,8 @@ const Navbar: React.FC = () => {
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleLogout}>Logout</DropdownMenuItem>
               </DropdownMenuContent>
-            </DropdownMenu> : <>
+            </DropdownMenu>
+          ) : <>
             <Link to="/login">
               <Button variant="outline" size="sm" className="border-ttc-blue-700 text-ttc-blue-700 hover:bg-ttc-blue-50 hover:text-ttc-blue-700">
                 Login
@@ -116,9 +126,9 @@ const Navbar: React.FC = () => {
                     Profile
                   </Link>
                   <button onClick={() => {
-              toggleMenu();
-              signOut();
-            }} className="w-full py-2 text-center bg-red-500 text-white rounded-md hover:bg-red-600">
+                    toggleMenu();
+                    signOut();
+                  }} className="w-full py-2 text-center bg-red-500 text-white rounded-md hover:bg-red-600">
                     Logout
                   </button>
                 </> : <>
@@ -132,6 +142,8 @@ const Navbar: React.FC = () => {
             </div>
           </div>
         </div>}
-    </header>;
+    </header>
+  );
 };
+
 export default Navbar;
