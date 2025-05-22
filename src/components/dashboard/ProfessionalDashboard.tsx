@@ -1,21 +1,17 @@
 
-import React, { useState, useEffect } from 'react';
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/components/ui/use-toast";
+import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Button } from "@/components/ui/button";
-import { 
-  Project, 
-  Application, 
-  Payment, 
-  Review
-} from './types';
+import { useProfessionalDashboard } from "@/hooks/useProfessionalDashboard";
 import AvailableProjectsTab from './professional/AvailableProjectsTab';
 import ApplicationsTab from './professional/ApplicationsTab';
 import ActiveProjectsTab from './professional/ActiveProjectsTab';
 import PaymentsTab from './professional/PaymentsTab';
 import ReviewsTab from './professional/ReviewsTab';
 import ProfileTab from './professional/ProfileTab';
+import ProjectApplicationForm from './professional/ProjectApplicationForm';
+import DashboardError from './professional/DashboardError';
+import { useToast } from "@/components/ui/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ProfessionalDashboardProps {
   userId: string;
@@ -23,190 +19,26 @@ interface ProfessionalDashboardProps {
 
 const ProfessionalDashboard: React.FC<ProfessionalDashboardProps> = ({ userId }) => {
   const { toast } = useToast();
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [applications, setApplications] = useState<Application[]>([]);
-  const [payments, setPayments] = useState<Payment[]>([]);
-  const [reviews, setReviews] = useState<Review[]>([]);
-  const [skills, setSkills] = useState<string[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [isApplying, setIsApplying] = useState(false);
   const [coverLetter, setCoverLetter] = useState('');
   const [bidAmount, setBidAmount] = useState<number | null>(null);
   const [selectedProject, setSelectedProject] = useState<string | null>(null);
-  const [profile, setProfile] = useState<any>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    fetchDashboardData();
-  }, [userId]);
-
-  const fetchDashboardData = async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      
-      console.log('Fetching professional dashboard data for user:', userId);
-      
-      // First get the professional's profile to get their skills
-      const { data: userProfileData, error: userProfileError } = await supabase
-        .from('profiles')
-        .select('skills, first_name, last_name, created_at')
-        .eq('id', userId)
-        .single();
-      
-      if (userProfileError) {
-        console.error('Profile fetch error:', userProfileError);
-        throw userProfileError;
-      }
-      
-      console.log('Profile data:', userProfileData);
-      
-      // Set skills array or default to empty array
-      const userSkills = userProfileData?.skills || [];
-      setSkills(userSkills);
-      setProfile(userProfileData);
-      
-      // Fetch projects that match skills (if skills are available) and are open
-      const { data: projectsData, error: projectsError } = await supabase
-        .from('projects')
-        .select(`
-          *,
-          client:profiles!projects_client_id_fkey(first_name, last_name)
-        `)
-        .eq('status', 'open');
-      
-      if (projectsError) {
-        console.error('Projects fetch error:', projectsError);
-        throw projectsError;
-      }
-      
-      console.log('Projects data:', projectsData);
-      
-      // Filter projects by skills if skills are available
-      let filteredProjects = projectsData || [];
-      if (userSkills.length > 0) {
-        // This is a simple filter - in real world you might want more complex matching
-        filteredProjects = projectsData.filter((project: any) => {
-          const projTags = project.tags || [];
-          return userSkills.some((skill: string) => 
-            projTags.includes(skill) || 
-            project.title.toLowerCase().includes(skill.toLowerCase()) ||
-            project.description?.toLowerCase().includes(skill.toLowerCase())
-          );
-        });
-      }
-      
-      setProjects(filteredProjects);
-      
-      // Fetch applications made by the professional
-      const { data: appsData, error: appsError } = await supabase
-        .from('applications')
-        .select(`
-          *,
-          project:projects(title, status, budget)
-        `)
-        .eq('professional_id', userId);
-      
-      if (appsError) {
-        console.error('Applications fetch error:', appsError);
-        throw appsError;
-      }
-      
-      console.log('Applications data:', appsData);
-      setApplications(appsData || []);
-      
-      // Fetch assigned projects (status = "assigned" and assigned_to = userId)
-      const { data: assignedProjectsData, error: assignedProjectsError } = await supabase
-        .from('projects')
-        .select(`
-          *,
-          client:profiles!projects_client_id_fkey(first_name, last_name)
-        `)
-        .eq('assigned_to', userId)
-        .eq('status', 'assigned');
-        
-      if (assignedProjectsError) {
-        console.error('Assigned projects fetch error:', assignedProjectsError);
-        throw assignedProjectsError;
-      }
-      
-      console.log('Assigned projects data:', assignedProjectsData);
-      
-      // Add assigned projects to the professional's view
-      if (assignedProjectsData && assignedProjectsData.length > 0) {
-        setProjects(prev => [...prev, ...assignedProjectsData]);
-      }
-      
-      // Fetch payments for the professional
-      const { data: paymentsData, error: paymentsError } = await supabase
-        .from('payments')
-        .select(`
-          *,
-          project:projects(title)
-        `)
-        .eq('professional_id', userId);
-      
-      if (paymentsError) {
-        console.error('Payments fetch error:', paymentsError);
-        throw paymentsError;
-      }
-      
-      console.log('Payments data:', paymentsData);
-      
-      // Ensure each payment has a created_at field
-      const paymentsWithDates = (paymentsData || []).map(payment => ({
-        ...payment,
-        created_at: payment.created_at || new Date().toISOString()
-      }));
-      
-      setPayments(paymentsWithDates);
-      
-      // Fetch reviews for the professional
-      const { data: reviewsData, error: reviewsError } = await supabase
-        .from('reviews')
-        .select('*')
-        .eq('professional_id', userId);
-      
-      if (reviewsError) {
-        console.error('Reviews fetch error:', reviewsError);
-        throw reviewsError;
-      }
-      
-      console.log('Reviews data:', reviewsData);
-      setReviews(reviewsData || []);
-      
-    } catch (error: any) {
-      console.error('Error fetching dashboard data:', error);
-      setError('Failed to load dashboard data. Please try again later.');
-      toast({
-        title: "Error",
-        description: "Failed to load dashboard data. Please try again later.",
-        variant: "destructive"
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const calculateAverageRating = () => {
-    if (reviews.length === 0) return 0;
-    const total = reviews.reduce((sum, review) => sum + (review.rating || 0), 0);
-    return (total / reviews.length).toFixed(1);
-  };
-
-  const calculatePaymentTotals = () => {
-    const received = payments
-      .filter(p => p.status === 'completed')
-      .reduce((sum, p) => sum + p.amount, 0);
-    
-    const pending = payments
-      .filter(p => p.status === 'pending')
-      .reduce((sum, p) => sum + p.amount, 0);
-    
-    return { received, pending };
-  };
+  
+  const {
+    projects,
+    applications,
+    payments,
+    reviews,
+    skills,
+    profile,
+    isLoading,
+    error,
+    fetchDashboardData,
+    calculateAverageRating,
+    calculatePaymentTotals,
+  } = useProfessionalDashboard(userId);
 
   const handleApplyToProject = async () => {
     if (!selectedProject || !coverLetter.trim() || bidAmount === null) {
@@ -325,14 +157,13 @@ const ProfessionalDashboard: React.FC<ProfessionalDashboardProps> = ({ userId })
       
       if (profileUpdateError) throw profileUpdateError;
       
-      setProfile(updatedProfileInfo);
-      
       toast({
         title: "Profile updated",
         description: "Your skills have been updated successfully!",
       });
       
       setIsEditing(false);
+      fetchDashboardData();
     } catch (error) {
       console.error('Error updating profile:', error);
       toast({
@@ -343,6 +174,12 @@ const ProfessionalDashboard: React.FC<ProfessionalDashboardProps> = ({ userId })
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const cancelApplication = () => {
+    setSelectedProject(null);
+    setCoverLetter('');
+    setBidAmount(null);
   };
 
   // Pass shared state and handlers to the tab components
@@ -373,19 +210,7 @@ const ProfessionalDashboard: React.FC<ProfessionalDashboardProps> = ({ userId })
   };
 
   if (error) {
-    return (
-      <div className="bg-red-50 border border-red-200 p-4 rounded-md mb-6">
-        <p className="text-red-700">{error}</p>
-        <Button 
-          onClick={fetchDashboardData} 
-          variant="outline" 
-          className="mt-2"
-          disabled={isLoading}
-        >
-          {isLoading ? "Loading..." : "Try Again"}
-        </Button>
-      </div>
-    );
+    return <DashboardError error={error} isLoading={isLoading} onRetry={fetchDashboardData} />;
   }
 
   return (
@@ -401,6 +226,19 @@ const ProfessionalDashboard: React.FC<ProfessionalDashboardProps> = ({ userId })
       
       <TabsContent value="featured">
         <AvailableProjectsTab {...sharedProps} />
+        {selectedProject && (
+          <ProjectApplicationForm
+            selectedProject={selectedProject}
+            projects={projects}
+            coverLetter={coverLetter}
+            setCoverLetter={setCoverLetter}
+            bidAmount={bidAmount}
+            setBidAmount={setBidAmount}
+            isApplying={isApplying}
+            handleApplyToProject={handleApplyToProject}
+            onCancel={cancelApplication}
+          />
+        )}
       </TabsContent>
       
       <TabsContent value="applications">
