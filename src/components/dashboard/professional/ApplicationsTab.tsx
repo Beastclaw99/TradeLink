@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
 import { useToast } from "@/components/ui/use-toast";
@@ -21,12 +20,13 @@ const ApplicationsTab: React.FC<ApplicationsTabProps> = ({ isLoading, applicatio
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [withdrawDialogOpen, setWithdrawDialogOpen] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   
   const { 
     localApplications, 
     localIsLoading, 
     updateLocalApplications 
-  } = useApplications(applications, isLoading);
+  } = useApplications(applications || [], isLoading);
   
   const handleViewApplication = (application: Application) => {
     setSelectedApplication(application);
@@ -43,6 +43,7 @@ const ApplicationsTab: React.FC<ApplicationsTabProps> = ({ isLoading, applicatio
     
     try {
       setIsProcessing(true);
+      setError(null);
       
       const { error } = await supabase
         .from('applications')
@@ -71,6 +72,7 @@ const ApplicationsTab: React.FC<ApplicationsTabProps> = ({ isLoading, applicatio
       
     } catch (error: any) {
       console.error('Error withdrawing application:', error);
+      setError(error.message || 'Failed to withdraw application');
       toast({
         title: "Error",
         description: "Failed to withdraw application. Please try again.",
@@ -84,6 +86,13 @@ const ApplicationsTab: React.FC<ApplicationsTabProps> = ({ isLoading, applicatio
   return (
     <>
       <h2 className="text-2xl font-bold mb-4">Your Applications</h2>
+      
+      {error && (
+        <div className="bg-red-50 text-red-800 p-4 rounded-md mb-4">
+          {error}
+        </div>
+      )}
+      
       {localIsLoading ? (
         <div className="flex justify-center items-center py-8">
           <Loader2 className="h-8 w-8 animate-spin text-ttc-blue-700 mr-2" />
