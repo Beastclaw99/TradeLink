@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -18,7 +17,7 @@ const ApplicationsTable: React.FC<ApplicationsTableProps> = ({
   onViewApplication,
   onWithdrawInitiate
 }) => {
-  if (applications.length === 0) {
+  if (!applications || applications.length === 0) {
     return (
       <div className="text-center py-8">
         <FileText className="w-12 h-12 mx-auto text-ttc-neutral-400" />
@@ -58,11 +57,11 @@ const ApplicationsTable: React.FC<ApplicationsTableProps> = ({
                 {app.project?.title || 'Unknown Project'}
               </Link>
             </TableCell>
-            <TableCell>{new Date(app.created_at || '').toLocaleDateString()}</TableCell>
-            <TableCell>${app.bid_amount || app.project?.budget || 'N/A'}</TableCell>
+            <TableCell>{app.created_at ? new Date(app.created_at).toLocaleDateString() : 'N/A'}</TableCell>
+            <TableCell>${app.bid_amount || (app.project?.budget ? app.project.budget : 'N/A')}</TableCell>
             <TableCell>
               <span className={`px-2 py-1 text-xs rounded-full ${getStatusBadgeClass(app.status)}`}>
-                {app.status}
+                {app.status || 'pending'}
               </span>
             </TableCell>
             <TableCell>

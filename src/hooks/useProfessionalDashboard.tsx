@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
@@ -16,10 +15,10 @@ export const useProfessionalDashboard = (userId: string) => {
   const [error, setError] = useState<string | null>(null);
 
   const fetchDashboardData = async () => {
+    setIsLoading(true);
+    setError(null);
+    
     try {
-      setIsLoading(true);
-      setError(null);
-      
       console.log('Fetching professional dashboard data for user:', userId);
       
       // First get the professional's profile to get their skills
@@ -73,22 +72,44 @@ export const useProfessionalDashboard = (userId: string) => {
       
       setProjects(filteredProjects);
       
-      // Fetch applications made by the professional
-      const { data: appsData, error: appsError } = await supabase
-        .from('applications')
-        .select(`
-          *,
-          project:projects(title, status, budget)
-        `)
-        .eq('professional_id', userId);
-      
-      if (appsError) {
-        console.error('Applications fetch error:', appsError);
-        throw appsError;
+      // Fetch applications made by the professional with better error handling and logging
+      try {
+        const { data: appsData, error: appsError } = await supabase
+          .from('applications')
+          .select(`
+            id,
+            created_at,
+            status,
+            bid_amount,
+            cover_letter,
+            professional_id,
+            project_id,
+            project:projects (
+              id,
+              title,
+              status,
+              budget
+            )
+          `)
+          .eq('professional_id', userId)
+          .order('created_at', { ascending: false });
+        
+        if (appsError) {
+          console.error('Applications fetch error:', appsError);
+          throw appsError;
+        }
+
+        console.log('Applications data:', appsData);
+        setApplications(appsData || []);
+      } catch (error: any) {
+        console.error('Error fetching applications:', error);
+        // Don't throw here, continue with other data fetching
+        toast({
+          title: "Warning",
+          description: "There was an issue loading your applications. Some data may be missing.",
+          variant: "destructive"
+        });
       }
-      
-      console.log('Applications data:', appsData);
-      setApplications(appsData || []);
       
       // Fetch assigned projects (status = "assigned" and assigned_to = userId)
       const { data: assignedProjectsData, error: assignedProjectsError } = await supabase
@@ -151,8 +172,8 @@ export const useProfessionalDashboard = (userId: string) => {
       setReviews(reviewsData || []);
       
     } catch (error: any) {
-      console.error('Error fetching dashboard data:', error);
-      setError('Failed to load dashboard data. Please try again later.');
+      console.error('Dashboard data fetch error:', error);
+      setError(error.message || 'Failed to load dashboard data');
       toast({
         title: "Error",
         description: "Failed to load dashboard data. Please try again later.",
