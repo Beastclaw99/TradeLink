@@ -59,14 +59,24 @@ export const useProfessionalDashboard = (userId: string) => {
       // Filter projects by skills if skills are available
       let filteredProjects = projectsData || [];
       if (userSkills.length > 0) {
-        // This is a simple filter - in real world you might want more complex matching
+        // Add null checks and safe type handling
         filteredProjects = projectsData.filter((project: any) => {
+          if (!project) return false;
+          
           const projTags = project.tags || [];
-          return userSkills.some((skill: string) => 
-            projTags.includes(skill) || 
-            project.title.toLowerCase().includes(skill.toLowerCase()) ||
-            project.description?.toLowerCase().includes(skill.toLowerCase())
-          );
+          const projectTitle = project.title || '';
+          const projectDescription = project.description || '';
+          
+          return userSkills.some((skill: string) => {
+            if (!skill) return false;
+            
+            const skillLower = skill.toLowerCase();
+            return (
+              projTags.includes(skill) || 
+              projectTitle.toLowerCase().includes(skillLower) ||
+              projectDescription.toLowerCase().includes(skillLower)
+            );
+          });
         });
       }
       
