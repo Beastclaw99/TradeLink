@@ -1,9 +1,9 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Briefcase } from "lucide-react";
 import { Project } from '../types';
+import ProjectUpdateTimeline from '../ProjectUpdateTimeline';
 
 interface ActiveProjectsTabProps {
   isLoading: boolean;
@@ -47,6 +47,11 @@ const ActiveProjectsTab: React.FC<ActiveProjectsTabProps> = ({
                   <p className="text-sm text-ttc-neutral-600 mb-4">{project.description}</p>
                   <p className="font-medium">Budget: ${project.budget}</p>
                   <p className="text-sm mt-4">Client: {project.client?.first_name} {project.client?.last_name}</p>
+                  
+                  <div className="mt-6">
+                    <h3 className="text-lg font-semibold mb-4">Project Updates</h3>
+                    <ProjectUpdateTimeline projectId={project.id} />
+                  </div>
                 </CardContent>
                 <CardFooter>
                   <Button 
@@ -85,6 +90,11 @@ const ActiveProjectsTab: React.FC<ActiveProjectsTabProps> = ({
                   <p className="text-sm text-ttc-neutral-600 mb-4">{project.description}</p>
                   <p className="font-medium">Budget: ${project.budget}</p>
                   <p className="text-sm mt-4">Client: {project.client?.first_name} {project.client?.last_name}</p>
+                  
+                  <div className="mt-6">
+                    <h3 className="text-lg font-semibold mb-4">Project Updates</h3>
+                    <ProjectUpdateTimeline projectId={project.id} />
+                  </div>
                 </CardContent>
               </Card>
           ))}
