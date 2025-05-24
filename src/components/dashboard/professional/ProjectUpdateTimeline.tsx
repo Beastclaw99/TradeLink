@@ -21,7 +21,7 @@ import {
 } from '@heroicons/react/24/outline';
 
 interface ProjectUpdateTimelineProps {
-  projectId: string;
+  project_id: string; // Changed from projectId to match Supabase naming
 }
 
 const UpdateTypeIcons: Record<string, React.ElementType> = {
@@ -61,7 +61,7 @@ const UpdateTypeBadgeColors: Record<string, { bg: string; text: string }> = {
   task_completed: { bg: 'bg-green-100', text: 'text-green-800' },
 };
 
-export default function ProjectUpdateTimeline({ projectId }: ProjectUpdateTimelineProps) {
+export default function ProjectUpdateTimeline({ project_id }: ProjectUpdateTimelineProps) {
   const [updates, setUpdates] = useState<ProjectUpdate[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -72,7 +72,7 @@ export default function ProjectUpdateTimeline({ projectId }: ProjectUpdateTimeli
         const { data, error } = await supabase
           .from('project_updates')
           .select('*')
-          .eq('project_id', projectId)
+          .eq('project_id', project_id)
           .order('created_at', { ascending: true });
 
         if (error) throw error;
@@ -85,7 +85,7 @@ export default function ProjectUpdateTimeline({ projectId }: ProjectUpdateTimeli
     };
 
     fetchUpdates();
-  }, [projectId]);
+  }, [project_id]);
 
   if (loading) {
     return (
