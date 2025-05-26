@@ -254,6 +254,60 @@ export type Database = {
           },
         ]
       }
+      project_updates: {
+        Row: {
+          id: string
+          project_id: string
+          update_type: string
+          message: string | null
+          status_update: string | null
+          file_url: string | null
+          file_name: string | null
+          created_at: string
+          created_by: string | null
+          metadata: Json | null
+        }
+        Insert: {
+          id?: string
+          project_id: string
+          update_type: string
+          message?: string | null
+          status_update?: string | null
+          file_url?: string | null
+          file_name?: string | null
+          created_at?: string
+          created_by?: string | null
+          metadata?: Json | null
+        }
+        Update: {
+          id?: string
+          project_id?: string
+          update_type?: string
+          message?: string | null
+          status_update?: string | null
+          file_url?: string | null
+          file_name?: string | null
+          created_at?: string
+          created_by?: string | null
+          metadata?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_updates_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_updates_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
     }
     Views: {
       [_ in never]: never

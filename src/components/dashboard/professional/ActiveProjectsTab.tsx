@@ -45,7 +45,7 @@ const ActiveProjectsTab: React.FC<ActiveProjectsTabProps> = ({
               <Card key={project.id}>
                 <CardHeader>
                   <div className="flex items-center justify-between">
-                    <CardTitle>{project.title}</CardTitle>
+                  <CardTitle>{project.title}</CardTitle>
                     <Button
                       variant="ghost"
                       size="sm"
@@ -69,9 +69,9 @@ const ActiveProjectsTab: React.FC<ActiveProjectsTabProps> = ({
                 <CardContent>
                   <div className="space-y-4">
                     <div>
-                      <p className="text-sm text-ttc-neutral-600 mb-4">{project.description}</p>
-                      <p className="font-medium">Budget: ${project.budget}</p>
-                      <p className="text-sm mt-4">Client: {project.client?.first_name} {project.client?.last_name}</p>
+                  <p className="text-sm text-ttc-neutral-600 mb-4">{project.description}</p>
+                  <p className="font-medium">Budget: ${project.budget}</p>
+                  <p className="text-sm mt-4">Client: {project.client?.first_name} {project.client?.last_name}</p>
                     </div>
                     
                     {expandedProjects[project.id] && (

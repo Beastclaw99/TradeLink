@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { format } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { ProjectUpdate } from '@/types/projectUpdates';
+import AddProjectUpdate from './AddProjectUpdate';
 import {
   CheckCircleIcon,
   ClockIcon,
@@ -21,7 +22,8 @@ import {
 } from '@heroicons/react/24/outline';
 
 interface ProjectUpdateTimelineProps {
-  projectId: string; // Using camelCase for React props
+  projectId: string;
+  showAddUpdate?: boolean;
 }
 
 const UpdateTypeIcons: Record<string, React.ElementType> = {
@@ -61,29 +63,30 @@ const UpdateTypeBadgeColors: Record<string, { bg: string; text: string }> = {
   task_completed: { bg: 'bg-green-100', text: 'text-green-800' },
 };
 
-export default function ProjectUpdateTimeline({ projectId }: ProjectUpdateTimelineProps) {
+export default function ProjectUpdateTimeline({ projectId, showAddUpdate = true }: ProjectUpdateTimelineProps) {
   const [updates, setUpdates] = useState<ProjectUpdate[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const fetchUpdates = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('project_updates')
+        .select('*')
+        .eq('project_id', projectId)
+        .order('created_at', { ascending: true });
+
+      if (error) throw error;
+      setUpdates(data || []);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to fetch updates');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchUpdates = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('project_updates')
-          .select('*')
-          .eq('project_id', projectId) // Using the prop name in the query
-          .order('created_at', { ascending: true });
-
-        if (error) throw error;
-        setUpdates(data || []);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to fetch updates');
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchUpdates();
   }, [projectId]);
 
@@ -259,24 +262,35 @@ export default function ProjectUpdateTimeline({ projectId }: ProjectUpdateTimeli
   };
 
   return (
-    <div className="flow-root">
-      <ul role="list" className="-mb-8">
-        {updates.map((update, idx) => (
-          <li key={update.id}>
-            <div className="relative pb-8">
-              {idx !== updates.length - 1 && (
-                <span
-                  className="absolute top-5 left-5 -ml-px h-full w-0.5 bg-gray-200"
-                  aria-hidden="true"
-                />
-              )}
-              <div className="relative">
-                {renderUpdateContent(update)}
+    <div className="space-y-6">
+      {/* Add Update Form */}
+      {showAddUpdate && (
+        <AddProjectUpdate
+          projectId={projectId}
+          onUpdateAdded={fetchUpdates}
+        />
+      )}
+
+      {/* Timeline */}
+      <div className="flow-root">
+        <ul role="list" className="-mb-8">
+          {updates.map((update, idx) => (
+            <li key={update.id}>
+              <div className="relative pb-8">
+                {idx !== updates.length - 1 && (
+                  <span
+                    className="absolute top-5 left-5 -ml-px h-full w-0.5 bg-gray-200"
+                    aria-hidden="true"
+                  />
+                )}
+                <div className="relative">
+                  {renderUpdateContent(update)}
+                </div>
               </div>
-            </div>
-          </li>
-        ))}
-      </ul>
+            </li>
+          ))}
+        </ul>
+      </div>
     </div>
   );
 } 
