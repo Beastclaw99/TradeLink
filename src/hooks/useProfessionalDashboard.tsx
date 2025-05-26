@@ -59,14 +59,24 @@ export const useProfessionalDashboard = (userId: string) => {
       // Filter projects by skills if skills are available
       let filteredProjects = projectsData || [];
       if (userSkills.length > 0) {
-        // This is a simple filter - in real world you might want more complex matching
+        // Add null checks and safe type handling
         filteredProjects = projectsData.filter((project: any) => {
+          if (!project) return false;
+          
           const projTags = project.tags || [];
-          return userSkills.some((skill: string) => 
-            projTags.includes(skill) || 
-            project.title.toLowerCase().includes(skill.toLowerCase()) ||
-            project.description?.toLowerCase().includes(skill.toLowerCase())
-          );
+          const projectTitle = project.title || '';
+          const projectDescription = project.description || '';
+          
+          return userSkills.some((skill: string) => {
+            if (!skill) return false;
+            
+            const skillLower = skill.toLowerCase();
+            return (
+              projTags.includes(skill) || 
+              projectTitle.toLowerCase().includes(skillLower) ||
+              projectDescription.toLowerCase().includes(skillLower)
+            );
+          });
         });
       }
       
@@ -98,9 +108,14 @@ export const useProfessionalDashboard = (userId: string) => {
           console.error('Applications fetch error:', appsError);
           throw appsError;
         }
-
         console.log('Applications data:', appsData);
-        setApplications(appsData || []);
+        // Transform the data to match the Application type by adding missing fields
+        const transformedApps = (appsData || []).map(app => ({
+          ...app,
+          proposal_message: app.cover_letter || '', // Map cover_letter to proposal_message
+          updated_at: app.created_at // Use created_at as updated_at if not present
+        }));
+        setApplications(transformedApps);
       } catch (error: any) {
         console.error('Error fetching applications:', error);
         // Don't throw here, continue with other data fetching

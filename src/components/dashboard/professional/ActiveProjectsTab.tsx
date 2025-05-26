@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Button } from "@/components/ui/button";
 import { Briefcase, ChevronDown, ChevronUp } from "lucide-react";
 import { Project } from '../types';
-import ProjectUpdateTimeline from './ProjectUpdateTimeline';
+import ProjectUpdateTimeline from "@/components/project/ProjectUpdateTimeline";
 
 interface ActiveProjectsTabProps {
   isLoading: boolean;
@@ -77,7 +77,7 @@ const ActiveProjectsTab: React.FC<ActiveProjectsTabProps> = ({
                     {expandedProjects[project.id] && (
                       <div className="mt-6 border-t pt-4">
                         <h3 className="text-lg font-semibold mb-4">Project Updates</h3>
-                        <ProjectUpdateTimeline project_id={project.id} />
+                        <ProjectUpdateTimeline projectId={project.id} />
                       </div>
                     )}
                   </div>
