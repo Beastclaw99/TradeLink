@@ -1,7 +1,7 @@
-
 import React from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Project, Application } from '../../types';
+import ProjectUpdateTimeline from '../../ProjectUpdateTimeline';
 
 interface AssignedProjectCardProps {
   project: Project;
@@ -33,6 +33,11 @@ const AssignedProjectCard: React.FC<AssignedProjectCardProps> = ({
             <p>{acceptedApp.professional?.first_name} {acceptedApp.professional?.last_name}</p>
           </div>
         )}
+        
+        <div className="mt-6">
+          <h3 className="font-semibold text-lg mb-4">Project Updates</h3>
+          <ProjectUpdateTimeline projectId={project.id} />
+        </div>
       </CardContent>
     </Card>
   );

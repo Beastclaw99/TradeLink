@@ -1,11 +1,8 @@
-
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
-
 const Hero: React.FC = () => {
-  return (
-    <section className="bg-ttc-blue-800 py-16 md:py-24 text-white">
+  return <section className="bg-ttc-blue-800 py-16 md:py-24 text-white">
       <div className="container-custom">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           <div className="animate-fade-in">
@@ -17,7 +14,7 @@ const Hero: React.FC = () => {
                 <Button className="w-full bg-white text-ttc-blue-700 hover:bg-blue-50 hover:text-ttc-blue-800 py-6 font-semibold text-lg">Find Projects</Button>
               </Link>
               <Link to="/post-job" className="flex-1">
-                <Button className="w-full bg-ttc-green-500 hover:bg-ttc-green-600 text-white py-6 font-semibold text-lg">Post a Project</Button>
+                <Button className="w-full bg-ttc-green-500 hover:bg-ttc-green-600 text-white py-6 font-semibold text-lg">Find Professionals</Button>
               </Link>
             </div>
             
@@ -43,8 +40,6 @@ const Hero: React.FC = () => {
           </div>
         </div>
       </div>
-    </section>
-  );
+    </section>;
 };
-
 export default Hero;

@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from "@/components/ui/use-toast";
@@ -17,6 +17,7 @@ import CTASection from '@/components/marketplace/CTASection';
 const ProjectMarketplace: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
@@ -28,13 +29,22 @@ const ProjectMarketplace: React.FC = () => {
   
   useEffect(() => {
     fetchProjects();
-  }, []);
+    
+    // Show success message if redirected from project creation
+    if (location.state?.message) {
+      toast({
+        title: "Success",
+        description: location.state.message
+      });
+    }
+  }, [location.state, toast]);
   
   const fetchProjects = async () => {
     try {
       setLoading(true);
       
-      // Fix the query by specifying the exact relationship
+      console.log('Fetching projects from database...');
+      
       const { data, error } = await supabase
         .from('projects')
         .select(`
@@ -44,14 +54,25 @@ const ProjectMarketplace: React.FC = () => {
         .eq('status', 'open')
         .order('created_at', { ascending: false });
         
-      if (error) throw error;
+      if (error) {
+        console.error('Database error:', error);
+        throw error;
+      }
+      
+      console.log('Fetched projects:', data);
       
       // Ensure the data is properly typed as Project[]
       const typedProjects: Project[] = data?.map(project => ({
         id: project.id,
         title: project.title,
         description: project.description,
+        category: project.category,
         budget: project.budget,
+        expected_timeline: project.expected_timeline,
+        location: project.location,
+        urgency: project.urgency,
+        requirements: project.requirements,
+        required_skills: project.required_skills,
         status: project.status,
         created_at: project.created_at,
         client_id: project.client_id,
@@ -60,6 +81,7 @@ const ProjectMarketplace: React.FC = () => {
       })) || [];
       
       setProjects(typedProjects);
+      console.log('Projects state updated with:', typedProjects.length, 'projects');
     } catch (error: any) {
       console.error('Error fetching projects:', error);
       toast({
@@ -76,10 +98,14 @@ const ProjectMarketplace: React.FC = () => {
   const filteredProjects = projects.filter(project => {
     const matchesSearch = project.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
                           (project.description && project.description.toLowerCase().includes(searchTerm.toLowerCase()));
-    const matchesCategory = categoryFilter === "" || categoryFilter === "all"; // We'll implement category later
-    const matchesLocation = locationFilter === "" || locationFilter === "all"; // We'll implement location later
-    let matchesBudget = true;
     
+    const matchesCategory = categoryFilter === "" || categoryFilter === "all" || 
+                           (project.category && project.category.toLowerCase() === categoryFilter.toLowerCase());
+    
+    const matchesLocation = locationFilter === "" || locationFilter === "all" || 
+                           (project.location && project.location.toLowerCase().includes(locationFilter.toLowerCase()));
+    
+    let matchesBudget = true;
     if (budgetFilter === "under5k") {
       matchesBudget = project.budget !== null && project.budget < 5000;
     } else if (budgetFilter === "5k-10k") {
@@ -93,9 +119,9 @@ const ProjectMarketplace: React.FC = () => {
 
   const handlePostProject = () => {
     if (user) {
-      navigate('/dashboard', { state: { activeTab: 'create' } });
+      navigate('/client/create-project');
     } else {
-      navigate('/post-job');
+      navigate('/login');
     }
   };
   

@@ -9,7 +9,7 @@ const Signup: React.FC = () => {
     <Layout>
       <AuthCard 
         title="Create Your Account" 
-        description="Join Trade Link to connect with professionals or find new clients"
+        description="Join ProLinkTT to connect with professionals or find new clients"
       >
         <SignupForm />
       </AuthCard>

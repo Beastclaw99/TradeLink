@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
@@ -94,11 +95,15 @@ export const useProfessionalDashboard = (userId: string) => {
             cover_letter,
             professional_id,
             project_id,
+            availability,
+            proposal_message,
+            updated_at,
             project:projects (
               id,
               title,
               status,
-              budget
+              budget,
+              created_at
             )
           `)
           .eq('professional_id', userId)
@@ -108,9 +113,30 @@ export const useProfessionalDashboard = (userId: string) => {
           console.error('Applications fetch error:', appsError);
           throw appsError;
         }
-
         console.log('Applications data:', appsData);
-        setApplications(appsData || []);
+        
+        // Transform the data to match the Application type
+        const transformedApps: Application[] = (appsData || []).map(app => ({
+          id: app.id,
+          project_id: app.project_id,
+          professional_id: app.professional_id,
+          cover_letter: app.cover_letter,
+          proposal_message: app.proposal_message || app.cover_letter || '',
+          bid_amount: app.bid_amount,
+          availability: app.availability,
+          status: app.status,
+          created_at: app.created_at,
+          updated_at: app.updated_at || app.created_at,
+          project: app.project ? {
+            id: app.project.id,
+            title: app.project.title,
+            status: app.project.status,
+            budget: app.project.budget,
+            created_at: app.project.created_at
+          } : undefined
+        }));
+        
+        setApplications(transformedApps);
       } catch (error: any) {
         console.error('Error fetching applications:', error);
         // Don't throw here, continue with other data fetching

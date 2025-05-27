@@ -1,82 +1,107 @@
 
 import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
+import { useNavigate } from 'react-router-dom';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Plus, FileText, Users, Clock, MapPin, DollarSign, Calendar } from 'lucide-react';
 
-interface CreateProjectTabProps {
-  newProject: {
-    title: string;
-    description: string;
-    budget: string;
+const CreateProjectTab: React.FC = () => {
+  const navigate = useNavigate();
+
+  const handleCreateProject = () => {
+    navigate('/client/create-project');
   };
-  setNewProject: (project: { title: string; description: string; budget: string }) => void;
-  handleCreateProject: (e: React.FormEvent) => Promise<void>;
-  isSubmitting: boolean;
-}
 
-const CreateProjectTab: React.FC<CreateProjectTabProps> = ({ 
-  newProject, 
-  setNewProject, 
-  handleCreateProject, 
-  isSubmitting 
-}) => {
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Create a New Project</CardTitle>
-        <CardDescription>
-          Fill in the details below to post a new project for professionals.
-        </CardDescription>
-      </CardHeader>
-      <form onSubmit={handleCreateProject}>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="title">Project Title</Label>
-            <Input 
-              id="title" 
-              placeholder="e.g., Kitchen Renovation" 
-              value={newProject.title}
-              onChange={(e) => setNewProject({...newProject, title: e.target.value})}
-            />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="description">Project Description</Label>
-            <Textarea 
-              id="description" 
-              placeholder="Describe your project in detail..." 
-              className="min-h-[120px]"
-              value={newProject.description}
-              onChange={(e) => setNewProject({...newProject, description: e.target.value})}
-            />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="budget">Budget ($)</Label>
-            <Input 
-              id="budget" 
-              type="number" 
-              placeholder="e.g., 5000" 
-              value={newProject.budget}
-              onChange={(e) => setNewProject({...newProject, budget: e.target.value})}
-            />
-          </div>
-        </CardContent>
+    <div className="space-y-6">
+      <div className="text-center py-12">
+        <Plus className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+        <h2 className="text-2xl font-bold text-gray-900 mb-2">Create a New Project</h2>
+        <p className="text-gray-600 mb-8 max-w-2xl mx-auto">
+          Post your project with detailed specifications and connect with qualified professionals on ProLinkTT. 
+          Our comprehensive form will help you define all the requirements needed to get started.
+        </p>
         
-        <CardFooter>
-          <Button 
-            type="submit" 
-            className="w-full bg-ttc-blue-700 hover:bg-ttc-blue-800"
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? "Creating..." : "Create Project"}
-          </Button>
-        </CardFooter>
-      </form>
-    </Card>
+        <Button onClick={handleCreateProject} size="lg" className="mb-8">
+          <Plus className="h-5 w-5 mr-2" />
+          Create Project
+        </Button>
+      </div>
+
+      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
+        <Card>
+          <CardHeader>
+            <FileText className="h-8 w-8 text-blue-500 mb-2" />
+            <CardTitle className="text-lg">Project Details</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-gray-600 text-sm">
+              Define your project with title, description, category, and detailed requirements.
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <MapPin className="h-8 w-8 text-green-500 mb-2" />
+            <CardTitle className="text-lg">Location & Timeline</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-gray-600 text-sm">
+              Specify project location and expected timeline to help professionals plan their availability.
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <DollarSign className="h-8 w-8 text-purple-500 mb-2" />
+            <CardTitle className="text-lg">Budget & Requirements</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-gray-600 text-sm">
+              Set your budget range and specify any special requirements or skills needed.
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <Users className="h-8 w-8 text-orange-500 mb-2" />
+            <CardTitle className="text-lg">Find Professionals</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-gray-600 text-sm">
+              Your project will be visible to vetted professionals that match your requirements.
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <Calendar className="h-8 w-8 text-indigo-500 mb-2" />
+            <CardTitle className="text-lg">Manage Applications</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-gray-600 text-sm">
+              Review and manage applications from professionals interested in your project.
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <Clock className="h-8 w-8 text-red-500 mb-2" />
+            <CardTitle className="text-lg">Track Progress</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-gray-600 text-sm">
+              Monitor your project status and communicate with professionals in real-time.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
   );
 };
 

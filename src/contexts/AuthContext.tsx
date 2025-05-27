@@ -9,6 +9,7 @@ interface AuthContextType {
   session: Session | null;
   isLoading: boolean;
   signOut: () => Promise<void>;
+  logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -72,8 +73,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  // Alias logout to signOut for compatibility
+  const logout = signOut;
+
   return (
-    <AuthContext.Provider value={{ user, session, isLoading, signOut }}>
+    <AuthContext.Provider value={{ user, session, isLoading, signOut, logout }}>
       {children}
     </AuthContext.Provider>
   );
