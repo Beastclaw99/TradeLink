@@ -1,3 +1,4 @@
+
 export type UpdateType = 
   | 'message'
   | 'status_change'
@@ -41,11 +42,11 @@ export interface ProjectUpdate {
   message?: string;
   status_update?: string;
   file_url?: string;
-  file_name?: string;
   created_at: string;
-  created_by: string;
+  professional_id: string;
   metadata?: ProjectUpdateMetadata;
   profiles?: {
-    full_name: string;
+    first_name: string;
+    last_name: string;
   };
-} 
+}

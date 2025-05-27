@@ -96,13 +96,6 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ userId, initialTab = 
     handleApplicationUpdate
   };
   
-  const createProjectTabProps = {
-    newProject,
-    setNewProject,
-    handleCreateProject,
-    isSubmitting: isProjectSubmitting
-  };
-  
   const paymentsTabProps = {
     isLoading,
     projects,
@@ -142,7 +135,7 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ userId, initialTab = 
       </TabsContent>
       
       <TabsContent value="create">
-        <CreateProjectTab {...createProjectTabProps} />
+        <CreateProjectTab />
       </TabsContent>
       
       <TabsContent value="payments">
