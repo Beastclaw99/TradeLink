@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -6,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Project } from '../../types';
 import ProjectStatusBadge from '@/components/shared/ProjectStatusBadge';
-import { Edit, Trash2, Send, Eye } from 'lucide-react';
+import { Edit, Trash2, Send, Eye, Users } from 'lucide-react';
 
 interface ProjectCardProps {
   project: Project;
@@ -25,13 +24,14 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
   
   const projectApplications = applications.filter(app => app.project_id === project.id);
   const pendingApplications = projectApplications.filter(app => app.status === 'pending');
-
-  const handleDispatch = () => {
-    navigate(`/client/dispatch/${project.id}`);
-  };
+  const acceptedApplication = projectApplications.find(app => app.status === 'accepted');
 
   const handleViewDetails = () => {
     navigate(`/projects/${project.id}`);
+  };
+
+  const handleViewApplications = () => {
+    navigate(`/client/projects/${project.id}/applications`);
   };
 
   return (
@@ -44,6 +44,7 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
           </div>
         </div>
       </CardHeader>
+      
       <CardContent>
         <p className="text-gray-600 mb-4 line-clamp-3">{project.description}</p>
         
@@ -55,18 +56,28 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
             </div>
           )}
           <div className="flex justify-between text-sm">
-            <span className="text-gray-500">Applications:</span>
+            <span className="text-gray-500">Total Applications:</span>
             <span className="font-medium">{projectApplications.length}</span>
           </div>
           {pendingApplications.length > 0 && (
             <div className="flex justify-between text-sm">
               <span className="text-gray-500">Pending Review:</span>
-              <Badge variant="secondary">{pendingApplications.length}</Badge>
+              <Badge variant="secondary" className="bg-amber-100 text-amber-800">
+                {pendingApplications.length}
+              </Badge>
+            </div>
+          )}
+          {acceptedApplication && (
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-500">Assigned Professional:</span>
+              <span className="font-medium">
+                {acceptedApplication.professional?.first_name} {acceptedApplication.professional?.last_name}
+              </span>
             </div>
           )}
         </div>
 
-        <div className="flex flex-wrap gap-2">
+        <div className="flex gap-2">
           <Button 
             variant="outline" 
             size="sm"
@@ -81,11 +92,11 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
             <Button 
               variant="default" 
               size="sm"
-              onClick={handleDispatch}
+              onClick={handleViewApplications}
               className="flex-1"
             >
-              <Send className="h-4 w-4 mr-1" />
-              Dispatch
+              <Users className="h-4 w-4 mr-1" />
+              View Applications
             </Button>
           )}
           

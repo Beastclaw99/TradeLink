@@ -29,6 +29,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { ProjectApplicationForm } from "@/components/ProjectApplicationForm";
 
 const ProjectDetails: React.FC = () => {
   const { projectId } = useParams<{ projectId: string }>();
@@ -40,10 +41,12 @@ const ProjectDetails: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [bidAmount, setBidAmount] = useState<number | ''>('');
   const [bidMessage, setBidMessage] = useState("");
+  const [availability, setAvailability] = useState("");
   const [bidSubmitted, setBidSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [hasApplied, setHasApplied] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [userSkills, setUserSkills] = useState<string[]>([]);
   
   useEffect(() => {
     if (!projectId) return;
@@ -66,11 +69,12 @@ const ProjectDetails: React.FC = () => {
         
         setProject(projectData);
         
-        // If user is logged in, check if they've already applied
+        // If user is logged in, check if they've already applied and fetch their skills
         if (user) {
+          // Check existing application
           const { data: applicationData, error: applicationError } = await supabase
             .from('applications')
-            .select('id, status')
+            .select('id, status, availability')
             .eq('project_id', projectId)
             .eq('professional_id', user.id);
             
@@ -80,7 +84,20 @@ const ProjectDetails: React.FC = () => {
             // If the application was withdrawn, allow reapplication
             if (application.status === 'withdrawn') {
               setHasApplied(false);
+            } else {
+              setAvailability(application.availability || '');
             }
+          }
+
+          // Fetch user skills
+          const { data: profileData, error: profileError } = await supabase
+            .from('profiles')
+            .select('skills')
+            .eq('id', user.id)
+            .single();
+
+          if (!profileError && profileData?.skills) {
+            setUserSkills(profileData.skills);
           }
         }
         
@@ -115,10 +132,10 @@ const ProjectDetails: React.FC = () => {
       return;
     }
     
-    if (!bidAmount || !bidMessage.trim()) {
+    if (!bidAmount || !bidMessage.trim() || !availability) {
       toast({
         title: "Missing Information",
-        description: "Please provide both a bid amount and proposal message.",
+        description: "Please provide a bid amount, availability, and proposal message.",
         variant: "destructive"
       });
       return;
@@ -136,7 +153,8 @@ const ProjectDetails: React.FC = () => {
             professional_id: user.id,
             status: 'pending',
             bid_amount: bidAmount,
-            proposal_message: bidMessage
+            proposal_message: bidMessage,
+            availability: availability
           }
         ])
         .select();
@@ -431,46 +449,29 @@ const ProjectDetails: React.FC = () => {
                       </DialogTrigger>
                       <DialogContent>
                         <DialogHeader>
-                          <DialogTitle>Confirm Submission</DialogTitle>
+                          <DialogTitle>Submit Your Proposal</DialogTitle>
                           <DialogDescription>
-                            You are about to submit a {bidAmount === project.budget ? "proposal at the client's budget" : "counteroffer"} of ${bidAmount} for this project.
+                            Provide your bid amount, availability, and a detailed proposal for this project.
                           </DialogDescription>
                         </DialogHeader>
                         <div className="py-4">
-                          <p className="text-sm text-gray-600 mb-4">
-                            By proceeding, you agree to complete the project according to the outlined specifications if selected.
-                          </p>
+                          <ProjectApplicationForm
+                            selectedProject={projectId}
+                            projects={[project]}
+                            coverLetter={bidMessage}
+                            setCoverLetter={setBidMessage}
+                            bidAmount={bidAmount}
+                            setBidAmount={setBidAmount}
+                            availability={availability}
+                            setAvailability={setAvailability}
+                            isApplying={isSubmitting}
+                            handleApplyToProject={handleApplicationSubmission}
+                            onCancel={() => setDialogOpen(false)}
+                            userSkills={userSkills}
+                          />
                         </div>
-                        <DialogFooter>
-                          <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
-                          <Button 
-                            onClick={handleApplicationSubmission}
-                            className="bg-ttc-blue-700 hover:bg-ttc-blue-800"
-                            disabled={isSubmitting}
-                          >
-                            {isSubmitting ? "Submitting..." : "Confirm Submission"}
-                          </Button>
-                        </DialogFooter>
                       </DialogContent>
                     </Dialog>
-                    
-                    {bidAmount === project.budget && (
-                      <Button variant="outline" className="w-full" onClick={() => setBidAmount('')}>
-                        Make a Counteroffer
-                      </Button>
-                    )}
-                    
-                    {bidAmount !== project.budget && bidAmount !== '' && (
-                      <Button variant="outline" className="w-full" onClick={() => setBidAmount(project.budget || 0)}>
-                        Accept Client's Budget
-                      </Button>
-                    )}
-                    
-                    {!user && (
-                      <p className="text-sm text-yellow-600 text-center mt-2">
-                        You must be logged in as a professional to apply for projects.
-                      </p>
-                    )}
                   </CardFooter>
                 )}
               </Card>
