@@ -28,6 +28,7 @@ interface UnifiedProjectUpdateTimelineProps {
   isProfessionalView?: boolean;
   canEdit?: boolean;
   onUpdateAdded?: () => void;
+  projectStatus: string;
 }
 
 const UpdateTypeIcons: Record<string, React.ElementType> = {
@@ -73,7 +74,8 @@ export default function UnifiedProjectUpdateTimeline({
   maxUpdates,
   isProfessionalView = false,
   canEdit = false,
-  onUpdateAdded 
+  onUpdateAdded,
+  projectStatus
 }: UnifiedProjectUpdateTimelineProps) {
   const [updates, setUpdates] = useState<ProjectUpdate[]>([]);
   const [loading, setLoading] = useState(true);
@@ -263,7 +265,9 @@ export default function UnifiedProjectUpdateTimeline({
           onUpdateAdded={() => {
             fetchUpdates();
             onUpdateAdded?.();
-          }} 
+          }}
+          projectStatus={projectStatus}
+          isProfessional={isProfessionalView}
         />
       )}
 

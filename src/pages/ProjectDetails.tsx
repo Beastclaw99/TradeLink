@@ -30,6 +30,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import ProjectApplicationForm from "@/components/dashboard/professional/ProjectApplicationForm";
+import SubmitWorkForm from "@/components/project/SubmitWorkForm";
+import UnifiedProjectUpdateTimeline from "@/components/shared/UnifiedProjectUpdateTimeline";
 
 const ProjectDetails: React.FC = () => {
   const { projectId } = useParams<{ projectId: string }>();
@@ -47,79 +49,86 @@ const ProjectDetails: React.FC = () => {
   const [hasApplied, setHasApplied] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [userSkills, setUserSkills] = useState<string[]>([]);
+  const [isProfessional, setIsProfessional] = useState(false);
   
-  useEffect(() => {
+  const fetchProject = async () => {
     if (!projectId) return;
     
-    const fetchProject = async () => {
-      try {
-        setIsLoading(true);
-        
-        // Fetch the project details
-        const { data: projectData, error: projectError } = await supabase
-          .from('projects')
-          .select(`
-            *,
-            client:profiles!projects_client_id_fkey(first_name, last_name)
-          `)
-          .eq('id', projectId)
-          .single();
-        
-        if (projectError) throw projectError;
-        
-        setProject(projectData);
-        
-        // If user is logged in, check if they've already applied and fetch their skills
-        if (user) {
-          // Check existing application
-          const { data: applicationData, error: applicationError } = await supabase
-            .from('applications')
-            .select('id, status, availability')
-            .eq('project_id', projectId)
-            .eq('professional_id', user.id);
-            
-          if (!applicationError && applicationData.length > 0) {
-            setHasApplied(true);
-            const application = applicationData[0];
-            // If the application was withdrawn, allow reapplication
-            if (application.status === 'withdrawn') {
-              setHasApplied(false);
-            } else {
-              setAvailability(application.availability || '');
-            }
-          }
-
-          // Fetch user skills
-          const { data: profileData, error: profileError } = await supabase
-            .from('profiles')
-            .select('skills')
-            .eq('id', user.id)
-            .single();
-
-          if (!profileError && profileData?.skills) {
-            setUserSkills(profileData.skills);
-          }
-        }
-        
-        // Set initial bid amount to project budget
-        if (projectData.budget) {
-          setBidAmount(projectData.budget);
-        } else {
-          setBidAmount(null);
-        }
-        
-      } catch (error: any) {
-        console.error('Error fetching project:', error);
-        toast({
-          title: "Error",
-          description: "Failed to load project details. Please try again later.",
-          variant: "destructive"
-        });
-      } finally {
-        setIsLoading(false);
+    try {
+      setIsLoading(true);
+      
+      // Fetch the project details
+      const { data: projectData, error: projectError } = await supabase
+        .from('projects')
+        .select(`
+          *,
+          client:profiles!projects_client_id_fkey(first_name, last_name),
+          professional:profiles!projects_professional_id_fkey(id)
+        `)
+        .eq('id', projectId)
+        .single();
+      
+      if (projectError) throw projectError;
+      
+      setProject(projectData);
+      
+      // Check if current user is the assigned professional
+      if (user && projectData.professional?.id === user.id) {
+        setIsProfessional(true);
       }
-    };
-    
+      
+      // If user is logged in, check if they've already applied and fetch their skills
+      if (user) {
+        // Check existing application
+        const { data: applicationData, error: applicationError } = await supabase
+          .from('applications')
+          .select('id, status, availability')
+          .eq('project_id', projectId)
+          .eq('professional_id', user.id);
+          
+        if (!applicationError && applicationData.length > 0) {
+          setHasApplied(true);
+          const application = applicationData[0];
+          // If the application was withdrawn, allow reapplication
+          if (application.status === 'withdrawn') {
+            setHasApplied(false);
+          } else {
+            setAvailability(application.availability || '');
+          }
+        }
+
+        // Fetch user skills
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .select('skills')
+          .eq('id', user.id)
+          .single();
+
+        if (!profileError && profileData?.skills) {
+          setUserSkills(profileData.skills);
+        }
+      }
+      
+      // Set initial bid amount to project budget
+      if (projectData.budget) {
+        setBidAmount(projectData.budget);
+      } else {
+        setBidAmount(null);
+      }
+      
+    } catch (error) {
+      console.error('Error fetching project:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load project details. Please try again later.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchProject();
   }, [projectId, user, toast]);
   
@@ -310,6 +319,7 @@ const ProjectDetails: React.FC = () => {
                 <TabsList className="w-full">
                   <TabsTrigger value="details">Project Details</TabsTrigger>
                   <TabsTrigger value="client">About Client</TabsTrigger>
+                  <TabsTrigger value="updates">Updates</TabsTrigger>
                 </TabsList>
                 
                 <TabsContent value="details">
@@ -365,6 +375,27 @@ const ProjectDetails: React.FC = () => {
                           </p>
                         </div>
                       </div>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+                
+                <TabsContent value="updates">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Project Updates</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <UnifiedProjectUpdateTimeline
+                        projectId={projectId}
+                        projectStatus={project?.status}
+                        isProfessionalView={isProfessional}
+                        canEdit={isProfessional}
+                        showAddUpdate={true}
+                        onUpdateAdded={() => {
+                          // Refresh project data
+                          fetchProject();
+                        }}
+                      />
                     </CardContent>
                   </Card>
                 </TabsContent>
@@ -495,6 +526,19 @@ const ProjectDetails: React.FC = () => {
                   </li>
                 </ul>
               </div>
+
+              {/* Add SubmitWorkForm */}
+              {isProfessional && ['in_progress', 'revision'].includes(project?.status) && (
+                <SubmitWorkForm
+                  projectId={projectId}
+                  projectStatus={project?.status}
+                  isProfessional={isProfessional}
+                  onWorkSubmitted={() => {
+                    // Refresh project data
+                    fetchProject();
+                  }}
+                />
+              )}
             </div>
           </div>
         </div>

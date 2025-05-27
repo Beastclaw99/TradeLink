@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from "@/components/ui/use-toast";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { UpdateType } from '@/types/projectUpdates';
 import { useAuth } from '@/contexts/AuthContext';
+import { Badge } from "@/components/ui/badge";
 import {
   CheckCircleIcon,
   ClockIcon,
@@ -24,6 +25,7 @@ import {
   BanknotesIcon,
   ListBulletIcon,
   PencilSquareIcon,
+  XMarkIcon as XMark,
 } from '@heroicons/react/24/outline';
 
 // Update type groups for better organization
@@ -62,18 +64,29 @@ const QUICK_ACTIONS = [
 interface AddProjectUpdateProps {
   projectId: string;
   onUpdateAdded: () => void;
+  projectStatus: string;
+  isProfessional: boolean;
 }
 
-export default function AddProjectUpdate({ projectId, onUpdateAdded }: AddProjectUpdateProps) {
+export default function AddProjectUpdate({ 
+  projectId, 
+  onUpdateAdded,
+  projectStatus,
+  isProfessional 
+}: AddProjectUpdateProps) {
   const { user } = useAuth();
   const { toast } = useToast();
   const [selectedGroup, setSelectedGroup] = useState<UpdateGroup>('activity');
   const [selectedType, setSelectedType] = useState<UpdateType>('message');
   const [message, setMessage] = useState('');
   const [file, setFile] = useState<File | null>(null);
+  const [filePreview, setFilePreview] = useState<string | null>(null);
   const [location, setLocation] = useState<GeolocationPosition | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [previewMode, setPreviewMode] = useState(false);
+
+  // Check if component should be visible
+  const isVisible = isProfessional && ['assigned', 'in_progress', 'revision'].includes(projectStatus);
 
   // Get current location
   const getCurrentLocation = (): Promise<GeolocationPosition> => {
@@ -131,11 +144,29 @@ export default function AddProjectUpdate({ projectId, onUpdateAdded }: AddProjec
     }
   };
 
-  // Handle file selection
+  // Handle file selection with preview
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      setFile(e.target.files[0]);
+      const selectedFile = e.target.files[0];
+      setFile(selectedFile);
+
+      // Create preview for images
+      if (selectedFile.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setFilePreview(reader.result as string);
+        };
+        reader.readAsDataURL(selectedFile);
+      } else {
+        setFilePreview(null);
+      }
     }
+  };
+
+  // Remove file
+  const removeFile = () => {
+    setFile(null);
+    setFilePreview(null);
   };
 
   // Handle form submission
@@ -166,6 +197,16 @@ export default function AddProjectUpdate({ projectId, onUpdateAdded }: AddProjec
           }
         };
       }
+
+      // Check if message contains "completed" and update project status
+      if (message.toLowerCase().includes('completed')) {
+        const { error: statusError } = await supabase
+          .from('projects')
+          .update({ status: 'submitted' })
+          .eq('id', projectId);
+
+        if (statusError) throw statusError;
+      }
       
       await supabase.from('project_updates').insert([{
         project_id: projectId,
@@ -180,6 +221,7 @@ export default function AddProjectUpdate({ projectId, onUpdateAdded }: AddProjec
       // Reset form
       setMessage('');
       setFile(null);
+      setFilePreview(null);
       setLocation(null);
       setPreviewMode(false);
       
@@ -200,6 +242,10 @@ export default function AddProjectUpdate({ projectId, onUpdateAdded }: AddProjec
       setIsSubmitting(false);
     }
   };
+
+  if (!isVisible) {
+    return null;
+  }
 
   return (
     <div className="space-y-6">
@@ -252,102 +298,71 @@ export default function AddProjectUpdate({ projectId, onUpdateAdded }: AddProjec
             ))}
           </Tabs>
 
-          {/* Dynamic Input Fields */}
-          <div className="space-y-4">
-            {selectedType === 'message' && (
-              <div className="space-y-2">
-                <Label>Message</Label>
-                <Textarea
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                  placeholder="Enter your message..."
-                  className="min-h-[100px]"
+          {/* Message Input */}
+          <div className="space-y-2">
+            <Label htmlFor="message">Message</Label>
+            <Textarea
+              id="message"
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              placeholder="Enter your update message..."
+              className="min-h-[100px]"
+            />
+          </div>
+
+          {/* File Upload */}
+          {selectedType === 'file_upload' && (
+            <div className="space-y-2">
+              <Label htmlFor="file">Attachment</Label>
+              <div className="flex items-center gap-4">
+                <input
+                  type="file"
+                  id="file"
+                  onChange={handleFileChange}
+                  className="hidden"
                 />
-              </div>
-            )}
-
-            {selectedType === 'file_upload' && (
-              <div className="space-y-2">
-                <Label>File</Label>
-                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-                  <input
-                    type="file"
-                    onChange={handleFileChange}
-                    className="hidden"
-                    id="file-upload"
-                  />
-                  <label
-                    htmlFor="file-upload"
-                    className="cursor-pointer text-blue-600 hover:text-blue-800"
-                  >
-                    {file ? file.name : 'Click to upload or drag and drop'}
-                  </label>
-                </div>
-              </div>
-            )}
-
-            {selectedType === 'site_check' && (
-              <div className="space-y-2">
-                <Label>Location</Label>
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={async () => {
-                    try {
-                      const position = await getCurrentLocation();
-                      setLocation(position);
-                    } catch (error) {
-                      toast({
-                        title: "Error",
-                        description: "Failed to get location. Please try again.",
-                        variant: "destructive"
-                      });
-                    }
-                  }}
+                  onClick={() => document.getElementById('file')?.click()}
                 >
-                  {location ? 'Update Location' : 'Get Current Location'}
+                  <PaperClipIcon className="h-4 w-4 mr-2" />
+                  Choose File
                 </Button>
-                {location && (
-                  <p className="text-sm text-gray-600">
-                    📍 Location: {location.coords.latitude.toFixed(6)}, 
-                    {location.coords.longitude.toFixed(6)}
-                  </p>
+                {file && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-gray-600">{file.name}</span>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={removeFile}
+                    >
+                      <XMark className="h-4 w-4" />
+                    </Button>
+                  </div>
                 )}
               </div>
-            )}
-          </div>
-
-          {/* Submit Button */}
-          <div className="flex justify-end gap-4">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setPreviewMode(!previewMode)}
-            >
-              {previewMode ? 'Edit' : 'Preview'}
-            </Button>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? 'Adding Update...' : 'Add Update'}
-            </Button>
-          </div>
-
-          {/* Preview Mode */}
-          {previewMode && (
-            <div className="mt-4 p-4 border rounded-lg bg-gray-50">
-              <h3 className="font-medium mb-2">Preview</h3>
-              <div className="space-y-2">
-                <p><strong>Type:</strong> {selectedType.replace('_', ' ')}</p>
-                {message && <p><strong>Message:</strong> {message}</p>}
-                {file && <p><strong>File:</strong> {file.name}</p>}
-                {location && (
-                  <p>
-                    <strong>Location:</strong> {location.coords.latitude.toFixed(6)}, 
-                    {location.coords.longitude.toFixed(6)}
-                  </p>
-                )}
-              </div>
+              {filePreview && (
+                <div className="mt-2">
+                  <img
+                    src={filePreview}
+                    alt="Preview"
+                    className="max-w-xs rounded-lg border"
+                  />
+                </div>
+              )}
             </div>
           )}
+
+          {/* Submit Button */}
+          <Button
+            type="submit"
+            disabled={isSubmitting || (!message && !file)}
+            className="w-full"
+          >
+            {isSubmitting ? 'Adding Update...' : 'Add Update'}
+          </Button>
         </form>
       </Card>
     </div>
