@@ -31,6 +31,9 @@ import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import ProjectApplicationForm from "@/components/dashboard/professional/ProjectApplicationForm";
 import SubmitWorkForm from "@/components/project/SubmitWorkForm";
+import ClientReviewForm from "@/components/project/ClientReviewForm";
+import InvoiceSection from "@/components/project/InvoiceSection";
+import ReviewForm from "@/components/project/ReviewForm";
 import UnifiedProjectUpdateTimeline from "@/components/shared/UnifiedProjectUpdateTimeline";
 
 const ProjectDetails: React.FC = () => {
@@ -50,6 +53,7 @@ const ProjectDetails: React.FC = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [userSkills, setUserSkills] = useState<string[]>([]);
   const [isProfessional, setIsProfessional] = useState(false);
+  const [isClient, setIsClient] = useState(false);
   
   const fetchProject = async () => {
     if (!projectId) return;
@@ -75,6 +79,11 @@ const ProjectDetails: React.FC = () => {
       // Check if current user is the assigned professional
       if (user && projectData.professional?.id === user.id) {
         setIsProfessional(true);
+      }
+
+      // Check if current user is the client
+      if (user && projectData.client_id === user.id) {
+        setIsClient(true);
       }
       
       // If user is logged in, check if they've already applied and fetch their skills
@@ -539,6 +548,41 @@ const ProjectDetails: React.FC = () => {
                   }}
                 />
               )}
+
+              {/* Add ClientReviewForm */}
+              <ClientReviewForm
+                projectId={projectId}
+                projectStatus={project?.status}
+                isClient={isClient}
+                onReviewSubmitted={() => {
+                  // Refresh project data
+                  fetchProject();
+                }}
+              />
+
+              {/* Add InvoiceSection */}
+              <InvoiceSection
+                projectId={projectId}
+                projectStatus={project?.status}
+                isClient={isClient}
+                isProfessional={isProfessional}
+                onPaymentProcessed={() => {
+                  // Refresh project data
+                  fetchProject();
+                }}
+              />
+
+              {/* Add ReviewForm */}
+              <ReviewForm
+                projectId={projectId}
+                projectStatus={project?.status}
+                isClient={isClient}
+                isProfessional={isProfessional}
+                onReviewSubmitted={() => {
+                  // Refresh project data
+                  fetchProject();
+                }}
+              />
             </div>
           </div>
         </div>
