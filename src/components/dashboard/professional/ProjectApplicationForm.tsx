@@ -55,7 +55,7 @@ const ProjectApplicationForm: React.FC<ProjectApplicationFormProps> = ({
   if (!selectedProject) return null;
   
   const project = projects.find(p => p.id === selectedProject);
-  const requiredSkills = project?.required_skills || [];
+  const requiredSkills = Array.isArray(project?.required_skills) ? project.required_skills : [];
   const matchingSkills = userSkills.filter(skill => requiredSkills.includes(skill));
   const missingSkills = requiredSkills.filter(skill => !userSkills.includes(skill));
   
@@ -123,7 +123,7 @@ const ProjectApplicationForm: React.FC<ProjectApplicationFormProps> = ({
               type="number"
               placeholder="Enter your bid amount"
               className="pl-10"
-              value={bidAmount || ''}
+              value={bidAmount === null ? '' : bidAmount}
               onChange={(e) => setBidAmount(e.target.value ? Number(e.target.value) : null)}
             />
           </div>

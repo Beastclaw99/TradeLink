@@ -29,7 +29,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { ProjectApplicationForm } from "@/components/ProjectApplicationForm";
+import ProjectApplicationForm from "@/components/dashboard/professional/ProjectApplicationForm";
 
 const ProjectDetails: React.FC = () => {
   const { projectId } = useParams<{ projectId: string }>();
@@ -39,7 +39,7 @@ const ProjectDetails: React.FC = () => {
   
   const [project, setProject] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [bidAmount, setBidAmount] = useState<number | ''>('');
+  const [bidAmount, setBidAmount] = useState<number | null>(null);
   const [bidMessage, setBidMessage] = useState("");
   const [availability, setAvailability] = useState("");
   const [bidSubmitted, setBidSubmitted] = useState(false);
@@ -104,6 +104,8 @@ const ProjectDetails: React.FC = () => {
         // Set initial bid amount to project budget
         if (projectData.budget) {
           setBidAmount(projectData.budget);
+        } else {
+          setBidAmount(null);
         }
         
       } catch (error: any) {
@@ -420,7 +422,7 @@ const ProjectDetails: React.FC = () => {
                             placeholder="Enter your bid amount"
                             className="pl-10"
                             value={bidAmount}
-                            onChange={(e) => setBidAmount(e.target.value ? Number(e.target.value) : '')}
+                            onChange={(e) => setBidAmount(e.target.value ? Number(e.target.value) : null)}
                           />
                         </div>
                         <p className="text-xs text-gray-500 mt-1">Client's budget: ${project.budget}</p>
@@ -460,7 +462,7 @@ const ProjectDetails: React.FC = () => {
                             projects={[project]}
                             coverLetter={bidMessage}
                             setCoverLetter={setBidMessage}
-                            bidAmount={bidAmount}
+                            bidAmount={typeof bidAmount === 'number' ? bidAmount : project.budget}
                             setBidAmount={setBidAmount}
                             availability={availability}
                             setAvailability={setAvailability}
