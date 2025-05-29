@@ -22,6 +22,7 @@ import {
   Star,
   Clock,
   AlertTriangle,
+  User,
 } from 'lucide-react';
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
@@ -35,244 +36,130 @@ import ClientReviewForm from "@/components/project/ClientReviewForm";
 import InvoiceSection from "@/components/project/InvoiceSection";
 import ReviewForm from "@/components/project/ReviewForm";
 import UnifiedProjectUpdateTimeline from "@/components/shared/UnifiedProjectUpdateTimeline";
+import ApplicationsTable from '@/components/applications/ApplicationsTable';
+import ApplicationForm from '@/components/applications/ApplicationForm';
+import { format } from 'date-fns';
+
+interface Project {
+  id: string;
+  title: string;
+  description: string;
+  budget: number;
+  location: string;
+  category: string;
+  subcategory?: string;
+  scope?: string | string[];
+  status: string;
+  created_at: string;
+  deadline: string;
+  client: {
+    id: string;
+    first_name: string;
+    last_name: string;
+  };
+}
 
 const ProjectDetails: React.FC = () => {
-  const { projectId } = useParams<{ projectId: string }>();
-  const { user } = useAuth();
+  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { toast } = useToast();
-  
-  const [project, setProject] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [bidAmount, setBidAmount] = useState<number | null>(null);
-  const [bidMessage, setBidMessage] = useState("");
-  const [availability, setAvailability] = useState("");
-  const [bidSubmitted, setBidSubmitted] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [hasApplied, setHasApplied] = useState(false);
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [userSkills, setUserSkills] = useState<string[]>([]);
-  const [isProfessional, setIsProfessional] = useState(false);
-  const [isClient, setIsClient] = useState(false);
-  
+  const [project, setProject] = useState<Project | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('overview');
+
+  useEffect(() => {
+    fetchProject();
+  }, [id]);
+
   const fetchProject = async () => {
-    if (!projectId) return;
-    
     try {
-      setIsLoading(true);
-      
-      // Fetch the project details
-      const { data: projectData, error: projectError } = await supabase
+      setLoading(true);
+      const { data, error } = await supabase
         .from('projects')
         .select(`
-          *,
-          client:profiles!projects_client_id_fkey(first_name, last_name),
-          professional:profiles!projects_professional_id_fkey(id)
+          id,
+          title,
+          description,
+          budget,
+          location,
+          category,
+          status,
+          created_at,
+          deadline,
+          scope,
+          client:profiles!projects_client_id_fkey(
+            id,
+            first_name,
+            last_name
+          )
         `)
-        .eq('id', projectId)
+        .eq('id', id)
         .single();
-      
-      if (projectError) throw projectError;
-      
-      setProject(projectData);
-      
-      // Check if current user is the assigned professional
-      if (user && projectData.professional?.id === user.id) {
-        setIsProfessional(true);
-      }
 
-      // Check if current user is the client
-      if (user && projectData.client_id === user.id) {
-        setIsClient(true);
-      }
-      
-      // If user is logged in, check if they've already applied and fetch their skills
-      if (user) {
-        // Check existing application
-        const { data: applicationData, error: applicationError } = await supabase
-          .from('applications')
-          .select('id, status, availability')
-          .eq('project_id', projectId)
-          .eq('professional_id', user.id);
-          
-        if (!applicationError && applicationData.length > 0) {
-          setHasApplied(true);
-          const application = applicationData[0];
-          // If the application was withdrawn, allow reapplication
-          if (application.status === 'withdrawn') {
-            setHasApplied(false);
-          } else {
-            setAvailability(application.availability || '');
+      if (error) throw error;
+      // Defensive: Check if data is a valid object and has client and scope
+      if (!data || typeof data !== 'object' || !data.client || (data.client as any).error) {
+        setProject(null);
+      } else {
+        // If scope is a stringified array, try to parse it
+        let scope = data.scope;
+        if (typeof scope === 'string') {
+          try {
+            const parsed = JSON.parse(scope);
+            if (Array.isArray(parsed)) scope = parsed;
+          } catch {
+            // leave as string
           }
         }
-
-        // Fetch user skills
-        const { data: profileData, error: profileError } = await supabase
-          .from('profiles')
-          .select('skills')
-          .eq('id', user.id)
-          .single();
-
-        if (!profileError && profileData?.skills) {
-          setUserSkills(profileData.skills);
-        }
+        // Type assertion to ensure data is treated as Project type
+        const projectData = { ...data, scope } as Project;
+        setProject(projectData);
       }
-      
-      // Set initial bid amount to project budget
-      if (projectData.budget) {
-        setBidAmount(projectData.budget);
-      } else {
-        setBidAmount(null);
-      }
-      
     } catch (error) {
       console.error('Error fetching project:', error);
       toast({
         title: "Error",
-        description: "Failed to load project details. Please try again later.",
+        description: "Failed to load project details. Please try again.",
         variant: "destructive"
       });
+      navigate('/marketplace');
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
-  useEffect(() => {
-    fetchProject();
-  }, [projectId, user, toast]);
-  
-  const handleApplicationSubmission = async () => {
-    if (!user) {
-      toast({
-        title: "Authentication Required",
-        description: "Please login as a professional to apply for projects.",
-        variant: "destructive"
-      });
-      navigate('/login');
-      return;
-    }
-    
-    if (!bidAmount || !bidMessage.trim() || !availability) {
-      toast({
-        title: "Missing Information",
-        description: "Please provide a bid amount, availability, and proposal message.",
-        variant: "destructive"
-      });
-      return;
-    }
-    
-    try {
-      setIsSubmitting(true);
-      
-      // Submit the application to Supabase
-      const { data, error } = await supabase
-        .from('applications')
-        .insert([
-          {
-            project_id: projectId,
-            professional_id: user.id,
-            status: 'pending',
-            bid_amount: bidAmount,
-            proposal_message: bidMessage,
-            availability: availability
-          }
-        ])
-        .select();
-      
-      if (error) throw error;
-      
-      toast({
-        title: "Application Submitted",
-        description: "Your application has been submitted to the client successfully!"
-      });
-      
-      setDialogOpen(false);
-      setBidSubmitted(true);
-      setHasApplied(true);
-      
-    } catch (error: any) {
-      console.error('Error submitting application:', error);
-      toast({
-        title: "Error",
-        description: "Failed to submit your application. Please try again later.",
-        variant: "destructive"
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-  
-  const handleWithdrawApplication = async () => {
-    if (!user || !projectId) {
-      return;
-    }
-    
-    try {
-      setIsSubmitting(true);
-      
-      // Find the application
-      const { data: applicationData, error: findError } = await supabase
-        .from('applications')
-        .select('id')
-        .eq('project_id', projectId)
-        .eq('professional_id', user.id)
-        .eq('status', 'pending')
-        .single();
-      
-      if (findError) throw findError;
-      
-      // Update application status to withdrawn
-      const { error: updateError } = await supabase
-        .from('applications')
-        .update({ status: 'withdrawn' })
-        .eq('id', applicationData.id);
-      
-      if (updateError) throw updateError;
-      
-      toast({
-        title: "Application Withdrawn",
-        description: "Your application has been withdrawn. You can apply again if you wish."
-      });
-      
-      setHasApplied(false);
-      setBidSubmitted(false);
-      
-    } catch (error: any) {
-      console.error('Error withdrawing application:', error);
-      toast({
-        title: "Error",
-        description: "Failed to withdraw your application. Please try again later.",
-        variant: "destructive"
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-  
-  if (isLoading) {
+  if (loading) {
     return (
-      <Layout>
-        <div className="flex justify-center items-center min-h-[60vh]">
-          <div className="animate-spin w-8 h-8 border-4 border-ttc-blue-700 border-t-transparent rounded-full"></div>
-          <span className="ml-2">Loading project details...</span>
+      <div className="container mx-auto px-4 py-8">
+        <div className="space-y-4">
+          <div className="h-8 bg-gray-200 rounded animate-pulse w-1/3" />
+          <div className="h-32 bg-gray-100 rounded animate-pulse" />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="h-24 bg-gray-100 rounded animate-pulse" />
+            <div className="h-24 bg-gray-100 rounded animate-pulse" />
+          </div>
         </div>
-      </Layout>
+      </div>
     );
   }
-  
+
   if (!project) {
     return (
-      <Layout>
-        <div className="container-custom py-8">
+      <div className="container mx-auto px-4 py-8">
+        <div className="text-center">
           <h1 className="text-2xl font-bold mb-4">Project Not Found</h1>
-          <p>The project you're looking for doesn't exist or has been removed.</p>
-          <Button onClick={() => navigate('/marketplace')} className="mt-4">
+          <p className="text-gray-600 mb-4">The project you're looking for doesn't exist or has been removed.</p>
+          <Button onClick={() => navigate('/marketplace')}>
             Back to Marketplace
           </Button>
         </div>
-      </Layout>
+      </div>
     );
   }
+
+  const isClient = user?.id === project.client.id;
+  const isProfessional = user?.role === 'professional';
 
   return (
     <Layout>
@@ -324,85 +211,101 @@ const ProjectDetails: React.FC = () => {
         <div className="container-custom py-8">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2">
-              <Tabs defaultValue="details">
+              <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
                 <TabsList className="w-full">
-                  <TabsTrigger value="details">Project Details</TabsTrigger>
-                  <TabsTrigger value="client">About Client</TabsTrigger>
-                  <TabsTrigger value="updates">Updates</TabsTrigger>
+                  <TabsTrigger value="overview">Overview</TabsTrigger>
+                  {isClient && <TabsTrigger value="applications">Applications</TabsTrigger>}
+                  {isProfessional && project.status === 'open' && (
+                    <TabsTrigger value="apply">Apply</TabsTrigger>
+                  )}
                 </TabsList>
                 
-                <TabsContent value="details">
+                <TabsContent value="overview">
                   <Card>
                     <CardHeader>
-                      <CardTitle>Project Description</CardTitle>
+                      <CardTitle>Project Details</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                      <p>{project.description}</p>
+                      <div className="prose max-w-none">
+                        <p>{project.description}</p>
+                      </div>
                       
-                      {/* Include other project details as available */}
-                      {/* These are placeholders since we don't have all fields in the actual projects table */}
-                      {project.scope && (
-                        <div className="pt-4">
-                          <h3 className="font-semibold text-lg mb-2">Project Scope</h3>
-                          <ul className="list-disc pl-5 space-y-1">
-                            {project.scope.map((item: string, index: number) => (
-                              <li key={index}>{item}</li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-                      
-                      {project.deadline && (
-                        <div className="pt-4">
-                          <h3 className="font-semibold text-lg mb-2">Project Timeline</h3>
-                          <div className="bg-gray-50 p-4 rounded-lg">
-                            <div className="text-sm text-gray-500">Deadline</div>
-                            <div className="font-medium">{new Date(project.deadline).toLocaleDateString()}</div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="flex items-center gap-2">
+                          <DollarSign className="h-5 w-5 text-gray-500" />
+                          <div>
+                            <div className="text-sm text-gray-500">Budget</div>
+                            <div className="font-medium">TTD {project.budget.toLocaleString()}</div>
                           </div>
                         </div>
+                        <div className="flex items-center gap-2">
+                          <MapPin className="h-5 w-5 text-gray-500" />
+                          <div>
+                            <div className="text-sm text-gray-500">Location</div>
+                            <div className="font-medium">{project.location}</div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Clock className="h-5 w-5 text-gray-500" />
+                          <div>
+                            <div className="text-sm text-gray-500">Deadline</div>
+                            <div className="font-medium">
+                              {format(new Date(project.deadline), 'MMM d, yyyy')}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="secondary">{project.category}</Badge>
+                        </div>
+                      </div>
+                      
+                      {project.scope && (
+                        <div className="mt-4">
+                          <h3 className="font-semibold mb-2">Project Scope</h3>
+                          {Array.isArray(project.scope) ? (
+                            <ul className="list-disc pl-5 space-y-1">
+                              {project.scope.map((item: string, index: number) => (
+                                <li key={index}>{item}</li>
+                              ))}
+                            </ul>
+                          ) : (
+                            <p className="text-gray-600">{project.scope}</p>
+                          )}
+                        </div>
                       )}
                     </CardContent>
                   </Card>
                 </TabsContent>
                 
-                <TabsContent value="client">
+                <TabsContent value="applications">
                   <Card>
                     <CardHeader>
-                      <CardTitle>About the Client</CardTitle>
+                      <CardTitle>Applications</CardTitle>
                     </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="flex items-center">
-                        <div className="w-16 h-16 rounded-full bg-ttc-blue-100 flex items-center justify-center text-ttc-blue-700 font-bold text-xl mr-4">
-                          {project.client?.first_name?.[0] || '?'}
-                        </div>
-                        <div>
-                          <h3 className="font-semibold text-lg">
-                            {project.client ? `${project.client.first_name || ''} ${project.client.last_name || ''}` : 'Unknown Client'}
-                          </h3>
-                          <p className="text-sm text-gray-600">
-                            Member since {new Date(project.client?.created_at || new Date()).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
-                          </p>
-                        </div>
-                      </div>
+                    <CardContent>
+                      <ApplicationsTable
+                        projectId={project.id}
+                        isClient={true}
+                        onStatusChange={fetchProject}
+                      />
                     </CardContent>
                   </Card>
                 </TabsContent>
                 
-                <TabsContent value="updates">
+                <TabsContent value="apply">
                   <Card>
                     <CardHeader>
-                      <CardTitle>Project Updates</CardTitle>
+                      <CardTitle>Submit Application</CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <UnifiedProjectUpdateTimeline
-                        projectId={projectId}
-                        projectStatus={project?.status}
-                        isProfessionalView={isProfessional}
-                        canEdit={isProfessional}
-                        showAddUpdate={true}
-                        onUpdateAdded={() => {
-                          // Refresh project data
-                          fetchProject();
+                      <ApplicationForm
+                        projectId={project.id}
+                        onSuccess={() => {
+                          setActiveTab('overview');
+                          toast({
+                            title: "Success",
+                            description: "Your application has been submitted successfully."
+                          });
                         }}
                       />
                     </CardContent>
@@ -433,24 +336,6 @@ const ProjectDetails: React.FC = () => {
                         This project is no longer accepting applications as it has been {project.status}.
                       </p>
                     </div>
-                  ) : bidSubmitted || hasApplied ? (
-                    <div className="bg-green-50 p-4 rounded-lg text-green-800 border border-green-200">
-                      <div className="flex items-center mb-2">
-                        <Check className="mr-2" size={20} />
-                        <h3 className="font-medium">Proposal Submitted!</h3>
-                      </div>
-                      <p className="text-sm">
-                        Your proposal has been sent to the client. They will review it and get back to you soon.
-                      </p>
-                      <Button 
-                        variant="outline" 
-                        className="mt-4 w-full border-red-200 text-red-700 hover:bg-red-50"
-                        onClick={handleWithdrawApplication}
-                        disabled={isSubmitting}
-                      >
-                        {isSubmitting ? "Processing..." : "Withdraw Application"}
-                      </Button>
-                    </div>
                   ) : (
                     <>
                       <div>
@@ -461,11 +346,9 @@ const ProjectDetails: React.FC = () => {
                             type="number"
                             placeholder="Enter your bid amount"
                             className="pl-10"
-                            value={bidAmount}
-                            onChange={(e) => setBidAmount(e.target.value ? Number(e.target.value) : null)}
+                            value={project.budget}
                           />
                         </div>
-                        <p className="text-xs text-gray-500 mt-1">Client's budget: ${project.budget}</p>
                       </div>
                       
                       <div>
@@ -473,49 +356,11 @@ const ProjectDetails: React.FC = () => {
                         <Textarea 
                           placeholder="Describe why you're the right professional for this project..."
                           className="min-h-32"
-                          value={bidMessage}
-                          onChange={(e) => setBidMessage(e.target.value)}
                         />
                       </div>
                     </>
                   )}
                 </CardContent>
-                
-                {project.status === 'open' && !bidSubmitted && !hasApplied && (
-                  <CardFooter className="flex flex-col gap-3">
-                    <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-                      <DialogTrigger asChild>
-                        <Button className="w-full bg-ttc-blue-700 hover:bg-ttc-blue-800" disabled={!user}>
-                          {bidAmount === project.budget ? "Accept Project Price" : "Submit Proposal"}
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent>
-                        <DialogHeader>
-                          <DialogTitle>Submit Your Proposal</DialogTitle>
-                          <DialogDescription>
-                            Provide your bid amount, availability, and a detailed proposal for this project.
-                          </DialogDescription>
-                        </DialogHeader>
-                        <div className="py-4">
-                          <ProjectApplicationForm
-                            selectedProject={projectId}
-                            projects={[project]}
-                            coverLetter={bidMessage}
-                            setCoverLetter={setBidMessage}
-                            bidAmount={typeof bidAmount === 'number' ? bidAmount : project.budget}
-                            setBidAmount={setBidAmount}
-                            availability={availability}
-                            setAvailability={setAvailability}
-                            isApplying={isSubmitting}
-                            handleApplyToProject={handleApplicationSubmission}
-                            onCancel={() => setDialogOpen(false)}
-                            userSkills={userSkills}
-                          />
-                        </div>
-                      </DialogContent>
-                    </Dialog>
-                  </CardFooter>
-                )}
               </Card>
               
               <div className="mt-6 bg-ttc-blue-50 p-4 rounded-lg border border-ttc-blue-100">
@@ -539,49 +384,37 @@ const ProjectDetails: React.FC = () => {
               {/* Add SubmitWorkForm */}
               {isProfessional && ['in_progress', 'revision'].includes(project?.status) && (
                 <SubmitWorkForm
-                  projectId={projectId}
+                  projectId={project.id}
                   projectStatus={project?.status}
                   isProfessional={isProfessional}
-                  onWorkSubmitted={() => {
-                    // Refresh project data
-                    fetchProject();
-                  }}
+                  onWorkSubmitted={fetchProject}
                 />
               )}
 
               {/* Add ClientReviewForm */}
               <ClientReviewForm
-                projectId={projectId}
+                projectId={project.id}
                 projectStatus={project?.status}
                 isClient={isClient}
-                onReviewSubmitted={() => {
-                  // Refresh project data
-                  fetchProject();
-                }}
+                onReviewSubmitted={fetchProject}
               />
 
               {/* Add InvoiceSection */}
               <InvoiceSection
-                projectId={projectId}
+                projectId={project.id}
                 projectStatus={project?.status}
                 isClient={isClient}
                 isProfessional={isProfessional}
-                onPaymentProcessed={() => {
-                  // Refresh project data
-                  fetchProject();
-                }}
+                onPaymentProcessed={fetchProject}
               />
 
               {/* Add ReviewForm */}
               <ReviewForm
-                projectId={projectId}
+                projectId={project.id}
                 projectStatus={project?.status}
                 isClient={isClient}
                 isProfessional={isProfessional}
-                onReviewSubmitted={() => {
-                  // Refresh project data
-                  fetchProject();
-                }}
+                onReviewSubmitted={fetchProject}
               />
             </div>
           </div>
