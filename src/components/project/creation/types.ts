@@ -1,3 +1,4 @@
+
 export interface Deliverable {
   id: string;
   title: string;
@@ -15,12 +16,21 @@ export interface Milestone {
   description?: string;
   due_date?: string;
   deliverables: Deliverable[];
+  status?: string;
+  is_complete?: boolean;
 }
 
 export interface ProjectData {
   title: string;
   description: string;
   milestones: Milestone[];
+  category?: string;
+  location?: string;
+  recommended_skills: string[];
+  budget?: number;
+  timeline?: string;
+  urgency?: string;
+  service_contract?: string;
 }
 
 // Drag and Drop Types

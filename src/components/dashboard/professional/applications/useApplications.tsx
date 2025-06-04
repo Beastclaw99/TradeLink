@@ -73,7 +73,7 @@ export const useApplications = (
                 title: app.project.title,
                 status: validProjectStatuses.includes(app.project.status as any) ? app.project.status as Application['project']['status'] : 'open',
                 budget: app.project.budget,
-                created_at: app.project.created_at
+                created_at: app.project.created_at || new Date().toISOString()
               } : undefined
             }));
           
