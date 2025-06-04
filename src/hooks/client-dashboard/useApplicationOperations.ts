@@ -79,7 +79,7 @@ export const useApplicationOperations = (fetchDashboardData: () => Promise<void>
   };
 
   const handleAcceptApplication = async () => {
-    if (!selectedApplication) return;
+    if (!selectedApplication || !selectedApplication.project_id) return;
 
     setIsSubmitting(true);
     try {

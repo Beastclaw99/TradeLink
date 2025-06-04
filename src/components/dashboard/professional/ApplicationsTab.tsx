@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
 import { useToast } from "@/components/ui/use-toast";
-import { Application } from '../types';
+import { Application } from '@/types'; // Use main types
 import ApplicationsTable from './applications/ApplicationsTable';
 import ViewApplicationDialog from './applications/ViewApplicationDialog';
 import WithdrawApplicationDialog from './applications/WithdrawApplicationDialog';

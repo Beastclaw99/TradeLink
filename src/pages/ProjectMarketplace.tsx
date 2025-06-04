@@ -28,16 +28,16 @@ const ProjectMarketplace: React.FC = () => {
 
       if (error) throw error;
 
-      // Transform projects with proper typing
+      // Transform projects with proper typing and null handling
       const validStatuses = ['open', 'applied', 'assigned', 'in-progress', 'submitted', 'revision', 'completed', 'paid', 'archived', 'disputed'] as const;
       
       const transformedProjects: Project[] = (data || []).map(project => ({
         ...project,
-        client_id: project.client_id || null, // Handle null client_id from database
+        client_id: project.client_id || null,
         status: validStatuses.includes(project.status as any) ? project.status as Project['status'] : 'open',
         created_at: project.created_at || new Date().toISOString(),
         updated_at: project.updated_at || project.created_at || new Date().toISOString(),
-        client: project.client || null // Handle null client from database
+        client: project.client || null
       }));
 
       setProjects(transformedProjects);
