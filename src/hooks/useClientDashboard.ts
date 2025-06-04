@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react';
 import { useDataFetching } from './client-dashboard/useDataFetching';
 import { useProjectOperations } from './client-dashboard/useProjectOperations';
@@ -39,9 +40,7 @@ export const useClientDashboard = (userId: string) => {
     setReviewData
   } = useReviewOperations(userId, projects, fetchDashboardData);
 
-  const {
-    handleApplicationUpdate
-  } = useApplicationOperations(fetchDashboardData);
+  const applicationOperations = useApplicationOperations(fetchDashboardData);
 
   // Additional state for compatibility
   const [newProject, setNewProject] = useState<any>({});
@@ -84,7 +83,7 @@ export const useClientDashboard = (userId: string) => {
     setReviewData,
     
     // Application operations
-    handleApplicationUpdate,
+    ...applicationOperations,
     
     // Data refresh
     fetchDashboardData

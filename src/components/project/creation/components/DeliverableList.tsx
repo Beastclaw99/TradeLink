@@ -3,14 +3,16 @@ import React from 'react';
 import { Droppable, Draggable } from '@hello-pangea/dnd';
 import { Deliverable } from '../types';
 import { DeliverableItem } from './DeliverableItem';
+import { Button } from '@/components/ui/button';
+import { Plus } from 'lucide-react';
 
 interface DeliverableListProps {
   milestoneId: string;
   deliverables: Deliverable[];
-  onAdd: (deliverable: Deliverable) => void;
-  onUpdate: (deliverableId: string, deliverable: Deliverable) => void;
-  onDelete: (deliverableId: string) => void;
-  onReorder: (startIndex: number, endIndex: number) => void;
+  onAdd: () => void;
+  onUpdate: (milestoneId: string, deliverableId: string, deliverable: Deliverable) => void;
+  onDelete: (milestoneId: string, deliverableId: string) => void;
+  onReorder: (milestoneId: string, startIndex: number, endIndex: number) => void;
 }
 
 export const DeliverableList: React.FC<DeliverableListProps> = ({
@@ -23,7 +25,19 @@ export const DeliverableList: React.FC<DeliverableListProps> = ({
 }) => {
   return (
     <div className="mt-4">
-      <h4 className="text-sm font-medium text-gray-700 mb-2">Deliverables</h4>
+      <div className="flex items-center justify-between mb-2">
+        <h4 className="text-sm font-medium text-gray-700">Deliverables</h4>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={onAdd}
+        >
+          <Plus className="h-4 w-4 mr-1" />
+          Add Deliverable
+        </Button>
+      </div>
+      
       <Droppable droppableId={`deliverables-${milestoneId}`}>
         {(provided) => (
           <div {...provided.droppableProps} ref={provided.innerRef}>
@@ -38,8 +52,8 @@ export const DeliverableList: React.FC<DeliverableListProps> = ({
                   >
                     <DeliverableItem
                       deliverable={deliverable}
-                      onUpdate={(updated) => onUpdate(deliverable.id, updated)}
-                      onDelete={() => onDelete(deliverable.id)}
+                      onUpdate={(updatedDeliverable) => onUpdate(milestoneId, deliverable.id, updatedDeliverable)}
+                      onDelete={() => onDelete(milestoneId, deliverable.id)}
                     />
                   </div>
                 )}

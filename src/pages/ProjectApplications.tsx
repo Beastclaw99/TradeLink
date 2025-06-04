@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
 import { ProjectApplicationsView } from '@/components/dashboard/client/projects/ProjectApplicationsView';
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 
@@ -103,7 +103,7 @@ const ProjectApplications: React.FC = () => {
       }
       
       // Update local state
-      setApplications(prev => prev.map(app => 
+      setApplications((prev: any[]) => prev.map(app => 
         app.id === applicationId 
           ? { ...app, status: newStatus }
           : app
@@ -111,7 +111,7 @@ const ProjectApplications: React.FC = () => {
       
       // If application was accepted, update project status
       if (newStatus === 'accepted') {
-        setProject(prev => ({ ...prev, status: 'assigned' }));
+        setProject((prev: any) => ({ ...prev, status: 'assigned' }));
       }
       
     } catch (error: any) {

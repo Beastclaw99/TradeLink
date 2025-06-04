@@ -1,54 +1,52 @@
-import React, { memo, useCallback } from 'react';
+
+import React from 'react';
 import { Draggable } from '@hello-pangea/dnd';
 import { Milestone, Deliverable } from '../types';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Button } from '@/components/ui/button';
+import { Trash2, Calendar, GripVertical } from 'lucide-react';
 import { DeliverableList } from './DeliverableList';
-import { TrashIcon } from '@heroicons/react/24/outline';
 
 interface MilestoneItemProps {
   milestone: Milestone;
   index: number;
+  onUpdate: (updatedMilestone: Milestone) => void;
   onDelete: (id: string) => void;
   onDeliverableAdd: (milestoneId: string, deliverable: Deliverable) => void;
-  onDeliverableUpdate: (milestoneId: string, deliverableId: string, deliverable: Deliverable) => void;
+  onDeliverableUpdate: (milestoneId: string, deliverableId: string, updatedDeliverable: Deliverable) => void;
   onDeliverableDelete: (milestoneId: string, deliverableId: string) => void;
   onDeliverableReorder: (milestoneId: string, startIndex: number, endIndex: number) => void;
 }
 
-export const MilestoneItem: React.FC<MilestoneItemProps> = memo(({
+export const MilestoneItem: React.FC<MilestoneItemProps> = ({
   milestone,
   index,
+  onUpdate,
   onDelete,
   onDeliverableAdd,
   onDeliverableUpdate,
   onDeliverableDelete,
-  onDeliverableReorder,
+  onDeliverableReorder
 }) => {
-  const handleDelete = useCallback(() => {
-    onDelete(milestone.id);
-  }, [milestone.id, onDelete]);
+  const handleUpdate = (field: keyof Milestone, value: any) => {
+    onUpdate({
+      ...milestone,
+      [field]: value
+    });
+  };
 
-  const handleDeliverableAdd = useCallback((deliverable: Deliverable) => {
-    onDeliverableAdd(milestone.id, deliverable);
-  }, [milestone.id, onDeliverableAdd]);
-
-  const handleDeliverableUpdate = useCallback((deliverableId: string, deliverable: Deliverable) => {
-    onDeliverableUpdate(milestone.id, deliverableId, deliverable);
-  }, [milestone.id, onDeliverableUpdate]);
-
-  const handleDeliverableDelete = useCallback((deliverableId: string) => {
-    onDeliverableDelete(milestone.id, deliverableId);
-  }, [milestone.id, onDeliverableDelete]);
-
-  const handleDeliverableReorder = useCallback((startIndex: number, endIndex: number) => {
-    onDeliverableReorder(milestone.id, startIndex, endIndex);
-  }, [milestone.id, onDeliverableReorder]);
-
-  const handleKeyPress = useCallback((e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
-      handleDelete();
-    }
-  }, [handleDelete]);
+  const handleAddDeliverable = () => {
+    const newDeliverable: Deliverable = {
+      id: `deliverable-${Date.now()}`,
+      title: 'New Deliverable',
+      description: '',
+      deliverable_type: 'text',
+      content: '',
+      milestone_id: milestone.id
+    };
+    onDeliverableAdd(milestone.id, newDeliverable);
+  };
 
   return (
     <Draggable draggableId={milestone.id} index={index}>
@@ -56,58 +54,57 @@ export const MilestoneItem: React.FC<MilestoneItemProps> = memo(({
         <div
           ref={provided.innerRef}
           {...provided.draggableProps}
-          className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm"
-          role="article"
-          aria-label={`Milestone ${index + 1}: ${milestone.title}`}
+          className="border rounded-lg p-4 bg-white space-y-4"
         >
-          <div
-            {...provided.dragHandleProps}
-            className="mb-4 flex items-center justify-between"
-            role="group"
-            aria-label="Milestone header"
-          >
-            <div>
-              <h3 className="text-lg font-medium" id={`milestone-title-${milestone.id}`}>
-                {milestone.title}
-              </h3>
-              {milestone.description && (
-                <p className="mt-1 text-sm text-gray-500" id={`milestone-description-${milestone.id}`}>
-                  {milestone.description}
-                </p>
-              )}
-              {milestone.due_date && (
-                <p 
-                  className="mt-1 text-sm text-gray-500"
-                  id={`milestone-due-date-${milestone.id}`}
-                  aria-label={`Due date: ${new Date(milestone.due_date).toLocaleDateString()}`}
-                >
-                  Due: {new Date(milestone.due_date).toLocaleDateString()}
-                </p>
-              )}
+          <div className="flex items-center justify-between">
+            <div {...provided.dragHandleProps} className="cursor-move">
+              <GripVertical className="h-5 w-5 text-gray-400" />
             </div>
-            <button
-              onClick={handleDelete}
-              onKeyPress={handleKeyPress}
-              className="text-red-600 hover:text-red-800 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 rounded-full p-1"
-              aria-label={`Delete milestone: ${milestone.title}`}
-              tabIndex={0}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => onDelete(milestone.id)}
+              className="text-red-600 hover:text-red-700"
             >
-              <TrashIcon className="h-5 w-5" aria-hidden="true" />
-            </button>
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
+
+          <div className="space-y-4">
+            <Input
+              placeholder="Milestone title"
+              value={milestone.title}
+              onChange={(e) => handleUpdate('title', e.target.value)}
+            />
+            
+            <Textarea
+              placeholder="Milestone description (optional)"
+              value={milestone.description || ''}
+              onChange={(e) => handleUpdate('description', e.target.value)}
+              rows={2}
+            />
+            
+            <div className="flex gap-2 items-center">
+              <Calendar className="h-4 w-4 text-gray-500" />
+              <Input
+                type="date"
+                value={milestone.due_date || ''}
+                onChange={(e) => handleUpdate('due_date', e.target.value)}
+                className="flex-1"
+              />
+            </div>
           </div>
 
           <DeliverableList
             milestoneId={milestone.id}
             deliverables={milestone.deliverables}
-            onAdd={handleDeliverableAdd}
-            onUpdate={handleDeliverableUpdate}
-            onDelete={handleDeliverableDelete}
-            onReorder={handleDeliverableReorder}
+            onAdd={handleAddDeliverable}
+            onUpdate={onDeliverableUpdate}
+            onDelete={onDeliverableDelete}
+            onReorder={onDeliverableReorder}
           />
         </div>
       )}
     </Draggable>
   );
-});
-
-MilestoneItem.displayName = 'MilestoneItem';
+};

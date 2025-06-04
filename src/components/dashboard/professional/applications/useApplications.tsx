@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { Application } from '../../types';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 
 /**
  * Custom hook to manage applications state and fetch applications if needed
