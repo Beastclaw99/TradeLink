@@ -7,9 +7,11 @@ import { Notification } from '@/types';
 interface NotificationContextType {
   notifications: Notification[];
   unreadCount: number;
+  isLoading: boolean;
   markAsRead: (id: string) => Promise<void>;
   markAllAsRead: () => Promise<void>;
   addNotification: (notification: Omit<Notification, 'id' | 'created_at'>) => void;
+  removeNotification: (id: string) => void;
 }
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
@@ -28,6 +30,7 @@ interface NotificationProviderProps {
 
 export const NotificationProvider: React.FC<NotificationProviderProps> = ({ children }) => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
   const { user } = useAuth();
 
   const unreadCount = notifications.filter(n => !n.read).length;
@@ -43,6 +46,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
     if (!user?.id) return;
 
     try {
+      setIsLoading(true);
       const { data, error } = await supabase
         .from('notifications')
         .select('*')
@@ -58,13 +62,15 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
         type: notification.type as 'info' | 'success' | 'warning' | 'error',
         read: notification.read || false,
         created_at: notification.created_at || new Date().toISOString(),
-        action_label: notification.action_label || undefined,
-        action_url: notification.action_url || undefined,
+        action_label: undefined, // Not available in current schema
+        action_url: undefined, // Not available in current schema
       }));
 
       setNotifications(transformedNotifications);
     } catch (error) {
       console.error('Error fetching notifications:', error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -138,12 +144,18 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
     setNotifications(prev => [newNotification, ...prev]);
   };
 
+  const removeNotification = (id: string) => {
+    setNotifications(prev => prev.filter(n => n.id !== id));
+  };
+
   const value: NotificationContextType = {
     notifications,
     unreadCount,
+    isLoading,
     markAsRead,
     markAllAsRead,
     addNotification,
+    removeNotification,
   };
 
   return (

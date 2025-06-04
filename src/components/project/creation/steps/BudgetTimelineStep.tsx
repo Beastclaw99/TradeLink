@@ -38,6 +38,11 @@ const BudgetTimelineStep: React.FC<BudgetTimelineStepProps> = ({ data, onUpdate 
     }
   };
 
+  const handleUrgencyChange = (value: string) => {
+    const urgencyValue = value as 'low' | 'medium' | 'high';
+    onUpdate({ urgency: urgencyValue });
+  };
+
   return (
     <div className="space-y-6">
       <Card>
@@ -85,7 +90,7 @@ const BudgetTimelineStep: React.FC<BudgetTimelineStepProps> = ({ data, onUpdate 
             <Label htmlFor="urgency">Project Urgency</Label>
             <Select
               value={data.urgency}
-              onValueChange={(value) => onUpdate({ urgency: value })}
+              onValueChange={handleUrgencyChange}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select urgency level" />

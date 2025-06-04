@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -38,7 +39,15 @@ const ProjectApplications: React.FC = () => {
         .single();
 
       if (error) throw error;
-      setProject(data);
+      
+      const transformedProject: Project = {
+        ...data,
+        status: data.status as Project['status'] || 'open',
+        created_at: data.created_at || new Date().toISOString(),
+        updated_at: data.updated_at || data.created_at || new Date().toISOString()
+      };
+      
+      setProject(transformedProject);
     } catch (error: any) {
       setError(error.message);
       toast({
@@ -66,7 +75,27 @@ const ProjectApplications: React.FC = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setApplications(data);
+      
+      const transformedApplications: Application[] = (data || [])
+        .filter(app => app.project_id && app.professional_id && app.status && app.created_at)
+        .map(app => ({
+          id: app.id,
+          project_id: app.project_id!,
+          professional_id: app.professional_id!,
+          status: app.status as Application['status'],
+          created_at: app.created_at!,
+          updated_at: app.updated_at || app.created_at!,
+          cover_letter: app.cover_letter,
+          bid_amount: app.bid_amount,
+          proposal_message: app.proposal_message,
+          availability: app.availability,
+          professional: app.professional ? {
+            first_name: app.professional.first_name,
+            last_name: app.professional.last_name
+          } : undefined
+        }));
+      
+      setApplications(transformedApplications);
     } catch (error: any) {
       setError(error.message);
       toast({
@@ -234,7 +263,7 @@ const ProjectApplications: React.FC = () => {
                           </>
                         )}
                         {project.status !== 'open' && (
-                          <Badge variant="success">Assigned</Badge>
+                          <Badge variant="secondary">Assigned</Badge>
                         )}
                       </div>
                     </div>

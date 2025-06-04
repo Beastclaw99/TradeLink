@@ -21,6 +21,120 @@ export const useProfessionalDashboard = (userId: string) => {
   const [reviewData, setReviewData] = useState<Partial<Review> | null>(null);
   const [isReviewSubmitting, setIsReviewSubmitting] = useState(false);
 
+  const fetchApplications = useCallback(async () => {
+    if (!userId) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('applications')
+        .select(`
+          *,
+          project:projects(id, title, status, budget, created_at)
+        `)
+        .eq('professional_id', userId)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      const transformedApplications = (data || [])
+        .filter(app => app.project_id && app.status && app.professional_id)
+        .map(app => ({
+          id: app.id,
+          project_id: app.project_id!,
+          professional_id: app.professional_id!,
+          status: (app.status as Application['status']) || 'pending',
+          created_at: app.created_at || new Date().toISOString(),
+          updated_at: app.updated_at || new Date().toISOString(),
+          cover_letter: app.cover_letter,
+          bid_amount: app.bid_amount,
+          proposal_message: app.proposal_message,
+          availability: app.availability,
+          project: app.project ? {
+            id: app.project.id,
+            title: app.project.title,
+            status: app.project.status as Project['status'],
+            budget: app.project.budget,
+            created_at: app.project.created_at
+          } : undefined
+        }));
+
+      setApplications(transformedApplications);
+    } catch (error) {
+      console.error('Error fetching applications:', error);
+      setError('Failed to fetch applications');
+    }
+  }, [userId]);
+
+  const fetchPayments = useCallback(async () => {
+    if (!userId) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('payments')
+        .select(`
+          *,
+          project:projects(title)
+        `)
+        .eq('professional_id', userId)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      const transformedPayments = (data || [])
+        .filter(payment => payment.status && payment.project_id && payment.professional_id && payment.client_id)
+        .map(payment => ({
+          id: payment.id,
+          project_id: payment.project_id!,
+          professional_id: payment.professional_id!,
+          client_id: payment.client_id!,
+          status: (payment.status as Payment['status']) || 'pending',
+          created_at: payment.created_at || new Date().toISOString(),
+          paid_at: payment.paid_at,
+          amount: payment.amount,
+          project: payment.project ? {
+            title: payment.project.title
+          } : undefined
+        }));
+
+      setPayments(transformedPayments);
+    } catch (error) {
+      console.error('Error fetching payments:', error);
+      setError('Failed to fetch payments');
+    }
+  }, [userId]);
+
+  const fetchReviews = useCallback(async () => {
+    if (!userId) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('reviews')
+        .select('*')
+        .eq('professional_id', userId)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      const transformedReviews = (data || [])
+        .filter(review => review.project_id && review.professional_id && review.client_id && review.created_at)
+        .map(review => ({
+          id: review.id,
+          project_id: review.project_id!,
+          professional_id: review.professional_id!,
+          client_id: review.client_id!,
+          rating: review.rating,
+          comment: review.comment,
+          created_at: review.created_at!,
+          updated_at: review['updated at'] || review.created_at!
+        }));
+
+      setReviews(transformedReviews);
+    } catch (error) {
+      console.error('Error fetching reviews:', error);
+      setError('Failed to fetch reviews');
+    }
+  }, [userId]);
+
   const fetchDashboardData = async () => {
     setIsLoading(true);
     setError(null);
@@ -138,153 +252,6 @@ export const useProfessionalDashboard = (userId: string) => {
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const fetchApplications = useCallback(async () => {
-    if (!userId) return;
-    
-    try {
-      const { data, error } = await supabase
-        .from('applications')
-        .select(`
-          *,
-          project:projects(*)
-        `)
-        .eq('professional_id', userId)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-
-      const transformedApplications = (data || [])
-        .filter(app => app.project_id && app.status && app.professional_id)
-        .map(app => ({
-          ...app,
-          project_id: app.project_id!,
-          professional_id: app.professional_id!,
-          status: (app.status as Application['status']) || 'pending',
-          created_at: app.created_at || new Date().toISOString(),
-          updated_at: app.updated_at || new Date().toISOString()
-        }));
-
-      setApplications(transformedApplications);
-    } catch (error) {
-      console.error('Error fetching applications:', error);
-      setError('Failed to fetch applications');
-    }
-  }, [userId]);
-
-  const fetchPayments = useCallback(async () => {
-    if (!userId) return;
-    
-    try {
-      const { data, error } = await supabase
-        .from('payments')
-        .select(`
-          *,
-          project:projects(title)
-        `)
-        .eq('professional_id', userId)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-
-      const transformedPayments = (data || [])
-        .filter(payment => payment.status && payment.project_id && payment.professional_id)
-        .map(payment => ({
-          ...payment,
-          project_id: payment.project_id!,
-          professional_id: payment.professional_id!,
-          client_id: payment.client_id!,
-          status: (payment.status as Payment['status']) || 'pending',
-          created_at: payment.created_at || new Date().toISOString(),
-          paid_at: payment.paid_at
-        }));
-
-      setPayments(transformedPayments);
-    } catch (error) {
-      console.error('Error fetching payments:', error);
-      setError('Failed to fetch payments');
-    }
-  }, [userId]);
-
-  const fetchReviews = useCallback(async () => {
-    if (!userId) return;
-    
-    try {
-      const { data, error } = await supabase
-        .from('reviews')
-        .select('*')
-        .eq('professional_id', userId)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-
-      const transformedReviews = (data || [])
-        .filter(review => review.project_id && review.professional_id && review.client_id)
-        .map(review => ({
-          ...review,
-          project_id: review.project_id!,
-          professional_id: review.professional_id!,
-          client_id: review.client_id!,
-          updated_at: review['updated at'] || review.created_at || new Date().toISOString()
-        }));
-
-      setReviews(transformedReviews);
-    } catch (error) {
-      console.error('Error fetching reviews:', error);
-      setError('Failed to fetch reviews');
-    }
-  }, [userId]);
-
-  // Mark project as complete function
-  const markProjectComplete = async (projectId: string) => {
-    try {
-      const { error } = await supabase
-        .from('projects')
-        .update({ status: 'completed' })
-        .eq('id', projectId);
-
-      if (error) throw error;
-
-      toast({
-        title: "Success",
-        description: "Project marked as completed successfully!"
-      });
-
-      // Refresh the data
-      fetchDashboardData();
-    } catch (error: any) {
-      console.error('Error marking project complete:', error);
-      toast({
-        title: "Error",
-        description: "Failed to mark project as completed",
-        variant: "destructive"
-      });
-    }
-  };
-
-  // Initial data fetch
-  useEffect(() => {
-    fetchDashboardData();
-  }, [userId]);
-
-  // Utility functions
-  const calculateAverageRating = () => {
-    if (reviews.length === 0) return 0;
-    const total = reviews.reduce((sum, review) => sum + (review.rating || 0), 0);
-    return (total / reviews.length).toFixed(1);
-  };
-
-  const calculatePaymentTotals = () => {
-    const received = payments
-      .filter(p => p.status === 'completed')
-      .reduce((sum, p) => sum + p.amount, 0);
-    
-    const pending = payments
-      .filter(p => p.status === 'pending')
-      .reduce((sum, p) => sum + p.amount, 0);
-    
-    return { received, pending };
   };
 
   const handleEditInitiate = (project: Project) => {
