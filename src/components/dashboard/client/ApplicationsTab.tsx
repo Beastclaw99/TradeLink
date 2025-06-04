@@ -1,9 +1,10 @@
+
 import React, { useState } from 'react';
 import { Application } from '../types';
 import { useToast } from "@/components/ui/use-toast";
 import { useNavigate } from 'react-router-dom';
 import ViewApplicationDialog from '@/components/dashboard/client/dialogs/ViewApplicationDialog';
-import ConfirmationDialog from '@/components/common/ConfirmationDialog';
+import ActionConfirmationDialog from '@/components/dashboard/client/dialogs/ActionConfirmationDialog';
 import PendingApplicationsTable from '@/components/dashboard/client/tables/PendingApplicationsTable';
 import PastApplicationsTable from '@/components/dashboard/client/tables/PastApplicationsTable';
 import { Button } from "@/components/ui/button";
@@ -155,14 +156,6 @@ const ApplicationsTab: React.FC<ApplicationsTabProps> = ({
       />
       
       {/* Action Confirmation Dialog */}
-      <ConfirmationDialog
-        isOpen={actionDialogOpen}
-        onClose={() => setActionDialogOpen(false)}
-        onConfirm={handleConfirmAction}
-        title={actionType === 'accept' ? 'Accept Application' : 'Reject Application'}
-        message={`Are you sure you want to ${actionType} this application?`}
-        confirmText={actionType === 'accept' ? 'Accept' : 'Reject'}
-        cancelText="Cancel"
       <ActionConfirmationDialog
         open={actionDialogOpen}
         onOpenChange={setActionDialogOpen}
