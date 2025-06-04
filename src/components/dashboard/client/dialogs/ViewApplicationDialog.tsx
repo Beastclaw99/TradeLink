@@ -1,16 +1,13 @@
-
 import React from 'react';
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle, 
-  DialogFooter 
+import { Application } from '../../types';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Check, X } from "lucide-react";
-import { Application } from '../../types';
-import { getStatusBadgeClass } from '../../professional/applications/applicationUtils';
+import { MessageSquare, Check, X } from "lucide-react";
 
 interface ViewApplicationDialogProps {
   open: boolean;
@@ -19,6 +16,7 @@ interface ViewApplicationDialogProps {
   projects: any[];
   onAccept: (application: Application) => void;
   onReject: (application: Application) => void;
+  onMessage: (application: Application) => void;
 }
 
 const ViewApplicationDialog: React.FC<ViewApplicationDialogProps> = ({
@@ -27,85 +25,76 @@ const ViewApplicationDialog: React.FC<ViewApplicationDialogProps> = ({
   selectedApplication,
   projects,
   onAccept,
-  onReject
+  onReject,
+  onMessage,
 }) => {
   if (!selectedApplication) return null;
-  
+
+  const project = projects.find(p => p.id === selectedApplication.project_id);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>Application Details</DialogTitle>
         </DialogHeader>
-        
-        <div className="space-y-4">
+
+        <div className="space-y-6">
+          {/* Project Information */}
           <div>
-            <h3 className="text-sm font-medium text-gray-500">Project</h3>
-            <p>{projects.find(p => p.id === selectedApplication.project_id)?.title || 'Unknown Project'}</p>
+            <h3 className="text-lg font-semibold mb-2">Project</h3>
+            <p className="text-gray-600">{project?.title || 'Unknown Project'}</p>
           </div>
-          
+
+          {/* Professional Information */}
           <div>
-            <h3 className="text-sm font-medium text-gray-500">Applicant</h3>
-            <p>
-              {selectedApplication.professional ? 
-                `${selectedApplication.professional.first_name} ${selectedApplication.professional.last_name}` : 
-                'Unknown Applicant'}
+            <h3 className="text-lg font-semibold mb-2">Professional</h3>
+            <p className="text-gray-600">{selectedApplication.professional_name || 'Unknown Professional'}</p>
+          </div>
+
+          {/* Application Message */}
+          <div>
+            <h3 className="text-lg font-semibold mb-2">Message</h3>
+            <p className="text-gray-600 whitespace-pre-wrap">
+              {selectedApplication.message || 'No message provided.'}
             </p>
           </div>
-          
+
+          {/* Application Status */}
           <div>
-            <h3 className="text-sm font-medium text-gray-500">Bid Amount</h3>
-            <p>${selectedApplication.bid_amount || 'Same as project budget'}</p>
+            <h3 className="text-lg font-semibold mb-2">Status</h3>
+            <p className="text-gray-600 capitalize">{selectedApplication.status}</p>
           </div>
-          
-          <div>
-            <h3 className="text-sm font-medium text-gray-500">Status</h3>
-            <span className={`px-2 py-1 text-xs rounded-full ${getStatusBadgeClass(selectedApplication.status)}`}>
-              {selectedApplication.status}
-            </span>
-          </div>
-          
-          <div>
-            <h3 className="text-sm font-medium text-gray-500">Proposal Message</h3>
-            <p className="text-sm whitespace-pre-wrap">
-              {selectedApplication.proposal_message || selectedApplication.cover_letter || 'No proposal provided'}
-            </p>
-          </div>
-          
-          <div>
-            <h3 className="text-sm font-medium text-gray-500">Applied On</h3>
-            <p>{new Date(selectedApplication.created_at || '').toLocaleDateString()}</p>
-          </div>
-        </div>
-        
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Close</Button>
+
+          {/* Action Buttons */}
           {selectedApplication.status === 'pending' && (
-            <>
-              <Button 
-                className="bg-green-600 hover:bg-green-700"
-                onClick={() => {
-                  onOpenChange(false);
-                  onAccept(selectedApplication);
-                }}
+            <div className="flex justify-end space-x-4">
+              <Button
+                variant="outline"
+                onClick={() => onMessage(selectedApplication)}
               >
-                Accept
+                <MessageSquare className="w-4 h-4 mr-2" />
+                Message
               </Button>
-              <Button 
+              <Button
                 variant="destructive"
-                onClick={() => {
-                  onOpenChange(false);
-                  onReject(selectedApplication);
-                }}
+                onClick={() => onReject(selectedApplication)}
               >
+                <X className="w-4 h-4 mr-2" />
                 Reject
               </Button>
-            </>
+              <Button
+                onClick={() => onAccept(selectedApplication)}
+              >
+                <Check className="w-4 h-4 mr-2" />
+                Accept
+              </Button>
+            </div>
           )}
-        </DialogFooter>
+        </div>
       </DialogContent>
     </Dialog>
   );
 };
 
-export default ViewApplicationDialog;
+export default ViewApplicationDialog; 

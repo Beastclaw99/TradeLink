@@ -157,6 +157,47 @@ export type Database = {
           },
         ]
       }
+      notifications: {
+        Row: {
+          created_at: string | null
+          id: string
+          message: string
+          read: boolean | null
+          title: string
+          type: string
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          message: string
+          read?: boolean | null
+          title: string
+          type: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          message?: string
+          read?: boolean | null
+          title?: string
+          type?: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       payments: {
         Row: {
           amount: number
@@ -215,35 +256,192 @@ export type Database = {
       profiles: {
         Row: {
           account_type: Database["public"]["Enums"]["account_type_enum"]
+          address: string | null
+          allow_messages: boolean | null
+          availability: string | null
+          bio: string | null
+          business_description: string | null
+          business_name: string | null
+          certifications: string[] | null
+          city: string | null
+          completed_projects: number | null
+          country: string | null
           created_at: string
+          email: string | null
           first_name: string | null
+          hourly_rate: number | null
           id: string
+          insurance_info: string | null
+          is_available: boolean | null
           last_name: string | null
+          license_number: string | null
+          location: string | null
+          on_time_completion: number | null
+          phone: string | null
+          portfolio_images: string[] | null
+          portfolio_urls: string[] | null
+          profile_image: string | null
+          profile_image_url: string | null
+          profile_visibility: boolean | null
           rating: number | null
+          response_rate: number | null
+          service_areas: string[] | null
+          show_email: boolean | null
+          show_phone: boolean | null
           skills: string[] | null
+          specialties: string[] | null
+          state: string | null
           updated_at: string | null
+          verification_status: string | null
+          years_experience: number | null
+          years_of_experience: number | null
+          zip_code: string | null
         }
         Insert: {
           account_type: Database["public"]["Enums"]["account_type_enum"]
+          address?: string | null
+          allow_messages?: boolean | null
+          availability?: string | null
+          bio?: string | null
+          business_description?: string | null
+          business_name?: string | null
+          certifications?: string[] | null
+          city?: string | null
+          completed_projects?: number | null
+          country?: string | null
           created_at?: string
+          email?: string | null
           first_name?: string | null
+          hourly_rate?: number | null
           id: string
+          insurance_info?: string | null
+          is_available?: boolean | null
           last_name?: string | null
+          license_number?: string | null
+          location?: string | null
+          on_time_completion?: number | null
+          phone?: string | null
+          portfolio_images?: string[] | null
+          portfolio_urls?: string[] | null
+          profile_image?: string | null
+          profile_image_url?: string | null
+          profile_visibility?: boolean | null
           rating?: number | null
+          response_rate?: number | null
+          service_areas?: string[] | null
+          show_email?: boolean | null
+          show_phone?: boolean | null
           skills?: string[] | null
+          specialties?: string[] | null
+          state?: string | null
           updated_at?: string | null
+          verification_status?: string | null
+          years_experience?: number | null
+          years_of_experience?: number | null
+          zip_code?: string | null
         }
         Update: {
           account_type?: Database["public"]["Enums"]["account_type_enum"]
+          address?: string | null
+          allow_messages?: boolean | null
+          availability?: string | null
+          bio?: string | null
+          business_description?: string | null
+          business_name?: string | null
+          certifications?: string[] | null
+          city?: string | null
+          completed_projects?: number | null
+          country?: string | null
           created_at?: string
+          email?: string | null
           first_name?: string | null
+          hourly_rate?: number | null
           id?: string
+          insurance_info?: string | null
+          is_available?: boolean | null
           last_name?: string | null
+          license_number?: string | null
+          location?: string | null
+          on_time_completion?: number | null
+          phone?: string | null
+          portfolio_images?: string[] | null
+          portfolio_urls?: string[] | null
+          profile_image?: string | null
+          profile_image_url?: string | null
+          profile_visibility?: boolean | null
           rating?: number | null
+          response_rate?: number | null
+          service_areas?: string[] | null
+          show_email?: boolean | null
+          show_phone?: boolean | null
           skills?: string[] | null
+          specialties?: string[] | null
+          state?: string | null
           updated_at?: string | null
+          verification_status?: string | null
+          years_experience?: number | null
+          years_of_experience?: number | null
+          zip_code?: string | null
         }
         Relationships: []
+      }
+      project_deliverables: {
+        Row: {
+          content: string | null
+          created_at: string | null
+          deliverable_type: string | null
+          description: string | null
+          file_url: string
+          id: string
+          milestone_id: string | null
+          project_id: string | null
+          uploaded_by: string | null
+        }
+        Insert: {
+          content?: string | null
+          created_at?: string | null
+          deliverable_type?: string | null
+          description?: string | null
+          file_url: string
+          id?: string
+          milestone_id?: string | null
+          project_id?: string | null
+          uploaded_by?: string | null
+        }
+        Update: {
+          content?: string | null
+          created_at?: string | null
+          deliverable_type?: string | null
+          description?: string | null
+          file_url?: string
+          id?: string
+          milestone_id?: string | null
+          project_id?: string | null
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_deliverables_milestone_id_fkey"
+            columns: ["milestone_id"]
+            isOneToOne: false
+            referencedRelation: "project_milestones"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_deliverables_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_deliverables_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       project_messages: {
         Row: {
@@ -290,6 +488,70 @@ export type Database = {
             columns: ["sender_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_milestones: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          due_date: string | null
+          id: string
+          is_complete: boolean | null
+          project_id: string | null
+          requires_deliverable: boolean | null
+          status: string | null
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          is_complete?: boolean | null
+          project_id?: string | null
+          requires_deliverable?: boolean | null
+          status?: string | null
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          is_complete?: boolean | null
+          project_id?: string | null
+          requires_deliverable?: boolean | null
+          status?: string | null
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_milestones_created_by_fkey1"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_milestones_created_by_fkey2"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_milestones_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
             referencedColumns: ["id"]
           },
         ]
@@ -361,9 +623,11 @@ export type Database = {
           project_start_time: string | null
           required_skills: string | null
           requirements: string[] | null
+          scope: string | null
+          service_contract: string | null
           status: string | null
           title: string
-          "updated at": string | null
+          updated_at: string | null
           urgency: string | null
         }
         Insert: {
@@ -381,9 +645,11 @@ export type Database = {
           project_start_time?: string | null
           required_skills?: string | null
           requirements?: string[] | null
+          scope?: string | null
+          service_contract?: string | null
           status?: string | null
           title: string
-          "updated at"?: string | null
+          updated_at?: string | null
           urgency?: string | null
         }
         Update: {
@@ -401,9 +667,11 @@ export type Database = {
           project_start_time?: string | null
           required_skills?: string | null
           requirements?: string[] | null
+          scope?: string | null
+          service_contract?: string | null
           status?: string | null
           title?: string
-          "updated at"?: string | null
+          updated_at?: string | null
           urgency?: string | null
         }
         Relationships: [

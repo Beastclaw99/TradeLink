@@ -1,90 +1,69 @@
-
 import React from 'react';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Star, MapPin, Clock } from 'lucide-react';
+import { StarRating } from '@/components/ui/star-rating';
+import type { Database } from '@/integrations/supabase/types';
 
-interface Professional {
-  id: string;
-  name: string;
-  trade: string;
-  rating: number;
-  reviewCount: number;
-  hourlyRate: number;
-  location: string;
-  availability: string;
-  profileImage: string;
-  skills: string[];
-  yearsExperience: number;
-}
+type Profile = Database['public']['Tables']['profiles']['Row'];
 
 interface ProfessionalCardProps {
-  professional: Professional;
+  professional: Profile;
 }
 
 const ProfessionalCard: React.FC<ProfessionalCardProps> = ({ professional }) => {
+  const fullName = `${professional.first_name} ${professional.last_name}`;
+  const initials = `${professional.first_name?.[0] || ''}${professional.last_name?.[0] || ''}`;
+
   return (
-    <Card className="hover:shadow-lg transition-shadow">
+    <Card className="hover:shadow-md transition-shadow">
       <CardContent className="p-6">
-        <div className="flex items-start space-x-4">
-          <Avatar className="h-16 w-16">
-            <AvatarImage src={professional.profileImage} alt={professional.name} />
-            <AvatarFallback>{professional.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+        <div className="flex flex-col items-center text-center">
+          <Avatar className="h-24 w-24 mb-4">
+            <AvatarImage src={`https://api.dicebear.com/6/initials/svg?seed=${fullName}`} />
+            <AvatarFallback>{initials}</AvatarFallback>
           </Avatar>
           
-          <div className="flex-1 min-w-0">
-            <h3 className="text-lg font-semibold truncate">{professional.name}</h3>
-            <p className="text-ttc-blue-700 font-medium">{professional.trade}</p>
-            
-            <div className="flex items-center space-x-1 mt-1">
-              <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-              <span className="text-sm font-medium">{professional.rating}</span>
-              <span className="text-sm text-gray-500">({professional.reviewCount} reviews)</span>
+          <h3 className="text-xl font-semibold">{fullName}</h3>
+          <p className="text-ttc-blue-700 font-medium">
+            {professional.skills?.[0] || 'Professional'}
+          </p>
+          
+          <div className="flex items-center space-x-1 mt-2">
+            <StarRating
+              value={professional.rating || 0}
+              onChange={() => {}}
+              className="h-4 w-4"
+            />
+            <span className="font-medium">{professional.rating?.toFixed(1) || '0.0'}</span>
+          </div>
+          
+          <div className="mt-4">
+            <div className="flex flex-wrap gap-2 justify-center">
+              {professional.skills?.map((skill) => (
+                <Badge key={skill} variant="secondary">
+                  {skill}
+                </Badge>
+              ))}
             </div>
-            
-            <div className="flex items-center space-x-4 mt-2 text-sm text-gray-600">
-              <div className="flex items-center">
-                <MapPin className="h-4 w-4 mr-1" />
-                {professional.location}
-              </div>
-              <div className="flex items-center">
-                <Clock className="h-4 w-4 mr-1" />
-                {professional.availability}
-              </div>
+          </div>
+          
+          <div className="mt-4 text-center">
+            <div className="text-2xl font-bold text-ttc-blue-700">
+              ${professional.hourly_rate || 0}
+              <span className="text-sm font-normal text-gray-500">/hour</span>
+            </div>
+            <div className="text-sm text-gray-600">
+              {professional.years_experience || 0} years experience
             </div>
           </div>
-        </div>
-        
-        <div className="mt-4">
-          <div className="flex flex-wrap gap-1">
-            {professional.skills.slice(0, 3).map((skill) => (
-              <Badge key={skill} variant="secondary" className="text-xs">
-                {skill}
-              </Badge>
-            ))}
-          </div>
-        </div>
-        
-        <div className="mt-4 flex justify-between items-center">
-          <div>
-            <span className="text-2xl font-bold text-ttc-blue-700">
-              ${professional.hourlyRate}
-            </span>
-            <span className="text-sm text-gray-500">/hour</span>
-          </div>
-          <span className="text-sm text-gray-600">
-            {professional.yearsExperience} years exp.
-          </span>
         </div>
       </CardContent>
       
-      <CardFooter className="p-6 pt-0">
-        <div className="w-full space-y-2">
-          <Button className="w-full">View Profile</Button>
-          <Button variant="outline" className="w-full">Contact</Button>
-        </div>
+      <CardFooter className="flex justify-center space-x-2 p-6 pt-0">
+        <Button>View Profile</Button>
+        <Button variant="outline">Contact</Button>
       </CardFooter>
     </Card>
   );

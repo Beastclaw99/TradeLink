@@ -7,7 +7,7 @@ import Layout from '@/components/layout/Layout';
 import { Loader2 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import ClientDashboard from '@/components/dashboard/ClientDashboard';
+import { ClientDashboard } from '@/components/dashboard/ClientDashboard';
 import ProfessionalDashboard from '@/components/dashboard/ProfessionalDashboard';
 
 const Dashboard: React.FC = () => {

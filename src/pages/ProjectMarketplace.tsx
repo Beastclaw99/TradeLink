@@ -61,7 +61,7 @@ const ProjectMarketplace: React.FC = () => {
       
       console.log('Fetched projects:', data);
       
-      // Ensure the data is properly typed as Project[]
+      // Ensure the data is properly typed as Project[] with all required fields
       const typedProjects: Project[] = data?.map(project => ({
         id: project.id,
         title: project.title,
@@ -73,10 +73,16 @@ const ProjectMarketplace: React.FC = () => {
         urgency: project.urgency,
         requirements: project.requirements,
         required_skills: project.required_skills,
-        status: project.status,
+        status: project.status as Project['status'],
         created_at: project.created_at,
+        updated_at: project.updated_at || new Date().toISOString(),
         client_id: project.client_id,
         assigned_to: project.assigned_to,
+        deadline: project.deadline,
+        professional_id: project.professional_id,
+        project_start_time: project.project_start_time,
+        scope: project.scope,
+        service_contract: project.service_contract,
         client: project.client
       })) || [];
       
@@ -106,12 +112,15 @@ const ProjectMarketplace: React.FC = () => {
                            (project.location && project.location.toLowerCase().includes(locationFilter.toLowerCase()));
     
     let matchesBudget = true;
-    if (budgetFilter === "under5k") {
-      matchesBudget = project.budget !== null && project.budget < 5000;
-    } else if (budgetFilter === "5k-10k") {
-      matchesBudget = project.budget !== null && project.budget >= 5000 && project.budget <= 10000;
-    } else if (budgetFilter === "over10k") {
-      matchesBudget = project.budget !== null && project.budget > 10000;
+    const projectBudget = project.budget;
+    if (projectBudget && typeof projectBudget === 'number') {
+      if (budgetFilter === "under5k") {
+        matchesBudget = projectBudget < 5000;
+      } else if (budgetFilter === "5k-10k") {
+        matchesBudget = projectBudget >= 5000 && projectBudget <= 10000;
+      } else if (budgetFilter === "over10k") {
+        matchesBudget = projectBudget > 10000;
+      }
     }
     
     return matchesSearch && matchesCategory && matchesLocation && matchesBudget;

@@ -1,10 +1,9 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Star } from "lucide-react";
+import { StarRating } from "@/components/ui/star-rating";
 import { Project, Review } from '../types';
 
 interface PaymentsTabProps {
@@ -86,7 +85,12 @@ const PaymentsTab: React.FC<PaymentsTabProps> = ({
                         className="w-full bg-yellow-600 hover:bg-yellow-700"
                         onClick={() => handleReviewInitiate(project)}
                       >
-                        <Star className="w-4 h-4 mr-2" /> Leave a Review
+                        <StarRating
+                          value={reviewData.rating}
+                          onChange={(rating) => setReviewData({ ...reviewData, rating })}
+                          size="large"
+                          className="mt-2"
+                        />
                       </Button>
                     ) : hasReview ? (
                       <p className="text-sm text-center w-full text-green-600">
@@ -117,20 +121,12 @@ const PaymentsTab: React.FC<PaymentsTabProps> = ({
             <div className="space-y-4">
               <div>
                 <Label htmlFor="rating" className="block mb-2">Rating</Label>
-                <div className="flex gap-1">
-                  {[1, 2, 3, 4, 5].map(star => (
-                    <Button 
-                      key={star}
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className={`p-1 ${reviewData.rating >= star ? 'text-yellow-500' : 'text-gray-300'}`}
-                      onClick={() => setReviewData({ ...reviewData, rating: star })}
-                    >
-                      <Star className={`h-8 w-8 ${reviewData.rating >= star ? 'fill-yellow-500' : ''}`} />
-                    </Button>
-                  ))}
-                </div>
+                <StarRating
+                  value={reviewData.rating}
+                  onChange={(rating) => setReviewData({ ...reviewData, rating })}
+                  size="large"
+                  className="mt-2"
+                />
               </div>
               
               <div className="space-y-2">

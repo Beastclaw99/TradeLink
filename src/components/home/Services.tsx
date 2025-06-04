@@ -1,86 +1,67 @@
-
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
 
 // Service category data
-const serviceCategories = [{
-  id: 1,
-  title: "Carpentry",
-  description: "Professional carpenters for custom woodwork and furniture.",
-  image: "lovable-uploads/carpenter-working.jpg",
-  href: "/find-pros/carpentry"
-}, {
-  id: 2,
-  title: "Electrical",
-  description: "Licensed electricians for all your electrical needs.",
-  image: "/lovable-uploads/electrical.jpg",
-  href: "/find-pros/electrical"
-}, {
-  id: 3,
-  title: "Plumbing",
-  description: "Expert plumbers for repairs, installations and maintenance.",
-  image: "/lovable-uploads/plumbing.jpg",
-  href: "/find-pros/plumbing"
-}, {
-  id: 4,
-  title: "Painting",
-  description: "Professional painters for interior and exterior painting.",
-  image: "/lovable-uploads/painting.jpg",
-  href: "/find-pros/painting"
-}, {
-  id: 5,
-  title: "Roofing",
-  description: "Roofing professionals for repairs and installations.",
-  image: "/lovable-uploads/roofing.jpg",
-  href: "/find-pros/roofing"
-}, {
-  id: 6,
-  title: "Landscaping",
-  description: "Transform your outdoor space with our landscape experts.",
-  image: "/lovable-uploads/landscaping.jpg",
-  href: "/find-pros/landscaping"
-}, {
-  id: 7,
-  title: "Masonry",
-  description: "Skilled masons for brickwork, concrete and stone projects.",
-  image: "/lovable-uploads/masonry.jpg",
-  href: "/find-pros/masonry"
-}, {
-  id: 8,
-  title: "Flooring",
-  description: "Flooring specialists for installation and refinishing.",
-  image: "/lovable-uploads/flooring.jpg",
-  href: "/find-pros/flooring"
-}];
+const serviceCategories = [
+  {
+    id: 1,
+    title: "Plumbing",
+    description: "Expert plumbing services for your home or business",
+    icon: "🔧",
+    href: "/marketplace?skill=Plumbing"
+  },
+  {
+    id: 2,
+    title: "Electrical",
+    description: "Professional electrical work and repairs",
+    icon: "⚡",
+    href: "/marketplace?skill=Electrical"
+  },
+  {
+    id: 3,
+    title: "Carpentry",
+    description: "Custom woodwork and furniture making",
+    icon: "🪚",
+    href: "/marketplace?skill=Carpentry"
+  },
+  {
+    id: 4,
+    title: "Masonry",
+    description: "Brickwork, concrete, and stone masonry",
+    icon: "🏗️",
+    href: "/marketplace?skill=Masonry"
+  },
+  {
+    id: 5,
+    title: "Painting",
+    description: "Interior and exterior painting services",
+    icon: "🎨",
+    href: "/marketplace?skill=Painting"
+  },
+  {
+    id: 6,
+    title: "Roofing",
+    description: "Roof repairs, installation, and maintenance",
+    icon: "🏠",
+    href: "/marketplace?skill=Roofing"
+  },
+  {
+    id: 7,
+    title: "Landscaping",
+    description: "Garden design and maintenance",
+    icon: "🌳",
+    href: "/marketplace?skill=Landscaping"
+  },
+  {
+    id: 8,
+    title: "HVAC",
+    description: "Heating, ventilation, and air conditioning",
+    icon: "❄️",
+    href: "/marketplace?skill=HVAC"
+  }
+];
 
 const Services: React.FC = () => {
-  // State to track which images have been loaded
-  const [loadedImages, setLoadedImages] = useState<Record<number, boolean>>({});
-  
-  // For SSR/hydration consistency
-  const [isClient, setIsClient] = useState(false);
-  
-  useEffect(() => {
-    setIsClient(true);
-    
-    // Preload images for better performance
-    serviceCategories.forEach(category => {
-      const img = new Image();
-      img.src = category.image;
-      img.onload = () => {
-        setLoadedImages(prev => ({
-          ...prev,
-          [category.id]: true
-        }));
-      };
-    });
-  }, []);
-  
-  // If not client-side yet, don't render images to prevent hydration mismatch
-  if (!isClient) {
-    return <div className="py-16 bg-ttc-neutral-100">Loading services...</div>;
-  }
-
   return (
     <section className="py-8 sm:py-12 md:py-16 bg-ttc-neutral-100">
       <div className="container-custom">
@@ -100,42 +81,17 @@ const Services: React.FC = () => {
               to={category.href} 
               className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow flex flex-col h-full overflow-hidden"
             >
-              <div className="relative h-40 sm:h-44 md:h-48 w-full bg-ttc-neutral-200">
-                {/* Image with loading placeholder */}
-                <div className={`absolute inset-0 transition-opacity duration-300 ${loadedImages[category.id] ? 'opacity-100' : 'opacity-0'}`}>
-                  <img 
-                    src={category.image} 
-                    alt={category.title} 
-                    className="w-full h-full object-cover"
-                    loading="lazy"
-                    width="400"
-                    height="300"
-                  />
-                </div>
-                <div className={`absolute inset-0 bg-ttc-neutral-200 transition-opacity duration-300 ${loadedImages[category.id] ? 'opacity-0' : 'opacity-100'}`}>
-                  <div className="flex items-center justify-center h-full">
-                    <div className="w-8 h-8 border-4 border-ttc-blue-300 border-t-ttc-blue-600 rounded-full animate-spin"></div>
-                  </div>
-                </div>
-                <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/70 flex items-end">
-                  <h3 className="text-lg sm:text-xl font-semibold text-white p-4">{category.title}</h3>
-                </div>
-              </div>
-              <div className="p-4">
-                <p className="text-xs sm:text-sm text-ttc-neutral-600">{category.description}</p>
-                <div className="mt-3 sm:mt-4 text-ttc-blue-700 font-medium text-sm flex items-center">
-                  Find professionals
-                  <svg className="ml-1 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
-                  </svg>
-                </div>
+              <div className="p-6">
+                <div className="text-4xl mb-4">{category.icon}</div>
+                <h3 className="text-lg font-semibold mb-2 text-ttc-neutral-800">{category.title}</h3>
+                <p className="text-sm text-ttc-neutral-600">{category.description}</p>
               </div>
             </Link>
           ))}
         </div>
         
         <div className="mt-8 sm:mt-10 text-center">
-          <Link to="/find-pros" className="inline-block text-ttc-blue-700 hover:text-ttc-blue-800 font-semibold transition-colors">
+          <Link to="/marketplace" className="inline-block text-ttc-blue-700 hover:text-ttc-blue-800 font-semibold transition-colors">
             View all service categories
             <svg className="ml-1 w-4 h-4 sm:w-5 sm:h-5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />

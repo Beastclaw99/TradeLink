@@ -1,55 +1,77 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import Layout from '@/components/layout/Layout';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { FileText, Download, Eye, DollarSign } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { FileText, Download, Eye, Search, Filter, Calendar } from 'lucide-react';
 
 const Invoices: React.FC = () => {
-  // Mock data for invoices
-  const invoices = [
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  
+  // Mock invoice data
+  const [invoices] = useState([
     {
-      id: "INV-001",
-      professional: "John Smith",
-      project: "Kitchen Renovation",
-      amount: 2500.00,
-      status: "paid",
-      date: "2024-03-15",
-      dueDate: "2024-03-30"
+      id: 'INV-001',
+      projectTitle: 'Kitchen Renovation',
+      professional: 'John Smith',
+      amount: 2500,
+      status: 'paid',
+      dueDate: '2024-01-15',
+      paidDate: '2024-01-14',
+      invoiceDate: '2024-01-01'
     },
     {
-      id: "INV-002", 
-      professional: "Maria Rodriguez",
-      project: "Bathroom Upgrade",
-      amount: 1800.00,
-      status: "pending",
-      date: "2024-03-10",
-      dueDate: "2024-03-25"
+      id: 'INV-002',
+      projectTitle: 'Bathroom Plumbing',
+      professional: 'Maria Rodriguez',
+      amount: 1800,
+      status: 'pending',
+      dueDate: '2024-02-01',
+      paidDate: null,
+      invoiceDate: '2024-01-15'
     },
     {
-      id: "INV-003",
-      professional: "David Johnson", 
-      project: "Deck Construction",
-      amount: 3200.00,
-      status: "overdue",
-      date: "2024-02-28",
-      dueDate: "2024-03-15"
+      id: 'INV-003',
+      projectTitle: 'Electrical Installation',
+      professional: 'David Chen',
+      amount: 3200,
+      status: 'overdue',
+      dueDate: '2024-01-20',
+      paidDate: null,
+      invoiceDate: '2024-01-05'
+    },
+    {
+      id: 'INV-004',
+      projectTitle: 'Home Painting',
+      professional: 'Lisa Johnson',
+      amount: 1500,
+      status: 'paid',
+      dueDate: '2024-01-10',
+      paidDate: '2024-01-09',
+      invoiceDate: '2023-12-25'
     }
-  ];
+  ]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'paid':
-        return 'bg-green-100 text-green-800';
-      case 'pending':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'overdue':
-        return 'bg-red-100 text-red-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
+      case 'paid': return 'bg-green-100 text-green-800';
+      case 'pending': return 'bg-yellow-100 text-yellow-800';
+      case 'overdue': return 'bg-red-100 text-red-800';
+      default: return 'bg-gray-100 text-gray-800';
     }
   };
+
+  const filteredInvoices = invoices.filter(invoice => {
+    const matchesSearch = invoice.projectTitle.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         invoice.professional.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         invoice.id.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = statusFilter === 'all' || invoice.status === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
 
   const totalPaid = invoices.filter(inv => inv.status === 'paid').reduce((sum, inv) => sum + inv.amount, 0);
   const totalPending = invoices.filter(inv => inv.status === 'pending').reduce((sum, inv) => sum + inv.amount, 0);
@@ -57,117 +79,184 @@ const Invoices: React.FC = () => {
 
   return (
     <Layout>
-      <div className="bg-ttc-blue-800 py-12 text-white">
+      <div className="bg-gray-50 py-8">
         <div className="container-custom">
-          <h1 className="text-4xl font-bold mb-4">Invoices</h1>
-          <p className="text-xl text-blue-50">
-            Manage your payments and billing history with contractors.
-          </p>
-        </div>
-      </div>
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h1 className="text-3xl font-bold mb-2">Invoices & Payments</h1>
+              <p className="text-gray-600">
+                Track your project payments and manage your billing history
+              </p>
+            </div>
+            <Button className="flex items-center gap-2">
+              <Download className="h-4 w-4" />
+              Export All
+            </Button>
+          </div>
 
-      <div className="container-custom py-12">
-        {/* Summary Cards */}
-        <div className="grid md:grid-cols-4 gap-6 mb-8">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm text-gray-500 flex items-center">
-                <DollarSign className="mr-2 h-4 w-4" />
-                Total Paid
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-2xl font-bold text-green-600">${totalPaid.toFixed(2)}</p>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm text-gray-500 flex items-center">
-                <DollarSign className="mr-2 h-4 w-4" />
-                Pending
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-2xl font-bold text-yellow-600">${totalPending.toFixed(2)}</p>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm text-gray-500 flex items-center">
-                <DollarSign className="mr-2 h-4 w-4" />
-                Overdue
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-2xl font-bold text-red-600">${totalOverdue.toFixed(2)}</p>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm text-gray-500 flex items-center">
-                <FileText className="mr-2 h-4 w-4" />
-                Total Invoices
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-2xl font-bold">{invoices.length}</p>
-            </CardContent>
-          </Card>
-        </div>
+          {/* Summary Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-600">Total Paid</p>
+                    <p className="text-2xl font-bold text-green-600">TTD {totalPaid.toLocaleString()}</p>
+                  </div>
+                  <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+                    <FileText className="h-6 w-6 text-green-600" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
 
-        {/* Invoices List */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Recent Invoices</CardTitle>
-            <CardDescription>
-              View and manage your payment history with contractors
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {invoices.map((invoice) => (
-                <div key={invoice.id} className="border rounded-lg p-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-4 mb-2">
-                        <h3 className="font-medium">{invoice.id}</h3>
-                        <Badge className={getStatusColor(invoice.status)}>
-                          {invoice.status.toUpperCase()}
-                        </Badge>
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-600">Pending</p>
+                    <p className="text-2xl font-bold text-yellow-600">TTD {totalPending.toLocaleString()}</p>
+                  </div>
+                  <div className="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center">
+                    <FileText className="h-6 w-6 text-yellow-600" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-600">Overdue</p>
+                    <p className="text-2xl font-bold text-red-600">TTD {totalOverdue.toLocaleString()}</p>
+                  </div>
+                  <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+                    <FileText className="h-6 w-6 text-red-600" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-600">Total Invoices</p>
+                    <p className="text-2xl font-bold">{invoices.length}</p>
+                  </div>
+                  <div className="w-12 h-12 bg-ttc-blue-100 rounded-full flex items-center justify-center">
+                    <FileText className="h-6 w-6 text-ttc-blue-600" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Filters */}
+          <Card className="mb-6">
+            <CardContent className="p-6">
+              <div className="flex flex-col md:flex-row gap-4">
+                <div className="flex-1 relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                  <Input
+                    placeholder="Search invoices..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger className="w-full md:w-48">
+                    <Filter className="h-4 w-4 mr-2" />
+                    <SelectValue placeholder="Filter by status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Statuses</SelectItem>
+                    <SelectItem value="paid">Paid</SelectItem>
+                    <SelectItem value="pending">Pending</SelectItem>
+                    <SelectItem value="overdue">Overdue</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Invoices Table */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Invoice History</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {filteredInvoices.map((invoice) => (
+                  <div key={invoice.id} className="border rounded-lg p-4 hover:bg-gray-50">
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-4 mb-2">
+                          <h3 className="font-semibold">{invoice.id}</h3>
+                          <Badge className={getStatusColor(invoice.status)}>
+                            {invoice.status.charAt(0).toUpperCase() + invoice.status.slice(1)}
+                          </Badge>
+                        </div>
+                        <p className="text-gray-900 font-medium">{invoice.projectTitle}</p>
+                        <p className="text-sm text-gray-600">Professional: {invoice.professional}</p>
+                        <div className="flex items-center gap-4 mt-2 text-sm text-gray-600">
+                          <div className="flex items-center gap-1">
+                            <Calendar className="h-4 w-4" />
+                            Invoice Date: {new Date(invoice.invoiceDate).toLocaleDateString()}
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <Calendar className="h-4 w-4" />
+                            Due: {new Date(invoice.dueDate).toLocaleDateString()}
+                          </div>
+                          {invoice.paidDate && (
+                            <div className="flex items-center gap-1">
+                              <Calendar className="h-4 w-4" />
+                              Paid: {new Date(invoice.paidDate).toLocaleDateString()}
+                            </div>
+                          )}
+                        </div>
                       </div>
-                      <p className="text-sm text-gray-600">{invoice.professional} - {invoice.project}</p>
-                      <div className="flex gap-4 text-sm text-gray-500 mt-1">
-                        <span>Issued: {new Date(invoice.date).toLocaleDateString()}</span>
-                        <span>Due: {new Date(invoice.dueDate).toLocaleDateString()}</span>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-xl font-bold">${invoice.amount.toFixed(2)}</p>
-                      <div className="flex gap-2 mt-2">
-                        <Button variant="outline" size="sm">
-                          <Eye className="w-4 h-4 mr-2" />
-                          View
-                        </Button>
-                        <Button variant="outline" size="sm">
-                          <Download className="w-4 h-4 mr-2" />
-                          Download
-                        </Button>
-                        {invoice.status === 'pending' && (
-                          <Button size="sm" className="bg-ttc-blue-600 hover:bg-ttc-blue-700">
-                            Pay Now
+                      <div className="text-right">
+                        <div className="text-2xl font-bold text-ttc-blue-600 mb-2">
+                          TTD {invoice.amount.toLocaleString()}
+                        </div>
+                        <div className="flex gap-2">
+                          <Button size="sm" variant="outline">
+                            <Eye className="h-4 w-4 mr-1" />
+                            View
                           </Button>
-                        )}
+                          <Button size="sm" variant="outline">
+                            <Download className="h-4 w-4 mr-1" />
+                            Download
+                          </Button>
+                          {invoice.status === 'pending' && (
+                            <Button size="sm">
+                              Pay Now
+                            </Button>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
+                ))}
+              </div>
+
+              {filteredInvoices.length === 0 && (
+                <div className="text-center py-12">
+                  <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold mb-2">No invoices found</h3>
+                  <p className="text-gray-600">
+                    {searchTerm || statusFilter !== 'all' 
+                      ? 'Try adjusting your search or filters.'
+                      : 'Your invoice history will appear here when you start working on projects.'}
+                  </p>
                 </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+              )}
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </Layout>
   );

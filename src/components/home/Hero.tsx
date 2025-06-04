@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
+
 const Hero: React.FC = () => {
   return <section className="bg-ttc-blue-800 py-16 md:py-24 text-white">
       <div className="container-custom">
@@ -10,11 +11,11 @@ const Hero: React.FC = () => {
             <p className="text-lg md:text-xl mb-8 text-blue-50">Find, hire, and work with professionals. Manage contracts, track progress, and make secure payments all in one place.</p>
             
             <div className="flex flex-col sm:flex-row gap-4 mb-8">
-              <Link to="/marketplace" className="flex-1">
-                <Button className="w-full bg-white text-ttc-blue-700 hover:bg-blue-50 hover:text-ttc-blue-800 py-6 font-semibold text-lg">Find Projects</Button>
+              <Link to="/project-marketplace" className="flex-1">
+                <Button className="w-full bg-white text-ttc-blue-700 hover:bg-blue-50 hover:text-ttc-blue-800 py-6 font-semibold text-lg">Project Marketplace</Button>
               </Link>
-              <Link to="/post-job" className="flex-1">
-                <Button className="w-full bg-ttc-green-500 hover:bg-ttc-green-600 text-white py-6 font-semibold text-lg">Find Professionals</Button>
+              <Link to="/marketplace" className="flex-1">
+                <Button className="w-full bg-ttc-green-500 hover:bg-ttc-green-600 text-white py-6 font-semibold text-lg">Professional Marketplace</Button>
               </Link>
             </div>
             
@@ -42,4 +43,5 @@ const Hero: React.FC = () => {
       </div>
     </section>;
 };
+
 export default Hero;

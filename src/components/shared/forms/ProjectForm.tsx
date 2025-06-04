@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,6 +6,11 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Badge } from '@/components/ui/badge';
+import { Plus, X } from 'lucide-react';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from '@/components/ui/command';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { cn } from '@/lib/utils';
 
 interface ProjectFormData {
   title: string;
@@ -17,7 +21,7 @@ interface ProjectFormData {
   location: string;
   urgency: string;
   requirements: string[];
-  required_skills: string;
+  required_skills: string[];
 }
 
 interface ProjectFormProps {
@@ -41,6 +45,24 @@ const PROJECT_CATEGORIES = [
   'General Renovation'
 ];
 
+const COMMON_SKILLS = [
+  'Pipe Installation',
+  'Electrical Wiring',
+  'Woodworking',
+  'Concrete Work',
+  'Interior Painting',
+  'Roof Repair',
+  'Garden Design',
+  'AC Installation',
+  'Tile Installation',
+  'Floor Installation',
+  'Project Management',
+  'Safety Compliance',
+  'Blueprint Reading',
+  'Equipment Operation',
+  'Quality Control'
+];
+
 const REQUIREMENTS = [
   'Licensed Professional Required',
   'Insurance Required',
@@ -50,6 +72,14 @@ const REQUIREMENTS = [
   'Materials Included',
   'Weekend Work Available',
   'Emergency Service'
+];
+
+const BUDGET_RANGES = [
+  { value: 'under-1000', label: 'Under $1,000', description: 'Small projects and repairs' },
+  { value: '1000-5000', label: '$1,000 - $5,000', description: 'Medium-sized projects' },
+  { value: '5000-10000', label: '$5,000 - $10,000', description: 'Large renovations' },
+  { value: '10000-25000', label: '$10,000 - $25,000', description: 'Major renovations' },
+  { value: 'over-25000', label: 'Over $25,000', description: 'Full-scale projects' }
 ];
 
 const ProjectForm: React.FC<ProjectFormProps> = ({
@@ -67,13 +97,15 @@ const ProjectForm: React.FC<ProjectFormProps> = ({
     location: '',
     urgency: '',
     requirements: [],
-    required_skills: '',
+    required_skills: [],
     ...initialData
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [newSkill, setNewSkill] = useState('');
+  const [openSkillsPopover, setOpenSkillsPopover] = useState(false);
 
-  const handleInputChange = (field: keyof ProjectFormData, value: string) => {
+  const handleInputChange = (field: keyof ProjectFormData, value: string | string[]) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: '' }));
@@ -89,13 +121,30 @@ const ProjectForm: React.FC<ProjectFormProps> = ({
     }));
   };
 
+  const handleAddSkill = (skill: string) => {
+    if (skill && !formData.required_skills.includes(skill)) {
+      setFormData(prev => ({
+        ...prev,
+        required_skills: [...prev.required_skills, skill]
+      }));
+      setNewSkill('');
+    }
+  };
+
+  const handleRemoveSkill = (skill: string) => {
+    setFormData(prev => ({
+      ...prev,
+      required_skills: prev.required_skills.filter(s => s !== skill)
+    }));
+  };
+
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
 
     if (!formData.title.trim()) newErrors.title = 'Project title is required';
     if (!formData.description.trim()) newErrors.description = 'Project description is required';
     if (!formData.category) newErrors.category = 'Project category is required';
-    if (!formData.budget) newErrors.budget = 'Budget range is required';
+    if (!formData.budget.trim()) newErrors.budget = 'Budget is required';
     if (!formData.expected_timeline) newErrors.expected_timeline = 'Timeline is required';
     if (!formData.location.trim()) newErrors.location = 'Location is required';
 
@@ -147,7 +196,7 @@ const ProjectForm: React.FC<ProjectFormProps> = ({
           </div>
 
           {/* Category and Budget */}
-          <div className="grid md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <Label htmlFor="category">Category *</Label>
               <Select value={formData.category} onValueChange={(value) => handleInputChange('category', value)}>
@@ -166,25 +215,20 @@ const ProjectForm: React.FC<ProjectFormProps> = ({
             </div>
 
             <div>
-              <Label htmlFor="budget">Budget Range *</Label>
-              <Select value={formData.budget} onValueChange={(value) => handleInputChange('budget', value)}>
-                <SelectTrigger className={errors.budget ? 'border-red-500' : ''}>
-                  <SelectValue placeholder="Select budget" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="under-1000">Under $1,000</SelectItem>
-                  <SelectItem value="1000-5000">$1,000 - $5,000</SelectItem>
-                  <SelectItem value="5000-10000">$5,000 - $10,000</SelectItem>
-                  <SelectItem value="10000-25000">$10,000 - $25,000</SelectItem>
-                  <SelectItem value="over-25000">Over $25,000</SelectItem>
-                </SelectContent>
-              </Select>
+              <Label htmlFor="budget">Budget *</Label>
+              <Input
+                id="budget"
+                value={formData.budget}
+                onChange={(e) => handleInputChange('budget', e.target.value)}
+                placeholder="e.g., $5,000 or Negotiable"
+                className={errors.budget ? 'border-red-500' : ''}
+              />
               {errors.budget && <p className="text-red-500 text-sm mt-1">{errors.budget}</p>}
             </div>
           </div>
 
           {/* Timeline and Location */}
-          <div className="grid md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <Label htmlFor="expected_timeline">Expected Timeline *</Label>
               <Select value={formData.expected_timeline} onValueChange={(value) => handleInputChange('expected_timeline', value)}>
@@ -216,31 +260,37 @@ const ProjectForm: React.FC<ProjectFormProps> = ({
             </div>
           </div>
 
-          {/* Urgency and Required Skills */}
-          <div className="grid md:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="urgency">Project Urgency</Label>
-              <Select value={formData.urgency} onValueChange={(value) => handleInputChange('urgency', value)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select urgency level" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="low">Low - Can wait</SelectItem>
-                  <SelectItem value="medium">Medium - Preferred timeline</SelectItem>
-                  <SelectItem value="high">High - Urgent</SelectItem>
-                  <SelectItem value="emergency">Emergency - Immediate</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label htmlFor="required_skills">Required Skills</Label>
-              <Input
-                id="required_skills"
-                value={formData.required_skills}
-                onChange={(e) => handleInputChange('required_skills', e.target.value)}
-                placeholder="e.g., Certified electrician, 5+ years experience"
-              />
+          {/* Required Skills */}
+          <div>
+            <Label>Required Skills (Optional)</Label>
+            <div className="space-y-2">
+              <div className="flex gap-2">
+                <Input
+                  value={newSkill}
+                  onChange={(e) => setNewSkill(e.target.value)}
+                  placeholder="Add a skill"
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleAddSkill(newSkill);
+                    }
+                  }}
+                />
+                <Button onClick={() => handleAddSkill(newSkill)} size="icon">
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
+              <div className="flex flex-wrap gap-2 mt-2">
+                {formData.required_skills.map((skill) => (
+                  <Badge key={skill} variant="secondary" className="flex items-center gap-1">
+                    {skill}
+                    <X
+                      className="h-3 w-3 cursor-pointer"
+                      onClick={() => handleRemoveSkill(skill)}
+                    />
+                  </Badge>
+                ))}
+              </div>
             </div>
           </div>
 
@@ -264,7 +314,7 @@ const ProjectForm: React.FC<ProjectFormProps> = ({
           </div>
 
           {/* Form Actions */}
-          <div className="flex justify-end space-x-4 pt-4">
+          <div className="flex justify-end gap-4">
             {onCancel && (
               <Button type="button" variant="outline" onClick={onCancel}>
                 Cancel

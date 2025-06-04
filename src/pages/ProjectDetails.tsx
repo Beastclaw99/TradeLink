@@ -1,497 +1,401 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Calendar,
-  Check,
-  DollarSign,
-  FileText,
-  MapPin,
-  Star,
-  Clock,
-  AlertTriangle,
-} from 'lucide-react';
-import { Separator } from "@/components/ui/separator";
-import { Input } from "@/components/ui/input";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { useAuth } from '@/contexts/AuthContext';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { useToast } from "@/components/ui/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from '@/integrations/supabase/client';
+import { Project } from '@/components/dashboard/types';
+import ProjectUpdateTimeline from '@/components/shared/UnifiedProjectUpdateTimeline';
+import ProjectChat from '@/components/project/ProjectChat';
+import { MapPin, DollarSign, Calendar, User, Clock, CheckCircle, AlertTriangle } from 'lucide-react';
 
 const ProjectDetails: React.FC = () => {
   const { projectId } = useParams<{ projectId: string }>();
-  const { user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
-  
-  const [project, setProject] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [bidAmount, setBidAmount] = useState<number | ''>('');
-  const [bidMessage, setBidMessage] = useState("");
-  const [bidSubmitted, setBidSubmitted] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [project, setProject] = useState<Project | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [isApplying, setIsApplying] = useState(false);
   const [hasApplied, setHasApplied] = useState(false);
-  const [dialogOpen, setDialogOpen] = useState(false);
-  
+
   useEffect(() => {
-    if (!projectId) return;
-    
-    const fetchProject = async () => {
-      try {
-        setIsLoading(true);
-        
-        // Fetch the project details
-        const { data: projectData, error: projectError } = await supabase
-          .from('projects')
-          .select(`
-            *,
-            client:profiles!projects_client_id_fkey(first_name, last_name)
-          `)
-          .eq('id', projectId)
-          .single();
-        
-        if (projectError) throw projectError;
-        
-        setProject(projectData);
-        
-        // If user is logged in, check if they've already applied
-        if (user) {
-          const { data: applicationData, error: applicationError } = await supabase
-            .from('applications')
-            .select('id, status')
-            .eq('project_id', projectId)
-            .eq('professional_id', user.id);
-            
-          if (!applicationError && applicationData.length > 0) {
-            setHasApplied(true);
-            const application = applicationData[0];
-            // If the application was withdrawn, allow reapplication
-            if (application.status === 'withdrawn') {
-              setHasApplied(false);
-            }
-          }
-        }
-        
-        // Set initial bid amount to project budget
-        if (projectData.budget) {
-          setBidAmount(projectData.budget);
-        }
-        
-      } catch (error: any) {
-        console.error('Error fetching project:', error);
+    if (projectId) {
+      fetchProjectDetails();
+      checkApplicationStatus();
+    }
+  }, [projectId]);
+
+  const checkApplicationStatus = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from('applications')
+        .select('status')
+        .eq('project_id', projectId)
+        .eq('professional_id', user.id)
+        .single();
+
+      if (error && error.code !== 'PGRST116') {
+        console.error('Error checking application status:', error);
+        return;
+      }
+
+      setHasApplied(!!data);
+    } catch (error) {
+      console.error('Error checking application status:', error);
+    }
+  };
+
+  const fetchProjectDetails = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('projects')
+        .select(`
+          *,
+          client:profiles!projects_client_id_fkey(first_name, last_name),
+          professional:profiles!projects_professional_id_fkey(first_name, last_name)
+        `)
+        .eq('id', projectId)
+        .single();
+
+      if (error) throw error;
+      
+      // Transform the data to match our Project type with proper type casting and required fields
+      const validStatuses = ['open', 'applied', 'assigned', 'in-progress', 'submitted', 'revision', 'completed', 'paid', 'archived', 'disputed'] as const;
+      const transformedProject: Project = {
+        id: data.id,
+        title: data.title || '',
+        description: data.description || '',
+        budget: data.budget || 0,
+        status: validStatuses.includes(data.status as any) ? data.status as Project['status'] : 'open',
+        client_id: data.client_id || '',
+        created_at: data.created_at || new Date().toISOString(),
+        updated_at: data.updated_at || data.created_at || new Date().toISOString(),
+        assigned_to: data.assigned_to,
+        location: data.location || '',
+        deadline: data.deadline,
+        required_skills: data.required_skills || '',
+        professional_id: data.professional_id,
+        project_start_time: data.project_start_time,
+        category: data.category || '',
+        expected_timeline: data.expected_timeline || '',
+        urgency: data.urgency || 'normal',
+        requirements: typeof data.requirements === 'string' ? data.requirements.split('\n') : (data.requirements || []),
+        scope: data.scope || '',
+        service_contract: data.service_contract || '',
+        client: data.client ? {
+          first_name: data.client.first_name || '',
+          last_name: data.client.last_name || ''
+        } : undefined,
+        professional: data.professional ? {
+          first_name: data.professional.first_name || '',
+          last_name: data.professional.last_name || ''
+        } : undefined
+      };
+      
+      setProject(transformedProject);
+    } catch (error) {
+      console.error('Error fetching project details:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load project details",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleApplyToProject = async () => {
+    try {
+      setIsApplying(true);
+      
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
         toast({
-          title: "Error",
-          description: "Failed to load project details. Please try again later.",
+          title: "Authentication required",
+          description: "Please log in to apply to projects",
           variant: "destructive"
         });
-      } finally {
-        setIsLoading(false);
+        return;
       }
-    };
-    
-    fetchProject();
-  }, [projectId, user, toast]);
-  
-  const handleApplicationSubmission = async () => {
-    if (!user) {
-      toast({
-        title: "Authentication Required",
-        description: "Please login as a professional to apply for projects.",
-        variant: "destructive"
-      });
-      navigate('/login');
-      return;
-    }
-    
-    if (!bidAmount || !bidMessage.trim()) {
-      toast({
-        title: "Missing Information",
-        description: "Please provide both a bid amount and proposal message.",
-        variant: "destructive"
-      });
-      return;
-    }
-    
-    try {
-      setIsSubmitting(true);
-      
-      // Submit the application to Supabase
-      const { data, error } = await supabase
+
+      const { error } = await supabase
         .from('applications')
         .insert([
           {
             project_id: projectId,
             professional_id: user.id,
-            status: 'pending',
-            bid_amount: bidAmount,
-            proposal_message: bidMessage
+            status: 'pending'
           }
-        ])
-        .select();
-      
+        ]);
+
       if (error) throw error;
-      
+
       toast({
-        title: "Application Submitted",
-        description: "Your application has been submitted to the client successfully!"
+        title: "Application submitted",
+        description: "Your application has been submitted successfully!"
       });
-      
-      setDialogOpen(false);
-      setBidSubmitted(true);
+
       setHasApplied(true);
-      
-    } catch (error: any) {
-      console.error('Error submitting application:', error);
+      fetchProjectDetails();
+    } catch (error) {
+      console.error('Error applying to project:', error);
       toast({
         title: "Error",
-        description: "Failed to submit your application. Please try again later.",
+        description: "Failed to submit application",
         variant: "destructive"
       });
     } finally {
-      setIsSubmitting(false);
+      setIsApplying(false);
     }
   };
-  
-  const handleWithdrawApplication = async () => {
-    if (!user || !projectId) {
-      return;
-    }
-    
-    try {
-      setIsSubmitting(true);
-      
-      // Find the application
-      const { data: applicationData, error: findError } = await supabase
-        .from('applications')
-        .select('id')
-        .eq('project_id', projectId)
-        .eq('professional_id', user.id)
-        .eq('status', 'pending')
-        .single();
-      
-      if (findError) throw findError;
-      
-      // Update application status to withdrawn
-      const { error: updateError } = await supabase
-        .from('applications')
-        .update({ status: 'withdrawn' })
-        .eq('id', applicationData.id);
-      
-      if (updateError) throw updateError;
-      
-      toast({
-        title: "Application Withdrawn",
-        description: "Your application has been withdrawn. You can apply again if you wish."
-      });
-      
-      setHasApplied(false);
-      setBidSubmitted(false);
-      
-    } catch (error: any) {
-      console.error('Error withdrawing application:', error);
-      toast({
-        title: "Error",
-        description: "Failed to withdraw your application. Please try again later.",
-        variant: "destructive"
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-  
-  if (isLoading) {
-    return (
-      <Layout>
-        <div className="flex justify-center items-center min-h-[60vh]">
-          <div className="animate-spin w-8 h-8 border-4 border-ttc-blue-700 border-t-transparent rounded-full"></div>
-          <span className="ml-2">Loading project details...</span>
-        </div>
-      </Layout>
-    );
-  }
-  
-  if (!project) {
+
+  if (loading) {
     return (
       <Layout>
         <div className="container-custom py-8">
-          <h1 className="text-2xl font-bold mb-4">Project Not Found</h1>
-          <p>The project you're looking for doesn't exist or has been removed.</p>
-          <Button onClick={() => navigate('/marketplace')} className="mt-4">
-            Back to Marketplace
-          </Button>
+          <div className="animate-pulse">
+            <div className="h-8 bg-gray-200 rounded mb-4"></div>
+            <div className="h-4 bg-gray-200 rounded mb-2"></div>
+            <div className="h-4 bg-gray-200 rounded mb-2"></div>
+          </div>
         </div>
       </Layout>
     );
   }
 
+  if (!project) {
+    return (
+      <Layout>
+        <div className="container-custom py-8">
+          <div className="text-center">
+            <h1 className="text-2xl font-bold mb-4">Project not found</h1>
+            <Button onClick={() => navigate('/dashboard')}>
+              Return to Dashboard
+            </Button>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
+  const requirements: string[] = Array.isArray(project.requirements)
+    ? project.requirements.filter((r): r is string => typeof r === 'string')
+    : (typeof project.requirements === 'string' && project.requirements ? project.requirements.split('\n') : []);
+
+  const formattedBudget = typeof project.budget === 'number' ? `$${project.budget.toLocaleString()}` : 'N/A';
+
+  const requiredSkills = typeof project.required_skills === 'string' && project.required_skills
+    ? project.required_skills.split(',').map(skill => skill.trim())
+    : [];
+
+  const formattedDeadline = project.deadline ? new Date(project.deadline).toLocaleDateString() : 'N/A';
+  const formattedStartTime = project.project_start_time ? new Date(project.project_start_time).toLocaleDateString() : 'N/A';
+  const formattedTimeline = project.expected_timeline || 'N/A';
+  const formattedUrgency = project.urgency || 'N/A';
+  const formattedCategory = project.category || 'N/A';
+  const formattedLocation = project.location || 'N/A';
+
+  const getStatusBadge = (status: string) => {
+    const statusColors: Record<string, string> = {
+      'open': 'bg-green-100 text-green-800',
+      'applied': 'bg-blue-100 text-blue-800',
+      'assigned': 'bg-purple-100 text-purple-800',
+      'in-progress': 'bg-yellow-100 text-yellow-800',
+      'submitted': 'bg-indigo-100 text-indigo-800',
+      'revision': 'bg-orange-100 text-orange-800',
+      'completed': 'bg-gray-100 text-gray-800',
+      'paid': 'bg-green-100 text-green-800',
+      'archived': 'bg-gray-100 text-gray-800',
+      'disputed': 'bg-red-100 text-red-800',
+      'rejected': 'bg-red-100 text-red-800',
+      'accepted': 'bg-green-100 text-green-800',
+    };
+    return (
+      <Badge className={statusColors[status] || 'bg-gray-100 text-gray-800'}>
+        {status.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
+      </Badge>
+    );
+  };
+
   return (
     <Layout>
-      <div className="bg-gray-50 min-h-screen">
-        <section className="bg-ttc-blue-800 py-10 text-white">
-          <div className="container-custom">
-            <div className="flex flex-col md:flex-row justify-between items-start gap-4">
-              <div>
-                <div className="flex items-center gap-2 mb-2">
-                  <Badge variant="secondary" className="bg-ttc-blue-200 text-ttc-blue-800">
-                    {project.category || 'Uncategorized'}
-                  </Badge>
-                  <Badge variant="outline" className="bg-white/10 border-white/20">
-                    {project.subcategory || 'General'}
-                  </Badge>
-                  <Badge className={`${
-                    project.status === 'open' ? 'bg-green-100 text-green-800 border-green-200' :
-                    project.status === 'assigned' ? 'bg-blue-100 text-blue-800 border-blue-200' :
-                    'bg-gray-100 text-gray-800 border-gray-200'
-                  }`}>
-                    {project.status}
-                  </Badge>
-                </div>
-                
-                <h1 className="text-3xl font-bold mb-2">{project.title}</h1>
-                
-                <div className="flex flex-wrap items-center gap-4 text-sm">
-                  {project.location && (
-                    <div className="flex items-center">
-                      <MapPin size={16} className="mr-1" /> {project.location}
-                    </div>
-                  )}
-                  <div className="flex items-center">
-                    <Calendar size={16} className="mr-1" /> Posted: {new Date(project.created_at || '').toLocaleDateString()}
-                  </div>
-                </div>
-              </div>
-              
-              <div className="flex items-center gap-4 mt-4 md:mt-0">
-                <div className="text-center">
-                  <div className="text-2xl font-bold">${project.budget}</div>
-                  <div className="text-xs">Client's Budget</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-        
-        <div className="container-custom py-8">
+      <div className="bg-gray-50 py-8">
+        <div className="container-custom">
+          <Button 
+            variant="outline" 
+            onClick={() => navigate('/project-marketplace')}
+            className="mb-6"
+          >
+            ← Back to Projects
+          </Button>
+
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div className="lg:col-span-2">
-              <Tabs defaultValue="details">
-                <TabsList className="w-full">
-                  <TabsTrigger value="details">Project Details</TabsTrigger>
-                  <TabsTrigger value="client">About Client</TabsTrigger>
-                </TabsList>
-                
-                <TabsContent value="details">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Project Description</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <p>{project.description}</p>
-                      
-                      {/* Include other project details as available */}
-                      {/* These are placeholders since we don't have all fields in the actual projects table */}
-                      {project.scope && (
-                        <div className="pt-4">
-                          <h3 className="font-semibold text-lg mb-2">Project Scope</h3>
-                          <ul className="list-disc pl-5 space-y-1">
-                            {project.scope.map((item: string, index: number) => (
-                              <li key={index}>{item}</li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-                      
-                      {project.deadline && (
-                        <div className="pt-4">
-                          <h3 className="font-semibold text-lg mb-2">Project Timeline</h3>
-                          <div className="bg-gray-50 p-4 rounded-lg">
-                            <div className="text-sm text-gray-500">Deadline</div>
-                            <div className="font-medium">{new Date(project.deadline).toLocaleDateString()}</div>
-                          </div>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-                
-                <TabsContent value="client">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>About the Client</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="flex items-center">
-                        <div className="w-16 h-16 rounded-full bg-ttc-blue-100 flex items-center justify-center text-ttc-blue-700 font-bold text-xl mr-4">
-                          {project.client?.first_name?.[0] || '?'}
-                        </div>
-                        <div>
-                          <h3 className="font-semibold text-lg">
-                            {project.client ? `${project.client.first_name || ''} ${project.client.last_name || ''}` : 'Unknown Client'}
-                          </h3>
-                          <p className="text-sm text-gray-600">
-                            Member since {new Date(project.client?.created_at || new Date()).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
-                          </p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-              </Tabs>
-            </div>
-            
-            <div>
+            {/* Main Content */}
+            <div className="lg:col-span-2 space-y-6">
               <Card>
                 <CardHeader>
-                  <CardTitle>Submit Your Proposal</CardTitle>
-                  <CardDescription>
-                    {project.status === 'open' ? 
-                      "You can either accept the client's budget or make a counteroffer." :
-                      "This project is no longer accepting applications."
-                    }
-                  </CardDescription>
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <CardTitle className="text-2xl mb-2">{project.title}</CardTitle>
+                      <div className="flex items-center gap-4 text-sm text-gray-600">
+                        <span className="flex items-center gap-1">
+                          <Calendar className="h-4 w-4" />
+                          Posted {new Date(project.created_at).toLocaleDateString()}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <User className="h-4 w-4" />
+                          {project.client?.first_name} {project.client?.last_name}
+                        </span>
+                      </div>
+                    </div>
+                    {getStatusBadge(project.status)}
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div>
+                      <h3 className="font-semibold mb-2">Description</h3>
+                      <p className="text-gray-700 whitespace-pre-wrap">{project.description}</p>
+                    </div>
+
+                    {requirements.length > 0 && (
+                      <div>
+                        <h3 className="font-semibold mb-2">Requirements</h3>
+                        <ul className="list-disc pl-5 space-y-1">
+                          {requirements.map((req: string, index: number) => (
+                            <li key={index} className="text-gray-700">{req}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {requiredSkills.length > 0 && (
+                      <div>
+                        <h3 className="font-semibold mb-2">Required Skills</h3>
+                        <div className="flex flex-wrap gap-2">
+                          {requiredSkills.map((skill, index) => (
+                            <Badge key={index} variant="outline">
+                              {skill}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Project Timeline */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Project Updates</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ProjectUpdateTimeline 
+                    projectId={project.id}
+                    projectStatus={project.status}
+                    showAddUpdate={false}
+                  />
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Sidebar */}
+            <div className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Project Details</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {project.status !== 'open' ? (
-                    <div className="bg-yellow-50 p-4 rounded-lg text-yellow-800 border border-yellow-200">
-                      <div className="flex items-center mb-2">
-                        <AlertTriangle className="mr-2" size={20} />
-                        <h3 className="font-medium">Project Unavailable</h3>
-                      </div>
-                      <p className="text-sm">
-                        This project is no longer accepting applications as it has been {project.status}.
-                      </p>
+                  <div className="flex items-center gap-2">
+                    <DollarSign className="h-4 w-4 text-gray-500" />
+                    <span className="font-medium">Budget:</span>
+                    <span>{formattedBudget}</span>
+                  </div>
+
+                  {project.location && (
+                    <div className="flex items-center gap-2">
+                      <MapPin className="h-4 w-4 text-gray-500" />
+                      <span className="font-medium">Location:</span>
+                      <span>{formattedLocation}</span>
                     </div>
-                  ) : bidSubmitted || hasApplied ? (
-                    <div className="bg-green-50 p-4 rounded-lg text-green-800 border border-green-200">
-                      <div className="flex items-center mb-2">
-                        <Check className="mr-2" size={20} />
-                        <h3 className="font-medium">Proposal Submitted!</h3>
-                      </div>
-                      <p className="text-sm">
-                        Your proposal has been sent to the client. They will review it and get back to you soon.
-                      </p>
-                      <Button 
-                        variant="outline" 
-                        className="mt-4 w-full border-red-200 text-red-700 hover:bg-red-50"
-                        onClick={handleWithdrawApplication}
-                        disabled={isSubmitting}
-                      >
-                        {isSubmitting ? "Processing..." : "Withdraw Application"}
-                      </Button>
+                  )}
+
+                  {project.expected_timeline && (
+                    <div className="flex items-center gap-2">
+                      <Clock className="h-4 w-4 text-gray-500" />
+                      <span className="font-medium">Timeline:</span>
+                      <span>{formattedTimeline}</span>
                     </div>
-                  ) : (
-                    <>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Your Bid Amount ($)</label>
-                        <div className="relative">
-                          <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
-                          <Input 
-                            type="number"
-                            placeholder="Enter your bid amount"
-                            className="pl-10"
-                            value={bidAmount}
-                            onChange={(e) => setBidAmount(e.target.value ? Number(e.target.value) : '')}
-                          />
-                        </div>
-                        <p className="text-xs text-gray-500 mt-1">Client's budget: ${project.budget}</p>
-                      </div>
-                      
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Proposal Message</label>
-                        <Textarea 
-                          placeholder="Describe why you're the right professional for this project..."
-                          className="min-h-32"
-                          value={bidMessage}
-                          onChange={(e) => setBidMessage(e.target.value)}
-                        />
-                      </div>
-                    </>
+                  )}
+
+                  {project.urgency && (
+                    <div className="flex items-center gap-2">
+                      <AlertTriangle className="h-4 w-4 text-gray-500" />
+                      <span className="font-medium">Urgency:</span>
+                      <span className="capitalize">{formattedUrgency}</span>
+                    </div>
                   )}
                 </CardContent>
-                
-                {project.status === 'open' && !bidSubmitted && !hasApplied && (
-                  <CardFooter className="flex flex-col gap-3">
-                    <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-                      <DialogTrigger asChild>
-                        <Button className="w-full bg-ttc-blue-700 hover:bg-ttc-blue-800" disabled={!user}>
-                          {bidAmount === project.budget ? "Accept Project Price" : "Submit Proposal"}
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent>
-                        <DialogHeader>
-                          <DialogTitle>Confirm Submission</DialogTitle>
-                          <DialogDescription>
-                            You are about to submit a {bidAmount === project.budget ? "proposal at the client's budget" : "counteroffer"} of ${bidAmount} for this project.
-                          </DialogDescription>
-                        </DialogHeader>
-                        <div className="py-4">
-                          <p className="text-sm text-gray-600 mb-4">
-                            By proceeding, you agree to complete the project according to the outlined specifications if selected.
-                          </p>
-                        </div>
-                        <DialogFooter>
-                          <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
-                          <Button 
-                            onClick={handleApplicationSubmission}
-                            className="bg-ttc-blue-700 hover:bg-ttc-blue-800"
-                            disabled={isSubmitting}
-                          >
-                            {isSubmitting ? "Submitting..." : "Confirm Submission"}
-                          </Button>
-                        </DialogFooter>
-                      </DialogContent>
-                    </Dialog>
-                    
-                    {bidAmount === project.budget && (
-                      <Button variant="outline" className="w-full" onClick={() => setBidAmount('')}>
-                        Make a Counteroffer
-                      </Button>
-                    )}
-                    
-                    {bidAmount !== project.budget && bidAmount !== '' && (
-                      <Button variant="outline" className="w-full" onClick={() => setBidAmount(project.budget || 0)}>
-                        Accept Client's Budget
-                      </Button>
-                    )}
-                    
-                    {!user && (
-                      <p className="text-sm text-yellow-600 text-center mt-2">
-                        You must be logged in as a professional to apply for projects.
-                      </p>
-                    )}
-                  </CardFooter>
-                )}
               </Card>
-              
-              <div className="mt-6 bg-ttc-blue-50 p-4 rounded-lg border border-ttc-blue-100">
-                <h3 className="font-medium text-ttc-blue-800 mb-2">Why work on this project?</h3>
-                <ul className="space-y-2">
-                  <li className="flex items-start">
-                    <Check className="mr-2 text-ttc-blue-700 mt-0.5" size={16} />
-                    <span className="text-sm">Fixed price project with clear scope</span>
-                  </li>
-                  <li className="flex items-start">
-                    <Check className="mr-2 text-ttc-blue-700 mt-0.5" size={16} />
-                    <span className="text-sm">Direct communication with client</span>
-                  </li>
-                  <li className="flex items-start">
-                    <Check className="mr-2 text-ttc-blue-700 mt-0.5" size={16} />
-                    <span className="text-sm">Secure payment process</span>
-                  </li>
-                </ul>
-              </div>
+
+              {project.status === 'open' && !hasApplied && (
+                <Card>
+                  <CardContent className="pt-6">
+                    <Button 
+                      onClick={handleApplyToProject}
+                      disabled={isApplying}
+                      className="w-full bg-ttc-blue-700 hover:bg-ttc-blue-800"
+                    >
+                      {isApplying ? "Applying..." : "Apply for this Project"}
+                    </Button>
+                  </CardContent>
+                </Card>
+              )}
+
+              {hasApplied && (
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="text-center text-gray-600">
+                      <p>You have already applied to this project</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {project.professional && (
+                <>
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <CheckCircle className="h-5 w-5 text-green-600" />
+                        Assigned Professional
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="font-medium">
+                        {project.professional.first_name} {project.professional.last_name}
+                      </p>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <ProjectChat
+                      projectId={project.id}
+                      projectStatus={project.status}
+                      clientId={project.client_id}
+                      professionalId={project.professional_id}
+                    />
+                  </Card>
+                </>
+              )}
             </div>
           </div>
         </div>

@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { AlertDialog, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
@@ -17,13 +16,13 @@ interface ProjectsTabProps {
   editedProject: {
     title: string;
     description: string;
-    budget: string;
+    budget: number | null;
   };
   isSubmitting: boolean;
-  setEditedProject: (project: { title: string; description: string; budget: string }) => void;
+  setEditedProject: (project: { title: string; description: string; budget: number | null }) => void;
   handleEditInitiate: (project: Project) => void;
   handleEditCancel: () => void;
-  handleUpdateProject: (project: Project) => void;
+  handleUpdateProject: (projectId: string, updates: Partial<Project>) => void;
   handleDeleteInitiate: (projectId: string) => void;
   handleDeleteCancel: () => void;
   handleDeleteProject: (projectId: string) => void;
@@ -72,9 +71,18 @@ const ProjectsTab: React.FC<ProjectsTabProps> = ({
             <ProjectCard
               key={project.id}
               project={project}
+              editProject={editProject}
+              editedProject={editedProject}
+              isSubmitting={isSubmitting}
               applications={applications}
-              onEdit={handleEditInitiate}
-              onDelete={handleDeleteInitiate}
+              onEdit={() => handleEditInitiate(project)}
+              onCancelEdit={handleEditCancel}
+              onSave={async (updates: Partial<Project>) => {
+                const processedUpdates = { ...updates };
+                const updatedProject = { ...project, ...processedUpdates };
+                handleUpdateProject(updatedProject.id, updatedProject);
+              }}
+              onDelete={() => handleDeleteInitiate(project.id)}
             />
           ))}
         </div>
@@ -105,7 +113,7 @@ const ProjectsTab: React.FC<ProjectsTabProps> = ({
       {/* Edit Project Form */}
       {editProject && (
         <EditProjectForm
-          editProject={editProject}
+          project={editProject}
           editedProject={editedProject}
           isSubmitting={isSubmitting}
           onCancel={handleEditCancel}

@@ -1,54 +1,14 @@
-
-import React, { useState } from 'react';
+import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Bell, Check, X, Clock, AlertCircle, CheckCircle, Info } from 'lucide-react';
-
-interface Notification {
-  id: string;
-  type: 'info' | 'success' | 'warning' | 'error';
-  title: string;
-  message: string;
-  timestamp: Date;
-  read: boolean;
-  actionLabel?: string;
-  onAction?: () => void;
-}
+import { Bell, Check, X, Clock, AlertCircle, CheckCircle, Info, Loader2 } from 'lucide-react';
+import { useNotifications } from '@/contexts/NotificationContext';
+import { useNavigate } from 'react-router-dom';
 
 const NotificationSystem: React.FC = () => {
-  const [notifications, setNotifications] = useState<Notification[]>([
-    {
-      id: '1',
-      type: 'success',
-      title: 'Project Application Received',
-      message: 'John Smith has applied for your kitchen renovation project.',
-      timestamp: new Date(Date.now() - 1000 * 60 * 15),
-      read: false,
-      actionLabel: 'View Application',
-      onAction: () => console.log('View application')
-    },
-    {
-      id: '2',
-      type: 'info',
-      title: 'Project Update',
-      message: 'Your bathroom renovation project has been updated.',
-      timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2),
-      read: false,
-      actionLabel: 'View Project',
-      onAction: () => console.log('View project')
-    },
-    {
-      id: '3',
-      type: 'warning',
-      title: 'Payment Reminder',
-      message: 'Payment for completed electrical work is due in 2 days.',
-      timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24),
-      read: true,
-      actionLabel: 'Pay Now',
-      onAction: () => console.log('Pay now')
-    }
-  ]);
+  const { notifications, unreadCount, isLoading, markAsRead, markAllAsRead, removeNotification } = useNotifications();
+  const navigate = useNavigate();
 
   const getIcon = (type: string) => {
     switch (type) {
@@ -63,25 +23,27 @@ const NotificationSystem: React.FC = () => {
     }
   };
 
-  const markAsRead = (id: string) => {
-    setNotifications(prev =>
-      prev.map(notif =>
-        notif.id === id ? { ...notif, read: true } : notif
-      )
+  const handleAction = (notification: any) => {
+    if (notification.action_url) {
+      navigate(notification.action_url);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <Card className="w-full max-w-md">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Bell className="h-5 w-5" />
+            Notifications
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="flex justify-center items-center py-8">
+          <Loader2 className="h-8 w-8 animate-spin text-ttc-blue-700" />
+        </CardContent>
+      </Card>
     );
-  };
-
-  const markAllAsRead = () => {
-    setNotifications(prev =>
-      prev.map(notif => ({ ...notif, read: true }))
-    );
-  };
-
-  const removeNotification = (id: string) => {
-    setNotifications(prev => prev.filter(notif => notif.id !== id));
-  };
-
-  const unreadCount = notifications.filter(n => !n.read).length;
+  }
 
   return (
     <Card className="w-full max-w-md">
@@ -136,7 +98,7 @@ const NotificationSystem: React.FC = () => {
                     </p>
                     <div className="flex items-center mt-2 text-xs text-gray-500">
                       <Clock className="h-3 w-3 mr-1" />
-                      {notification.timestamp.toLocaleTimeString()}
+                      {new Date(notification.created_at).toLocaleTimeString()}
                     </div>
                   </div>
                 </div>
@@ -161,14 +123,14 @@ const NotificationSystem: React.FC = () => {
                 </div>
               </div>
               
-              {notification.actionLabel && notification.onAction && (
+              {notification.action_label && notification.action_url && (
                 <div className="mt-3">
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={notification.onAction}
+                    onClick={() => handleAction(notification)}
                   >
-                    {notification.actionLabel}
+                    {notification.action_label}
                   </Button>
                 </div>
               )}

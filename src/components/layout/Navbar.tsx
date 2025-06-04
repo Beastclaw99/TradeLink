@@ -1,4 +1,3 @@
-
 import React from 'react';
 import {
   NavigationMenu,
@@ -13,6 +12,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { LogOut } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import NotificationBell from '@/components/shared/NotificationBell';
 
 const Navbar: React.FC = () => {
   const { user, logout } = useAuth();
@@ -48,7 +48,7 @@ const Navbar: React.FC = () => {
             <NavigationMenuItem>
               <NavigationMenuLink>
                 <Link to="/marketplace" className="text-sm font-medium leading-none hover:text-accent focus:text-accent">
-                  Find Professionals
+                  Professional Marketplace
                 </Link>
               </NavigationMenuLink>
             </NavigationMenuItem>
@@ -62,7 +62,7 @@ const Navbar: React.FC = () => {
             <NavigationMenuItem>
               <NavigationMenuLink>
                 <Link to="/about" className="text-sm font-medium leading-none hover:text-accent focus:text-accent">
-                  About Us
+                  About
                 </Link>
               </NavigationMenuLink>
             </NavigationMenuItem>
@@ -77,6 +77,7 @@ const Navbar: React.FC = () => {
         </NavigationMenu>
         {user ? (
           <div className="flex items-center space-x-4">
+            <NotificationBell />
             <Link to="/dashboard">
               <Avatar>
                 <AvatarImage src="https://github.com/shadcn.png" />
