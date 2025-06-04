@@ -1,5 +1,7 @@
+
 import React, { createContext, useState, useEffect, useContext, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface Notification {
   id: string;
@@ -12,7 +14,7 @@ interface Notification {
 
 interface NotificationContextType {
   notifications: Notification[];
-  addNotification: (notification: Omit<Notification, 'id' | 'created_at'>>) => void;
+  addNotification: (notification: Omit<Notification, 'id' | 'created_at'>) => void;
   markAsRead: (notificationId: string) => void;
   fetchNotifications: () => Promise<void>;
 }
