@@ -186,10 +186,21 @@ const ProjectDetails: React.FC = () => {
   }
 
   const requirements: string[] = Array.isArray(project.requirements)
-    ? project.requirements.filter((r: unknown): r is string => typeof r === 'string')
-    : (typeof project.requirements === 'string' && project.requirements && project.requirements.length > 0 ? project.requirements.split('\n') : []);
+    ? project.requirements.filter((r): r is string => typeof r === 'string')
+    : (typeof project.requirements === 'string' && project.requirements ? project.requirements.split('\n') : []);
 
   const formattedBudget = typeof project.budget === 'number' ? `$${project.budget.toLocaleString()}` : 'N/A';
+
+  const requiredSkills = typeof project.required_skills === 'string' && project.required_skills
+    ? project.required_skills.split(',').map(skill => skill.trim())
+    : [];
+
+  const formattedDeadline = project.deadline ? new Date(project.deadline).toLocaleDateString() : 'N/A';
+  const formattedStartTime = project.project_start_time ? new Date(project.project_start_time).toLocaleDateString() : 'N/A';
+  const formattedTimeline = project.expected_timeline || 'N/A';
+  const formattedUrgency = project.urgency || 'N/A';
+  const formattedCategory = project.category || 'N/A';
+  const formattedLocation = project.location || 'N/A';
 
   const getStatusBadge = (status: string) => {
     const statusColors: Record<string, string> = {
@@ -212,10 +223,6 @@ const ProjectDetails: React.FC = () => {
       </Badge>
     );
   };
-
-  const requiredSkills = typeof project.required_skills === 'string' && project.required_skills && project.required_skills.length > 0
-    ? project.required_skills.split(',').map((skill: string) => skill.trim())
-    : [];
 
   return (
     <Layout>
@@ -317,7 +324,7 @@ const ProjectDetails: React.FC = () => {
                     <div className="flex items-center gap-2">
                       <MapPin className="h-4 w-4 text-gray-500" />
                       <span className="font-medium">Location:</span>
-                      <span>{project.location}</span>
+                      <span>{formattedLocation}</span>
                     </div>
                   )}
 
@@ -325,7 +332,7 @@ const ProjectDetails: React.FC = () => {
                     <div className="flex items-center gap-2">
                       <Clock className="h-4 w-4 text-gray-500" />
                       <span className="font-medium">Timeline:</span>
-                      <span>{project.expected_timeline}</span>
+                      <span>{formattedTimeline}</span>
                     </div>
                   )}
 
@@ -333,7 +340,7 @@ const ProjectDetails: React.FC = () => {
                     <div className="flex items-center gap-2">
                       <AlertTriangle className="h-4 w-4 text-gray-500" />
                       <span className="font-medium">Urgency:</span>
-                      <span className="capitalize">{project.urgency}</span>
+                      <span className="capitalize">{formattedUrgency}</span>
                     </div>
                   )}
                 </CardContent>
