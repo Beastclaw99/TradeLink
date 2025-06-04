@@ -1,3 +1,4 @@
+
 import { Project } from '../types';
 import { ProjectCard } from './ProjectCard';
 import { Button } from "@/components/ui/button";
@@ -48,8 +49,8 @@ export const ProjectList = ({
           <ProjectCard
             key={project.id}
             project={project}
-            onEditInitiate={onEditInitiate}
-            onDeleteInitiate={onDeleteInitiate}
+            onEditInitiate={onEditInitiate || (() => {})}
+            onDeleteInitiate={onDeleteInitiate || (() => {})}
             onApply={onApply}
             onComplete={onComplete}
           />
@@ -57,4 +58,4 @@ export const ProjectList = ({
       </div>
     </div>
   );
-}; 
+};

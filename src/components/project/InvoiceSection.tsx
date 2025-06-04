@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -62,16 +63,19 @@ export default function InvoiceSection({
 
           if (projectError) throw projectError;
 
+          // Ensure we have a valid amount for the invoice
+          const invoiceAmount = projectData.budget || 0;
+          
           const { data: newInvoice, error: createError } = await supabase
             .from('invoices')
-            .insert([{
+            .insert({
               project_id: projectId,
               client_id: projectData.client_id,
               professional_id: projectData.professional_id,
-              amount: projectData.budget,
+              amount: invoiceAmount,
               status: 'pending',
-              created_at: new Date().toISOString()
-            }])
+              issued_at: new Date().toISOString()
+            })
             .select()
             .single();
 
@@ -107,7 +111,6 @@ export default function InvoiceSection({
         .from('invoices')
         .update({ 
           status: 'paid',
-          payment_note: paymentNote,
           paid_at: new Date().toISOString()
         })
         .eq('id', invoice.id);
@@ -127,7 +130,7 @@ export default function InvoiceSection({
         project_id: projectId,
         update_type: 'status_update',
         message: 'Payment has been processed',
-        created_by: user?.id,
+        professional_id: user?.id,
         metadata: {
           status_change: 'paid'
         }
@@ -138,11 +141,7 @@ export default function InvoiceSection({
         project_id: projectId,
         sender_id: user?.id,
         content: 'Payment has been processed successfully.',
-        sent_at: new Date().toISOString(),
-        metadata: {
-          type: 'payment_processed',
-          title: 'Payment Processed'
-        }
+        sent_at: new Date().toISOString()
       }]);
 
       toast({
@@ -194,7 +193,7 @@ export default function InvoiceSection({
                   <h3 className="font-medium">Payment Pending</h3>
                 </div>
                 <p className="text-sm mt-1">
-                  Invoice was created on {new Date(invoice.created_at).toLocaleDateString()}
+                  Invoice was created on {new Date(invoice.issued_at).toLocaleDateString()}
                 </p>
               </div>
             )}
@@ -209,12 +208,6 @@ export default function InvoiceSection({
                 <p className="text-sm text-gray-500">Status</p>
                 <p className="font-medium capitalize">{invoice.status}</p>
               </div>
-              {invoice.payment_note && (
-                <div className="col-span-2">
-                  <p className="text-sm text-gray-500">Payment Note</p>
-                  <p className="font-medium">{invoice.payment_note}</p>
-                </div>
-              )}
             </div>
 
             {/* Action Buttons */}
@@ -285,4 +278,4 @@ export default function InvoiceSection({
       </Dialog>
     </Card>
   );
-} 
+}

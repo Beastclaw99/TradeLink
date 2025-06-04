@@ -90,15 +90,16 @@ const ProfileTab: React.FC<ProfileTabProps> = ({
         
         if (projectsError) throw projectsError;
         
-        // Transform the projects to match the Project type, ensuring client_id is never null
+        // Transform the projects to match the Project type, ensuring required fields are not null
         const validStatuses = ['open', 'applied', 'assigned', 'in-progress', 'submitted', 'revision', 'completed', 'paid', 'archived', 'disputed'] as const;
         const transformedProjects: Project[] = (projectsData || [])
-          .filter(project => project.client_id) // Filter out projects without client_id
+          .filter(project => project.client_id && project.created_at) // Filter out projects without required fields
           .map(project => ({
             ...project,
-            client_id: project.client_id!, // Non-null assertion since we filtered above
-            status: validStatuses.includes(project.status as any) ? project.status as Project['status'] : 'open',
-            updated_at: project.updated_at || project.created_at
+            client_id: project.client_id!,
+            created_at: project.created_at!,
+            updated_at: project.updated_at || project.created_at!,
+            status: validStatuses.includes(project.status as any) ? project.status as Project['status'] : 'open'
           }));
         
         setProjects(transformedProjects);

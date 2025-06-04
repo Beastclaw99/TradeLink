@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Project, Review } from '../types';
+import { Project } from '../types';
 import ProjectCard from '../client/projects/ProjectCard';
 import AssignedProjectCard from '../client/projects/AssignedProjectCard';
 import EmptyProjectState from '../client/projects/EmptyProjectState';
@@ -68,13 +68,23 @@ export const ProjectsTab: React.FC<ProjectsTabProps> = ({
               <ProjectCard
                 key={project.id}
                 project={project}
-                editProject={editProject}
+                isEditing={editProject?.id === project.id}
                 editedProject={editedProject}
                 isSubmitting={isSubmitting}
                 onEdit={() => onEditInitiate(project)}
                 onCancelEdit={onEditCancel}
-                onSave={(updates) => onUpdateProject(project.id, updates)}
+                onUpdate={async (updates: Partial<Project>) => {
+                  await onUpdateProject(project.id, updates);
+                }}
                 onDelete={() => onDeleteInitiate(project.id)}
+                onViewApplications={() => {
+                  // Navigate to applications view
+                  window.location.href = `/project/${project.id}/applications`;
+                }}
+                onEditedProjectChange={(field: string, value: any) => {
+                  // This would need to be handled by the parent component
+                  console.log('Field change:', field, value);
+                }}
               />
             ))}
           </div>

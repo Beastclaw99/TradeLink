@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -23,6 +24,15 @@ interface ActivityUser {
   role: string;
 }
 
+interface ActivityMetadata {
+  status?: 'completed' | 'in_progress' | 'overdue';
+  priority?: 'high' | 'medium' | 'low';
+  amount?: number;
+  fileType?: string;
+  fileSize?: number;
+  memberRole?: string;
+}
+
 interface ActivityItem {
   id: string;
   type: 'message' | 'milestone' | 'task' | 'file' | 'member' | 'expense' | 'other';
@@ -30,14 +40,7 @@ interface ActivityItem {
   description?: string;
   timestamp: string;
   user: ActivityUser;
-  metadata?: {
-    status?: 'completed' | 'in_progress' | 'overdue';
-    priority?: 'high' | 'medium' | 'low';
-    amount?: number;
-    fileType?: string;
-    fileSize?: number;
-    memberRole?: string;
-  };
+  metadata?: ActivityMetadata;
 }
 
 interface ProjectActivityProps {
@@ -71,10 +74,10 @@ const ProjectActivity: React.FC<ProjectActivityProps> = ({ activities }) => {
     return colors[type];
   };
 
-  const getStatusBadge = (status: ActivityItem['metadata']['status']) => {
+  const getStatusBadge = (status?: ActivityMetadata['status']) => {
     if (!status) return null;
 
-    const statusConfig: Record<NonNullable<ActivityItem['metadata']['status']>, { color: string; icon: React.ReactNode }> = {
+    const statusConfig: Record<NonNullable<ActivityMetadata['status']>, { color: string; icon: React.ReactNode }> = {
       completed: {
         color: 'bg-green-100 text-green-800 border-green-200',
         icon: <CheckCircle2 className="h-4 w-4" />
@@ -94,16 +97,16 @@ const ProjectActivity: React.FC<ProjectActivityProps> = ({ activities }) => {
       <Badge variant="outline" className={color}>
         {icon}
         <span className="ml-1">
-          {status.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
+          {status.split('_').map((word: string) => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
         </span>
       </Badge>
     );
   };
 
-  const getPriorityBadge = (priority: ActivityItem['metadata']['priority']) => {
+  const getPriorityBadge = (priority?: ActivityMetadata['priority']) => {
     if (!priority) return null;
 
-    const priorityConfig: Record<NonNullable<ActivityItem['metadata']['priority']>, { color: string }> = {
+    const priorityConfig: Record<NonNullable<ActivityMetadata['priority']>, { color: string }> = {
       high: {
         color: 'bg-red-100 text-red-800 border-red-200'
       },
@@ -233,4 +236,4 @@ const ProjectActivity: React.FC<ProjectActivityProps> = ({ activities }) => {
   );
 };
 
-export default ProjectActivity; 
+export default ProjectActivity;

@@ -55,25 +55,27 @@ export const useApplications = (
           const validApplicationStatuses = ['pending', 'accepted', 'rejected', 'withdrawn'] as const;
           const validProjectStatuses = ['open', 'applied', 'assigned', 'in-progress', 'submitted', 'revision', 'completed', 'paid', 'archived', 'disputed'] as const;
           
-          const transformedApplications: Application[] = (data || []).map(app => ({
-            id: app.id,
-            project_id: app.project_id,
-            professional_id: app.professional_id,
-            cover_letter: app.cover_letter,
-            proposal_message: app.proposal_message,
-            bid_amount: app.bid_amount,
-            availability: app.availability,
-            status: validApplicationStatuses.includes(app.status as any) ? app.status as Application['status'] : 'pending',
-            created_at: app.created_at,
-            updated_at: app.updated_at,
-            project: app.project ? {
-              id: app.project.id,
-              title: app.project.title,
-              status: validProjectStatuses.includes(app.project.status as any) ? app.project.status as Application['project']['status'] : 'open',
-              budget: app.project.budget,
-              created_at: app.project.created_at
-            } : undefined
-          }));
+          const transformedApplications: Application[] = (data || [])
+            .filter(app => app.project_id && app.professional_id && app.created_at) // Filter out incomplete records
+            .map(app => ({
+              id: app.id,
+              project_id: app.project_id!,
+              professional_id: app.professional_id!,
+              cover_letter: app.cover_letter,
+              proposal_message: app.proposal_message,
+              bid_amount: app.bid_amount,
+              availability: app.availability,
+              status: validApplicationStatuses.includes(app.status as any) ? app.status as Application['status'] : 'pending',
+              created_at: app.created_at!,
+              updated_at: app.updated_at || app.created_at!,
+              project: app.project ? {
+                id: app.project.id,
+                title: app.project.title,
+                status: validProjectStatuses.includes(app.project.status as any) ? app.project.status as Application['project']['status'] : 'open',
+                budget: app.project.budget,
+                created_at: app.project.created_at
+              } : undefined
+            }));
           
           setLocalApplications(transformedApplications);
         } catch (error: any) {
