@@ -1,7 +1,6 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Star } from "lucide-react";
+import { StarRating } from "@/components/ui/star-rating";
 import { Review } from '../types';
 
 interface ReviewsTabProps {
@@ -24,18 +23,11 @@ const ReviewsTab: React.FC<ReviewsTabProps> = ({
         </div>
         
         <div className="flex items-center gap-2">
-          <div className="flex">
-            {[1, 2, 3, 4, 5].map((star) => (
-              <Star 
-                key={star} 
-                className={`w-5 h-5 ${
-                  star <= Number(calculateAverageRating()) 
-                    ? 'text-yellow-400 fill-yellow-400' 
-                    : 'text-gray-300'
-                }`}
-              />
-            ))}
-          </div>
+          <StarRating
+            value={Number(calculateAverageRating())}
+            onChange={() => {}}
+            className="mt-2"
+          />
           <span className="text-lg font-bold">{calculateAverageRating()}</span>
           <span className="text-ttc-neutral-500">({reviews.length} reviews)</span>
         </div>
@@ -45,7 +37,11 @@ const ReviewsTab: React.FC<ReviewsTabProps> = ({
         <p>Loading reviews...</p>
       ) : reviews.length === 0 ? (
         <div className="text-center py-8">
-          <Star className="w-12 h-12 mx-auto text-ttc-neutral-400" />
+          <StarRating
+            value={0}
+            onChange={() => {}}
+            className="w-12 h-12 mx-auto text-ttc-neutral-400"
+          />
           <p className="mt-4 text-ttc-neutral-600">No reviews yet.</p>
           <p className="mt-2 text-sm text-ttc-neutral-500">
             Complete projects to start receiving reviews from clients.
@@ -58,18 +54,11 @@ const ReviewsTab: React.FC<ReviewsTabProps> = ({
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle>Project Review</CardTitle>
-                  <div className="flex">
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <Star 
-                        key={star} 
-                        className={`w-4 h-4 ${
-                          star <= (review.rating || 0)
-                            ? 'text-yellow-400 fill-yellow-400' 
-                            : 'text-gray-300'
-                        }`}
-                      />
-                    ))}
-                  </div>
+                  <StarRating
+                    value={review.rating || 0}
+                    onChange={() => {}}
+                    className="mt-2"
+                  />
                 </div>
                 <CardDescription>
                   {new Date(review.created_at).toLocaleDateString()}

@@ -1,9 +1,9 @@
-
 import React from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Star, TrendingUp, TrendingDown } from 'lucide-react';
+import { TrendingUp, TrendingDown } from 'lucide-react';
+import { StarRating } from '@/components/ui/star-rating';
 
 interface Professional {
   id: string;
@@ -129,7 +129,11 @@ const ProfessionalPerformanceTable: React.FC = () => {
               </TableCell>
               <TableCell>
                 <div className="flex items-center gap-1">
-                  <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                  <StarRating
+                    value={professional.rating}
+                    onChange={() => {}}
+                    className="h-4 w-4"
+                  />
                   <span className="font-medium">{professional.rating}</span>
                 </div>
               </TableCell>

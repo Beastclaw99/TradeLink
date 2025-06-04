@@ -1,421 +1,345 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Calendar,
-  Check,
-  DollarSign,
-  FileText,
-  MapPin,
-  Star,
-  Clock,
-  AlertTriangle,
-  User,
-} from 'lucide-react';
-import { Separator } from "@/components/ui/separator";
-import { Input } from "@/components/ui/input";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { useAuth } from '@/contexts/AuthContext';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { useToast } from "@/components/ui/use-toast";
-import { supabase } from "@/integrations/supabase/client";
-import ProjectApplicationForm from "@/components/dashboard/professional/ProjectApplicationForm";
-import SubmitWorkForm from "@/components/project/SubmitWorkForm";
-import ClientReviewForm from "@/components/project/ClientReviewForm";
-import InvoiceSection from "@/components/project/InvoiceSection";
-import ReviewForm from "@/components/project/ReviewForm";
-import UnifiedProjectUpdateTimeline from "@/components/shared/UnifiedProjectUpdateTimeline";
-import ApplicationsTable from '@/components/applications/ApplicationsTable';
-import ApplicationForm from '@/components/applications/ApplicationForm';
-import { format } from 'date-fns';
-
-interface Project {
-  id: string;
-  title: string;
-  description: string;
-  budget: number;
-  location: string;
-  category: string;
-  subcategory?: string;
-  scope?: string | string[];
-  status: string;
-  created_at: string;
-  deadline: string;
-  client: {
-    id: string;
-    first_name: string;
-    last_name: string;
-  };
-}
+import { supabase } from '@/integrations/supabase/client';
+import { Project } from '@/components/dashboard/types';
+import ProjectUpdateTimeline from '@/components/shared/UnifiedProjectUpdateTimeline';
+import ProjectChat from '@/components/project/ProjectChat';
+import { MapPin, DollarSign, Calendar, User, Clock, CheckCircle, AlertTriangle } from 'lucide-react';
 
 const ProjectDetails: React.FC = () => {
-  const { id } = useParams<{ id: string }>();
+  const { projectId } = useParams<{ projectId: string }>();
   const navigate = useNavigate();
-  const { user } = useAuth();
   const { toast } = useToast();
   const [project, setProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('overview');
+  const [isApplying, setIsApplying] = useState(false);
 
   useEffect(() => {
-    fetchProject();
-  }, [id]);
+    if (projectId) {
+      fetchProjectDetails();
+    }
+  }, [projectId]);
 
-  const fetchProject = async () => {
+  const fetchProjectDetails = async () => {
     try {
       setLoading(true);
       const { data, error } = await supabase
         .from('projects')
         .select(`
-          id,
-          title,
-          description,
-          budget,
-          location,
-          category,
-          status,
-          created_at,
-          deadline,
-          scope,
-          client:profiles!projects_client_id_fkey(
-            id,
-            first_name,
-            last_name
-          )
+          *,
+          client:profiles!projects_client_id_fkey(first_name, last_name),
+          professional:profiles!projects_professional_id_fkey(first_name, last_name)
         `)
-        .eq('id', id)
+        .eq('id', projectId)
         .single();
 
       if (error) throw error;
-      // Defensive: Check if data is a valid object and has client and scope
-      if (!data || typeof data !== 'object' || !data.client || (data.client as any).error) {
-        setProject(null);
-      } else {
-        // If scope is a stringified array, try to parse it
-        let scope = data.scope;
-        if (typeof scope === 'string') {
-          try {
-            const parsed = JSON.parse(scope);
-            if (Array.isArray(parsed)) scope = parsed;
-          } catch {
-            // leave as string
-          }
-        }
-        // Type assertion to ensure data is treated as Project type
-        const projectData = { ...data, scope } as Project;
-        setProject(projectData);
-      }
+      
+      // Transform the data to match our Project type with proper type casting and required fields
+      const validStatuses = ['open', 'applied', 'assigned', 'in-progress', 'submitted', 'revision', 'completed', 'paid', 'archived', 'disputed'] as const;
+      const transformedProject: Project = {
+        id: data.id,
+        title: data.title || '',
+        description: data.description,
+        budget: data.budget,
+        status: validStatuses.includes(data.status as any) ? data.status as Project['status'] : 'open',
+        client_id: data.client_id || '',
+        created_at: data.created_at || new Date().toISOString(),
+        updated_at: data.updated_at || data.created_at || new Date().toISOString(),
+        assigned_to: data.assigned_to,
+        location: data.location,
+        deadline: data.deadline,
+        required_skills: data.required_skills,
+        professional_id: data.professional_id,
+        project_start_time: data.project_start_time,
+        category: data.category,
+        expected_timeline: data.expected_timeline,
+        urgency: data.urgency,
+        requirements: data.requirements,
+        scope: data.scope,
+        service_contract: data.service_contract,
+        client: data.client ? {
+          first_name: data.client.first_name,
+          last_name: data.client.last_name
+        } : undefined,
+        professional: data.professional ? {
+          first_name: data.professional.first_name,
+          last_name: data.professional.last_name
+        } : undefined
+      };
+      
+      setProject(transformedProject);
     } catch (error) {
-      console.error('Error fetching project:', error);
+      console.error('Error fetching project details:', error);
       toast({
         title: "Error",
-        description: "Failed to load project details. Please try again.",
+        description: "Failed to load project details",
         variant: "destructive"
       });
-      navigate('/marketplace');
     } finally {
       setLoading(false);
     }
   };
 
+  const handleApplyToProject = async () => {
+    try {
+      setIsApplying(true);
+      
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast({
+          title: "Authentication required",
+          description: "Please log in to apply to projects",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      const { error } = await supabase
+        .from('applications')
+        .insert([
+          {
+            project_id: projectId,
+            professional_id: user.id,
+            status: 'pending'
+          }
+        ]);
+
+      if (error) throw error;
+
+      toast({
+        title: "Application submitted",
+        description: "Your application has been submitted successfully!"
+      });
+
+      fetchProjectDetails();
+    } catch (error) {
+      console.error('Error applying to project:', error);
+      toast({
+        title: "Error",
+        description: "Failed to submit application",
+        variant: "destructive"
+      });
+    } finally {
+      setIsApplying(false);
+    }
+  };
+
   if (loading) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="space-y-4">
-          <div className="h-8 bg-gray-200 rounded animate-pulse w-1/3" />
-          <div className="h-32 bg-gray-100 rounded animate-pulse" />
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="h-24 bg-gray-100 rounded animate-pulse" />
-            <div className="h-24 bg-gray-100 rounded animate-pulse" />
+      <Layout>
+        <div className="container-custom py-8">
+          <div className="animate-pulse">
+            <div className="h-8 bg-gray-200 rounded mb-4"></div>
+            <div className="h-4 bg-gray-200 rounded mb-2"></div>
+            <div className="h-4 bg-gray-200 rounded mb-2"></div>
           </div>
         </div>
-      </div>
+      </Layout>
     );
   }
 
   if (!project) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold mb-4">Project Not Found</h1>
-          <p className="text-gray-600 mb-4">The project you're looking for doesn't exist or has been removed.</p>
-          <Button onClick={() => navigate('/marketplace')}>
-            Back to Marketplace
-          </Button>
+      <Layout>
+        <div className="container-custom py-8">
+          <div className="text-center">
+            <h1 className="text-2xl font-bold mb-4">Project not found</h1>
+            <Button onClick={() => navigate('/dashboard')}>
+              Return to Dashboard
+            </Button>
+          </div>
         </div>
-      </div>
+      </Layout>
     );
   }
 
-  const isClient = user?.id === project.client.id;
-  const isProfessional = user?.role === 'professional';
+  const getStatusBadge = (status: string) => {
+    const statusColors: Record<string, string> = {
+      'open': 'bg-green-100 text-green-800',
+      'in_progress': 'bg-blue-100 text-blue-800',
+      'completed': 'bg-gray-100 text-gray-800',
+      'cancelled': 'bg-red-100 text-red-800'
+    };
+
+    return (
+      <Badge className={statusColors[status] || 'bg-gray-100 text-gray-800'}>
+        {status.charAt(0).toUpperCase() + status.slice(1).replace('_', ' ')}
+      </Badge>
+    );
+  };
+
+  const requiredSkills = project.required_skills && typeof project.required_skills === 'string' 
+    ? project.required_skills.split(',').map(skill => skill.trim())
+    : [];
 
   return (
     <Layout>
-      <div className="bg-gray-50 min-h-screen">
-        <section className="bg-ttc-blue-800 py-10 text-white">
-          <div className="container-custom">
-            <div className="flex flex-col md:flex-row justify-between items-start gap-4">
-              <div>
-                <div className="flex items-center gap-2 mb-2">
-                  <Badge variant="secondary" className="bg-ttc-blue-200 text-ttc-blue-800">
-                    {project.category || 'Uncategorized'}
-                  </Badge>
-                  <Badge variant="outline" className="bg-white/10 border-white/20">
-                    {project.subcategory || 'General'}
-                  </Badge>
-                  <Badge className={`${
-                    project.status === 'open' ? 'bg-green-100 text-green-800 border-green-200' :
-                    project.status === 'assigned' ? 'bg-blue-100 text-blue-800 border-blue-200' :
-                    'bg-gray-100 text-gray-800 border-gray-200'
-                  }`}>
-                    {project.status}
-                  </Badge>
-                </div>
-                
-                <h1 className="text-3xl font-bold mb-2">{project.title}</h1>
-                
-                <div className="flex flex-wrap items-center gap-4 text-sm">
-                  {project.location && (
-                    <div className="flex items-center">
-                      <MapPin size={16} className="mr-1" /> {project.location}
-                    </div>
-                  )}
-                  <div className="flex items-center">
-                    <Calendar size={16} className="mr-1" /> Posted: {new Date(project.created_at || '').toLocaleDateString()}
-                  </div>
-                </div>
-              </div>
-              
-              <div className="flex items-center gap-4 mt-4 md:mt-0">
-                <div className="text-center">
-                  <div className="text-2xl font-bold">${project.budget}</div>
-                  <div className="text-xs">Client's Budget</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-        
-        <div className="container-custom py-8">
+      <div className="bg-gray-50 py-8">
+        <div className="container-custom">
+          <Button 
+            variant="outline" 
+            onClick={() => navigate('/project-marketplace')}
+            className="mb-6"
+          >
+            ← Back to Projects
+          </Button>
+
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div className="lg:col-span-2">
-              <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-                <TabsList className="w-full">
-                  <TabsTrigger value="overview">Overview</TabsTrigger>
-                  {isClient && <TabsTrigger value="applications">Applications</TabsTrigger>}
-                  {isProfessional && project.status === 'open' && (
-                    <TabsTrigger value="apply">Apply</TabsTrigger>
-                  )}
-                </TabsList>
-                
-                <TabsContent value="overview">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Project Details</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="prose max-w-none">
-                        <p>{project.description}</p>
-                      </div>
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="flex items-center gap-2">
-                          <DollarSign className="h-5 w-5 text-gray-500" />
-                          <div>
-                            <div className="text-sm text-gray-500">Budget</div>
-                            <div className="font-medium">TTD {project.budget.toLocaleString()}</div>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <MapPin className="h-5 w-5 text-gray-500" />
-                          <div>
-                            <div className="text-sm text-gray-500">Location</div>
-                            <div className="font-medium">{project.location}</div>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Clock className="h-5 w-5 text-gray-500" />
-                          <div>
-                            <div className="text-sm text-gray-500">Deadline</div>
-                            <div className="font-medium">
-                              {format(new Date(project.deadline), 'MMM d, yyyy')}
-                            </div>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Badge variant="secondary">{project.category}</Badge>
-                        </div>
-                      </div>
-                      
-                      {project.scope && (
-                        <div className="mt-4">
-                          <h3 className="font-semibold mb-2">Project Scope</h3>
-                          {Array.isArray(project.scope) ? (
-                            <ul className="list-disc pl-5 space-y-1">
-                              {project.scope.map((item: string, index: number) => (
-                                <li key={index}>{item}</li>
-                              ))}
-                            </ul>
-                          ) : (
-                            <p className="text-gray-600">{project.scope}</p>
-                          )}
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-                
-                <TabsContent value="applications">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Applications</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <ApplicationsTable
-                        projectId={project.id}
-                        isClient={true}
-                        onStatusChange={fetchProject}
-                      />
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-                
-                <TabsContent value="apply">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Submit Application</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <ApplicationForm
-                        projectId={project.id}
-                        onSuccess={() => {
-                          setActiveTab('overview');
-                          toast({
-                            title: "Success",
-                            description: "Your application has been submitted successfully."
-                          });
-                        }}
-                      />
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-              </Tabs>
-            </div>
-            
-            <div>
+            {/* Main Content */}
+            <div className="lg:col-span-2 space-y-6">
               <Card>
                 <CardHeader>
-                  <CardTitle>Submit Your Proposal</CardTitle>
-                  <CardDescription>
-                    {project.status === 'open' ? 
-                      "You can either accept the client's budget or make a counteroffer." :
-                      "This project is no longer accepting applications."
-                    }
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {project.status !== 'open' ? (
-                    <div className="bg-yellow-50 p-4 rounded-lg text-yellow-800 border border-yellow-200">
-                      <div className="flex items-center mb-2">
-                        <AlertTriangle className="mr-2" size={20} />
-                        <h3 className="font-medium">Project Unavailable</h3>
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <CardTitle className="text-2xl mb-2">{project.title}</CardTitle>
+                      <div className="flex items-center gap-4 text-sm text-gray-600">
+                        <span className="flex items-center gap-1">
+                          <Calendar className="h-4 w-4" />
+                          Posted {new Date(project.created_at).toLocaleDateString()}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <User className="h-4 w-4" />
+                          {project.client?.first_name} {project.client?.last_name}
+                        </span>
                       </div>
-                      <p className="text-sm">
-                        This project is no longer accepting applications as it has been {project.status}.
-                      </p>
                     </div>
-                  ) : (
-                    <>
+                    {getStatusBadge(project.status)}
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div>
+                      <h3 className="font-semibold mb-2">Description</h3>
+                      <p className="text-gray-700">{project.description}</p>
+                    </div>
+
+                    {project.requirements && project.requirements.length > 0 && (
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Your Bid Amount ($)</label>
-                        <div className="relative">
-                          <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
-                          <Input 
-                            type="number"
-                            placeholder="Enter your bid amount"
-                            className="pl-10"
-                            value={project.budget}
-                          />
+                        <h3 className="font-semibold mb-2">Requirements</h3>
+                        <ul className="list-disc pl-5 space-y-1">
+                          {project.requirements.map((req, index) => (
+                            <li key={index} className="text-gray-700">{req}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {requiredSkills.length > 0 && (
+                      <div>
+                        <h3 className="font-semibold mb-2">Required Skills</h3>
+                        <div className="flex flex-wrap gap-2">
+                          {requiredSkills.map((skill, index) => (
+                            <Badge key={index} variant="outline">
+                              {skill}
+                            </Badge>
+                          ))}
                         </div>
                       </div>
-                      
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Proposal Message</label>
-                        <Textarea 
-                          placeholder="Describe why you're the right professional for this project..."
-                          className="min-h-32"
-                        />
-                      </div>
-                    </>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Project Timeline */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Project Updates</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ProjectUpdateTimeline 
+                    projectId={project.id}
+                    projectStatus={project.status}
+                    showAddUpdate={false}
+                  />
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Sidebar */}
+            <div className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Project Details</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-center gap-2">
+                    <DollarSign className="h-4 w-4 text-gray-500" />
+                    <span className="font-medium">Budget:</span>
+                    <span>{project.budget}</span>
+                  </div>
+
+                  {project.location && (
+                    <div className="flex items-center gap-2">
+                      <MapPin className="h-4 w-4 text-gray-500" />
+                      <span className="font-medium">Location:</span>
+                      <span>{project.location}</span>
+                    </div>
+                  )}
+
+                  {project.expected_timeline && (
+                    <div className="flex items-center gap-2">
+                      <Clock className="h-4 w-4 text-gray-500" />
+                      <span className="font-medium">Timeline:</span>
+                      <span>{project.expected_timeline}</span>
+                    </div>
+                  )}
+
+                  {project.urgency && (
+                    <div className="flex items-center gap-2">
+                      <AlertTriangle className="h-4 w-4 text-gray-500" />
+                      <span className="font-medium">Urgency:</span>
+                      <span className="capitalize">{project.urgency}</span>
+                    </div>
                   )}
                 </CardContent>
               </Card>
-              
-              <div className="mt-6 bg-ttc-blue-50 p-4 rounded-lg border border-ttc-blue-100">
-                <h3 className="font-medium text-ttc-blue-800 mb-2">Why work on this project?</h3>
-                <ul className="space-y-2">
-                  <li className="flex items-start">
-                    <Check className="mr-2 text-ttc-blue-700 mt-0.5" size={16} />
-                    <span className="text-sm">Fixed price project with clear scope</span>
-                  </li>
-                  <li className="flex items-start">
-                    <Check className="mr-2 text-ttc-blue-700 mt-0.5" size={16} />
-                    <span className="text-sm">Direct communication with client</span>
-                  </li>
-                  <li className="flex items-start">
-                    <Check className="mr-2 text-ttc-blue-700 mt-0.5" size={16} />
-                    <span className="text-sm">Secure payment process</span>
-                  </li>
-                </ul>
-              </div>
 
-              {/* Add SubmitWorkForm */}
-              {isProfessional && ['in_progress', 'revision'].includes(project?.status) && (
-                <SubmitWorkForm
-                  projectId={project.id}
-                  projectStatus={project?.status}
-                  isProfessional={isProfessional}
-                  onWorkSubmitted={fetchProject}
-                />
+              {project.status === 'open' && (
+                <Card>
+                  <CardContent className="pt-6">
+                    <Button 
+                      onClick={handleApplyToProject}
+                      disabled={isApplying}
+                      className="w-full bg-ttc-blue-700 hover:bg-ttc-blue-800"
+                    >
+                      {isApplying ? "Applying..." : "Apply for this Project"}
+                    </Button>
+                  </CardContent>
+                </Card>
               )}
 
-              {/* Add ClientReviewForm */}
-              <ClientReviewForm
-                projectId={project.id}
-                projectStatus={project?.status}
-                isClient={isClient}
-                onReviewSubmitted={fetchProject}
-              />
+              {project.professional && (
+                <>
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <CheckCircle className="h-5 w-5 text-green-600" />
+                        Assigned Professional
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="font-medium">
+                        {project.professional.first_name} {project.professional.last_name}
+                      </p>
+                    </CardContent>
+                  </Card>
 
-              {/* Add InvoiceSection */}
-              <InvoiceSection
-                projectId={project.id}
-                projectStatus={project?.status}
-                isClient={isClient}
-                isProfessional={isProfessional}
-                onPaymentProcessed={fetchProject}
-              />
-
-              {/* Add ReviewForm */}
-              <ReviewForm
-                projectId={project.id}
-                projectStatus={project?.status}
-                isClient={isClient}
-                isProfessional={isProfessional}
-                onReviewSubmitted={fetchProject}
-              />
+                  <Card>
+                    <ProjectChat
+                      projectId={project.id}
+                      projectStatus={project.status}
+                      clientId={project.client_id}
+                      professionalId={project.professional_id}
+                    />
+                  </Card>
+                </>
+              )}
             </div>
           </div>
         </div>

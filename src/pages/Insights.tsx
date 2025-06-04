@@ -1,111 +1,149 @@
 
 import React from 'react';
 import Layout from '@/components/layout/Layout';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { TrendingUp, DollarSign, Briefcase, Users } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { TrendingUp, DollarSign, Users, Clock } from 'lucide-react';
 
 const Insights: React.FC = () => {
-  const marketInsights = [
-    {
-      title: "Average Project Rates",
-      value: "$85/hour",
-      change: "+12%",
-      icon: <DollarSign className="h-6 w-6" />,
-      trend: "up"
-    },
-    {
-      title: "Popular Project Types",
-      value: "Electrical, Plumbing",
-      change: "This month",
-      icon: <Briefcase className="h-6 w-6" />,
-      trend: "neutral"
-    },
-    {
-      title: "Active Clients",
-      value: "2,340",
-      change: "+8%",
-      icon: <Users className="h-6 w-6" />,
-      trend: "up"
-    },
-    {
-      title: "Market Demand",
-      value: "High",
-      change: "+15%",
-      icon: <TrendingUp className="h-6 w-6" />,
-      trend: "up"
-    }
-  ];
-
   return (
     <Layout>
-      <div className="container-custom py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-4">Market Insights</h1>
-          <p className="text-gray-600">Stay informed about market trends and opportunities in your industry.</p>
-        </div>
-
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          {marketInsights.map((insight, index) => (
-            <Card key={index}>
+      <div className="bg-gray-50 py-8">
+        <div className="container-custom">
+          <h1 className="text-3xl font-bold mb-2">Market Insights</h1>
+          <p className="text-gray-600 mb-8">
+            Stay informed with the latest trends and market data for trade services in Trinidad & Tobago
+          </p>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">{insight.title}</CardTitle>
-                <div className="text-ttc-blue-600">{insight.icon}</div>
+                <CardTitle className="text-sm font-medium">Average Project Value</CardTitle>
+                <DollarSign className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{insight.value}</div>
-                <p className={`text-xs ${
-                  insight.trend === 'up' ? 'text-green-600' : 
-                  insight.trend === 'down' ? 'text-red-600' : 'text-gray-600'
-                }`}>
-                  {insight.change} from last month
+                <div className="text-2xl font-bold">TTD 8,500</div>
+                <p className="text-xs text-muted-foreground">
+                  +12% from last month
                 </p>
               </CardContent>
             </Card>
-          ))}
-        </div>
 
-        <div className="grid lg:grid-cols-2 gap-8">
-          <Card>
-            <CardHeader>
-              <CardTitle>Industry Trends</CardTitle>
-              <CardDescription>Key developments in the trade industry</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="border-l-4 border-ttc-blue-500 pl-4">
-                <h4 className="font-semibold">Green Energy Projects Growing</h4>
-                <p className="text-sm text-gray-600">Solar panel installations up 45% this quarter</p>
-              </div>
-              <div className="border-l-4 border-ttc-green-500 pl-4">
-                <h4 className="font-semibold">Smart Home Integration</h4>
-                <p className="text-sm text-gray-600">Increasing demand for IoT and automation work</p>
-              </div>
-              <div className="border-l-4 border-yellow-500 pl-4">
-                <h4 className="font-semibold">Emergency Repairs</h4>
-                <p className="text-sm text-gray-600">Higher rates for urgent plumbing and electrical work</p>
-              </div>
-            </CardContent>
-          </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Active Professionals</CardTitle>
+                <Users className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">1,247</div>
+                <p className="text-xs text-muted-foreground">
+                  +8% from last month
+                </p>
+              </CardContent>
+            </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Opportunity Alerts</CardTitle>
-              <CardDescription>Projects that match your skills</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="bg-ttc-blue-50 p-4 rounded-lg">
-                <h4 className="font-semibold text-ttc-blue-800">High-Value Commercial Project</h4>
-                <p className="text-sm text-ttc-blue-600">$25,000 electrical renovation - Downtown Port of Spain</p>
-              </div>
-              <div className="bg-green-50 p-4 rounded-lg">
-                <h4 className="font-semibold text-green-800">Repeat Client Available</h4>
-                <p className="text-sm text-green-600">Previous 5-star client posted new plumbing project</p>
-              </div>
-              <div className="bg-yellow-50 p-4 rounded-lg">
-                <h4 className="font-semibold text-yellow-800">Urgent Project</h4>
-                <p className="text-sm text-yellow-600">Emergency HVAC repair - Premium rates offered</p>
-              </div>
-            </CardContent>
-          </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Avg. Response Time</CardTitle>
+                <Clock className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">2.4 hrs</div>
+                <p className="text-xs text-muted-foreground">
+                  -15% from last month
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Project Success Rate</CardTitle>
+                <TrendingUp className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">94.2%</div>
+                <p className="text-xs text-muted-foreground">
+                  +2% from last month
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Popular Service Categories</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span>Electrical Work</span>
+                    <div className="flex items-center gap-2">
+                      <div className="bg-ttc-blue-600 h-2 w-16 rounded"></div>
+                      <span className="text-sm text-gray-600">32%</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span>Plumbing</span>
+                    <div className="flex items-center gap-2">
+                      <div className="bg-ttc-blue-500 h-2 w-12 rounded"></div>
+                      <span className="text-sm text-gray-600">24%</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span>Carpentry</span>
+                    <div className="flex items-center gap-2">
+                      <div className="bg-ttc-blue-400 h-2 w-10 rounded"></div>
+                      <span className="text-sm text-gray-600">19%</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span>Painting</span>
+                    <div className="flex items-center gap-2">
+                      <div className="bg-ttc-blue-300 h-2 w-8 rounded"></div>
+                      <span className="text-sm text-gray-600">15%</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span>Other</span>
+                    <div className="flex items-center gap-2">
+                      <div className="bg-ttc-blue-200 h-2 w-6 rounded"></div>
+                      <span className="text-sm text-gray-600">10%</span>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Regional Activity</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span>Port of Spain</span>
+                    <span className="font-semibold">342 projects</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span>San Fernando</span>
+                    <span className="font-semibold">298 projects</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span>Chaguanas</span>
+                    <span className="font-semibold">256 projects</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span>Arima</span>
+                    <span className="font-semibold">189 projects</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span>Point Fortin</span>
+                    <span className="font-semibold">124 projects</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </div>
     </Layout>

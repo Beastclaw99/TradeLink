@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
 import { useToast } from "@/components/ui/use-toast";
@@ -60,10 +61,10 @@ const ApplicationsTab: React.FC<ApplicationsTabProps> = ({ isLoading, applicatio
       
       setWithdrawDialogOpen(false);
       
-      // Update the local application state
+      // Update the local application state with proper type casting
       const updatedApplications = localApplications.map(app => {
         if (app.id === selectedApplication.id) {
-          return { ...app, status: 'withdrawn' };
+          return { ...app, status: 'withdrawn' as Application['status'] };
         }
         return app;
       });

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
@@ -14,6 +13,13 @@ export const useProfessionalDashboard = (userId: string) => {
   const [isLoading, setIsLoading] = useState(true);
   const [profile, setProfile] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
+  const [editProject, setEditProject] = useState<Project | null>(null);
+  const [projectToDelete, setProjectToDelete] = useState<string | null>(null);
+  const [editedProject, setEditedProject] = useState<Partial<Project> | null>(null);
+  const [isProjectSubmitting, setIsProjectSubmitting] = useState(false);
+  const [projectToReview, setProjectToReview] = useState<string | null>(null);
+  const [reviewData, setReviewData] = useState<Partial<Review> | null>(null);
+  const [isReviewSubmitting, setIsReviewSubmitting] = useState(false);
 
   const fetchDashboardData = async () => {
     setIsLoading(true);
@@ -81,7 +87,36 @@ export const useProfessionalDashboard = (userId: string) => {
         });
       }
       
-      setProjects(filteredProjects);
+      // Fetch assigned projects (status = "assigned", "in_progress", "completed" and assigned_to = userId)
+      const { data: assignedProjectsData, error: assignedProjectsError } = await supabase
+        .from('projects')
+        .select(`
+          *,
+          client:profiles!projects_client_id_fkey(first_name, last_name)
+        `)
+        .eq('assigned_to', userId)
+        .in('status', ['assigned', 'in-progress', 'completed']);
+        
+      if (assignedProjectsError) {
+        console.error('Assigned projects fetch error:', assignedProjectsError);
+        throw assignedProjectsError;
+      }
+      
+      console.log('Assigned projects data:', assignedProjectsData);
+      
+      // Transform and combine open projects with assigned projects
+      const validStatuses = ['open', 'applied', 'assigned', 'in-progress', 'submitted', 'revision', 'completed', 'paid', 'archived', 'disputed'] as const;
+      
+      const transformProjects = (projects: any[]): Project[] => {
+        return projects.map(project => ({
+          ...project,
+          status: validStatuses.includes(project.status) ? project.status : 'open',
+          updated_at: project.updated_at || project.created_at
+        }));
+      };
+      
+      const allProjects = [...transformProjects(filteredProjects), ...transformProjects(assignedProjectsData || [])];
+      setProjects(allProjects);
       
       // Fetch applications made by the professional with better error handling and logging
       try {
@@ -115,7 +150,10 @@ export const useProfessionalDashboard = (userId: string) => {
         }
         console.log('Applications data:', appsData);
         
-        // Transform the data to match the Application type
+        // Transform the data to match the Application type with proper type casting
+        const validApplicationStatuses = ['pending', 'accepted', 'rejected', 'withdrawn'] as const;
+        const validProjectStatuses = ['open', 'applied', 'assigned', 'in-progress', 'submitted', 'revision', 'completed', 'paid', 'archived', 'disputed'] as const;
+        
         const transformedApps: Application[] = (appsData || []).map(app => ({
           id: app.id,
           project_id: app.project_id,
@@ -124,13 +162,13 @@ export const useProfessionalDashboard = (userId: string) => {
           proposal_message: app.proposal_message || app.cover_letter || '',
           bid_amount: app.bid_amount,
           availability: app.availability,
-          status: app.status,
+          status: validApplicationStatuses.includes(app.status as any) ? app.status as Application['status'] : 'pending',
           created_at: app.created_at,
           updated_at: app.updated_at || app.created_at,
           project: app.project ? {
             id: app.project.id,
             title: app.project.title,
-            status: app.project.status,
+            status: validProjectStatuses.includes(app.project.status as any) ? app.project.status as Project['status'] : 'open',
             budget: app.project.budget,
             created_at: app.project.created_at
           } : undefined
@@ -145,28 +183,6 @@ export const useProfessionalDashboard = (userId: string) => {
           description: "There was an issue loading your applications. Some data may be missing.",
           variant: "destructive"
         });
-      }
-      
-      // Fetch assigned projects (status = "assigned" and assigned_to = userId)
-      const { data: assignedProjectsData, error: assignedProjectsError } = await supabase
-        .from('projects')
-        .select(`
-          *,
-          client:profiles!projects_client_id_fkey(first_name, last_name)
-        `)
-        .eq('assigned_to', userId)
-        .eq('status', 'assigned');
-        
-      if (assignedProjectsError) {
-        console.error('Assigned projects fetch error:', assignedProjectsError);
-        throw assignedProjectsError;
-      }
-      
-      console.log('Assigned projects data:', assignedProjectsData);
-      
-      // Add assigned projects to the professional's view
-      if (assignedProjectsData && assignedProjectsData.length > 0) {
-        setProjects(prev => [...prev, ...assignedProjectsData]);
       }
       
       // Fetch payments for the professional
@@ -185,10 +201,12 @@ export const useProfessionalDashboard = (userId: string) => {
       
       console.log('Payments data:', paymentsData);
       
-      // Ensure each payment has a created_at field
+      // Ensure each payment has a created_at field and proper status
+      const validPaymentStatuses = ['pending', 'completed', 'failed'] as const;
       const paymentsWithDates = (paymentsData || []).map(payment => ({
         ...payment,
-        created_at: payment.created_at || new Date().toISOString()
+        created_at: payment.created_at || new Date().toISOString(),
+        status: validPaymentStatuses.includes(payment.status as any) ? payment.status as Payment['status'] : 'pending'
       }));
       
       setPayments(paymentsWithDates);
@@ -205,7 +223,14 @@ export const useProfessionalDashboard = (userId: string) => {
       }
       
       console.log('Reviews data:', reviewsData);
-      setReviews(reviewsData || []);
+      
+      // Transform reviews to handle the database field naming issue
+      const transformedReviews = (reviewsData || []).map(review => ({
+        ...review,
+        updated_at: review['updated at'] || review.created_at || new Date().toISOString()
+      }));
+      
+      setReviews(transformedReviews);
       
     } catch (error: any) {
       console.error('Dashboard data fetch error:', error);
@@ -217,6 +242,33 @@ export const useProfessionalDashboard = (userId: string) => {
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  // Mark project as complete function
+  const markProjectComplete = async (projectId: string) => {
+    try {
+      const { error } = await supabase
+        .from('projects')
+        .update({ status: 'completed' })
+        .eq('id', projectId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Project marked as completed successfully!"
+      });
+
+      // Refresh the data
+      fetchDashboardData();
+    } catch (error: any) {
+      console.error('Error marking project complete:', error);
+      toast({
+        title: "Error",
+        description: "Failed to mark project as completed",
+        variant: "destructive"
+      });
     }
   };
 
@@ -244,6 +296,154 @@ export const useProfessionalDashboard = (userId: string) => {
     return { received, pending };
   };
 
+  const handleEditInitiate = (project: Project) => {
+    setEditProject(project);
+    setEditedProject({
+      title: project.title,
+      description: project.description,
+      budget: project.budget
+    });
+  };
+
+  const handleEditCancel = () => {
+    setEditProject(null);
+    setEditedProject(null);
+  };
+
+  const handleUpdateProject = async (projectId: string, updates: Partial<Project>) => {
+    try {
+      setIsProjectSubmitting(true);
+      const { error } = await supabase
+        .from('projects')
+        .update(updates)
+        .eq('id', projectId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Project updated successfully!"
+      });
+
+      handleEditCancel();
+      fetchDashboardData();
+    } catch (error: any) {
+      console.error('Error updating project:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update project",
+        variant: "destructive"
+      });
+    } finally {
+      setIsProjectSubmitting(false);
+    }
+  };
+
+  const handleDeleteInitiate = (projectId: string) => {
+    setProjectToDelete(projectId);
+  };
+
+  const handleDeleteCancel = () => {
+    setProjectToDelete(null);
+  };
+
+  const handleDeleteProject = async (projectId: string) => {
+    try {
+      setIsProjectSubmitting(true);
+      const { error } = await supabase
+        .from('projects')
+        .delete()
+        .eq('id', projectId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Project deleted successfully!"
+      });
+
+      handleDeleteCancel();
+      fetchDashboardData();
+    } catch (error: any) {
+      console.error('Error deleting project:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete project",
+        variant: "destructive"
+      });
+    } finally {
+      setIsProjectSubmitting(false);
+    }
+  };
+
+  const handleReviewInitiate = (projectId: string) => {
+    setProjectToReview(projectId);
+    setReviewData({
+      project_id: projectId,
+      professional_id: userId,
+      rating: 0,
+      comment: ''
+    });
+  };
+
+  const handleReviewCancel = () => {
+    setProjectToReview(null);
+    setReviewData(null);
+  };
+
+  const handleReviewSubmit = async (review: Partial<Review>) => {
+    try {
+      setIsReviewSubmitting(true);
+      const { error } = await supabase
+        .from('reviews')
+        .insert([review]);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Review submitted successfully!"
+      });
+
+      handleReviewCancel();
+      fetchDashboardData();
+    } catch (error: any) {
+      console.error('Error submitting review:', error);
+      toast({
+        title: "Error",
+        description: "Failed to submit review",
+        variant: "destructive"
+      });
+    } finally {
+      setIsReviewSubmitting(false);
+    }
+  };
+
+  const handleApplicationUpdate = async (applicationId: string, status: string) => {
+    try {
+      const { error } = await supabase
+        .from('applications')
+        .update({ status })
+        .eq('id', applicationId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Application status updated successfully!"
+      });
+
+      fetchDashboardData();
+    } catch (error: any) {
+      console.error('Error updating application:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update application status",
+        variant: "destructive"
+      });
+    }
+  };
+
   return {
     projects,
     applications,
@@ -256,5 +456,23 @@ export const useProfessionalDashboard = (userId: string) => {
     fetchDashboardData,
     calculateAverageRating,
     calculatePaymentTotals,
+    editProject,
+    projectToDelete,
+    editedProject,
+    isProjectSubmitting,
+    handleEditInitiate,
+    handleEditCancel,
+    handleUpdateProject,
+    handleDeleteInitiate,
+    handleDeleteCancel,
+    handleDeleteProject,
+    projectToReview,
+    reviewData,
+    isReviewSubmitting,
+    handleReviewInitiate,
+    handleReviewCancel,
+    handleReviewSubmit,
+    handleApplicationUpdate,
+    markProjectComplete
   };
 };

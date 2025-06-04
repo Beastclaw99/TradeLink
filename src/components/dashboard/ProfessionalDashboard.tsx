@@ -1,17 +1,17 @@
-
 import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useProfessionalDashboard } from "@/hooks/useProfessionalDashboard";
-import AvailableProjectsTab from './professional/AvailableProjectsTab';
-import ApplicationsTab from './professional/ApplicationsTab';
-import ActiveProjectsTab from './professional/ActiveProjectsTab';
-import PaymentsTab from './professional/PaymentsTab';
-import ReviewsTab from './professional/ReviewsTab';
-import ProfileTab from './professional/ProfileTab';
-import ProjectApplicationForm from './professional/ProjectApplicationForm';
-import DashboardError from './professional/DashboardError';
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import ProfessionalSidebar from './ProfessionalSidebar';
+import { ProjectList } from './professional/ProjectList';
+import { ApplicationList } from './professional/ApplicationList';
+import { PaymentList } from './professional/PaymentList';
+import { ReviewList } from './professional/ReviewList';
+import ProjectApplicationForm from './professional/ProjectApplicationForm';
+import DashboardError from './professional/DashboardError';
+import { useAuth } from '@/hooks/useAuth';
+import { cn } from '@/lib/utils';
 
 interface ProfessionalDashboardProps {
   userId: string;
@@ -23,8 +23,10 @@ const ProfessionalDashboard: React.FC<ProfessionalDashboardProps> = ({ userId })
   const [coverLetter, setCoverLetter] = useState('');
   const [bidAmount, setBidAmount] = useState<number | null>(null);
   const [selectedProject, setSelectedProject] = useState<string | null>(null);
+  const [availability, setAvailability] = useState('');
   const [isEditing, setIsEditing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
   
   const {
     projects,
@@ -38,7 +40,26 @@ const ProfessionalDashboard: React.FC<ProfessionalDashboardProps> = ({ userId })
     fetchDashboardData,
     calculateAverageRating,
     calculatePaymentTotals,
+    editProject,
+    projectToDelete,
+    editedProject,
+    isProjectSubmitting,
+    handleEditInitiate,
+    handleEditCancel,
+    handleUpdateProject,
+    handleDeleteInitiate,
+    handleDeleteCancel,
+    handleDeleteProject,
+    projectToReview,
+    reviewData,
+    isReviewSubmitting,
+    handleReviewInitiate,
+    handleReviewCancel,
+    handleReviewSubmit,
+    handleApplicationUpdate,
   } = useProfessionalDashboard(userId);
+
+  const { user } = useAuth();
 
   const handleApplyToProject = async () => {
     if (!selectedProject || !coverLetter.trim() || bidAmount === null) {
@@ -71,6 +92,7 @@ const ProfessionalDashboard: React.FC<ProfessionalDashboardProps> = ({ userId })
         setSelectedProject(null);
         setCoverLetter('');
         setBidAmount(null);
+        setAvailability('');
         return;
       }
       
@@ -82,7 +104,8 @@ const ProfessionalDashboard: React.FC<ProfessionalDashboardProps> = ({ userId })
             professional_id: userId,
             cover_letter: coverLetter,
             bid_amount: bidAmount,
-            proposal_message: coverLetter, // Using the same field for both for backward compatibility
+            proposal_message: coverLetter,
+            availability: availability,
             status: 'pending'
           }
         ])
@@ -99,6 +122,7 @@ const ProfessionalDashboard: React.FC<ProfessionalDashboardProps> = ({ userId })
       setCoverLetter('');
       setSelectedProject(null);
       setBidAmount(null);
+      setAvailability('');
       
       // Refresh data
       fetchDashboardData();
@@ -180,33 +204,7 @@ const ProfessionalDashboard: React.FC<ProfessionalDashboardProps> = ({ userId })
     setSelectedProject(null);
     setCoverLetter('');
     setBidAmount(null);
-  };
-
-  // Pass shared state and handlers to the tab components
-  const sharedProps = {
-    userId,
-    isLoading,
-    projects,
-    applications,
-    payments,
-    reviews,
-    skills,
-    profile,
-    coverLetter,
-    setCoverLetter,
-    bidAmount,
-    setBidAmount,
-    selectedProject,
-    setSelectedProject,
-    isApplying,
-    handleApplyToProject,
-    markProjectComplete,
-    calculateAverageRating,
-    calculatePaymentTotals,
-    updateProfile,
-    isEditing,
-    setIsEditing,
-    isSubmitting
+    setAvailability('');
   };
 
   if (error) {
@@ -214,18 +212,52 @@ const ProfessionalDashboard: React.FC<ProfessionalDashboardProps> = ({ userId })
   }
 
   return (
-    <Tabs defaultValue="featured">
-      <TabsList className="mb-6">
-        <TabsTrigger value="featured" data-value="featured">Available Projects</TabsTrigger>
-        <TabsTrigger value="applications" data-value="applications">Your Applications</TabsTrigger>
-        <TabsTrigger value="active" data-value="active">Active Projects</TabsTrigger>
-        <TabsTrigger value="payments" data-value="payments">Payments</TabsTrigger>
-        <TabsTrigger value="reviews" data-value="reviews">Reviews</TabsTrigger>
-        <TabsTrigger value="profile" data-value="profile">Profile</TabsTrigger>
-      </TabsList>
-      
-      <TabsContent value="featured">
-        <AvailableProjectsTab {...sharedProps} />
+    <div className="flex h-screen">
+      <ProfessionalSidebar onExpand={setIsSidebarExpanded} />
+      <main className={cn(
+        "flex-1 overflow-y-auto p-8 transition-all duration-300",
+        isSidebarExpanded ? "mr-64" : "mr-16"
+      )}>
+        <Tabs defaultValue="available" className="w-full">
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="available">Available Projects</TabsTrigger>
+            <TabsTrigger value="applications">Applications</TabsTrigger>
+            <TabsTrigger value="active">Active Projects</TabsTrigger>
+            <TabsTrigger value="payments">Payments</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="available">
+            <ProjectList
+              projects={projects.filter(p => p.status === 'open')}
+              isLoading={isLoading}
+              onApply={setSelectedProject}
+            />
+          </TabsContent>
+
+          <TabsContent value="applications">
+            <ApplicationList
+              applications={applications}
+              isLoading={isLoading}
+              onApplicationUpdate={handleApplicationUpdate}
+            />
+          </TabsContent>
+
+          <TabsContent value="active">
+            <ProjectList
+              projects={projects.filter(p => p.status === 'assigned' || p.status === 'in-progress')}
+              isLoading={isLoading}
+              onComplete={markProjectComplete}
+            />
+          </TabsContent>
+
+          <TabsContent value="payments">
+            <PaymentList
+              payments={payments}
+              isLoading={isLoading}
+            />
+          </TabsContent>
+        </Tabs>
+
         {selectedProject && (
           <ProjectApplicationForm
             selectedProject={selectedProject}
@@ -234,37 +266,16 @@ const ProfessionalDashboard: React.FC<ProfessionalDashboardProps> = ({ userId })
             setCoverLetter={setCoverLetter}
             bidAmount={bidAmount}
             setBidAmount={setBidAmount}
+            availability={availability}
+            setAvailability={setAvailability}
             isApplying={isApplying}
             handleApplyToProject={handleApplyToProject}
             onCancel={cancelApplication}
+            userSkills={skills}
           />
         )}
-      </TabsContent>
-      
-      <TabsContent value="applications">
-        <ApplicationsTab 
-          isLoading={isLoading} 
-          applications={applications}
-          userId={userId}
-        />
-      </TabsContent>
-      
-      <TabsContent value="active">
-        <ActiveProjectsTab {...sharedProps} />
-      </TabsContent>
-      
-      <TabsContent value="payments">
-        <PaymentsTab {...sharedProps} />
-      </TabsContent>
-      
-      <TabsContent value="reviews">
-        <ReviewsTab {...sharedProps} />
-      </TabsContent>
-      
-      <TabsContent value="profile">
-        <ProfileTab {...sharedProps} />
-      </TabsContent>
-    </Tabs>
+      </main>
+    </div>
   );
 };
 

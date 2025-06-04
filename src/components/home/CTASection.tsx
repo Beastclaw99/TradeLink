@@ -1,10 +1,21 @@
-
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { FileText, Search } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 
 const CTASection: React.FC = () => {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
+  const handlePostProject = () => {
+    if (!user) {
+      navigate('/login', { state: { redirectTo: '/client/create-project' } });
+    } else {
+      navigate('/client/create-project');
+    }
+  };
+
   return (
     <section className="py-16 bg-ttc-blue-800 text-white">
       <div className="container-custom">
@@ -39,48 +50,45 @@ const CTASection: React.FC = () => {
               </div>
             </div>
             
-            <Link to="/post-job" className="mt-8 inline-block">
-              <Button className="bg-white text-ttc-blue-700 hover:bg-blue-50 font-semibold py-5 px-6">
-                Post a Job
-              </Button>
-            </Link>
+            <Button 
+              className="mt-8 bg-white text-ttc-blue-700 hover:bg-blue-50 font-semibold py-5 px-6"
+              onClick={handlePostProject}
+            >
+              Post a Project
+            </Button>
           </div>
           
-          <div className="bg-ttc-green-600 rounded-lg p-8">
+          <div className="bg-ttc-green-700 rounded-lg p-8">
             <h2 className="text-2xl md:text-3xl font-bold mb-4">
-              Are you a skilled professional?
+              Are you a professional?
             </h2>
-            <p className="text-green-50 mb-6">
-              Join our network of professionals and connect with clients looking for your skills.
+            <p className="text-green-100 mb-6">
+              Join our network of skilled trade professionals and grow your business.
             </p>
             
             <div className="space-y-4">
               <div className="flex items-start">
                 <div className="mr-4 bg-white/10 p-2 rounded">
-                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                  </svg>
+                  <FileText className="h-5 w-5" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-lg">Create a professional profile</h3>
-                  <p className="text-sm text-green-50">Showcase your skills, experience, and portfolio</p>
+                  <h3 className="font-semibold text-lg">Create your profile</h3>
+                  <p className="text-sm text-green-100">Showcase your skills and experience</p>
                 </div>
               </div>
               
               <div className="flex items-start">
                 <div className="mr-4 bg-white/10 p-2 rounded">
-                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2z" />
-                  </svg>
+                  <Search className="h-5 w-5" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-lg">Accept projects & get paid</h3>
-                  <p className="text-sm text-green-50">Grow your business with a steady flow of clients</p>
+                  <h3 className="font-semibold text-lg">Find new clients</h3>
+                  <p className="text-sm text-green-100">Connect with clients looking for your services</p>
                 </div>
               </div>
             </div>
             
-            <Link to="/join-network" className="mt-8 inline-block">
+            <Link to="/signup" className="mt-8 inline-block">
               <Button className="bg-white text-ttc-green-700 hover:bg-green-50 font-semibold py-5 px-6">
                 Join as a Professional
               </Button>

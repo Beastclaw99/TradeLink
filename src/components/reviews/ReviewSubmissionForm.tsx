@@ -4,189 +4,164 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Star, Camera } from 'lucide-react';
+import { StarRating } from '@/components/ui/star-rating';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Info, Star, MessageSquare, CheckCircle } from 'lucide-react';
 
 interface ReviewSubmissionFormProps {
-  projectId?: string;
-  professionalName?: string;
+  projectId: string;
+  revieweeId: string;
+  revieweeType: 'client' | 'professional';
   onSubmit?: (review: any) => void;
 }
 
 const ReviewSubmissionForm: React.FC<ReviewSubmissionFormProps> = ({
-  projectId = 'proj-123',
-  professionalName = 'John Smith',
+  projectId,
+  revieweeId,
+  revieweeType,
   onSubmit
 }) => {
   const [rating, setRating] = useState(0);
-  const [hoverRating, setHoverRating] = useState(0);
   const [reviewText, setReviewText] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  
-  // Category ratings
-  const [categoryRatings, setCategoryRatings] = useState({
-    quality: 0,
-    timeliness: 0,
-    communication: 0,
-    professionalism: 0
-  });
 
-  const categories = [
-    { key: 'quality', label: 'Quality of Work' },
-    { key: 'timeliness', label: 'Timeliness' },
-    { key: 'communication', label: 'Communication' },
-    { key: 'professionalism', label: 'Professionalism' }
-  ];
-
-  const handleSubmit = async () => {
-    if (rating === 0) {
-      alert('Please provide an overall rating');
-      return;
-    }
-
-    setIsSubmitting(true);
-    
-    const reviewData = {
-      projectId,
-      professionalName,
-      overallRating: rating,
-      categoryRatings,
-      reviewText,
-      submittedAt: new Date().toISOString()
-    };
-
-    // TODO: Integrate with backend API
-    await new Promise(resolve => setTimeout(resolve, 1500)); // Simulate API call
-    
-    console.log('Review submitted:', reviewData);
-    
-    if (onSubmit) {
-      onSubmit(reviewData);
+  const getReviewPrompts = () => {
+    if (revieweeType === 'client') {
+      return [
+        'How clear were the project requirements and communication?',
+        'Was the client responsive and professional?',
+        'Were payments made on time as agreed?',
+        'Would you work with this client again?'
+      ];
     } else {
-      alert('Review submitted successfully! (Placeholder)');
+      return [
+        'How was the quality of work delivered?',
+        'Was the professional reliable and on time?',
+        'How was their communication throughout the project?',
+        'Would you hire this professional again?'
+      ];
     }
-    
-    setIsSubmitting(false);
   };
 
-  const StarRating = ({ 
-    value, 
-    onChange, 
-    onHover = () => {}, 
-    size = 'default' 
-  }: { 
-    value: number; 
-    onChange: (rating: number) => void;
-    onHover?: (rating: number) => void;
-    size?: 'default' | 'large';
-  }) => {
-    const starSize = size === 'large' ? 'h-8 w-8' : 'h-5 w-5';
-    
-    return (
-      <div className="flex gap-1">
-        {[1, 2, 3, 4, 5].map((star) => (
-          <Star
-            key={star}
-            className={`${starSize} cursor-pointer transition-colors ${
-              star <= (hoverRating || value)
-                ? 'fill-yellow-400 text-yellow-400'
-                : 'text-gray-300'
-            }`}
-            onClick={() => onChange(star)}
-            onMouseEnter={() => onHover(star)}
-            onMouseLeave={() => onHover(0)}
-          />
-        ))}
-      </div>
-    );
+  const getRatingDescriptions = () => {
+    return {
+      1: 'Poor - Significant issues',
+      2: 'Below Average - Some concerns',
+      3: 'Average - Met basic expectations',
+      4: 'Good - Exceeded expectations',
+      5: 'Excellent - Outstanding work'
+    };
   };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (onSubmit) {
+      onSubmit({
+        projectId,
+        revieweeId,
+        revieweeType,
+        rating,
+        comment: reviewText
+      });
+    }
+  };
+
+  const ratingDescriptions = getRatingDescriptions();
+  const reviewPrompts = getReviewPrompts();
 
   return (
-    <Card className="max-w-2xl mx-auto">
+    <Card>
       <CardHeader>
-        <CardTitle>Review & Rate Professional</CardTitle>
-        <p className="text-gray-600">
-          How was your experience working with {professionalName}?
+        <CardTitle className="flex items-center gap-2">
+          <Star className="h-5 w-5 text-yellow-500" />
+          Review {revieweeType === 'client' ? 'Client' : 'Professional'}
+        </CardTitle>
+        <p className="text-sm text-gray-600">
+          Your honest feedback helps build trust in the ProLinkTT community and helps others make informed decisions.
         </p>
       </CardHeader>
-      <CardContent className="space-y-6">
-        {/* Overall Rating */}
-        <div className="text-center space-y-3">
-          <Label className="text-lg font-medium">Overall Rating</Label>
-          <StarRating
-            value={rating}
-            onChange={setRating}
-            onHover={setHoverRating}
-            size="large"
-          />
-          <p className="text-sm text-gray-500">
+      <CardContent>
+        <form onSubmit={handleSubmit} className="space-y-6">
+          
+          {/* Rating Section */}
+          <div className="space-y-3">
+            <Label className="flex items-center gap-2">
+              <Star className="h-4 w-4" />
+              Overall Rating *
+            </Label>
+            <StarRating
+              value={rating}
+              onChange={setRating}
+              className="mt-2"
+            />
+            
             {rating > 0 && (
-              <>
-                {rating === 1 && 'Poor'}
-                {rating === 2 && 'Fair'}
-                {rating === 3 && 'Good'}
-                {rating === 4 && 'Very Good'}
-                {rating === 5 && 'Excellent'}
-              </>
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <p className="text-sm font-medium text-blue-900">
+                  {rating} {rating === 1 ? 'Star' : 'Stars'} - {ratingDescriptions[rating as keyof typeof ratingDescriptions]}
+                </p>
+              </div>
             )}
-          </p>
-        </div>
-
-        {/* Category Ratings */}
-        <div className="space-y-4">
-          <Label className="text-base font-medium">Rate by Category</Label>
-          {categories.map((category) => (
-            <div key={category.key} className="flex items-center justify-between">
-              <span className="text-sm font-medium">{category.label}</span>
-              <StarRating
-                value={categoryRatings[category.key as keyof typeof categoryRatings]}
-                onChange={(rating) => setCategoryRatings(prev => ({
-                  ...prev,
-                  [category.key]: rating
-                }))}
-              />
-            </div>
-          ))}
-        </div>
-
-        {/* Written Review */}
-        <div className="space-y-2">
-          <Label htmlFor="review">Written Review</Label>
-          <Textarea
-            id="review"
-            value={reviewText}
-            onChange={(e) => setReviewText(e.target.value)}
-            placeholder="Share details about your experience, quality of work, timeliness, and professionalism..."
-            rows={5}
-          />
-        </div>
-
-        {/* Photo Upload Placeholder */}
-        <div className="space-y-2">
-          <Label>Add Photos (Optional)</Label>
-          <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-            <Camera className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-            <p className="text-sm text-gray-600">
-              Upload photos of the completed work
-            </p>
-            <Button variant="outline" size="sm" className="mt-2">
-              Choose Files
-            </Button>
-            {/* TODO: Implement file upload functionality */}
           </div>
-        </div>
+          
+          {/* Review Text Section */}
+          <div className="space-y-3">
+            <Label htmlFor="review" className="flex items-center gap-2">
+              <MessageSquare className="h-4 w-4" />
+              Written Review *
+            </Label>
+            <Textarea
+              id="review"
+              value={reviewText}
+              onChange={(e) => setReviewText(e.target.value)}
+              placeholder={`Share your experience working with this ${revieweeType}...`}
+              className="mt-2 min-h-[120px]"
+              rows={5}
+            />
+            
+            {/* Writing Prompts */}
+            <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+              <p className="text-sm font-medium text-gray-700 mb-2">💡 Consider addressing these points:</p>
+              <ul className="text-sm text-gray-600 space-y-1">
+                {reviewPrompts.map((prompt, index) => (
+                  <li key={index} className="flex items-start gap-2">
+                    <span className="w-1 h-1 bg-gray-400 rounded-full mt-2 flex-shrink-0"></span>
+                    {prompt}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            
+            <p className="text-xs text-gray-500">
+              {reviewText.length}/500 characters (aim for at least 50 characters for a helpful review)
+            </p>
+          </div>
 
-        {/* Submit Button */}
-        <Button 
-          onClick={handleSubmit} 
-          disabled={isSubmitting || rating === 0}
-          className="w-full"
-        >
-          {isSubmitting ? 'Submitting Review...' : 'Submit Review'}
-        </Button>
+          {/* Review Guidelines */}
+          <Alert>
+            <Info className="h-4 w-4" />
+            <AlertDescription className="text-sm">
+              <strong>Review Guidelines:</strong> Be honest, specific, and constructive. 
+              Focus on the work and professionalism. Reviews are public and help build trust in the community.
+            </AlertDescription>
+          </Alert>
 
-        <p className="text-xs text-gray-500 text-center">
-          Your review will be visible to other users and help improve our community.
-        </p>
+          {/* Submit Button */}
+          <Button 
+            type="submit" 
+            disabled={rating === 0 || reviewText.trim().length < 10}
+            className="w-full"
+            size="lg"
+          >
+            <CheckCircle className="h-4 w-4 mr-2" />
+            Submit Review
+          </Button>
+          
+          {(rating === 0 || reviewText.trim().length < 10) && (
+            <p className="text-sm text-gray-500 text-center">
+              Please provide a rating and write at least 10 characters for your review.
+            </p>
+          )}
+        </form>
       </CardContent>
     </Card>
   );

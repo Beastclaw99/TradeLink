@@ -1,82 +1,105 @@
-
 import React from 'react';
-import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { DollarSign, Clock, AlertCircle } from 'lucide-react';
+import { ProjectData } from '../types';
 
 interface BudgetTimelineStepProps {
-  data: any;
-  onUpdate: (data: any) => void;
+  data: ProjectData;
+  onUpdate: (data: Partial<ProjectData>) => void;
 }
 
-const BudgetTimelineStep: React.FC<BudgetTimelineStepProps> = ({ data, onUpdate }) => {
-  const timelineOptions = [
-    'ASAP (Within 1 week)',
-    'Within 2 weeks',
-    'Within 1 month',
-    'Within 3 months',
-    'Flexible timing'
-  ];
+const TIMELINE_OPTIONS = [
+  { value: 'less_than_1_month', label: 'Less than 1 month' },
+  { value: '1_to_3_months', label: '1-3 months' },
+  { value: '3_to_6_months', label: '3-6 months' },
+  { value: 'more_than_6_months', label: 'More than 6 months' }
+];
 
-  const urgencyLevels = [
-    { value: 'low', label: 'Low Priority', description: 'Can wait if needed' },
-    { value: 'medium', label: 'Medium Priority', description: 'Prefer sooner than later' },
-    { value: 'high', label: 'High Priority', description: 'Needs attention soon' },
-    { value: 'urgent', label: 'Urgent', description: 'Critical/emergency situation' }
-  ];
+const URGENCY_OPTIONS = [
+  { value: 'low', label: 'Low - Flexible timeline' },
+  { value: 'medium', label: 'Medium - Standard timeline' },
+  { value: 'high', label: 'High - Urgent completion needed' }
+];
+
+const BudgetTimelineStep: React.FC<BudgetTimelineStepProps> = ({ data, onUpdate }) => {
+  const handleBudgetChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    if (value === '') {
+      onUpdate({ budget: 0 });
+    } else {
+      const numValue = parseFloat(value);
+      if (!isNaN(numValue) && numValue >= 0) {
+        onUpdate({ budget: numValue });
+      }
+    }
+  };
 
   return (
     <div className="space-y-6">
-      <div className="space-y-2">
-        <Label htmlFor="budget">Budget (TTD)</Label>
-        <Input
-          id="budget"
-          type="number"
-          value={data.budget}
-          onChange={(e) => onUpdate({ budget: Number(e.target.value) })}
-          placeholder="0"
-        />
-        <p className="text-sm text-gray-600">
-          Enter your total budget for this project
-        </p>
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="timeline">Timeline</Label>
-        <Select value={data.timeline} onValueChange={(value) => onUpdate({ timeline: value })}>
-          <SelectTrigger>
-            <SelectValue placeholder="Select timeline" />
-          </SelectTrigger>
-          <SelectContent>
-            {timelineOptions.map((option) => (
-              <SelectItem key={option} value={option}>
-                {option}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div className="space-y-4">
-        <Label className="text-base font-medium">Project Urgency</Label>
-        <RadioGroup 
-          value={data.urgency} 
-          onValueChange={(value) => onUpdate({ urgency: value })}
-        >
-          {urgencyLevels.map((level) => (
-            <div key={level.value} className="flex items-start space-x-3 p-3 border rounded-lg">
-              <RadioGroupItem value={level.value} id={level.value} className="mt-1" />
-              <div className="flex-1">
-                <Label htmlFor={level.value} className="font-medium cursor-pointer">
-                  {level.label}
-                </Label>
-                <p className="text-sm text-gray-600">{level.description}</p>
-              </div>
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Budget & Timeline</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="space-y-2">
+            <Label htmlFor="budget">Project Budget</Label>
+            <div className="relative">
+              <DollarSign className="absolute left-3 top-2.5 h-4 w-4 text-gray-500" />
+              <Input
+                id="budget"
+                type="number"
+                value={data.budget === 0 ? '' : data.budget}
+                onChange={handleBudgetChange}
+                className="pl-9"
+                placeholder="Enter your budget"
+                min="0"
+                step="0.01"
+              />
             </div>
-          ))}
-        </RadioGroup>
-      </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="timeline">Expected Timeline</Label>
+            <Select
+              value={data.timeline}
+              onValueChange={(value) => onUpdate({ timeline: value })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select timeline" />
+              </SelectTrigger>
+              <SelectContent>
+                {TIMELINE_OPTIONS.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="urgency">Project Urgency</Label>
+            <Select
+              value={data.urgency}
+              onValueChange={(value) => onUpdate({ urgency: value })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select urgency level" />
+              </SelectTrigger>
+              <SelectContent>
+                {URGENCY_OPTIONS.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };

@@ -1,9 +1,8 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Star } from "lucide-react";
+import { StarRating } from "@/components/ui/star-rating";
 import { Review, Project } from '../types';
 
 interface ProfileTabProps {
@@ -74,18 +73,11 @@ const ProfileTab: React.FC<ProfileTabProps> = ({
           </CardHeader>
           <CardContent>
             <div className="flex items-center mb-4">
-              <div className="flex">
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <Star 
-                    key={star} 
-                    className={`w-5 h-5 ${
-                      star <= Number(calculateAverageRating()) 
-                        ? 'text-yellow-400 fill-yellow-400' 
-                        : 'text-gray-300'
-                    }`}
-                  />
-                ))}
-              </div>
+              <StarRating
+                value={Number(calculateAverageRating())}
+                onChange={() => {}}
+                className="mt-2"
+              />
               <span className="ml-2 text-lg font-bold">{calculateAverageRating()}</span>
               <span className="ml-2 text-gray-500">({reviews.length} reviews)</span>
             </div>

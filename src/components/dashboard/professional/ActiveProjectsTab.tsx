@@ -1,130 +1,209 @@
+
 import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Briefcase, ChevronDown, ChevronUp } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Calendar, DollarSign, MapPin, Clock, CheckCircle2, Star } from "lucide-react";
 import { Project } from '../types';
-import ProjectUpdateTimeline from "@/components/project/ProjectUpdateTimeline";
 
 interface ActiveProjectsTabProps {
-  isLoading: boolean;
   projects: Project[];
-  userId: string;
   markProjectComplete: (projectId: string) => Promise<void>;
 }
 
 const ActiveProjectsTab: React.FC<ActiveProjectsTabProps> = ({ 
-  isLoading, 
   projects, 
-  userId, 
   markProjectComplete 
 }) => {
-  const [expandedProjects, setExpandedProjects] = useState<Record<string, boolean>>({});
+  const [completingProjects, setCompletingProjects] = useState<Set<string>>(new Set());
 
-  const toggleProjectExpansion = (projectId: string) => {
-    setExpandedProjects(prev => ({
-      ...prev,
-      [projectId]: !prev[projectId]
-    }));
+  // Filter active projects (assigned or in-progress)
+  const activeProjects = projects.filter(project => 
+    project.status === 'assigned' || project.status === 'in-progress'
+  );
+
+  // Filter completed projects
+  const completedProjects = projects.filter(project => 
+    project.status === 'completed'
+  );
+
+  const handleCompleteProject = async (projectId: string) => {
+    setCompletingProjects(prev => new Set(prev).add(projectId));
+    try {
+      await markProjectComplete(projectId);
+    } finally {
+      setCompletingProjects(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(projectId);
+        return newSet;
+      });
+    }
   };
 
-  return (
-    <>
-      <h2 className="text-2xl font-bold mb-4">Your Active Projects</h2>
-      {isLoading ? (
-        <p>Loading active projects...</p>
-      ) : projects.filter(p => p.status === 'assigned' && p.assigned_to === userId).length === 0 ? (
-        <div className="text-center py-8">
-          <Briefcase className="w-12 h-12 mx-auto text-ttc-neutral-400" />
-          <p className="mt-4 text-ttc-neutral-600">You don't have any active projects at the moment.</p>
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'assigned':
+        return 'bg-blue-100 text-blue-800';
+      case 'in-progress':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'completed':
+        return 'bg-green-100 text-green-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'assigned':
+        return <Calendar className="w-4 h-4" />;
+      case 'in-progress':
+        return <Clock className="w-4 h-4" />;
+      case 'completed':
+        return <CheckCircle2 className="w-4 h-4" />;
+      default:
+        return null;
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
+
+  const ProjectCard = ({ project }: { project: Project }) => (
+    <Card key={project.id} className="hover:shadow-md transition-shadow">
+      <CardHeader>
+        <div className="flex justify-between items-start">
+          <div className="flex-1">
+            <CardTitle className="text-lg mb-2">{project.title}</CardTitle>
+            <div className="flex items-center gap-2 mb-2">
+              <Badge className={getStatusColor(project.status)}>
+                {getStatusIcon(project.status)}
+                <span className="ml-1 capitalize">{project.status.replace('-', ' ')}</span>
+              </Badge>
+            </div>
+          </div>
         </div>
-      ) : (
-        <div className="grid gap-6 md:grid-cols-1">
-          {projects
-            .filter(p => p.status === 'assigned' && p.assigned_to === userId)
-            .map(project => (
-              <Card key={project.id}>
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                  <CardTitle>{project.title}</CardTitle>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => toggleProjectExpansion(project.id)}
-                      className="ml-2"
-                    >
-                      {expandedProjects[project.id] ? (
-                        <ChevronUp className="h-4 w-4" />
-                      ) : (
-                        <ChevronDown className="h-4 w-4" />
-                      )}
-                    </Button>
-                  </div>
-                  <CardDescription className="flex items-center justify-between">
-                    <span>Started on {new Date(project.created_at || '').toLocaleDateString()}</span>
-                    <span className="px-2 py-1 text-xs rounded-full bg-blue-100 text-blue-800">
-                      In Progress
-                    </span>
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div>
-                  <p className="text-sm text-ttc-neutral-600 mb-4">{project.description}</p>
-                  <p className="font-medium">Budget: ${project.budget}</p>
-                  <p className="text-sm mt-4">Client: {project.client?.first_name} {project.client?.last_name}</p>
-                    </div>
-                    
-                    {expandedProjects[project.id] && (
-                      <div className="mt-6 border-t pt-4">
-                        <h3 className="text-lg font-semibold mb-4">Project Updates</h3>
-                        <ProjectUpdateTimeline projectId={project.id} />
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-                <CardFooter>
-                  <Button 
-                    className="w-full bg-green-600 hover:bg-green-700"
-                    onClick={() => markProjectComplete(project.id)}
-                  >
-                    Mark as Completed
-                  </Button>
-                </CardFooter>
-              </Card>
-          ))}
+        
+        <div className="flex items-center text-sm text-gray-600 mb-2">
+          <span>Client: {project.client?.first_name} {project.client?.last_name}</span>
         </div>
-      )}
+      </CardHeader>
       
-      <h2 className="text-2xl font-bold mb-4 mt-8">Completed Projects</h2>
-      {projects.filter(p => p.status === 'completed' && p.assigned_to === userId).length === 0 ? (
-        <div className="text-center py-8">
-          <p className="text-ttc-neutral-600">You don't have any completed projects yet.</p>
+      <CardContent>
+        <p className="text-sm text-gray-600 mb-4 line-clamp-3">
+          {project.description}
+        </p>
+        
+        <div className="grid grid-cols-2 gap-4 mb-4">
+          <div className="flex items-center gap-2">
+            <DollarSign className="w-4 h-4 text-gray-500" />
+            <span className="text-sm">
+              ${project.budget?.toLocaleString() || 'N/A'}
+            </span>
+          </div>
+          
+          {project.location && (
+            <div className="flex items-center gap-2">
+              <MapPin className="w-4 h-4 text-gray-500" />
+              <span className="text-sm">{project.location}</span>
+            </div>
+          )}
+          
+          <div className="flex items-center gap-2">
+            <Calendar className="w-4 h-4 text-gray-500" />
+            <span className="text-sm">
+              Started: {formatDate(project.created_at)}
+            </span>
+          </div>
+          
+          {project.deadline && (
+            <div className="flex items-center gap-2">
+              <Clock className="w-4 h-4 text-gray-500" />
+              <span className="text-sm">
+                Due: {formatDate(project.deadline)}
+              </span>
+            </div>
+          )}
         </div>
-      ) : (
-        <div className="grid gap-6 md:grid-cols-2">
-          {projects
-            .filter(p => p.status === 'completed' && p.assigned_to === userId)
-            .map(project => (
-              <Card key={project.id}>
-                <CardHeader>
-                  <CardTitle>{project.title}</CardTitle>
-                  <CardDescription className="flex items-center justify-between">
-                    <span>Completed</span>
-                    <span className="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">
-                      Completed
-                    </span>
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-ttc-neutral-600 mb-4">{project.description}</p>
-                  <p className="font-medium">Budget: ${project.budget}</p>
-                  <p className="text-sm mt-4">Client: {project.client?.first_name} {project.client?.last_name}</p>
-                </CardContent>
-              </Card>
-          ))}
+        
+        {(project.status === 'assigned' || project.status === 'in-progress') && (
+          <div className="flex gap-2">
+            <Button
+              onClick={() => handleCompleteProject(project.id)}
+              disabled={completingProjects.has(project.id)}
+              className="w-full bg-green-600 hover:bg-green-700"
+            >
+              {completingProjects.has(project.id) ? (
+                <>
+                  <Clock className="w-4 h-4 mr-2 animate-spin" />
+                  Marking Complete...
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 className="w-4 h-4 mr-2" />
+                  Mark as Complete
+                </>
+              )}
+            </Button>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+
+  return (
+    <div className="space-y-6">
+      {/* Active Projects Section */}
+      <div>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-2xl font-bold">Active Projects</h2>
+          <Badge variant="outline" className="text-sm">
+            {activeProjects.length} active
+          </Badge>
+        </div>
+        
+        {activeProjects.length === 0 ? (
+          <Card>
+            <CardContent className="py-8 text-center">
+              <Calendar className="w-12 h-12 mx-auto text-gray-400 mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">No Active Projects</h3>
+              <p className="text-gray-500">
+                You don't have any active projects at the moment. Check the Available Projects tab to find new opportunities.
+              </p>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid gap-6 md:grid-cols-2">
+            {activeProjects.map(project => (
+              <ProjectCard key={project.id} project={project} />
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Completed Projects Section */}
+      {completedProjects.length > 0 && (
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-2xl font-bold">Completed Projects</h2>
+            <Badge variant="outline" className="text-sm">
+              {completedProjects.length} completed
+            </Badge>
+          </div>
+          
+          <div className="grid gap-6 md:grid-cols-2">
+            {completedProjects.map(project => (
+              <ProjectCard key={project.id} project={project} />
+            ))}
+          </div>
         </div>
       )}
-    </>
+    </div>
   );
 };
 

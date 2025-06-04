@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from "@/lib/utils";
 import { 
@@ -26,7 +26,7 @@ const sidebarItems = [
   {
     title: "My Profile",
     icon: User,
-    href: "/dashboard?tab=profile",
+    href: "/profile",
     description: "Manage personal information, skills & rates"
   },
   {
@@ -79,23 +79,34 @@ const sidebarItems = [
   }
 ];
 
-const ProfessionalSidebar: React.FC = () => {
+interface ProfessionalSidebarProps {
+  onExpand: (expanded: boolean) => void;
+}
+
+const ProfessionalSidebar: React.FC<ProfessionalSidebarProps> = ({ onExpand }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const location = useLocation();
 
+  useEffect(() => {
+    onExpand(isExpanded);
+  }, [isExpanded, onExpand]);
+
+  const handleToggle = () => {
+    setIsExpanded(!isExpanded);
+  };
+
   return (
-    <div className="fixed right-0 top-16 z-50 h-[calc(100vh-4rem)]">
-      {/* Sidebar content */}
-      <div className={cn(
-        "bg-white border-l border-gray-200 shadow-lg h-full transition-all duration-300 ease-in-out",
-        isExpanded ? "w-64" : "w-16"
-      )}>
+    <aside className={cn(
+      "fixed right-0 top-16 z-40 h-[calc(100vh-4rem)] transition-all duration-300 ease-in-out",
+      isExpanded ? "w-64" : "w-16"
+    )}>
+      <div className="bg-white border-l border-gray-200 shadow-lg h-full">
         {/* Toggle button */}
         <Button
           variant="ghost"
           size="icon"
           className="absolute -left-4 top-6 h-8 w-8 rounded-full border border-gray-200 bg-white shadow-md hover:bg-gray-50"
-          onClick={() => setIsExpanded(!isExpanded)}
+          onClick={handleToggle}
         >
           {isExpanded ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
         </Button>
@@ -118,7 +129,7 @@ const ProfessionalSidebar: React.FC = () => {
         </div>
 
         {/* Navigation items */}
-        <div className="p-2 space-y-1">
+        <nav className="p-2 space-y-1">
           {sidebarItems.map((item) => {
             const isActive = location.pathname === item.href || 
                            (item.href.includes('?tab=') && location.search.includes(item.href.split('?tab=')[1]));
@@ -171,9 +182,9 @@ const ProfessionalSidebar: React.FC = () => {
 
             return menuItem;
           })}
-        </div>
+        </nav>
       </div>
-    </div>
+    </aside>
   );
 };
 

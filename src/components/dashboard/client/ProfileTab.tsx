@@ -53,7 +53,33 @@ const ProfileTab: React.FC<ProfileTabProps> = ({
         .single();
       
       if (profileError) throw profileError;
-      setProfileData(profileData);
+      
+      // Cast the database profile to our ProfileData type with proper type casting
+      const typedProfileData: ProfileData = {
+        ...profileData,
+        bio: profileData.bio || null,
+        location: profileData.location || null,
+        phone: profileData.phone || null,
+        email: profileData.email || null,
+        hourly_rate: profileData.hourly_rate || null,
+        availability: (profileData.availability as 'available' | 'busy' | 'unavailable') || null,
+        skills: profileData.skills || null,
+        certifications: profileData.certifications || null,
+        completed_projects: profileData.completed_projects || null,
+        response_rate: profileData.response_rate || null,
+        on_time_completion: profileData.on_time_completion || null,
+        profile_visibility: profileData.profile_visibility ?? true,
+        show_email: profileData.show_email ?? true,
+        show_phone: profileData.show_phone ?? true,
+        allow_messages: profileData.allow_messages ?? true,
+        profile_image: profileData.profile_image || null,
+        verification_status: (profileData.verification_status as 'unverified' | 'pending' | 'verified') || null,
+        years_experience: profileData.years_experience || null,
+        rating: profileData.rating || null,
+        portfolio_images: profileData.portfolio_images || null,
+      };
+      
+      setProfileData(typedProfileData);
       
       // Fetch projects if client
       if (profileData.account_type === 'client') {
@@ -63,7 +89,16 @@ const ProfileTab: React.FC<ProfileTabProps> = ({
           .eq('client_id', userId);
         
         if (projectsError) throw projectsError;
-        setProjects(projectsData || []);
+        
+        // Transform the projects to match the Project type
+        const validStatuses = ['open', 'applied', 'assigned', 'in-progress', 'submitted', 'revision', 'completed', 'paid', 'archived', 'disputed'] as const;
+        const transformedProjects: Project[] = (projectsData || []).map(project => ({
+          ...project,
+          status: validStatuses.includes(project.status as any) ? project.status as Project['status'] : 'open',
+          updated_at: project.updated_at || project.created_at
+        }));
+        
+        setProjects(transformedProjects);
       }
       
     } catch (error) {

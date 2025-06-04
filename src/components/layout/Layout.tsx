@@ -1,4 +1,3 @@
-
 import React from 'react';
 import Navbar from './Navbar';
 import Footer from './Footer';
@@ -17,6 +16,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const { user } = useAuth();
   const location = useLocation();
   const [accountType, setAccountType] = useState<string | null>(null);
+  const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
   
   // Fetch user account type
   useEffect(() => {
@@ -40,31 +40,29 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     fetchAccountType();
   }, [user]);
   
-  // Show sidebar only for logged-in users on relevant pages
-  const showSidebar = user && (
-    location.pathname === '/dashboard' ||
-    location.pathname === '/insights' ||
-    location.pathname === '/analytics' ||
-    location.pathname === '/notifications' ||
-    location.pathname === '/messages' ||
-    location.pathname === '/calendar' ||
-    location.pathname === '/settings' ||
-    location.pathname === '/support' ||
-    location.pathname === '/help' ||
-    location.pathname === '/profile' ||
-    location.pathname === '/network' ||
-    location.pathname === '/invoices'
-  );
+  // Show sidebar for all logged-in users
+  const showSidebar = !!user;
+
+  // Handle sidebar expansion state
+  const handleSidebarExpand = (expanded: boolean) => {
+    setIsSidebarExpanded(expanded);
+  };
 
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar />
-      <main className="flex-1">
-        {children}
-      </main>
+      <div className="flex-1 flex">
+        <main className={`flex-1 transition-all duration-300 ${showSidebar ? (isSidebarExpanded ? 'mr-64' : 'mr-16') : ''}`}>
+          {children}
+        </main>
+        {showSidebar && accountType === 'professional' && (
+          <ProfessionalSidebar onExpand={handleSidebarExpand} />
+        )}
+        {showSidebar && accountType === 'client' && (
+          <ClientSidebar onExpand={handleSidebarExpand} />
+        )}
+      </div>
       <Footer />
-      {showSidebar && accountType === 'professional' && <ProfessionalSidebar />}
-      {showSidebar && accountType === 'client' && <ClientSidebar />}
     </div>
   );
 };

@@ -1,123 +1,92 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Project } from '../../types';
-import ProjectStatusBadge from '@/components/shared/ProjectStatusBadge';
-import { Edit, Trash2, Send, Eye, Users } from 'lucide-react';
+import EditProjectForm from './EditProjectForm';
 
-interface ProjectCardProps {
+export interface ProjectCardProps {
   project: Project;
-  applications: any[];
-  onEdit: (project: Project) => void;
-  onDelete: (projectId: string) => void;
+  editProject: Project | null;
+  editedProject: {
+    title: string;
+    description: string;
+    budget: number | null;
+  } | null;
+  isSubmitting: boolean;
+  onEdit: () => void;
+  onCancelEdit: () => void;
+  onSave: (updates: Partial<Project>) => Promise<void>;
+  onDelete: () => void;
+  applications?: any[];
 }
 
-const ProjectCard: React.FC<ProjectCardProps> = ({ 
-  project, 
-  applications, 
-  onEdit, 
-  onDelete 
+const ProjectCard: React.FC<ProjectCardProps> = ({
+  project,
+  editProject,
+  editedProject,
+  isSubmitting,
+  onEdit,
+  onCancelEdit,
+  onSave,
+  onDelete,
+  applications = []
 }) => {
-  const navigate = useNavigate();
-  
-  const projectApplications = applications.filter(app => app.project_id === project.id);
-  const pendingApplications = projectApplications.filter(app => app.status === 'pending');
-  const acceptedApplication = projectApplications.find(app => app.status === 'accepted');
+  const isEditing = editProject?.id === project.id;
 
-  const handleViewDetails = () => {
-    navigate(`/projects/${project.id}`);
+  const getStatusColor = (status: Project['status']) => {
+    switch (status) {
+      case 'open':
+        return 'bg-green-100 text-green-800';
+      case 'in-progress':
+        return 'bg-blue-100 text-blue-800';
+      case 'completed':
+        return 'bg-gray-100 text-gray-800';
+      default:
+        return 'bg-blue-100 text-blue-800';
+    }
   };
 
-  const handleViewApplications = () => {
-    navigate(`/client/projects/${project.id}/applications`);
-  };
+  if (isEditing && editedProject) {
+    return (
+      <EditProjectForm
+        project={project}
+        editedProject={editedProject}
+        isSubmitting={isSubmitting}
+        onCancel={onCancelEdit}
+        onSave={async (updates) => {
+          await onSave(updates);
+        }}
+      />
+    );
+  }
 
   return (
-    <Card className="h-full">
+    <Card>
       <CardHeader>
-        <div className="flex items-start justify-between">
-          <div className="flex-1">
-            <CardTitle className="text-lg mb-2">{project.title}</CardTitle>
-            <ProjectStatusBadge status={project.status} showIcon={true} />
-          </div>
-        </div>
+        <CardTitle>{project.title}</CardTitle>
+        <CardDescription className="flex items-center justify-between">
+          <span>Posted on {new Date(project.created_at || '').toLocaleDateString()}</span>
+          <Badge className={getStatusColor(project.status)}>
+            {project.status}
+          </Badge>
+        </CardDescription>
       </CardHeader>
-      
       <CardContent>
-        <p className="text-gray-600 mb-4 line-clamp-3">{project.description}</p>
-        
-        <div className="space-y-2 mb-4">
-          {project.budget && (
-            <div className="flex justify-between text-sm">
-              <span className="text-gray-500">Budget:</span>
-              <span className="font-medium">${project.budget.toLocaleString()}</span>
-            </div>
-          )}
-          <div className="flex justify-between text-sm">
-            <span className="text-gray-500">Total Applications:</span>
-            <span className="font-medium">{projectApplications.length}</span>
-          </div>
-          {pendingApplications.length > 0 && (
-            <div className="flex justify-between text-sm">
-              <span className="text-gray-500">Pending Review:</span>
-              <Badge variant="secondary" className="bg-amber-100 text-amber-800">
-                {pendingApplications.length}
-              </Badge>
-            </div>
-          )}
-          {acceptedApplication && (
-            <div className="flex justify-between text-sm">
-              <span className="text-gray-500">Assigned Professional:</span>
-              <span className="font-medium">
-                {acceptedApplication.professional?.first_name} {acceptedApplication.professional?.last_name}
-              </span>
-            </div>
-          )}
-        </div>
-
-        <div className="flex gap-2">
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={handleViewDetails}
-            className="flex-1"
-          >
-            <Eye className="h-4 w-4 mr-1" />
-            View Details
-          </Button>
-          
-          {project.status === 'open' && (
-            <Button 
-              variant="default" 
-              size="sm"
-              onClick={handleViewApplications}
-              className="flex-1"
-            >
-              <Users className="h-4 w-4 mr-1" />
-              View Applications
-            </Button>
-          )}
-          
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={() => onEdit(project)}
-          >
-            <Edit className="h-4 w-4" />
-          </Button>
-          
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={() => onDelete(project.id)}
-            className="text-red-600 hover:text-red-700"
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
-        </div>
+        <p className="text-sm text-gray-600 mb-4">{project.description}</p>
+        <p className="font-medium">Budget: ${project.budget}</p>
+        {project.location && (
+          <p className="text-sm text-gray-600">Location: {project.location}</p>
+        )}
       </CardContent>
+      <CardFooter className="flex justify-between">
+        <Button variant="outline" onClick={onEdit}>
+          Edit
+        </Button>
+        <Button variant="destructive" onClick={onDelete}>
+          Delete
+        </Button>
+      </CardFooter>
     </Card>
   );
 };

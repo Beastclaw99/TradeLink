@@ -18,7 +18,11 @@ import {
   Calendar,
   Tag,
   Edit2,
-  Trash2
+  Trash2,
+  Clock,
+  CheckCircle2,
+  X,
+  Check
 } from 'lucide-react';
 import { format } from 'date-fns';
 
@@ -57,6 +61,7 @@ interface ProjectBudgetProps {
   onUpdateExpense: (expenseId: string, expense: Partial<Expense>) => Promise<void>;
   onDeleteExpense: (expenseId: string) => Promise<void>;
   onUpdateBudget: (newBudget: number) => Promise<void>;
+  isEditable?: boolean;
 }
 
 const ProjectBudget: React.FC<ProjectBudgetProps> = ({
@@ -65,7 +70,8 @@ const ProjectBudget: React.FC<ProjectBudgetProps> = ({
   onAddExpense,
   onUpdateExpense,
   onDeleteExpense,
-  onUpdateBudget
+  onUpdateBudget,
+  isEditable = false
 }) => {
   const { toast } = useToast();
   const [isAddingExpense, setIsAddingExpense] = useState(false);
@@ -80,6 +86,7 @@ const ProjectBudget: React.FC<ProjectBudgetProps> = ({
     receipt: ''
   });
   const [newBudget, setNewBudget] = useState(budget.totalBudget.toString());
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleAddExpense = async () => {
     if (!newExpense.description.trim() || !newExpense.amount || !newExpense.category || !newExpense.date) return;
@@ -154,24 +161,29 @@ const ProjectBudget: React.FC<ProjectBudgetProps> = ({
   };
 
   const handleUpdateBudget = async () => {
-    const newBudgetAmount = parseFloat(newBudget);
-    if (isNaN(newBudgetAmount) || newBudgetAmount <= 0) return;
-
-    try {
-      await onUpdateBudget(newBudgetAmount);
+    const budgetValue = parseFloat(newBudget);
+    if (isNaN(budgetValue) || budgetValue <= 0 || budgetValue === budget.totalBudget) {
       setIsEditingBudget(false);
-      toast({
-        title: "Success",
-        description: "Budget updated successfully."
-      });
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      await onUpdateBudget(budgetValue);
+      setIsEditingBudget(false);
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to update budget. Please try again.",
-        variant: "destructive"
-      });
+      console.error('Error updating budget:', error);
+    } finally {
+      setIsSubmitting(false);
     }
   };
+
+  const calculateBudgetProgress = (): number => {
+    if (!budget.totalBudget) return 0;
+    return Math.min((budget.spent / budget.totalBudget) * 100, 100);
+  };
+
+  const budgetProgress = calculateBudgetProgress();
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -219,234 +231,275 @@ const ProjectBudget: React.FC<ProjectBudgetProps> = ({
 
   return (
     <Card>
-      <CardHeader className="border-b">
-        <div className="flex justify-between items-center">
-          <CardTitle>Project Budget</CardTitle>
-          {isClient && (
-            <Dialog open={isAddingExpense} onOpenChange={setIsAddingExpense}>
-              <DialogTrigger asChild>
-                <Button>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Expense
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Add New Expense</DialogTitle>
-                </DialogHeader>
-                <div className="space-y-4 py-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="description">Description</Label>
-                    <Input
-                      id="description"
-                      value={newExpense.description}
-                      onChange={(e) => setNewExpense(prev => ({ ...prev, description: e.target.value }))}
-                      placeholder="Enter expense description"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="amount">Amount</Label>
-                    <Input
-                      id="amount"
-                      type="number"
-                      value={newExpense.amount}
-                      onChange={(e) => setNewExpense(prev => ({ ...prev, amount: e.target.value }))}
-                      placeholder="Enter amount"
-                      min="0"
-                      step="0.01"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="category">Category</Label>
-                    <Input
-                      id="category"
-                      value={newExpense.category}
-                      onChange={(e) => setNewExpense(prev => ({ ...prev, category: e.target.value }))}
-                      placeholder="Enter category"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="date">Date</Label>
-                    <Input
-                      id="date"
-                      type="date"
-                      value={newExpense.date}
-                      onChange={(e) => setNewExpense(prev => ({ ...prev, date: e.target.value }))}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="notes">Notes (Optional)</Label>
-                    <Textarea
-                      id="notes"
-                      value={newExpense.notes}
-                      onChange={(e) => setNewExpense(prev => ({ ...prev, notes: e.target.value }))}
-                      placeholder="Add any additional notes"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="receipt">Receipt URL (Optional)</Label>
-                    <Input
-                      id="receipt"
-                      value={newExpense.receipt}
-                      onChange={(e) => setNewExpense(prev => ({ ...prev, receipt: e.target.value }))}
-                      placeholder="Enter receipt URL"
-                    />
-                  </div>
-                  <div className="flex justify-end gap-2">
-                    <Button
-                      variant="outline"
-                      onClick={() => setIsAddingExpense(false)}
-                    >
-                      Cancel
-                    </Button>
-                    <Button
-                      onClick={handleAddExpense}
-                      disabled={!newExpense.description.trim() || !newExpense.amount || !newExpense.category || !newExpense.date}
-                    >
-                      Add Expense
-                    </Button>
-                  </div>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardTitle className="text-sm font-medium">Project Budget</CardTitle>
+        {isClient && (
+          <Dialog open={isAddingExpense} onOpenChange={setIsAddingExpense}>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="h-4 w-4 mr-2" />
+                Add Expense
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Add New Expense</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label htmlFor="description">Description</Label>
+                  <Input
+                    id="description"
+                    value={newExpense.description}
+                    onChange={(e) => setNewExpense(prev => ({ ...prev, description: e.target.value }))}
+                    placeholder="Enter expense description"
+                  />
                 </div>
-              </DialogContent>
-            </Dialog>
-          )}
-        </div>
+                <div className="space-y-2">
+                  <Label htmlFor="amount">Amount</Label>
+                  <Input
+                    id="amount"
+                    type="number"
+                    value={newExpense.amount}
+                    onChange={(e) => setNewExpense(prev => ({ ...prev, amount: e.target.value }))}
+                    placeholder="Enter amount"
+                    min="0"
+                    step="0.01"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="category">Category</Label>
+                  <Input
+                    id="category"
+                    value={newExpense.category}
+                    onChange={(e) => setNewExpense(prev => ({ ...prev, category: e.target.value }))}
+                    placeholder="Enter category"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="date">Date</Label>
+                  <Input
+                    id="date"
+                    type="date"
+                    value={newExpense.date}
+                    onChange={(e) => setNewExpense(prev => ({ ...prev, date: e.target.value }))}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="notes">Notes (Optional)</Label>
+                  <Textarea
+                    id="notes"
+                    value={newExpense.notes}
+                    onChange={(e) => setNewExpense(prev => ({ ...prev, notes: e.target.value }))}
+                    placeholder="Add any additional notes"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="receipt">Receipt URL (Optional)</Label>
+                  <Input
+                    id="receipt"
+                    value={newExpense.receipt}
+                    onChange={(e) => setNewExpense(prev => ({ ...prev, receipt: e.target.value }))}
+                    placeholder="Enter receipt URL"
+                  />
+                </div>
+                <div className="flex justify-end gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => setIsAddingExpense(false)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={handleAddExpense}
+                    disabled={!newExpense.description.trim() || !newExpense.amount || !newExpense.category || !newExpense.date}
+                  >
+                    Add Expense
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+        )}
+        {isEditable && !isEditingBudget && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setIsEditingBudget(true)}
+          >
+            <Edit2 className="h-4 w-4" />
+          </Button>
+        )}
       </CardHeader>
       <CardContent className="p-6 space-y-6">
-        {/* Budget Overview */}
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="font-medium">Budget Overview</h3>
-            {isClient && (
+        {isEditingBudget ? (
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="budget">New Budget</Label>
+              <div className="flex items-center gap-2">
+                <DollarSign className="h-4 w-4 text-gray-500" />
+                <Input
+                  id="budget"
+                  type="number"
+                  value={newBudget}
+                  onChange={(e) => setNewBudget(e.target.value)}
+                  placeholder="Enter new budget"
+                  min="0"
+                  step="0.01"
+                />
+              </div>
+            </div>
+            <div className="flex justify-end gap-2">
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setIsEditingBudget(true)}
+                onClick={() => {
+                  setNewBudget(budget.totalBudget.toString());
+                  setIsEditingBudget(false);
+                }}
+                disabled={isSubmitting}
               >
-                <Edit2 className="h-4 w-4 mr-2" />
-                Edit Budget
+                <X className="h-4 w-4 mr-1" />
+                Cancel
               </Button>
-            )}
-          </div>
-          <div className="grid grid-cols-3 gap-4">
-            <div className="p-4 border rounded-lg">
-              <div className="flex items-center gap-2 text-gray-500">
-                <DollarSign className="h-4 w-4" />
-                <span>Total Budget</span>
-              </div>
-              <div className="mt-2 text-2xl font-semibold">
-                {formatCurrency(budget.totalBudget)}
-              </div>
-            </div>
-            <div className="p-4 border rounded-lg">
-              <div className="flex items-center gap-2 text-gray-500">
-                <TrendingDown className="h-4 w-4" />
-                <span>Spent</span>
-              </div>
-              <div className={`mt-2 text-2xl font-semibold ${getBudgetStatus(budget.spent, budget.totalBudget)}`}>
-                {formatCurrency(budget.spent)}
-              </div>
-            </div>
-            <div className="p-4 border rounded-lg">
-              <div className="flex items-center gap-2 text-gray-500">
-                <TrendingUp className="h-4 w-4" />
-                <span>Remaining</span>
-              </div>
-              <div className="mt-2 text-2xl font-semibold">
-                {formatCurrency(budget.remaining)}
-              </div>
+              <Button
+                size="sm"
+                onClick={handleUpdateBudget}
+                disabled={isSubmitting}
+              >
+                <Check className="h-4 w-4 mr-1" />
+                Save
+              </Button>
             </div>
           </div>
-          <Progress
-            value={(budget.spent / budget.totalBudget) * 100}
-            className="h-2"
-          />
-        </div>
-
-        {/* Budget Categories */}
-        <div className="space-y-4">
-          <h3 className="font-medium">Budget Categories</h3>
-          <div className="space-y-4">
-            {budget.categories.map((category) => (
-              <div key={category.name} className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Tag className="h-4 w-4 text-gray-500" />
-                    <span>{category.name}</span>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <span className="text-sm text-gray-500">
-                      {formatCurrency(category.spent)} of {formatCurrency(category.budget)}
-                    </span>
-                    <span className={`text-sm ${getBudgetStatus(category.spent, category.budget)}`}>
-                      {Math.round((category.spent / category.budget) * 100)}%
-                    </span>
-                  </div>
-                </div>
-                <Progress
-                  value={(category.spent / category.budget) * 100}
-                  className="h-2"
-                />
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Recent Expenses */}
-        <div className="space-y-4">
-          <h3 className="font-medium">Recent Expenses</h3>
-          {budget.expenses.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
-              <Receipt className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-              <p>No expenses have been recorded yet.</p>
-            </div>
-          ) : (
+        ) : (
+          <>
+            {/* Budget Overview */}
             <div className="space-y-4">
-              {budget.expenses.map((expense) => (
-                <div
-                  key={expense.id}
-                  className="flex items-center justify-between p-4 border rounded-lg"
-                >
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium">{expense.description}</span>
-                      {getStatusBadge(expense.status)}
-                    </div>
-                    <div className="flex items-center gap-4 text-sm text-gray-500">
-                      <span>{formatCurrency(expense.amount)}</span>
-                      <span>•</span>
-                      <span>{expense.category}</span>
-                      <span>•</span>
-                      <span>{format(new Date(expense.date), 'MMM d, yyyy')}</span>
-                    </div>
+              <div className="flex items-center justify-between">
+                <h3 className="font-medium">Budget Overview</h3>
+              </div>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="p-4 border rounded-lg">
+                  <div className="flex items-center gap-2 text-gray-500">
+                    <DollarSign className="h-4 w-4" />
+                    <span>Total Budget</span>
                   </div>
-                  {isClient && (
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setEditingExpense(expense.id)}
-                      >
-                        <Edit2 className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleDeleteExpense(expense.id)}
-                        className="text-red-600 hover:text-red-700"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  )}
+                  <div className="mt-2 text-2xl font-semibold">
+                    {formatCurrency(budget.totalBudget)}
+                  </div>
                 </div>
-              ))}
+                <div className="p-4 border rounded-lg">
+                  <div className="flex items-center gap-2 text-gray-500">
+                    <TrendingDown className="h-4 w-4" />
+                    <span>Spent</span>
+                  </div>
+                  <div className={`mt-2 text-2xl font-semibold ${getBudgetStatus(budget.spent, budget.totalBudget)}`}>
+                    {formatCurrency(budget.spent)}
+                  </div>
+                </div>
+                <div className="p-4 border rounded-lg">
+                  <div className="flex items-center gap-2 text-gray-500">
+                    <TrendingUp className="h-4 w-4" />
+                    <span>Remaining</span>
+                  </div>
+                  <div className="mt-2 text-2xl font-semibold">
+                    {formatCurrency(budget.remaining)}
+                  </div>
+                </div>
+              </div>
+              <Progress
+                value={budgetProgress}
+                className="h-2"
+              />
             </div>
-          )}
-        </div>
+
+            {/* Budget Categories */}
+            <div className="space-y-4">
+              <h3 className="font-medium">Budget Categories</h3>
+              <div className="space-y-4">
+                {budget.categories.map((category) => (
+                  <div key={category.name} className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Tag className="h-4 w-4 text-gray-500" />
+                        <span>{category.name}</span>
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <span className="text-sm text-gray-500">
+                          {formatCurrency(category.spent)} of {formatCurrency(category.budget)}
+                        </span>
+                        <span className={`text-sm ${getBudgetStatus(category.spent, category.budget)}`}>
+                          {Math.round((category.spent / category.budget) * 100)}%
+                        </span>
+                      </div>
+                    </div>
+                    <Progress
+                      value={(category.spent / category.budget) * 100}
+                      className="h-2"
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Recent Expenses */}
+            <div className="space-y-4">
+              <h3 className="font-medium">Recent Expenses</h3>
+              {budget.expenses.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  <Receipt className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+                  <p>No expenses have been recorded yet.</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {budget.expenses.map((expense) => (
+                    <div
+                      key={expense.id}
+                      className="flex items-center justify-between p-4 border rounded-lg"
+                    >
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">{expense.description}</span>
+                          {getStatusBadge(expense.status)}
+                        </div>
+                        <div className="flex items-center gap-4 text-sm text-gray-500">
+                          <span>{formatCurrency(expense.amount)}</span>
+                          <span>•</span>
+                          <span>{expense.category}</span>
+                          <span>•</span>
+                          <span>{format(new Date(expense.date), 'MMM d, yyyy')}</span>
+                        </div>
+                      </div>
+                      {isClient && (
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setEditingExpense(expense.id)}
+                          >
+                            <Edit2 className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDeleteExpense(expense.id)}
+                            className="text-red-600 hover:text-red-700"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </>
+        )}
       </CardContent>
     </Card>
   );
 };
 
-export default ProjectBudget; 
+export default ProjectBudget;

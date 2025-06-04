@@ -7,10 +7,10 @@ import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Star } from 'lucide-react';
+import { StarRating } from '@/components/ui/star-rating';
 import { Database } from '@/integrations/supabase/types';
 
-// Define the review type
+// Define the review types
 type Review = Database['public']['Tables']['reviews']['Row'];
 type ReviewInsert = Database['public']['Tables']['reviews']['Insert'];
 
@@ -173,24 +173,12 @@ export default function ReviewForm({
               {/* Star Rating */}
               <div>
                 <Label>Rating</Label>
-                <div className="flex gap-1 mt-2">
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <button
-                      key={star}
-                      type="button"
-                      onClick={() => setRating(star)}
-                      className="focus:outline-none"
-                    >
-                      <Star
-                        className={`w-8 h-8 ${
-                          star <= rating
-                            ? 'text-yellow-400 fill-yellow-400'
-                            : 'text-gray-300'
-                        }`}
-                      />
-                    </button>
-                  ))}
-                </div>
+                <StarRating
+                  value={rating}
+                  onChange={setRating}
+                  size="large"
+                  className="mt-2"
+                />
               </div>
 
               {/* Review Comment */}
