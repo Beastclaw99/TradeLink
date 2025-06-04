@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Draggable } from '@hello-pangea/dnd';
-import { Milestone, Deliverable } from '../types';
+import { Milestone, Deliverable } from '@/types';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
@@ -78,8 +78,8 @@ export const MilestoneItem: React.FC<MilestoneItemProps> = ({
             />
             
             <Textarea
-              placeholder="Milestone description (optional)"
-              value={milestone.description || ''}
+              placeholder="Milestone description"
+              value={milestone.description}
               onChange={(e) => handleUpdate('description', e.target.value)}
               rows={2}
             />

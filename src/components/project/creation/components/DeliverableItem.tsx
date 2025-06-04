@@ -5,7 +5,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Trash2 } from 'lucide-react';
-import { Deliverable } from '../types';
+import { Deliverable } from '@/types';
 
 interface DeliverableItemProps {
   deliverable: Deliverable;
@@ -62,6 +62,7 @@ export const DeliverableItem: React.FC<DeliverableItemProps> = ({
           <SelectContent>
             <SelectItem value="text">Text</SelectItem>
             <SelectItem value="file">File</SelectItem>
+            <SelectItem value="link">Link</SelectItem>
           </SelectContent>
         </Select>
         

@@ -1,12 +1,39 @@
+
 import { useState, useCallback } from 'react';
-import { ProjectData, Milestone, Deliverable, ValidationResult } from '@/components/project/creation/types';
-import { 
-  validateProjectData as validateProjectDataSchema, 
-  validateMilestone as validateMilestoneSchema, 
-  validateDeliverable as validateDeliverableSchema, 
-  validateFile, 
-  validateDate 
-} from '@/components/project/creation/validation';
+import { ProjectData, Milestone, Deliverable, ValidationResult } from '@/types';
+
+const validateProjectData = (data: ProjectData): ValidationResult => {
+  const errors = [];
+  if (!data.title) errors.push({ field: 'title', message: 'Title is required' });
+  if (!data.description) errors.push({ field: 'description', message: 'Description is required' });
+  return { isValid: errors.length === 0, errors };
+};
+
+const validateMilestone = (milestone: Milestone): ValidationResult => {
+  const errors = [];
+  if (!milestone.title) errors.push({ field: 'title', message: 'Milestone title is required' });
+  if (!milestone.description) errors.push({ field: 'description', message: 'Milestone description is required' });
+  return { isValid: errors.length === 0, errors };
+};
+
+const validateDeliverable = (deliverable: Deliverable): ValidationResult => {
+  const errors = [];
+  if (!deliverable.title) errors.push({ field: 'title', message: 'Deliverable title is required' });
+  if (!deliverable.description) errors.push({ field: 'description', message: 'Deliverable description is required' });
+  return { isValid: errors.length === 0, errors };
+};
+
+const validateFile = (file: File): ValidationResult => {
+  const errors = [];
+  if (file.size > 10 * 1024 * 1024) errors.push({ field: 'file', message: 'File size must be less than 10MB' });
+  return { isValid: errors.length === 0, errors };
+};
+
+const validateDate = (date: string): ValidationResult => {
+  const errors = [];
+  if (new Date(date) < new Date()) errors.push({ field: 'date', message: 'Date must be in the future' });
+  return { isValid: errors.length === 0, errors };
+};
 
 const initialProjectState: ProjectData = {
   title: '',
@@ -16,9 +43,10 @@ const initialProjectState: ProjectData = {
   recommended_skills: [],
   budget: 0,
   timeline: '',
-  urgency: '',
+  urgency: 'low',
   milestones: [],
-  service_contract: ''
+  service_contract: '',
+  expectedTimeline: ''
 };
 
 export const useProjectState = () => {
@@ -32,7 +60,7 @@ export const useProjectState = () => {
   const updateProjectData = useCallback((data: Partial<ProjectData>) => {
     setProjectData(prev => {
       const updatedData = { ...prev, ...data };
-      const validation = validateProjectDataSchema(updatedData);
+      const validation = validateProjectData(updatedData);
       setValidationErrors(validation);
       return updatedData;
     });
@@ -47,7 +75,7 @@ export const useProjectState = () => {
         ...milestoneData
       };
       
-      const validation = validateMilestoneSchema(updatedMilestone);
+      const validation = validateMilestone(updatedMilestone);
       if (!validation.isValid) {
         setValidationErrors(validation);
         return prev;
@@ -60,7 +88,7 @@ export const useProjectState = () => {
   }, []);
 
   const addMilestone = useCallback((milestone: Milestone) => {
-    const validation = validateMilestoneSchema(milestone);
+    const validation = validateMilestone(milestone);
     if (!validation.isValid) {
       setValidationErrors(validation);
       return;
@@ -93,7 +121,7 @@ export const useProjectState = () => {
         ...deliverableData
       };
       
-      const validation = validateDeliverableSchema(updatedDeliverable);
+      const validation = validateDeliverable(updatedDeliverable);
       if (!validation.isValid) {
         setValidationErrors(validation);
         return prev;
@@ -111,7 +139,7 @@ export const useProjectState = () => {
   }, []);
 
   const addDeliverable = useCallback((milestoneIndex: number, deliverable: Deliverable) => {
-    const validation = validateDeliverableSchema(deliverable);
+    const validation = validateDeliverable(deliverable);
     if (!validation.isValid) {
       setValidationErrors(validation);
       return;
@@ -158,8 +186,8 @@ export const useProjectState = () => {
     setValidationErrors({ isValid: true, errors: [] });
   }, []);
 
-  const validateProjectData = useCallback((): ValidationResult => {
-    const validation = validateProjectDataSchema(projectData);
+  const validateProjectDataState = useCallback((): ValidationResult => {
+    const validation = validateProjectData(projectData);
     setValidationErrors(validation);
     return validation;
   }, [projectData]);
@@ -185,7 +213,7 @@ export const useProjectState = () => {
     removeDeliverable,
     reorderMilestones,
     resetProjectData,
-    validateProjectData,
+    validateProjectData: validateProjectDataState,
     validateFileUpload,
     validateMilestoneDate
   };

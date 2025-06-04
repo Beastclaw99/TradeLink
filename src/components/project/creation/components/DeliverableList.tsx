@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Droppable, Draggable } from '@hello-pangea/dnd';
-import { Deliverable } from '../types';
+import { Deliverable } from '@/types';
 import { DeliverableItem } from './DeliverableItem';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';

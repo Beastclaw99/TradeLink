@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Plus, Pencil, Trash2, Upload, Link, FileText, GripVertical, Calendar, Clock } from 'lucide-react';
-import { ProjectData, Milestone, Deliverable, DragResult, FileUploadResult } from '../types';
+import { ProjectData, Milestone, Deliverable, DragResult, FileUploadResult } from '@/types';
 import { format, addDays } from 'date-fns';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import { PlusIcon, TrashIcon } from '@heroicons/react/24/outline';
