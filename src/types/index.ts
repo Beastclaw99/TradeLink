@@ -93,17 +93,16 @@ export interface Notification {
   action_url?: string;
 }
 
-// Project creation types
-export interface ProjectData {
+// Project creation types - unified with main types
+export interface Deliverable {
+  id: string;
   title: string;
   description: string;
-  category: string;
-  budget: number;
-  timeline: string;
-  milestones: Milestone[];
-  location: string;
-  expectedTimeline: string;
-  urgency: 'low' | 'medium' | 'high';
+  deliverable_type: 'text' | 'file' | 'link';
+  content: string;
+  milestone_id: string;
+  file_url?: string;
+  file_name?: string;
 }
 
 export interface Milestone {
@@ -116,13 +115,53 @@ export interface Milestone {
   status?: 'not_started' | 'in_progress' | 'completed';
 }
 
-export interface Deliverable {
-  id: string;
+export interface ProjectData {
   title: string;
   description: string;
-  deliverable_type: 'text' | 'file' | 'link';
-  content: string;
-  milestone_id: string;
-  file_url?: string;
-  file_name?: string;
+  category: string;
+  budget: number;
+  timeline: string;
+  milestones: Milestone[];
+  location: string;
+  expectedTimeline: string;
+  urgency: 'low' | 'medium' | 'high';
+  recommended_skills: string[];
+  requirements?: string[];
+  skills?: string[];
+  service_contract?: string;
+  deliverables?: Deliverable[];
+}
+
+// Drag and Drop Types
+export interface DragResult {
+  draggableId: string;
+  type: string;
+  source: {
+    droppableId: string;
+    index: number;
+  };
+  destination: {
+    droppableId: string;
+    index: number;
+  } | null;
+  reason: 'DROP' | 'CANCEL';
+}
+
+// File Upload Types
+export interface FileUploadResult {
+  success: boolean;
+  url?: string;
+  error?: string;
+  file?: File;
+}
+
+// Validation Types
+export interface ValidationError {
+  field: string;
+  message: string;
+}
+
+export interface ValidationResult {
+  isValid: boolean;
+  errors: ValidationError[];
 }

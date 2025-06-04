@@ -23,6 +23,7 @@ const initialProjectData: ProjectData = {
   location: '',
   expectedTimeline: '',
   urgency: 'low',
+  recommended_skills: [],
 };
 
 const ProjectCreationWizard: React.FC<ProjectCreationWizardProps> = ({

@@ -1,5 +1,6 @@
+
 import { useState } from 'react';
-import { ProjectData, Milestone, Deliverable, ValidationResult } from '../types';
+import { ProjectData, Milestone, Deliverable, ValidationResult } from '@/types';
 import { fileUploadService } from '@/services/fileUploadService';
 import { validateProjectData } from '../utils/validation';
 

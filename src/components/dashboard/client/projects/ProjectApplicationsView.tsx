@@ -8,7 +8,7 @@ import { useApplicationOperations } from '@/hooks/client-dashboard/useApplicatio
 interface ProjectApplicationsViewProps {
   applications: Application[];
   projects: Project[];
-  onUpdate?: () => void;
+  onUpdate?: () => Promise<void>;
 }
 
 export const ProjectApplicationsView: React.FC<ProjectApplicationsViewProps> = ({
@@ -24,7 +24,7 @@ export const ProjectApplicationsView: React.FC<ProjectApplicationsViewProps> = (
     handleCloseDialog,
     handleAcceptApplication,
     handleRejectApplication
-  } = useApplicationOperations(onUpdate || (() => Promise.resolve()));
+  } = useApplicationOperations(onUpdate || (async () => {}));
 
   if (applications.length === 0) {
     return (
