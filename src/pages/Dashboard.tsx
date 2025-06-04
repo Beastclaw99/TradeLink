@@ -38,7 +38,7 @@ const Dashboard: React.FC = () => {
   }
 
   return profile.account_type === 'client' ? (
-    <ClientDashboard />
+    <ClientDashboard userId={user.id} />
   ) : (
     <ProfessionalDashboard userId={user.id} />
   );

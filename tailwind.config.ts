@@ -67,42 +67,42 @@ export default {
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
 				},
-        // Updated lighter colors for more professional appearance
+        // Custom colors for Trini Trade Connect
         'ttc-blue': {
-          50: '#F0F8FF',
-          100: '#E0F1FF',
-          200: '#BAE0FF',
-          300: '#7CC8FF',
-          400: '#36AFFF',
-          500: '#0EA5E9', // Lighter primary blue (from sky-500)
-          600: '#0284C7',
-          700: '#0369A1',
-          800: '#075985',
-          900: '#0C4A6E',
+          50: '#EBF8FF',
+          100: '#D1EDFF',
+          200: '#A3DAFD',
+          300: '#72C1FC',
+          400: '#4AA7FA',
+          500: '#1E88E5', // Primary blue
+          600: '#1565C0',
+          700: '#0D47A1',
+          800: '#082C7A',
+          900: '#051E50',
         },
         'ttc-green': {
-          50: '#F0FDF4',
-          100: '#DCFCE7',
-          200: '#BBF7D0',
-          300: '#86EFAC',
-          400: '#4ADE80',
-          500: '#22C55E', // Lighter accent green (from green-500)
-          600: '#16A34A',
-          700: '#15803D',
-          800: '#166534',
-          900: '#14532D',
+          50: '#E6F7ED',
+          100: '#C8ECD7',
+          200: '#92DAB3',
+          300: '#60C896',
+          400: '#36B37E',
+          500: '#299766', // Accent green
+          600: '#1F784E',
+          700: '#175A3A',
+          800: '#103C26',
+          900: '#0A2617',
         },
         'ttc-neutral': {
-          50: '#FAFAFA',
-          100: '#F5F5F5',
-          200: '#E5E5E5',
-          300: '#D4D4D4',
-          400: '#A3A3A3',
-          500: '#737373',
-          600: '#525252',
-          700: '#404040',
-          800: '#262626',
-          900: '#171717',
+          50: '#F8F9FA',
+          100: '#F1F3F5',
+          200: '#E9ECEF',
+          300: '#DEE2E6',
+          400: '#CED4DA',
+          500: '#ADB5BD',
+          600: '#6C757D',
+          700: '#495057',
+          800: '#343A40',
+          900: '#212529',
         }
 			},
 			fontFamily: {
@@ -134,22 +134,12 @@ export default {
         'fade-in': {
           '0%': { opacity: '0', transform: 'translateY(10px)' },
           '100%': { opacity: '1', transform: 'translateY(0)' }
-        },
-        'float': {
-          '0%, 100%': { transform: 'translateY(0px)' },
-          '50%': { transform: 'translateY(-10px)' }
-        },
-        'pulse-glow': {
-          '0%, 100%': { boxShadow: '0 0 20px rgba(14, 165, 233, 0.3)' },
-          '50%': { boxShadow: '0 0 30px rgba(14, 165, 233, 0.5)' }
         }
 			},
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
 				'accordion-up': 'accordion-up 0.2s ease-out',
-        'fade-in': 'fade-in 0.3s ease-out',
-        'float': 'float 3s ease-in-out infinite',
-        'pulse-glow': 'pulse-glow 2s ease-in-out infinite'
+        'fade-in': 'fade-in 0.3s ease-out'
 			}
 		}
 	},
