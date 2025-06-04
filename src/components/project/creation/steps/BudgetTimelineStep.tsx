@@ -1,11 +1,10 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DollarSign, Clock, AlertCircle } from 'lucide-react';
-import { ProjectData } from '@/types';
+import { ProjectData } from '../types';
 
 interface BudgetTimelineStepProps {
   data: ProjectData;
@@ -36,11 +35,6 @@ const BudgetTimelineStep: React.FC<BudgetTimelineStepProps> = ({ data, onUpdate 
         onUpdate({ budget: numValue });
       }
     }
-  };
-
-  const handleUrgencyChange = (value: string) => {
-    const urgencyValue = value as 'low' | 'medium' | 'high';
-    onUpdate({ urgency: urgencyValue });
   };
 
   return (
@@ -90,7 +84,7 @@ const BudgetTimelineStep: React.FC<BudgetTimelineStepProps> = ({ data, onUpdate 
             <Label htmlFor="urgency">Project Urgency</Label>
             <Select
               value={data.urgency}
-              onValueChange={handleUrgencyChange}
+              onValueChange={(value) => onUpdate({ urgency: value })}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select urgency level" />

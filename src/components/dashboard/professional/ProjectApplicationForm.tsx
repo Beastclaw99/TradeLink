@@ -58,8 +58,7 @@ const ProjectApplicationForm: React.FC<ProjectApplicationFormProps> = ({
   if (!selectedProject) return null;
   
   const project = projects.find(p => p.id === selectedProject);
-  const requiredSkillsString = project?.required_skills || '';
-  const requiredSkills = requiredSkillsString ? requiredSkillsString.split(',').map(skill => skill.trim()) : [];
+  const requiredSkills = Array.isArray(project?.required_skills) ? project.required_skills : [];
   const matchingSkills = userSkills.filter(skill => requiredSkills.includes(skill));
   const missingSkills = requiredSkills.filter(skill => !userSkills.includes(skill));
   const skillMatchPercentage = requiredSkills.length > 0 ? Math.round((matchingSkills.length / requiredSkills.length) * 100) : 100;

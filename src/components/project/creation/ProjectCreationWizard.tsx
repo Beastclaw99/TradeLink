@@ -1,183 +1,337 @@
 
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/components/ui/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Progress } from '@/components/ui/progress';
+import { CheckCircle, Circle, AlertCircle, Info } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import BasicDetailsStep from './steps/BasicDetailsStep';
 import RequirementsStep from './steps/RequirementsStep';
 import BudgetTimelineStep from './steps/BudgetTimelineStep';
 import MilestonesDeliverablesStep from './steps/MilestonesDeliverablesStep';
 import ServiceContractStep from './steps/ServiceContractStep';
 import ReviewStep from './steps/ReviewStep';
-import { ProjectData } from '@/types';
+import { ProjectData } from './types';
 
-interface ProjectCreationWizardProps {
-  onProjectCreated: (projectData: ProjectData) => void;
-  onCancel: () => void;
-}
-
-const initialProjectData: ProjectData = {
-  title: '',
-  description: '',
-  category: '',
-  budget: 0,
-  timeline: '',
-  milestones: [],
-  location: '',
-  expectedTimeline: '',
-  urgency: 'low',
-  recommended_skills: [],
-};
-
-const ProjectCreationWizard: React.FC<ProjectCreationWizardProps> = ({
-  onProjectCreated,
-  onCancel
-}) => {
+const ProjectCreationWizard: React.FC = () => {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const { toast } = useToast();
   const [currentStep, setCurrentStep] = useState(1);
-  const [projectData, setProjectData] = useState<ProjectData>(initialProjectData);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [projectData, setProjectData] = useState<ProjectData>({
+    title: '',
+    description: '',
+    category: '',
+    location: '',
+    requirements: [],
+    skills: [],
+    budget: 0,
+    timeline: '',
+    urgency: '',
+    milestones: [],
+    deliverables: [],
+    service_contract: ''
+  });
 
-  const handleDataUpdate = (newData: Partial<ProjectData>) => {
-    setProjectData({ ...projectData, ...newData });
+  const steps = [
+    { 
+      number: 1, 
+      title: 'Basic Details', 
+      component: BasicDetailsStep,
+      description: 'Project title, description, and category'
+    },
+    { 
+      number: 2, 
+      title: 'Requirements', 
+      component: RequirementsStep,
+      description: 'Detailed requirements and skills needed'
+    },
+    { 
+      number: 3, 
+      title: 'Budget & Timeline', 
+      component: BudgetTimelineStep,
+      description: 'Set your budget and expected timeline'
+    },
+    { 
+      number: 4, 
+      title: 'Milestones & Deliverables', 
+      component: MilestonesDeliverablesStep,
+      description: 'Define project milestones and deliverables'
+    },
+    { 
+      number: 5, 
+      title: 'Service Contract', 
+      component: ServiceContractStep,
+      description: 'Review and accept the service agreement'
+    },
+    { 
+      number: 6, 
+      title: 'Review & Publish', 
+      component: ReviewStep,
+      description: 'Final review before publishing your project'
+    }
+  ];
+
+  const getCurrentStepRequirements = () => {
+    switch (currentStep) {
+      case 1:
+        return ['Project title', 'Description', 'Category', 'Location'];
+      case 2:
+        return ['At least one requirement (optional)', 'Skills needed (optional)'];
+      case 3:
+        return ['Budget amount', 'Timeline', 'Urgency level'];
+      case 4:
+        return ['Milestones (optional)', 'Deliverables (optional)'];
+      case 5:
+        return ['Service contract acceptance'];
+      case 6:
+        return ['Final review of all details'];
+      default:
+        return [];
+    }
   };
 
-  const handleNext = () => {
-    if (currentStep < 6) {
+  const isStepComplete = (stepNumber: number) => {
+    switch (stepNumber) {
+      case 1:
+        return projectData.title && projectData.description && projectData.category && projectData.location;
+      case 2:
+        return true; // Requirements are optional
+      case 3:
+        return projectData.budget > 0 && projectData.timeline && projectData.urgency;
+      case 4:
+        return true; // Milestones are optional
+      case 5:
+        return !!projectData.service_contract;
+      case 6:
+        return true;
+      default:
+        return false;
+    }
+  };
+
+  const canProceedToNext = () => {
+    return isStepComplete(currentStep);
+  };
+
+  const nextStep = () => {
+    if (currentStep < steps.length && canProceedToNext()) {
       setCurrentStep(currentStep + 1);
     }
   };
 
-  const handleBack = () => {
+  const prevStep = () => {
     if (currentStep > 1) {
       setCurrentStep(currentStep - 1);
     }
   };
 
-  const handleSubmit = async () => {
-    setIsSubmitting(true);
-    // Simulate API submission
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    setIsSubmitting(false);
-    onProjectCreated(projectData);
+  const handleDataUpdate = (stepData: Partial<ProjectData>) => {
+    setProjectData(prev => ({ ...prev, ...stepData }));
   };
 
-  const renderStep = () => {
+  const handleSubmit = async () => {
+    if (!user) {
+      toast({
+        title: "Authentication required",
+        description: "Please log in to create a project",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      // Create the project first
+      const { data: project, error: projectError } = await supabase
+        .from('projects')
+        .insert([
+          {
+            title: projectData.title,
+            description: projectData.description,
+            category: projectData.category,
+            location: projectData.location,
+            requirements: projectData.requirements,
+            required_skills: projectData.skills.join(','),
+            budget: projectData.budget, // Now correctly a number
+            expected_timeline: projectData.timeline,
+            urgency: projectData.urgency,
+            client_id: user.id,
+            status: 'open',
+            service_contract: projectData.service_contract
+          }
+        ])
+        .select()
+        .single();
+
+      if (projectError) throw projectError;
+
+      // Create milestones
+      if (projectData.milestones.length > 0) {
+        const { error: milestonesError } = await supabase
+          .from('project_milestones')
+          .insert(
+            projectData.milestones.map(milestone => ({
+              ...milestone,
+              project_id: project.id,
+              created_by: user.id,
+              status: 'not_started',
+              is_complete: false
+            }))
+          );
+
+        if (milestonesError) throw milestonesError;
+      }
+
+      // Create deliverables
+      if (projectData.deliverables.length > 0) {
+        const { error: deliverablesError } = await supabase
+          .from('project_deliverables')
+          .insert(
+            projectData.deliverables.map(deliverable => ({
+              ...deliverable,
+              project_id: project.id,
+              uploaded_by: user.id,
+              file_url: deliverable.deliverable_type === 'file' ? deliverable.content || '' : ''
+            }))
+          );
+
+        if (deliverablesError) throw deliverablesError;
+      }
+
+      toast({
+        title: "Success",
+        description: "Project created successfully!"
+      });
+
+      // Navigate to the project details page
+      navigate(`/project/${project.id}`);
+    } catch (error) {
+      console.error('Error creating project:', error);
+      toast({
+        title: "Error",
+        description: "Failed to create project. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const progress = (currentStep / steps.length) * 100;
+
+  const renderCurrentStep = () => {
     switch (currentStep) {
       case 1:
-        return (
-          <BasicDetailsStep
-            data={projectData}
-            onUpdate={handleDataUpdate}
-          />
-        );
+        return <BasicDetailsStep data={projectData} onUpdate={handleDataUpdate} />;
       case 2:
-        return (
-          <RequirementsStep
-            data={projectData}
-            onUpdate={handleDataUpdate}
-          />
-        );
+        return <RequirementsStep data={projectData} onUpdate={handleDataUpdate} />;
       case 3:
-        return (
-          <BudgetTimelineStep
-            data={projectData}
-            onUpdate={handleDataUpdate}
-          />
-        );
+        return <BudgetTimelineStep data={projectData} onUpdate={handleDataUpdate} />;
       case 4:
-        return (
-          <MilestonesDeliverablesStep
-            data={projectData}
-            onUpdate={handleDataUpdate}
-            onNext={handleNext}
-            onBack={handleBack}
-          />
-        );
+        return <MilestonesDeliverablesStep data={projectData} onUpdate={handleDataUpdate} />;
       case 5:
-        return (
-          <ServiceContractStep
-            data={projectData}
-            onUpdate={handleDataUpdate}
-          />
-        );
+        return <ServiceContractStep data={projectData} onUpdate={handleDataUpdate} />;
       case 6:
-        return (
-          <ReviewStep
-            data={projectData}
-          />
-        );
+        return <ReviewStep data={projectData} />;
       default:
-        return null;
+        return <BasicDetailsStep data={projectData} onUpdate={handleDataUpdate} />;
     }
   };
 
   return (
-    <div className="max-w-4xl mx-auto p-6">
-      <div className="mb-8">
-        <h2 className="text-2xl font-bold text-gray-800 mb-4">Create a New Project</h2>
-        <div className="w-full bg-gray-200 rounded-full h-2.5 mb-4">
-          <div className="bg-blue-500 h-2.5 rounded-full" style={{ width: `${(currentStep / 6) * 100}%` }}></div>
-        </div>
-        <p className="text-gray-600">Step {currentStep} of 6</p>
-      </div>
-      
-      <div className="bg-white rounded-lg shadow-sm border p-6">
-        {renderStep()}
-        
-        {currentStep < 4 && (
-          <div className="flex justify-between mt-6">
-            {currentStep > 1 && (
-              <button
-                onClick={handleBack}
-                className="px-4 py-2 text-gray-600 bg-gray-200 rounded-lg hover:bg-gray-300"
+    <div className="max-w-4xl mx-auto">
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-2xl text-center">Create New Project</CardTitle>
+          <div className="space-y-4">
+            <Progress value={progress} className="w-full" />
+            
+            {/* Enhanced Step Indicators */}
+            <div className="grid grid-cols-3 md:grid-cols-6 gap-2 text-xs">
+              {steps.map((step) => (
+                <div key={step.number} className="flex flex-col items-center space-y-1">
+                  <div className="flex items-center">
+                    {isStepComplete(step.number) ? (
+                      <CheckCircle className="h-5 w-5 text-green-500" />
+                    ) : currentStep === step.number ? (
+                      <Circle className="h-5 w-5 text-blue-500 fill-current" />
+                    ) : (
+                      <Circle className="h-5 w-5 text-gray-300" />
+                    )}
+                  </div>
+                  <div className={`text-center ${currentStep === step.number ? 'font-medium text-blue-600' : 'text-gray-500'}`}>
+                    <div className="font-medium">{step.title}</div>
+                    <div className="text-xs opacity-75 hidden md:block">{step.description}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Current Step Info */}
+            <Alert>
+              <Info className="h-4 w-4" />
+              <AlertDescription>
+                <div className="font-medium">Step {currentStep}: {steps[currentStep - 1].title}</div>
+                <div className="text-sm text-gray-600 mt-1">
+                  {steps[currentStep - 1].description}
+                </div>
+                <div className="mt-2">
+                  <span className="text-sm font-medium">Required fields:</span>
+                  <ul className="text-sm text-gray-600 mt-1">
+                    {getCurrentStepRequirements().map((req, index) => (
+                      <li key={index} className="flex items-center gap-1">
+                        <span className="w-1 h-1 bg-gray-400 rounded-full"></span>
+                        {req}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </AlertDescription>
+            </Alert>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {renderCurrentStep()}
+          
+          <div className="flex justify-between items-center mt-8">
+            <Button 
+              variant="outline" 
+              onClick={prevStep}
+              disabled={currentStep === 1}
+            >
+              ← Previous
+            </Button>
+            
+            <div className="text-sm text-gray-500">
+              Step {currentStep} of {steps.length}
+            </div>
+            
+            {currentStep === steps.length ? (
+              <Button onClick={handleSubmit} size="lg" className="px-8">
+                🚀 Publish Project
+              </Button>
+            ) : (
+              <Button 
+                onClick={nextStep} 
+                disabled={!canProceedToNext()}
+                size="lg"
+                className="px-8"
               >
-                Back
-              </button>
+                Next →
+              </Button>
             )}
-            
-            <button
-              onClick={handleNext}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 ml-auto"
-            >
-              Next
-            </button>
           </div>
-        )}
 
-        {currentStep === 5 && (
-          <div className="flex justify-between mt-6">
-            <button
-              onClick={handleBack}
-              className="px-4 py-2 text-gray-600 bg-gray-200 rounded-lg hover:bg-gray-300"
-            >
-              Back
-            </button>
-            
-            <button
-              onClick={handleNext}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-            >
-              Review Project
-            </button>
-          </div>
-        )}
-
-        {currentStep === 6 && (
-          <div className="flex justify-between mt-6">
-            <button
-              onClick={handleBack}
-              className="px-4 py-2 text-gray-600 bg-gray-200 rounded-lg hover:bg-gray-300"
-            >
-              Back
-            </button>
-            
-            <button
-              onClick={handleSubmit}
-              disabled={isSubmitting}
-              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
-            >
-              {isSubmitting ? 'Creating Project...' : 'Create Project'}
-            </button>
-          </div>
-        )}
-      </div>
+          {!canProceedToNext() && currentStep !== steps.length && (
+            <div className="mt-4 flex items-center gap-2 text-amber-600 bg-amber-50 p-3 rounded-lg">
+              <AlertCircle className="h-4 w-4" />
+              <span className="text-sm">Please complete all required fields to continue</span>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 };

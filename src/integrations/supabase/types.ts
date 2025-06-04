@@ -63,30 +63,6 @@ export type Database = {
           },
         ]
       }
-      contract_templates: {
-        Row: {
-          category: string | null
-          content: string | null
-          created_at: string | null
-          id: string
-          name: string | null
-        }
-        Insert: {
-          category?: string | null
-          content?: string | null
-          created_at?: string | null
-          id: string
-          name?: string | null
-        }
-        Update: {
-          category?: string | null
-          content?: string | null
-          created_at?: string | null
-          id?: string
-          name?: string | null
-        }
-        Relationships: []
-      }
       direct_messages: {
         Row: {
           content: string
@@ -125,57 +101,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
-      }
-      error_logs: {
-        Row: {
-          created_at: string | null
-          error_details: Json | null
-          error_message: string
-          id: string
-          operation: string
-          record_id: string | null
-          table_name: string
-        }
-        Insert: {
-          created_at?: string | null
-          error_details?: Json | null
-          error_message: string
-          id?: string
-          operation: string
-          record_id?: string | null
-          table_name: string
-        }
-        Update: {
-          created_at?: string | null
-          error_details?: Json | null
-          error_message?: string
-          id?: string
-          operation?: string
-          record_id?: string | null
-          table_name?: string
-        }
-        Relationships: []
-      }
-      industry_fields: {
-        Row: {
-          category: string | null
-          created_at: string | null
-          fields: Json | null
-          id: string
-        }
-        Insert: {
-          category?: string | null
-          created_at?: string | null
-          fields?: Json | null
-          id: string
-        }
-        Update: {
-          category?: string | null
-          created_at?: string | null
-          fields?: Json | null
-          id?: string
-        }
-        Relationships: []
       }
       invoices: {
         Row: {
@@ -688,26 +613,21 @@ export type Database = {
           budget: number | null
           category: string | null
           client_id: string | null
-          contract_template_id: string | null
           created_at: string | null
           deadline: string | null
           description: string | null
           expected_timeline: string | null
           id: string
-          industry_specific_fields: Json | null
           location: string | null
-          location_coordinates: unknown | null
           professional_id: string | null
           project_start_time: string | null
           required_skills: string | null
           requirements: string[] | null
-          rich_description: string | null
           scope: string | null
           service_contract: string | null
-          sla_terms: Json | null
           status: string | null
           title: string
-          updated_at: string | null
+          "updated at": string | null
           urgency: string | null
         }
         Insert: {
@@ -715,26 +635,21 @@ export type Database = {
           budget?: number | null
           category?: string | null
           client_id?: string | null
-          contract_template_id?: string | null
           created_at?: string | null
           deadline?: string | null
           description?: string | null
           expected_timeline?: string | null
           id?: string
-          industry_specific_fields?: Json | null
           location?: string | null
-          location_coordinates?: unknown | null
           professional_id?: string | null
           project_start_time?: string | null
           required_skills?: string | null
           requirements?: string[] | null
-          rich_description?: string | null
           scope?: string | null
           service_contract?: string | null
-          sla_terms?: Json | null
           status?: string | null
           title: string
-          updated_at?: string | null
+          "updated at"?: string | null
           urgency?: string | null
         }
         Update: {
@@ -742,26 +657,21 @@ export type Database = {
           budget?: number | null
           category?: string | null
           client_id?: string | null
-          contract_template_id?: string | null
           created_at?: string | null
           deadline?: string | null
           description?: string | null
           expected_timeline?: string | null
           id?: string
-          industry_specific_fields?: Json | null
           location?: string | null
-          location_coordinates?: unknown | null
           professional_id?: string | null
           project_start_time?: string | null
           required_skills?: string | null
           requirements?: string[] | null
-          rich_description?: string | null
           scope?: string | null
           service_contract?: string | null
-          sla_terms?: Json | null
           status?: string | null
           title?: string
-          updated_at?: string | null
+          "updated at"?: string | null
           urgency?: string | null
         }
         Relationships: [
@@ -848,22 +758,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      create_project_with_milestones: {
-        Args: { project_data: Json; milestones_data: Json[] }
-        Returns: string
-      }
-      delete_project_with_cleanup: {
-        Args: { project_id: string }
-        Returns: boolean
-      }
-      update_milestone_with_deliverables: {
-        Args: {
-          milestone_id: string
-          milestone_data: Json
-          deliverables_data: Json[]
-        }
-        Returns: boolean
-      }
+      [_ in never]: never
     }
     Enums: {
       account_type_enum: "client" | "professional"

@@ -1,75 +1,109 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
 import Layout from '@/components/layout/Layout';
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { MessageSquare, DollarSign, Calendar, MapPin, Clock } from 'lucide-react';
-import { Button } from "@/components/ui/button";
-import { format } from 'date-fns';
-import { Separator } from "@/components/ui/separator";
-import { Badge } from "@/components/ui/badge";
-import { Textarea } from "@/components/ui/textarea";
-import { useToast } from "@/hooks/use-toast";
-import { ChatDialog } from '@/components/chat/ChatDialog';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { useToast } from "@/components/ui/use-toast";
+import { supabase } from '@/integrations/supabase/client';
+import { Project } from '@/components/dashboard/types';
+import ProjectUpdateTimeline from '@/components/shared/UnifiedProjectUpdateTimeline';
+import { MapPin, DollarSign, Calendar, User, Clock, CheckCircle, AlertTriangle } from 'lucide-react';
 
 const ProjectDetails: React.FC = () => {
   const { projectId } = useParams<{ projectId: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [project, setProject] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [message, setMessage] = useState('');
-  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [project, setProject] = useState<Project | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [isApplying, setIsApplying] = useState(false);
 
   useEffect(() => {
     if (projectId) {
-      fetchProject(projectId);
+      fetchProjectDetails();
     }
   }, [projectId]);
 
-  const fetchProject = async (id: string) => {
-    if (!id) return;
-    
-    setIsLoading(true);
+  const fetchProjectDetails = async () => {
     try {
+      setLoading(true);
       const { data, error } = await supabase
         .from('projects')
         .select(`
           *,
-          client:profiles!projects_client_id_fkey(
-            id,
-            first_name,
-            last_name,
-            avatar_url
-          )
+          client:profiles!projects_client_id_fkey(first_name, last_name),
+          professional:profiles!projects_professional_id_fkey(first_name, last_name)
         `)
-        .eq('id', id)
+        .eq('id', projectId)
         .single();
 
-      if (error) {
-        throw error;
-      }
-
+      if (error) throw error;
       setProject(data);
-    } catch (error: any) {
-      console.error("Error fetching project:", error);
+    } catch (error) {
+      console.error('Error fetching project details:', error);
       toast({
         title: "Error",
-        description: "Failed to load project details. Please try again later.",
+        description: "Failed to load project details",
         variant: "destructive"
       });
-      navigate('/project-marketplace');
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
-  if (isLoading) {
+  const handleApplyToProject = async () => {
+    try {
+      setIsApplying(true);
+      
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast({
+          title: "Authentication required",
+          description: "Please log in to apply to projects",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      const { error } = await supabase
+        .from('applications')
+        .insert([
+          {
+            project_id: projectId,
+            professional_id: user.id,
+            status: 'pending'
+          }
+        ]);
+
+      if (error) throw error;
+
+      toast({
+        title: "Application submitted",
+        description: "Your application has been submitted successfully!"
+      });
+
+      fetchProjectDetails();
+    } catch (error) {
+      console.error('Error applying to project:', error);
+      toast({
+        title: "Error",
+        description: "Failed to submit application",
+        variant: "destructive"
+      });
+    } finally {
+      setIsApplying(false);
+    }
+  };
+
+  if (loading) {
     return (
       <Layout>
-        <div className="flex justify-center items-center min-h-[60vh]">
-          <span className="loading loading-ring loading-lg"></span>
+        <div className="container-custom py-8">
+          <div className="animate-pulse">
+            <div className="h-8 bg-gray-200 rounded mb-4"></div>
+            <div className="h-4 bg-gray-200 rounded mb-2"></div>
+            <div className="h-4 bg-gray-200 rounded mb-2"></div>
+          </div>
         </div>
       </Layout>
     );
@@ -79,119 +113,191 @@ const ProjectDetails: React.FC = () => {
     return (
       <Layout>
         <div className="container-custom py-8">
-          <h1 className="text-2xl font-bold mb-4">Project Not Found</h1>
-          <p>The project you're looking for doesn't exist or has been removed.</p>
-          <Button onClick={() => navigate('/project-marketplace')} className="mt-4">
-            Back to Marketplace
-          </Button>
+          <div className="text-center">
+            <h1 className="text-2xl font-bold mb-4">Project not found</h1>
+            <Button onClick={() => navigate('/dashboard')}>
+              Return to Dashboard
+            </Button>
+          </div>
         </div>
       </Layout>
     );
   }
 
+  const getStatusBadge = (status: string) => {
+    const statusColors: Record<string, string> = {
+      'open': 'bg-green-100 text-green-800',
+      'in_progress': 'bg-blue-100 text-blue-800',
+      'completed': 'bg-gray-100 text-gray-800',
+      'cancelled': 'bg-red-100 text-red-800'
+    };
+
+    return (
+      <Badge className={statusColors[status] || 'bg-gray-100 text-gray-800'}>
+        {status.charAt(0).toUpperCase() + status.slice(1).replace('_', ' ')}
+      </Badge>
+    );
+  };
+
+  const requiredSkills = project.required_skills && typeof project.required_skills === 'string' 
+    ? project.required_skills.split(',').map(skill => skill.trim())
+    : [];
+
   return (
     <Layout>
-      <div className="container-custom py-8">
-        <div className="md:flex gap-4">
-          <div className="md:w-3/4">
-            <h1 className="text-3xl font-bold mb-4">{project.title}</h1>
+      <div className="bg-gray-50 py-8">
+        <div className="container-custom">
+          <Button 
+            variant="outline" 
+            onClick={() => navigate('/project-marketplace')}
+            className="mb-6"
+          >
+            ← Back to Projects
+          </Button>
 
-            <div className="flex items-center gap-4 mb-4">
-              <Avatar>
-                <AvatarImage src={project.client?.avatar_url} />
-                <AvatarFallback>{project.client?.first_name?.[0]}{project.client?.last_name?.[0]}</AvatarFallback>
-              </Avatar>
-              <div>
-                <div className="font-semibold">{project.client?.first_name} {project.client?.last_name}</div>
-                <div className="text-sm text-gray-500">Client</div>
-              </div>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Main Content */}
+            <div className="lg:col-span-2 space-y-6">
+              <Card>
+                <CardHeader>
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <CardTitle className="text-2xl mb-2">{project.title}</CardTitle>
+                      <div className="flex items-center gap-4 text-sm text-gray-600">
+                        <span className="flex items-center gap-1">
+                          <Calendar className="h-4 w-4" />
+                          Posted {new Date(project.created_at).toLocaleDateString()}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <User className="h-4 w-4" />
+                          {project.client?.first_name} {project.client?.last_name}
+                        </span>
+                      </div>
+                    </div>
+                    {getStatusBadge(project.status)}
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div>
+                      <h3 className="font-semibold mb-2">Description</h3>
+                      <p className="text-gray-700">{project.description}</p>
+                    </div>
+
+                    {project.requirements && project.requirements.length > 0 && (
+                      <div>
+                        <h3 className="font-semibold mb-2">Requirements</h3>
+                        <ul className="list-disc pl-5 space-y-1">
+                          {project.requirements.map((req, index) => (
+                            <li key={index} className="text-gray-700">{req}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {requiredSkills.length > 0 && (
+                      <div>
+                        <h3 className="font-semibold mb-2">Required Skills</h3>
+                        <div className="flex flex-wrap gap-2">
+                          {requiredSkills.map((skill, index) => (
+                            <Badge key={index} variant="outline">
+                              {skill}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Project Timeline */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Project Updates</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ProjectUpdateTimeline 
+                    projectId={project.id}
+                    projectStatus={project.status}
+                    showAddUpdate={false}
+                  />
+                </CardContent>
+              </Card>
             </div>
 
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-4">
-                <Badge variant="outline">
-                  {project.category}
-                </Badge>
-                <div className="flex items-center gap-2 text-gray-600">
-                  <Calendar className="h-4 w-4" />
-                  {format(new Date(project.created_at), 'PPP')}
-                </div>
-                <div className="flex items-center gap-2 text-gray-600">
-                  <MapPin className="h-4 w-4" />
-                  {project.location}
-                </div>
-                <div className="flex items-center gap-2 text-gray-600">
-                  <Clock className="h-4 w-4" />
-                  {project.expected_timeline}
-                </div>
-              </div>
-              <div className="text-2xl font-bold text-green-600">
-                ${project.budget}
-              </div>
-            </div>
+            {/* Sidebar */}
+            <div className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Project Details</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-center gap-2">
+                    <DollarSign className="h-4 w-4 text-gray-500" />
+                    <span className="font-medium">Budget:</span>
+                    <span>{project.budget}</span>
+                  </div>
 
-            <Separator className="mb-4" />
+                  {project.location && (
+                    <div className="flex items-center gap-2">
+                      <MapPin className="h-4 w-4 text-gray-500" />
+                      <span className="font-medium">Location:</span>
+                      <span>{project.location}</span>
+                    </div>
+                  )}
 
-            <div className="mb-6">
-              <h2 className="text-xl font-semibold mb-2">Project Description</h2>
-              <p className="text-gray-700">{project.description}</p>
-            </div>
+                  {project.expected_timeline && (
+                    <div className="flex items-center gap-2">
+                      <Clock className="h-4 w-4 text-gray-500" />
+                      <span className="font-medium">Timeline:</span>
+                      <span>{project.expected_timeline}</span>
+                    </div>
+                  )}
 
-            {project?.required_skills && typeof project.required_skills === 'string' && (
-              <div className="mb-6">
-                <h3 className="text-lg font-semibold mb-2">Skills Required</h3>
-                <div className="flex flex-wrap gap-2">
-                  {project.required_skills.split(',').map((skill: string, index: number) => (
-                    <span
-                      key={index}
-                      className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-sm"
+                  {project.urgency && (
+                    <div className="flex items-center gap-2">
+                      <AlertTriangle className="h-4 w-4 text-gray-500" />
+                      <span className="font-medium">Urgency:</span>
+                      <span className="capitalize">{project.urgency}</span>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {project.status === 'open' && (
+                <Card>
+                  <CardContent className="pt-6">
+                    <Button 
+                      onClick={handleApplyToProject}
+                      disabled={isApplying}
+                      className="w-full bg-ttc-blue-700 hover:bg-ttc-blue-800"
                     >
-                      {skill.trim()}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
+                      {isApplying ? "Applying..." : "Apply for this Project"}
+                    </Button>
+                  </CardContent>
+                </Card>
+              )}
 
-          <div className="md:w-1/4">
-            <div className="border rounded-lg p-4">
-              <h3 className="text-lg font-semibold mb-2">Interested?</h3>
-              <p className="text-sm text-gray-500 mb-4">Send a proposal or message the client to discuss your interest in this project.</p>
-
-              <Textarea
-                placeholder="Write a proposal..."
-                className="mb-4"
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-              />
-
-              <Button className="w-full mb-2">
-                Submit Proposal
-              </Button>
-
-              <Button variant="outline" className="w-full" onClick={() => setIsChatOpen(true)}>
-                <MessageSquare className="h-4 w-4 mr-2" />
-                Contact Client
-              </Button>
+              {project.professional && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <CheckCircle className="h-5 w-5 text-green-600" />
+                      Assigned Professional
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="font-medium">
+                      {project.professional.first_name} {project.professional.last_name}
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
             </div>
           </div>
-        </div>
-
-        <Separator className="my-4" />
-
-        <div className="py-4">
-          <h4 className="text-lg font-semibold mb-2">Similar Projects</h4>
-          <p className="text-sm text-gray-500">Here are some other projects that might interest you.</p>
         </div>
       </div>
-
-      <ChatDialog
-        open={isChatOpen}
-        onOpenChange={setIsChatOpen}
-        title={`Chat with ${project.client?.first_name} ${project.client?.last_name}`}
-        recipient_id={project.client_id || ''}
-      />
     </Layout>
   );
 };

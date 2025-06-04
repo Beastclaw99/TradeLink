@@ -1,115 +1,73 @@
-# Project Management System
+# Welcome to your Lovable project
 
-A modern project management system built with React, TypeScript, and Tailwind CSS.
+## Project info
 
-## Features
+**URL**: https://lovable.dev/projects/cf076c22-a3ce-4a25-9a98-f90b30cacd66
 
-- Project creation and management
-- Milestone tracking
-- Deliverable management with drag-and-drop functionality
-- Real-time updates
-- Responsive design
-- Accessibility support
-- Error handling
+## How can I edit this code?
 
-## Project Structure
+There are several ways of editing your application.
 
-```
-src/
-├── components/
-│   ├── common/           # Shared components
-│   ├── project/          # Project-related components
-│   │   └── creation/     # Project creation components
-│   └── dashboard/        # Dashboard components
-├── hooks/                # Custom React hooks
-├── types/                # TypeScript type definitions
-└── utils/                # Utility functions
-```
+**Use Lovable**
 
-## Getting Started
+Simply visit the [Lovable Project](https://lovable.dev/projects/cf076c22-a3ce-4a25-9a98-f90b30cacd66) and start prompting.
 
-### Prerequisites
+Changes made via Lovable will be committed automatically to this repo.
 
-- Node.js (v14 or higher)
-- npm or yarn
+**Use your preferred IDE**
 
-### Installation
+If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
 
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/yourusername/project-management.git
-   ```
+The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
 
-2. Install dependencies:
-   ```bash
-   npm install
-   # or
-   yarn install
-   ```
+Follow these steps:
 
-3. Start the development server:
-   ```bash
-   npm run dev
-   # or
-   yarn dev
-   ```
+```sh
+# Step 1: Clone the repository using the project's Git URL.
+git clone <YOUR_GIT_URL>
 
-## Component Documentation
+# Step 2: Navigate to the project directory.
+cd <YOUR_PROJECT_NAME>
 
-### DeliverableItem
+# Step 3: Install the necessary dependencies.
+npm i
 
-A component that displays and allows editing of a single deliverable item.
-
-```tsx
-<DeliverableItem
-  provided={draggableProvided}
-  deliverable={deliverableData}
-  onUpdate={handleUpdate}
-  onDelete={handleDelete}
-/>
+# Step 4: Start the development server with auto-reloading and an instant preview.
+npm run dev
 ```
 
-### DeliverableList
+**Edit a file directly in GitHub**
 
-A component that displays a list of deliverables with drag and drop functionality.
+- Navigate to the desired file(s).
+- Click the "Edit" button (pencil icon) at the top right of the file view.
+- Make your changes and commit the changes.
 
-```tsx
-<DeliverableList
-  milestoneId="milestone-1"
-  deliverables={deliverablesData}
-  onAdd={handleAdd}
-  onUpdate={handleUpdate}
-  onDelete={handleDelete}
-  onReorder={handleReorder}
-/>
-```
+**Use GitHub Codespaces**
 
-## Development
+- Navigate to the main page of your repository.
+- Click on the "Code" button (green button) near the top right.
+- Select the "Codespaces" tab.
+- Click on "New codespace" to launch a new Codespace environment.
+- Edit files directly within the Codespace and commit and push your changes once you're done.
 
-### Code Style
+## What technologies are used for this project?
 
-- Follow TypeScript best practices
-- Use functional components with hooks
-- Implement proper error handling
-- Ensure accessibility compliance
-- Write clean, documented code
+This project is built with:
 
-### Testing
+- Vite
+- TypeScript
+- React
+- shadcn-ui
+- Tailwind CSS
 
-The project uses real data testing instead of unit tests. This approach:
-- Tests components with actual database data
-- Verifies real user interactions
-- Ensures data persistence
-- Tests error handling with real API responses
+## How can I deploy this project?
 
-## Contributing
+Simply open [Lovable](https://lovable.dev/projects/cf076c22-a3ce-4a25-9a98-f90b30cacd66) and click on Share -> Publish.
 
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+## Can I connect a custom domain to my Lovable project?
 
-## License
+Yes, you can!
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+
+Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)

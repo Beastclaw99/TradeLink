@@ -1,36 +1,271 @@
-
 import React, { useState } from 'react';
-import { useProfessionalDashboard } from '@/hooks/useProfessionalDashboard';
-import ProfessionalSidebar from './ProfessionalSidebar';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useProfessionalDashboard } from "@/hooks/useProfessionalDashboard";
+import AvailableProjectsTab from './professional/AvailableProjectsTab';
+import ApplicationsTab from './professional/ApplicationsTab';
+import ActiveProjectsTab from './professional/ActiveProjectsTab';
+import PaymentsTab from './professional/PaymentsTab';
+import ReviewsTab from './professional/ReviewsTab';
+import ProjectApplicationForm from './professional/ProjectApplicationForm';
+import DashboardError from './professional/DashboardError';
+import { useToast } from "@/components/ui/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ProfessionalDashboardProps {
   userId: string;
 }
 
 const ProfessionalDashboard: React.FC<ProfessionalDashboardProps> = ({ userId }) => {
-  const [sidebarExpanded, setSidebarExpanded] = useState(false);
-  const dashboardData = useProfessionalDashboard(userId);
+  const { toast } = useToast();
+  const [isApplying, setIsApplying] = useState(false);
+  const [coverLetter, setCoverLetter] = useState('');
+  const [bidAmount, setBidAmount] = useState<number | null>(null);
+  const [selectedProject, setSelectedProject] = useState<string | null>(null);
+  const [availability, setAvailability] = useState('');
+  const [isEditing, setIsEditing] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  const {
+    projects,
+    applications,
+    payments,
+    reviews,
+    skills,
+    profile,
+    isLoading,
+    error,
+    fetchDashboardData,
+    calculateAverageRating,
+    calculatePaymentTotals,
+  } = useProfessionalDashboard(userId);
 
-  const handleSidebarExpand = (expanded: boolean) => {
-    setSidebarExpanded(expanded);
+  const handleApplyToProject = async () => {
+    if (!selectedProject || !coverLetter.trim() || bidAmount === null) {
+      toast({
+        title: "Missing information",
+        description: "Please provide both a bid amount and proposal message",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    try {
+      setIsApplying(true);
+      
+      // Check if project is still open before applying
+      const { data: projectData, error: projectError } = await supabase
+        .from('projects')
+        .select('status')
+        .eq('id', selectedProject)
+        .single();
+        
+      if (projectError) throw projectError;
+      
+      if (projectData.status !== 'open') {
+        toast({
+          title: "Project Unavailable",
+          description: "This project is no longer accepting applications.",
+          variant: "destructive"
+        });
+        setSelectedProject(null);
+        setCoverLetter('');
+        setBidAmount(null);
+        setAvailability('');
+        return;
+      }
+      
+      const { data, error } = await supabase
+        .from('applications')
+        .insert([
+          {
+            project_id: selectedProject,
+            professional_id: userId,
+            cover_letter: coverLetter,
+            bid_amount: bidAmount,
+            proposal_message: coverLetter,
+            availability: availability,
+            status: 'pending'
+          }
+        ])
+        .select();
+      
+      if (error) throw error;
+      
+      toast({
+        title: "Application Submitted",
+        description: "Your application has been submitted successfully!"
+      });
+      
+      // Reset form
+      setCoverLetter('');
+      setSelectedProject(null);
+      setBidAmount(null);
+      setAvailability('');
+      
+      // Refresh data
+      fetchDashboardData();
+      
+    } catch (error: any) {
+      console.error('Error applying to project:', error);
+      toast({
+        title: "Error",
+        description: "Failed to submit application. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsApplying(false);
+    }
   };
 
+  const markProjectComplete = async (projectId: string) => {
+    try {
+      const { error } = await supabase
+        .from('projects')
+        .update({ status: 'completed' })
+        .eq('id', projectId)
+        .eq('assigned_to', userId);
+      
+      if (error) throw error;
+      
+      toast({
+        title: "Project Completed",
+        description: "The project has been marked as completed. The client can now leave a review."
+      });
+      
+      fetchDashboardData();
+    } catch (error: any) {
+      console.error('Error completing project:', error);
+      toast({
+        title: "Error",
+        description: "Failed to mark project as completed.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const updateProfile = async (data: { skills: string[] }) => {
+    try {
+      setIsSubmitting(true);
+      
+      // Update profile with new skills
+      const { data: updatedProfileInfo, error: profileUpdateError } = await supabase
+        .from('profiles')
+        .update({
+          skills: data.skills,
+        })
+        .eq('id', userId)
+        .select()
+        .single();
+      
+      if (profileUpdateError) throw profileUpdateError;
+      
+      toast({
+        title: "Profile updated",
+        description: "Your skills have been updated successfully!",
+      });
+      
+      setIsEditing(false);
+      fetchDashboardData();
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update your profile. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const cancelApplication = () => {
+    setSelectedProject(null);
+    setCoverLetter('');
+    setBidAmount(null);
+    setAvailability('');
+  };
+
+  // Pass shared state and handlers to the tab components
+  const sharedProps = {
+    userId,
+    isLoading,
+    projects,
+    applications,
+    payments,
+    reviews,
+    skills,
+    profile,
+    coverLetter,
+    setCoverLetter,
+    bidAmount,
+    setBidAmount,
+    selectedProject,
+    setSelectedProject,
+    isApplying,
+    handleApplyToProject,
+    markProjectComplete,
+    calculateAverageRating,
+    calculatePaymentTotals,
+    updateProfile,
+    isEditing,
+    setIsEditing,
+    isSubmitting
+  };
+
+  if (error) {
+    return <DashboardError error={error} isLoading={isLoading} onRetry={fetchDashboardData} />;
+  }
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="flex">
-        <ProfessionalSidebar 
-          {...dashboardData}
-          onExpand={handleSidebarExpand}
+    <Tabs defaultValue="featured">
+      <TabsList className="mb-6">
+        <TabsTrigger value="featured" data-value="featured">Available Projects</TabsTrigger>
+        <TabsTrigger value="applications" data-value="applications">Your Applications</TabsTrigger>
+        <TabsTrigger value="active" data-value="active">Active Projects</TabsTrigger>
+        <TabsTrigger value="payments" data-value="payments">Payments</TabsTrigger>
+        <TabsTrigger value="reviews" data-value="reviews">Reviews</TabsTrigger>
+      </TabsList>
+      
+      <TabsContent value="featured">
+        <AvailableProjectsTab {...sharedProps} />
+        {selectedProject && (
+          <ProjectApplicationForm
+            selectedProject={selectedProject}
+            projects={projects}
+            coverLetter={coverLetter}
+            setCoverLetter={setCoverLetter}
+            bidAmount={bidAmount}
+            setBidAmount={setBidAmount}
+            availability={availability}
+            setAvailability={setAvailability}
+            isApplying={isApplying}
+            handleApplyToProject={handleApplyToProject}
+            onCancel={cancelApplication}
+            userSkills={skills}
+          />
+        )}
+      </TabsContent>
+      
+      <TabsContent value="applications">
+        <ApplicationsTab 
+          isLoading={isLoading} 
+          applications={applications}
+          userId={userId}
         />
-        <div className={`flex-1 transition-all duration-300 ${sidebarExpanded ? 'mr-64' : 'mr-16'}`}>
-          {/* Main dashboard content will go here */}
-          <div className="p-6">
-            <h1 className="text-2xl font-bold text-gray-900">Professional Dashboard</h1>
-            <p className="text-gray-600 mt-2">Welcome to your professional dashboard</p>
-          </div>
-        </div>
-      </div>
-    </div>
+      </TabsContent>
+      
+      <TabsContent value="active">
+        <ActiveProjectsTab {...sharedProps} />
+      </TabsContent>
+      
+      <TabsContent value="payments">
+        <PaymentsTab {...sharedProps} />
+      </TabsContent>
+      
+      <TabsContent value="reviews">
+        <ReviewsTab {...sharedProps} />
+      </TabsContent>
+    </Tabs>
   );
 };
 

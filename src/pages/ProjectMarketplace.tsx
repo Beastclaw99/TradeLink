@@ -1,22 +1,50 @@
 
 import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
-import { supabase } from '@/integrations/supabase/client';
-import { Project } from '@/types';
-import { Loader2 } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from "@/components/ui/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { Project } from '@/components/dashboard/types';
+
+// Import the refactored components
+import HeroSection from '@/components/marketplace/HeroSection';
 import SearchFilters from '@/components/marketplace/SearchFilters';
+import ViewModeToggle from '@/components/marketplace/ViewModeToggle';
 import ProjectsDisplay from '@/components/marketplace/ProjectsDisplay';
+import CTASection from '@/components/marketplace/CTASection';
 
 const ProjectMarketplace: React.FC = () => {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { toast } = useToast();
+  const [searchTerm, setSearchTerm] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("");
+  const [locationFilter, setLocationFilter] = useState("");
+  const [budgetFilter, setBudgetFilter] = useState("");
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [projects, setProjects] = useState<Project[]>([]);
-  const [filteredProjects, setFilteredProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-
+  
+  useEffect(() => {
+    fetchProjects();
+    
+    // Show success message if redirected from project creation
+    if (location.state?.message) {
+      toast({
+        title: "Success",
+        description: location.state.message
+      });
+    }
+  }, [location.state, toast]);
+  
   const fetchProjects = async () => {
     try {
       setLoading(true);
+      
+      console.log('Fetching projects from database...');
+      
       const { data, error } = await supabase
         .from('projects')
         .select(`
@@ -25,116 +53,114 @@ const ProjectMarketplace: React.FC = () => {
         `)
         .eq('status', 'open')
         .order('created_at', { ascending: false });
-
-      if (error) throw error;
-
-      // Transform projects with proper typing and null handling
-      const validStatuses = ['open', 'applied', 'assigned', 'in-progress', 'submitted', 'revision', 'completed', 'paid', 'archived', 'disputed'] as const;
+        
+      if (error) {
+        console.error('Database error:', error);
+        throw error;
+      }
       
-      const transformedProjects: Project[] = (data || []).map(project => ({
-        ...project,
-        client_id: project.client_id || null,
-        status: validStatuses.includes(project.status as any) ? project.status as Project['status'] : 'open',
-        created_at: project.created_at || new Date().toISOString(),
-        updated_at: project.updated_at || project.created_at || new Date().toISOString(),
-        client: project.client || null
-      }));
-
-      setProjects(transformedProjects);
-      setFilteredProjects(transformedProjects);
+      console.log('Fetched projects:', data);
+      
+      // Ensure the data is properly typed as Project[]
+      const typedProjects: Project[] = data?.map(project => ({
+        id: project.id,
+        title: project.title,
+        description: project.description,
+        category: project.category,
+        budget: project.budget,
+        expected_timeline: project.expected_timeline,
+        location: project.location,
+        urgency: project.urgency,
+        requirements: project.requirements,
+        required_skills: project.required_skills,
+        status: project.status,
+        created_at: project.created_at,
+        client_id: project.client_id,
+        assigned_to: project.assigned_to,
+        client: project.client
+      })) || [];
+      
+      setProjects(typedProjects);
+      console.log('Projects state updated with:', typedProjects.length, 'projects');
     } catch (error: any) {
       console.error('Error fetching projects:', error);
-      setError(error.message);
+      toast({
+        title: "Error",
+        description: "Failed to load projects. Please try again later.",
+        variant: "destructive"
+      });
     } finally {
       setLoading(false);
     }
   };
-
-  useEffect(() => {
-    fetchProjects();
-  }, []);
-
-  const handleFilterChange = (filters: any) => {
-    let filtered = [...projects];
-
-    if (filters.category && filters.category !== 'all') {
-      filtered = filtered.filter(project => project.category === filters.category);
+  
+  // Filter logic
+  const filteredProjects = projects.filter(project => {
+    const matchesSearch = project.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                          (project.description && project.description.toLowerCase().includes(searchTerm.toLowerCase()));
+    
+    const matchesCategory = categoryFilter === "" || categoryFilter === "all" || 
+                           (project.category && project.category.toLowerCase() === categoryFilter.toLowerCase());
+    
+    const matchesLocation = locationFilter === "" || locationFilter === "all" || 
+                           (project.location && project.location.toLowerCase().includes(locationFilter.toLowerCase()));
+    
+    let matchesBudget = true;
+    const projectBudget = project.budget;
+    if (projectBudget && typeof projectBudget === 'number') {
+      if (budgetFilter === "under5k") {
+        matchesBudget = projectBudget < 5000;
+      } else if (budgetFilter === "5k-10k") {
+        matchesBudget = projectBudget >= 5000 && projectBudget <= 10000;
+      } else if (budgetFilter === "over10k") {
+        matchesBudget = projectBudget > 10000;
+      }
     }
+    
+    return matchesSearch && matchesCategory && matchesLocation && matchesBudget;
+  });
 
-    if (filters.budgetRange) {
-      const [min, max] = filters.budgetRange;
-      filtered = filtered.filter(project => {
-        const budget = project.budget || 0;
-        return budget >= min && budget <= max;
-      });
+  const handlePostProject = () => {
+    if (user) {
+      navigate('/client/create-project');
+    } else {
+      navigate('/login');
     }
-
-    if (filters.location) {
-      filtered = filtered.filter(project => 
-        project.location?.toLowerCase().includes(filters.location.toLowerCase())
-      );
-    }
-
-    if (filters.search) {
-      filtered = filtered.filter(project =>
-        project.title.toLowerCase().includes(filters.search.toLowerCase()) ||
-        project.description?.toLowerCase().includes(filters.search.toLowerCase())
-      );
-    }
-
-    setFilteredProjects(filtered);
   };
-
-  if (loading) {
-    return (
-      <Layout>
-        <div className="flex justify-center items-center min-h-screen">
-          <Loader2 className="h-8 w-8 animate-spin" />
-        </div>
-      </Layout>
-    );
-  }
-
-  if (error) {
-    return (
-      <Layout>
-        <div className="container mx-auto px-4 py-8">
-          <div className="text-center text-red-600">
-            Error loading projects: {error}
-          </div>
-        </div>
-      </Layout>
-    );
-  }
-
+  
   return (
     <Layout>
-      <div className="container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-4">
-            Project Marketplace
-          </h1>
-          <p className="text-gray-600">
-            Discover and apply to projects that match your skills.
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-          <div className="lg:col-span-1">
-            <SearchFilters 
-              onFilterChange={handleFilterChange}
-            />
-          </div>
+      <HeroSection onPostProject={handlePostProject} />
+      
+      <section className="py-8 bg-gray-50">
+        <div className="container-custom">
+          <SearchFilters 
+            searchTerm={searchTerm}
+            setSearchTerm={setSearchTerm}
+            categoryFilter={categoryFilter}
+            setCategoryFilter={setCategoryFilter}
+            locationFilter={locationFilter}
+            setLocationFilter={setLocationFilter}
+            budgetFilter={budgetFilter}
+            setBudgetFilter={setBudgetFilter}
+            onFilterApply={fetchProjects}
+          />
           
-          <div className="lg:col-span-3">
-            <ProjectsDisplay 
-              projects={filteredProjects}
-              loading={loading}
-              viewMode={viewMode}
-            />
-          </div>
+          <ViewModeToggle 
+            viewMode={viewMode} 
+            setViewMode={setViewMode} 
+            projectCount={filteredProjects.length} 
+          />
+          
+          <ProjectsDisplay 
+            projects={filteredProjects} 
+            loading={loading} 
+            viewMode={viewMode} 
+          />
         </div>
-      </div>
+      </section>
+
+      <CTASection onPostProject={handlePostProject} />
     </Layout>
   );
 };

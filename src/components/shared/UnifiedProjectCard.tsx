@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Badge } from "@/components/ui/badge";
@@ -52,13 +53,6 @@ const UnifiedProjectCard: React.FC<UnifiedProjectCardProps> = ({
     }).format(amount);
   };
 
-  const getClientName = () => {
-    if (project.client?.first_name && project.client?.last_name) {
-      return `${project.client.first_name} ${project.client.last_name}`;
-    }
-    return 'Unknown Client';
-  };
-
   if (variant === 'list') {
     return (
       <div className="bg-white border rounded-lg p-4 hover:shadow-md transition-shadow">
@@ -76,9 +70,11 @@ const UnifiedProjectCard: React.FC<UnifiedProjectCardProps> = ({
             <h3 className="text-lg font-semibold mb-1">{project.title}</h3>
             
             <div className="flex items-center text-sm text-gray-600 mb-2">
-              <MapPin size={14} className="mr-1" /> {project.location || 'Location not specified'}
+              <MapPin size={14} className="mr-1" /> Location
               <span className="mx-2">|</span>
-              <span>Posted by: <span className="font-medium">{getClientName()}</span></span>
+              <span>Posted by: <span className="font-medium">
+                {project.client?.first_name} {project.client?.last_name}
+              </span></span>
             </div>
             
             <p className="text-sm text-gray-600 mb-3 line-clamp-2">
@@ -89,12 +85,8 @@ const UnifiedProjectCard: React.FC<UnifiedProjectCardProps> = ({
           <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
             <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
               <div className="flex items-center gap-2">
-                {project.budget && (
-                  <div className="flex items-center gap-1 text-green-600">
-                    <DollarSign className="h-4 w-4" />
-                    <span className="font-medium">${formatCurrency(project.budget ?? 0)}</span>
-                  </div>
-                )}
+                <DollarSign className="h-4 w-4 text-gray-500" />
+                <span className="font-semibold">{formatCurrency(project.budget)}</span>
               </div>
               
               <div className="flex items-center text-ttc-neutral-700">
@@ -133,7 +125,7 @@ const UnifiedProjectCard: React.FC<UnifiedProjectCardProps> = ({
         </div>
         <CardTitle className="text-lg">{project.title}</CardTitle>
         <CardDescription className="flex items-center gap-1">
-          <MapPin size={14} /> {project.location || 'Location not specified'}
+          <MapPin size={14} /> Location
         </CardDescription>
       </CardHeader>
       
@@ -144,11 +136,8 @@ const UnifiedProjectCard: React.FC<UnifiedProjectCardProps> = ({
         
         <div className="grid grid-cols-2 gap-2 text-sm">
           <div className="flex items-center gap-2">
-            {project.budget && (
-              <span className="text-lg font-bold text-green-600">
-                ${formatCurrency(project.budget ?? 0)}
-              </span>
-            )}
+            <DollarSign className="h-4 w-4 text-gray-500" />
+            <span className="font-semibold">{formatCurrency(project.budget)}</span>
           </div>
           
           <div className="flex items-center text-ttc-neutral-700">
@@ -168,7 +157,9 @@ const UnifiedProjectCard: React.FC<UnifiedProjectCardProps> = ({
       {showActions && (
         <CardFooter className="pt-0 flex justify-between items-center">
           <div className="text-sm text-gray-600">
-            Posted by: <span className="font-medium">{getClientName()}</span>
+            Posted by: <span className="font-medium">
+              {project.client?.first_name} {project.client?.last_name}
+            </span>
           </div>
           <Button 
             variant="outline" 

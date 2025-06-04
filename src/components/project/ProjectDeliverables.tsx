@@ -2,78 +2,76 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
-import { Upload, File, Download, Trash2, Plus, Calendar } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
+import { supabase } from '@/integrations/supabase/client';
+import { 
+  Upload, 
+  FileText, 
+  Download, 
+  Eye,
+  Trash2,
+  Plus,
+  Calendar
+} from "lucide-react";
 
 interface Deliverable {
   id: string;
-  title: string;
+  file_url: string;
   description?: string;
-  deliverable_type: 'text' | 'file';
-  content: string;
-  milestone_id: string;
-  file_url?: string;
-  file_name?: string;
-  created_at?: string;
-  updated_at?: string;
+  deliverable_type: string;
+  content?: string;
+  created_at: string;
+  uploaded_by?: string;
+  milestone_id?: string;
+  project_id: string;
 }
 
 interface ProjectDeliverablesProps {
   projectId: string;
+  canUpload?: boolean;
 }
 
-const ProjectDeliverables: React.FC<ProjectDeliverablesProps> = ({ projectId }) => {
+const ProjectDeliverables: React.FC<ProjectDeliverablesProps> = ({ 
+  projectId, 
+  canUpload = false 
+}) => {
   const { toast } = useToast();
   const [deliverables, setDeliverables] = useState<Deliverable[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [newDeliverable, setNewDeliverable] = useState<{
-    title: string;
-    description: string;
-    deliverable_type: 'text' | 'file';
-    content: string;
-  }>({
-    title: '',
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [formData, setFormData] = useState({
     description: '',
-    deliverable_type: 'text',
+    deliverable_type: 'file',
     content: ''
   });
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+
+  useEffect(() => {
+    fetchDeliverables();
+  }, [projectId]);
 
   const fetchDeliverables = async () => {
     try {
+      setLoading(true);
       const { data, error } = await supabase
         .from('project_deliverables')
         .select('*')
         .eq('project_id', projectId)
-        .order('created_at', { ascending: true });
+        .order('created_at', { ascending: false });
 
       if (error) throw error;
-
-      // Transform the data to match our Deliverable type
-      const transformedDeliverables: Deliverable[] = (data || []).map(item => ({
-        id: item.id,
-        title: item.description || 'Untitled Deliverable',
-        description: item.description || undefined,
-        deliverable_type: (item.deliverable_type === 'file' ? 'file' : 'text') as 'text' | 'file',
-        content: item.content || '',
-        milestone_id: item.milestone_id || '',
-        file_url: item.file_url,
-        file_name: item.file_url ? item.file_url.split('/').pop() : undefined,
-        created_at: item.created_at || undefined,
-        updated_at: item.created_at || undefined
-      }));
-
-      setDeliverables(transformedDeliverables);
-    } catch (error: any) {
+      setDeliverables(data || []);
+    } catch (error) {
       console.error('Error fetching deliverables:', error);
       toast({
         title: "Error",
-        description: "Failed to load deliverables",
+        description: "Failed to load project deliverables",
         variant: "destructive"
       });
     } finally {
@@ -81,61 +79,85 @@ const ProjectDeliverables: React.FC<ProjectDeliverablesProps> = ({ projectId }) 
     }
   };
 
-  useEffect(() => {
-    fetchDeliverables();
-  }, [projectId]);
-
-  const handleSubmitDeliverable = async () => {
-    if (!newDeliverable.title.trim()) {
+  const handleFileUpload = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!selectedFile && formData.deliverable_type === 'file') {
       toast({
         title: "Error",
-        description: "Please provide a title for the deliverable",
+        description: "Please select a file to upload",
         variant: "destructive"
       });
       return;
     }
 
     try {
-      setIsSubmitting(true);
+      setUploading(true);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      let fileUrl = '';
+      
+      if (selectedFile) {
+        const fileExt = selectedFile.name.split('.').pop();
+        const fileName = `${projectId}/${Date.now()}.${fileExt}`;
+        
+        const { error: uploadError } = await supabase.storage
+          .from('project-files')
+          .upload(fileName, selectedFile);
+
+        if (uploadError) throw uploadError;
+        
+        const { data: { publicUrl } } = supabase.storage
+          .from('project-files')
+          .getPublicUrl(fileName);
+          
+        fileUrl = publicUrl;
+      }
+
+      const deliverableData = {
+        project_id: projectId,
+        file_url: fileUrl || formData.content,
+        description: formData.description,
+        deliverable_type: formData.deliverable_type,
+        content: formData.deliverable_type === 'note' ? formData.content : null,
+        uploaded_by: user.id
+      };
+
       const { error } = await supabase
         .from('project_deliverables')
-        .insert([{
-          project_id: projectId,
-          description: newDeliverable.title,
-          deliverable_type: newDeliverable.deliverable_type,
-          content: newDeliverable.content,
-          file_url: newDeliverable.deliverable_type === 'file' ? newDeliverable.content : ''
-        }]);
+        .insert([deliverableData]);
 
       if (error) throw error;
-
+      
       toast({
         title: "Success",
-        description: "Deliverable submitted successfully"
+        description: "Deliverable uploaded successfully"
       });
 
-      setNewDeliverable({
-        title: '',
+      setDialogOpen(false);
+      setSelectedFile(null);
+      setFormData({
         description: '',
-        deliverable_type: 'text',
+        deliverable_type: 'file',
         content: ''
       });
-
       fetchDeliverables();
-    } catch (error: any) {
-      console.error('Error submitting deliverable:', error);
+    } catch (error) {
+      console.error('Error uploading deliverable:', error);
       toast({
         title: "Error",
-        description: "Failed to submit deliverable",
+        description: "Failed to upload deliverable",
         variant: "destructive"
       });
     } finally {
-      setIsSubmitting(false);
+      setUploading(false);
     }
   };
 
-  const handleDeleteDeliverable = async (deliverableId: string) => {
+  const deleteDeliverable = async (deliverableId: string, fileUrl: string) => {
     try {
+      // Delete from database
       const { error } = await supabase
         .from('project_deliverables')
         .delete()
@@ -143,13 +165,23 @@ const ProjectDeliverables: React.FC<ProjectDeliverablesProps> = ({ projectId }) 
 
       if (error) throw error;
 
+      // Delete file from storage if it exists
+      if (fileUrl && fileUrl.includes('project-files')) {
+        const fileName = fileUrl.split('/').pop();
+        if (fileName) {
+          await supabase.storage
+            .from('project-files')
+            .remove([`${projectId}/${fileName}`]);
+        }
+      }
+      
       toast({
         title: "Success",
         description: "Deliverable deleted successfully"
       });
-
+      
       fetchDeliverables();
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error deleting deliverable:', error);
       toast({
         title: "Error",
@@ -159,150 +191,241 @@ const ProjectDeliverables: React.FC<ProjectDeliverablesProps> = ({ projectId }) 
     }
   };
 
-  const getDeliverableTypeColor = (type: string) => {
-    return type === 'file' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800';
+  const getFileIcon = (fileUrl: string, type: string) => {
+    if (type === 'note') return <FileText className="h-5 w-5 text-blue-600" />;
+    
+    const extension = fileUrl.split('.').pop()?.toLowerCase();
+    switch (extension) {
+      case 'pdf':
+        return <FileText className="h-5 w-5 text-red-600" />;
+      case 'doc':
+      case 'docx':
+        return <FileText className="h-5 w-5 text-blue-600" />;
+      case 'jpg':
+      case 'jpeg':
+      case 'png':
+      case 'gif':
+        return <Eye className="h-5 w-5 text-green-600" />;
+      default:
+        return <FileText className="h-5 w-5 text-gray-600" />;
+    }
+  };
+
+  const getFileName = (fileUrl: string, type: string) => {
+    if (type === 'note') return 'Project Note';
+    return fileUrl.split('/').pop() || 'Unknown File';
   };
 
   if (loading) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Project Deliverables</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-center py-8">Loading deliverables...</div>
-        </CardContent>
-      </Card>
+      <div className="space-y-4">
+        <div className="animate-pulse">
+          <div className="h-6 bg-gray-200 rounded mb-4"></div>
+          <div className="h-20 bg-gray-200 rounded"></div>
+        </div>
+      </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <File className="h-5 w-5" />
-            Project Deliverables
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {deliverables.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
-              No deliverables submitted yet.
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {deliverables.map((deliverable) => (
-                <div
-                  key={deliverable.id}
-                  className="border rounded-lg p-4 flex items-start justify-between"
-                >
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
-                      <h3 className="font-medium">{deliverable.title}</h3>
-                      <Badge className={getDeliverableTypeColor(deliverable.deliverable_type)}>
-                        {deliverable.deliverable_type}
-                      </Badge>
-                    </div>
-                    {deliverable.description && (
-                      <p className="text-gray-600 text-sm mb-2">{deliverable.description}</p>
-                    )}
-                    {deliverable.deliverable_type === 'file' && deliverable.file_url && (
-                      <div className="flex items-center gap-2 text-sm text-blue-600">
-                        <File className="h-4 w-4" />
-                        <a
-                          href={deliverable.file_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="hover:underline"
-                        >
-                          {deliverable.file_name || 'Download File'}
-                        </a>
-                      </div>
-                    )}
-                    {deliverable.created_at && (
-                      <div className="flex items-center gap-2 text-sm text-gray-500 mt-2">
-                        <Calendar className="h-4 w-4" />
-                        {new Date(deliverable.created_at).toLocaleDateString()}
-                      </div>
-                    )}
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleDeleteDeliverable(deliverable.id)}
-                    className="text-red-600 hover:text-red-700"
+      <div className="flex items-center justify-between">
+        <h3 className="text-lg font-semibold flex items-center gap-2">
+          <FileText className="h-5 w-5" />
+          Project Deliverables ({deliverables.length})
+        </h3>
+        
+        {canUpload && (
+          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+            <DialogTrigger asChild>
+              <Button size="sm">
+                <Plus className="h-4 w-4 mr-2" />
+                Add Deliverable
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Upload New Deliverable</DialogTitle>
+              </DialogHeader>
+              <form onSubmit={handleFileUpload} className="space-y-4">
+                <div>
+                  <Label htmlFor="type">Type</Label>
+                  <select
+                    id="type"
+                    className="w-full p-2 border rounded-md"
+                    value={formData.deliverable_type}
+                    onChange={(e) => setFormData(prev => ({ ...prev, deliverable_type: e.target.value }))}
                   >
-                    <Trash2 className="h-4 w-4" />
+                    <option value="file">File Upload</option>
+                    <option value="note">Text Note</option>
+                    <option value="link">External Link</option>
+                  </select>
+                </div>
+
+                {formData.deliverable_type === 'file' && (
+                  <div>
+                    <Label htmlFor="file">Select File</Label>
+                    <Input
+                      id="file"
+                      type="file"
+                      onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
+                      required
+                    />
+                  </div>
+                )}
+
+                {formData.deliverable_type === 'note' && (
+                  <div>
+                    <Label htmlFor="content">Note Content</Label>
+                    <Textarea
+                      id="content"
+                      value={formData.content}
+                      onChange={(e) => setFormData(prev => ({ ...prev, content: e.target.value }))}
+                      required
+                      rows={4}
+                    />
+                  </div>
+                )}
+
+                {formData.deliverable_type === 'link' && (
+                  <div>
+                    <Label htmlFor="link">External Link URL</Label>
+                    <Input
+                      id="link"
+                      type="url"
+                      value={formData.content}
+                      onChange={(e) => setFormData(prev => ({ ...prev, content: e.target.value }))}
+                      required
+                    />
+                  </div>
+                )}
+
+                <div>
+                  <Label htmlFor="description">Description</Label>
+                  <Textarea
+                    id="description"
+                    value={formData.description}
+                    onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                    placeholder="Describe this deliverable..."
+                  />
+                </div>
+
+                <div className="flex justify-end gap-2">
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={() => {
+                      setDialogOpen(false);
+                      setSelectedFile(null);
+                      setFormData({ description: '', deliverable_type: 'file', content: '' });
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button type="submit" disabled={uploading}>
+                    {uploading ? 'Uploading...' : 'Upload'}
                   </Button>
                 </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+              </form>
+            </DialogContent>
+          </Dialog>
+        )}
+      </div>
 
-      {/* Add New Deliverable Form */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Plus className="h-5 w-5" />
-            Submit New Deliverable
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <Input
-            placeholder="Deliverable title"
-            value={newDeliverable.title}
-            onChange={(e) => setNewDeliverable(prev => ({ ...prev, title: e.target.value }))}
-          />
-          
-          <Textarea
-            placeholder="Description (optional)"
-            value={newDeliverable.description}
-            onChange={(e) => setNewDeliverable(prev => ({ ...prev, description: e.target.value }))}
-          />
-          
-          <Select
-            value={newDeliverable.deliverable_type}
-            onValueChange={(value: 'text' | 'file') => 
-              setNewDeliverable(prev => ({ ...prev, deliverable_type: value }))
-            }
-          >
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="text">Text Content</SelectItem>
-              <SelectItem value="file">File Upload</SelectItem>
-            </SelectContent>
-          </Select>
-          
-          {newDeliverable.deliverable_type === 'text' ? (
-            <Textarea
-              placeholder="Enter your content here..."
-              value={newDeliverable.content}
-              onChange={(e) => setNewDeliverable(prev => ({ ...prev, content: e.target.value }))}
-              rows={4}
-            />
-          ) : (
-            <Input
-              type="url"
-              placeholder="File URL"
-              value={newDeliverable.content}
-              onChange={(e) => setNewDeliverable(prev => ({ ...prev, content: e.target.value }))}
-            />
-          )}
-          
-          <Button
-            onClick={handleSubmitDeliverable}
-            disabled={isSubmitting}
-            className="w-full"
-          >
-            {isSubmitting ? "Submitting..." : "Submit Deliverable"}
-          </Button>
-        </CardContent>
-      </Card>
+      {deliverables.length === 0 ? (
+        <Card className="border-dashed">
+          <CardContent className="text-center py-8">
+            <FileText className="w-10 h-10 mx-auto text-gray-400 mb-3" />
+            <p className="text-gray-600">No deliverables uploaded yet.</p>
+            {canUpload && (
+              <Button 
+                className="mt-3" 
+                onClick={() => setDialogOpen(true)}
+              >
+                Upload First Deliverable
+              </Button>
+            )}
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="space-y-4">
+          {deliverables.map((deliverable) => (
+            <Card key={deliverable.id}>
+              <CardHeader className="pb-3">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-start gap-3">
+                    {getFileIcon(deliverable.file_url, deliverable.deliverable_type)}
+                    <div>
+                      <CardTitle className="text-base">
+                        {getFileName(deliverable.file_url, deliverable.deliverable_type)}
+                      </CardTitle>
+                      {deliverable.description && (
+                        <p className="text-sm text-gray-600 mt-1">{deliverable.description}</p>
+                      )}
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className="capitalize">
+                      {deliverable.deliverable_type}
+                    </Badge>
+                    <div className="flex gap-1">
+                      {deliverable.deliverable_type === 'file' && (
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => window.open(deliverable.file_url, '_blank')}
+                        >
+                          <Download className="h-4 w-4" />
+                        </Button>
+                      )}
+                      {deliverable.deliverable_type === 'note' && (
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => {
+                            // Show note content in a dialog or expand
+                            toast({
+                              title: "Note Content",
+                              description: deliverable.content || "No content"
+                            });
+                          }}
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                      )}
+                      {canUpload && (
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => deleteDeliverable(deliverable.id, deliverable.file_url)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center gap-4 text-sm text-gray-600">
+                  <span className="flex items-center gap-1">
+                    <Calendar className="h-4 w-4" />
+                    {new Date(deliverable.created_at).toLocaleDateString()}
+                  </span>
+                  {deliverable.deliverable_type === 'note' && deliverable.content && (
+                    <div className="flex-1">
+                      <p className="text-sm bg-gray-50 p-2 rounded border line-clamp-2">
+                        {deliverable.content}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
     </div>
   );
 };

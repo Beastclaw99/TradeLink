@@ -39,12 +39,6 @@ interface ProfileData {
   skills?: string[];
   hourly_rate?: number;
   availability?: string;
-  portfolio_urls?: string[];
-  certifications?: string[];
-  business_name?: string;
-  business_description?: string;
-  specialties?: string[];
-  service_areas?: string[];
   portfolio_images?: string[];
   response_rate?: number;
   on_time_completion?: number;
@@ -71,28 +65,7 @@ const Profile: React.FC = () => {
           .single();
 
         if (error) throw error;
-
-        const profileData = data as ProfileData;
-
-        if (profileData) {
-          setProfile({
-            ...profileData,
-            first_name: profileData.first_name || '',
-            last_name: profileData.last_name || '',
-            email: profileData.email || '',
-            phone: profileData.phone || '',
-            location: profileData.location || '',
-            bio: profileData.bio || '',
-            skills: profileData.skills || [],
-            portfolio_urls: profileData.portfolio_urls || [],
-            certifications: profileData.certifications || [],
-            business_name: profileData.business_name || '',
-            business_description: profileData.business_description || '',
-            specialties: profileData.specialties || [],
-            service_areas: profileData.service_areas || [],
-            portfolio_images: profileData.portfolio_images || []
-          });
-        }
+        setProfile(data);
       } catch (error) {
         console.error('Error fetching profile:', error);
       } finally {

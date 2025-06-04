@@ -1,13 +1,12 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
-import { Calendar, CheckCircle2, AlertTriangle } from 'lucide-react';
-import { ProjectData } from '@/types';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Button } from '@/components/ui/button';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { ProjectData } from '../types';
+import { FileText, Download, CheckCircle, AlertCircle } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface ServiceContractStepProps {
   data: ProjectData;
@@ -15,111 +14,221 @@ interface ServiceContractStepProps {
 }
 
 const ServiceContractStep: React.FC<ServiceContractStepProps> = ({ data, onUpdate }) => {
-  const [agreedToTerms, setAgreedToTerms] = useState(false);
-  const [customTerms, setCustomTerms] = useState('');
+  const [accepted, setAccepted] = useState(false);
+  const { user } = useAuth();
 
-  const handleAcceptContract = () => {
-    if (agreedToTerms) {
-      onUpdate({ 
-        service_contract: customTerms || 'Standard service contract accepted'
-      });
-    }
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD'
+    }).format(amount);
   };
 
-  const standardTerms = [
-    "Payment will be made upon completion of agreed milestones",
-    "Professional will provide updates on project progress",
-    "Client has the right to review and request revisions",
-    "Both parties agree to communicate professionally",
-    "Disputes will be resolved through the platform mediation process"
-  ];
+  const getTimelineLabel = (value: string) => {
+    const labels: Record<string, string> = {
+      'less_than_1_month': 'Less than 1 month',
+      '1_to_3_months': '1-3 months',
+      '3_to_6_months': '3-6 months',
+      'more_than_6_months': 'More than 6 months'
+    };
+    return labels[value] || value;
+  };
+
+  const getUrgencyLabel = (value: string) => {
+    const labels: Record<string, string> = {
+      'low': 'Low - Flexible timeline',
+      'medium': 'Medium - Standard timeline',
+      'high': 'High - Urgent completion needed'
+    };
+    return labels[value] || value;
+  };
+
+  const generateContract = () => {
+    const contract = `
+PROLINKTT SERVICE AGREEMENT
+
+This Service Agreement ("Agreement") is made and entered into on ${new Date().toLocaleDateString()} through the ProLinkTT platform.
+
+PARTIES:
+Client: ${user?.email || 'Client'}
+Client ID: ${user?.id || 'N/A'}
+Platform: ProLinkTT
+
+PROJECT DETAILS:
+════════════════════════════════════════════════════════════════════════════════
+Title: ${data.title}
+Description: ${data.description}
+Location: ${data.location}
+Category: ${data.category}
+
+BUDGET AND TIMELINE:
+════════════════════════════════════════════════════════════════════════════════
+Total Budget: ${formatCurrency(data.budget)}
+Expected Timeline: ${getTimelineLabel(data.timeline)}
+Urgency Level: ${getUrgencyLabel(data.urgency)}
+
+SCOPE OF WORK:
+════════════════════════════════════════════════════════════════════════════════
+The Professional agrees to perform the following services:
+
+${data.requirements.map(req => `• ${req}`).join('\n')}
+
+REQUIRED SKILLS:
+════════════════════════════════════════════════════════════════════════════════
+The Professional must possess the following skills:
+
+${data.skills.map(skill => `• ${skill}`).join('\n')}
+
+MILESTONES AND DELIVERABLES:
+════════════════════════════════════════════════════════════════════════════════
+${data.milestones.map(milestone => `
+Milestone: ${milestone.title}
+• Description: ${milestone.description || 'N/A'}
+• Due Date: ${milestone.due_date || 'TBD'}
+• Requires Deliverable: ${milestone.requires_deliverable ? 'Yes' : 'No'}
+`).join('\n')}
+
+${data.deliverables.length > 0 ? `
+DELIVERABLES:
+${data.deliverables.map(deliverable => `
+• ${deliverable.description}
+  Type: ${deliverable.deliverable_type}
+  Content: ${deliverable.content || 'N/A'}
+`).join('\n')}` : ''}
+
+TERMS AND CONDITIONS:
+════════════════════════════════════════════════════════════════════════════════
+
+1. Payment Terms
+   • The total project cost is ${formatCurrency(data.budget)}
+   • Payment schedule will be determined based on project milestones
+   • All payments are processed through the ProLinkTT platform
+   • Payment disputes must be reported within 7 days of payment
+
+2. Timeline and Deadlines
+   • Project duration: ${getTimelineLabel(data.timeline)}
+   • Urgency level: ${getUrgencyLabel(data.urgency)}
+   • Milestone deadlines are as specified above
+   • Delays must be communicated at least 48 hours in advance
+
+3. Quality Standards
+   • All work must meet industry standards and local regulations
+   • Materials used must be of professional quality
+   • Work must be completed to client's satisfaction
+   • Professional must maintain appropriate insurance coverage
+
+4. Changes and Modifications
+   • Any changes to the scope must be agreed upon in writing
+   • Additional costs must be approved by the client
+   • Timeline adjustments must be communicated promptly
+   • Change requests must be submitted through the platform
+
+5. Termination
+   • Either party may terminate with written notice
+   • Professional must complete current milestone before termination
+   • Client must pay for completed work
+   • Termination disputes will be handled by ProLinkTT
+
+6. Confidentiality
+   • Both parties agree to maintain confidentiality
+   • Project details may not be shared without consent
+   • Client information must be kept secure
+   • Non-disclosure terms apply for 2 years after project completion
+
+7. Dispute Resolution
+   • Disputes will be resolved through ProLinkTT's mediation
+   • Legal action may be taken if mediation fails
+   • Governing law: Trinidad and Tobago
+   • Arbitration will be conducted in Port of Spain
+
+ACCEPTANCE:
+════════════════════════════════════════════════════════════════════════════════
+By proceeding with project creation on the ProLinkTT platform, the Client acknowledges and agrees to all terms and conditions outlined in this Agreement. The act of publishing this project constitutes acceptance of this Agreement.
+
+Platform: ProLinkTT
+Date: ${new Date().toLocaleDateString()}
+    `;
+
+    return contract;
+  };
+
+  const handleDownload = () => {
+    const contract = generateContract();
+    const blob = new Blob([contract], { type: 'text/plain' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `service_contract_${data.title.replace(/\s+/g, '_')}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+  };
 
   return (
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Service Contract Terms</CardTitle>
+          <CardTitle>Service Contract</CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="space-y-4">
-            <h4 className="font-medium">Standard Terms & Conditions</h4>
-            <ul className="space-y-2">
-              {standardTerms.map((term, index) => (
-                <li key={index} className="flex items-start gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
-                  <span className="text-sm">{term}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-medium">Review and Accept Contract</h3>
+              <Button
+                variant="outline"
+                onClick={handleDownload}
+                className="flex items-center gap-2"
+              >
+                <Download className="h-4 w-4" />
+                Download Contract
+              </Button>
+            </div>
 
-          <div className="space-y-4">
-            <Label htmlFor="customTerms">Additional Terms (Optional)</Label>
-            <Textarea
-              id="customTerms"
-              placeholder="Add any specific terms or requirements for this project..."
-              value={customTerms}
-              onChange={(e) => setCustomTerms(e.target.value)}
-              rows={4}
-            />
-          </div>
-
-          {data.milestones.length > 0 && (
-            <div className="space-y-4">
-              <h4 className="font-medium">Project Milestones Summary</h4>
-              <div className="space-y-2">
-                {data.milestones.map((milestone: any, index: number) => (
-                  <div key={index} className="flex items-center justify-between p-3 border rounded">
-                    <div>
-                      <span className="font-medium">{milestone.title}</span>
-                      {milestone.due_date && (
-                        <div className="flex items-center gap-1 text-sm text-gray-500 mt-1">
-                          <Calendar className="h-3 w-3" />
-                          {new Date(milestone.due_date).toLocaleDateString()}
-                        </div>
-                      )}
-                    </div>
-                    <Badge variant="outline">
-                      {milestone.deliverables?.length || 0} deliverables
-                    </Badge>
-                  </div>
-                ))}
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+              <div className="flex items-start gap-2">
+                <AlertCircle className="h-5 w-5 text-yellow-600 mt-0.5" />
+                <div>
+                  <h4 className="font-medium text-yellow-900">Important Notice</h4>
+                  <p className="text-sm text-yellow-700">
+                    Please review the contract carefully. By accepting, you agree to all terms and conditions.
+                    The contract will be legally binding once the project is published.
+                  </p>
+                </div>
               </div>
             </div>
-          )}
 
-          <div className="border-t pt-4">
-            <div className="flex items-start space-x-2">
+            <ScrollArea className="h-[500px] w-full rounded-md border p-4">
+              <pre className="whitespace-pre-wrap font-mono text-sm">
+                {generateContract()}
+              </pre>
+            </ScrollArea>
+
+            <div className="flex items-center space-x-2">
               <Checkbox
-                id="terms"
-                checked={agreedToTerms}
-                onCheckedChange={(checked) => setAgreedToTerms(checked === true)}
+                id="accept-terms"
+                checked={accepted}
+                onCheckedChange={(checked) => {
+                  setAccepted(checked as boolean);
+                  onUpdate({ service_contract: checked ? generateContract() : '' });
+                }}
               />
-              <Label htmlFor="terms" className="text-sm leading-relaxed">
-                I agree to the standard terms and conditions and any additional terms specified above.
-                I understand that these terms will govern the professional relationship for this project.
+              <Label htmlFor="accept-terms" className="text-sm">
+                I have read and agree to the terms of this service contract
               </Label>
             </div>
+
+            {accepted && (
+              <div className="flex items-center gap-2 text-green-600">
+                <CheckCircle className="h-4 w-4" />
+                <span className="text-sm">Contract accepted</span>
+              </div>
+            )}
           </div>
-
-          <Button
-            onClick={handleAcceptContract}
-            disabled={!agreedToTerms}
-            className="w-full"
-          >
-            {data.service_contract ? 'Update Contract Terms' : 'Accept Service Contract'}
-          </Button>
-
-          {data.service_contract && (
-            <div className="flex items-center gap-2 text-green-600 bg-green-50 p-3 rounded">
-              <CheckCircle2 className="h-5 w-5" />
-              <span>Service contract has been accepted</span>
-            </div>
-          )}
         </CardContent>
       </Card>
     </div>
   );
 };
 
-export default ServiceContractStep;
+export default ServiceContractStep; 

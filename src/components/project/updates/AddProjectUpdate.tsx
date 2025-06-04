@@ -1,7 +1,6 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@/components/ui/use-toast";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
@@ -272,7 +271,7 @@ export default function AddProjectUpdate({
           {/* Update Type Selection */}
           <Tabs
             value={selectedGroup}
-            onValueChange={(value: string) => setSelectedGroup(value as UpdateGroup)}
+            onValueChange={(value: UpdateGroup) => setSelectedGroup(value)}
           >
             <TabsList className="grid grid-cols-5">
               {Object.entries(UPDATE_TYPE_GROUPS).map(([key, { label }]) => (

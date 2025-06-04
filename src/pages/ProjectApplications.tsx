@@ -1,323 +1,160 @@
-
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { CircleDollarSign, Mail, MessageSquare, User2 } from 'lucide-react';
-import { Separator } from "@/components/ui/separator"
-import { supabase } from '@/integrations/supabase/client';
-import { Project, Application } from '@/types';
+import { useParams, useNavigate } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
-import { format } from 'date-fns';
-import { useToast } from '@/components/ui/use-toast';
+import ProjectApplicationsView from '@/components/dashboard/client/projects/ProjectApplicationsView';
+import { useToast } from "@/components/ui/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
 
 const ProjectApplications: React.FC = () => {
-  const { id: projectId } = useParams();
+  const { projectId } = useParams<{ projectId: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
-
-  const [project, setProject] = useState<Project | null>(null);
-  const [applications, setApplications] = useState<Application[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const fetchProject = async () => {
-    if (!projectId) return;
-
-    try {
-      setLoading(true);
-      const { data, error } = await supabase
-        .from('projects')
-        .select(`
-          *,
-          client:profiles!projects_client_id_fkey(first_name, last_name)
-        `)
-        .eq('id', projectId)
-        .single();
-
-      if (error) throw error;
-      
-      const transformedProject: Project = {
-        ...data,
-        client_id: data.client_id || null, // Handle null client_id
-        status: data.status as Project['status'] || 'open',
-        created_at: data.created_at || new Date().toISOString(),
-        updated_at: data.updated_at || data.created_at || new Date().toISOString(),
-        client: data.client || null // Handle null client
-      };
-      
-      setProject(transformedProject);
-    } catch (error: any) {
-      setError(error.message);
-      toast({
-        title: "Error",
-        description: "Failed to load project details.",
-        variant: "destructive"
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchApplications = async () => {
-    if (!projectId) return;
-
-    try {
-      setLoading(true);
-      const { data, error } = await supabase
-        .from('applications')
-        .select(`
-          *,
-          professional:profiles!applications_professional_id_fkey(first_name, last_name)
-        `)
-        .eq('project_id', projectId)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      
-      const transformedApplications: Application[] = (data || [])
-        .filter(app => app.project_id && app.professional_id && app.status && app.created_at)
-        .map(app => ({
-          id: app.id,
-          project_id: app.project_id || null, // Handle null project_id
-          professional_id: app.professional_id || null, // Handle null professional_id
-          status: app.status as Application['status'],
-          created_at: app.created_at!,
-          updated_at: app.updated_at || app.created_at!,
-          cover_letter: app.cover_letter,
-          bid_amount: app.bid_amount,
-          proposal_message: app.proposal_message,
-          availability: app.availability,
-          professional: app.professional ? {
-            first_name: app.professional.first_name,
-            last_name: app.professional.last_name
-          } : null
-        }));
-      
-      setApplications(transformedApplications);
-    } catch (error: any) {
-      setError(error.message);
-      toast({
-        title: "Error",
-        description: "Failed to load applications.",
-        variant: "destructive"
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  
+  const [project, setProject] = useState<any>(null);
+  const [applications, setApplications] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  
   useEffect(() => {
-    fetchProject();
-    fetchApplications();
-  }, [projectId]);
-
-  const handleAcceptApplication = async (applicationId: string, professionalId: string) => {
-    if (!projectId || !professionalId) return;
-
+    if (!projectId) return;
+    
+    const fetchData = async () => {
+      try {
+        setIsLoading(true);
+        
+        // Fetch project details
+        const { data: projectData, error: projectError } = await supabase
+          .from('projects')
+          .select('*')
+          .eq('id', projectId)
+          .single();
+        
+        if (projectError) throw projectError;
+        setProject(projectData);
+        
+        // Fetch applications with professional details
+        const { data: applicationsData, error: applicationsError } = await supabase
+          .from('applications')
+          .select(`
+            *,
+            professional:profiles!applications_professional_id_fkey(
+              id,
+              first_name,
+              last_name,
+              rating,
+              skills
+            )
+          `)
+          .eq('project_id', projectId)
+          .order('created_at', { ascending: false });
+        
+        if (applicationsError) throw applicationsError;
+        setApplications(applicationsData || []);
+        
+      } catch (error: any) {
+        console.error('Error fetching data:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load project applications. Please try again later.",
+          variant: "destructive"
+        });
+        navigate('/client/dashboard');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchData();
+  }, [projectId, navigate, toast]);
+  
+  const handleApplicationUpdate = async (
+    applicationId: string,
+    newStatus: string,
+    projectId: string,
+    professionalId: string
+  ) => {
     try {
-      setLoading(true);
-
-      // Update application status to 'accepted'
-      const { error: appError } = await supabase
+      // Update application status
+      const { error: applicationError } = await supabase
         .from('applications')
-        .update({ status: 'accepted' })
+        .update({ status: newStatus })
         .eq('id', applicationId);
-
-      if (appError) throw appError;
-
-      // Update project status to 'assigned' and assign the professional
-      const { error: projectError } = await supabase
-        .from('projects')
-        .update({ status: 'assigned', assigned_to: professionalId })
-        .eq('id', projectId);
-
-      if (projectError) throw projectError;
-
-      toast({
-        title: "Application Accepted",
-        description: "The application has been accepted and the project assigned.",
-      });
-
-      // Refresh data
-      await fetchProject();
-      await fetchApplications();
+      
+      if (applicationError) throw applicationError;
+      
+      // If application was accepted, update project status
+      if (newStatus === 'accepted') {
+        const { error: projectError } = await supabase
+          .from('projects')
+          .update({ status: 'assigned' })
+          .eq('id', projectId);
+        
+        if (projectError) throw projectError;
+        
+        // Update other applications to rejected
+        const { error: rejectError } = await supabase
+          .from('applications')
+          .update({ status: 'rejected' })
+          .eq('project_id', projectId)
+          .neq('id', applicationId);
+        
+        if (rejectError) throw rejectError;
+      }
+      
+      // Update local state
+      setApplications(prev => prev.map(app => 
+        app.id === applicationId 
+          ? { ...app, status: newStatus }
+          : app
+      ));
+      
+      // If application was accepted, update project status
+      if (newStatus === 'accepted') {
+        setProject(prev => ({ ...prev, status: 'assigned' }));
+      }
+      
     } catch (error: any) {
-      setError(error.message);
-      toast({
-        title: "Error",
-        description: "Failed to accept application.",
-        variant: "destructive"
-      });
-    } finally {
-      setLoading(false);
+      console.error('Error updating application:', error);
+      throw error;
     }
   };
-
-  const handleRejectApplication = async (applicationId: string) => {
-    try {
-      setLoading(true);
-      const { error } = await supabase
-        .from('applications')
-        .update({ status: 'rejected' })
-        .eq('id', applicationId);
-
-      if (error) throw error;
-
-      toast({
-        title: "Application Rejected",
-        description: "The application has been rejected.",
-      });
-
-      // Refresh data
-      await fetchApplications();
-    } catch (error: any) {
-      setError(error.message);
-      toast({
-        title: "Error",
-        description: "Failed to reject application.",
-        variant: "destructive"
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const refreshData = async (): Promise<void> => {
-    if (projectId) {
-      await fetchProject();
-      await fetchApplications();
-    }
-  };
-
-  if (loading) {
-    return <Layout>Loading applications...</Layout>;
+  
+  if (isLoading) {
+    return (
+      <Layout>
+        <div className="flex justify-center items-center min-h-[60vh]">
+          <div className="animate-spin w-8 h-8 border-4 border-ttc-blue-700 border-t-transparent rounded-full"></div>
+          <span className="ml-2">Loading applications...</span>
+        </div>
+      </Layout>
+    );
   }
-
-  if (error) {
-    return <Layout>Error: {error}</Layout>;
-  }
-
+  
   if (!project) {
-    return <Layout>Project not found.</Layout>;
+    return (
+      <Layout>
+        <div className="container-custom py-8">
+          <h1 className="text-2xl font-bold mb-4">Project Not Found</h1>
+          <p>The project you're looking for doesn't exist or has been removed.</p>
+          <Button onClick={() => navigate('/client/dashboard')} className="mt-4">
+            Back to Dashboard
+          </Button>
+        </div>
+      </Layout>
+    );
   }
-
+  
   return (
     <Layout>
-      <div className="container mx-auto px-4 py-8">
-        <Button variant="ghost" onClick={() => navigate('/dashboard')}>Back to Dashboard</Button>
-        <Card>
-          <CardHeader>
-            <CardTitle>Project: {project.title}</CardTitle>
-            <p className="text-sm text-gray-500">Created at: {format(new Date(project.created_at), 'PPP')}</p>
-          </CardHeader>
-          <CardContent>
-            <p>{project.description}</p>
-            <div className="mt-4">
-              <Badge variant="secondary">{project.category}</Badge>
-              <Badge variant="outline">{project.status}</Badge>
-            </div>
-          </CardContent>
-        </Card>
-
-        <div className="mt-8">
-          <h2 className="text-2xl font-bold mb-4">Applications</h2>
-          {applications.length === 0 ? (
-            <p>No applications yet.</p>
-          ) : (
-            <ScrollArea className="rounded-md border">
-              <div className="divide-y divide-border">
-                {applications.map((app) => (
-                  <div key={app.id} className="p-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center space-x-4">
-                        <Avatar>
-                          <AvatarImage src={`https://avatar.vercel.sh/${app.professional?.first_name}.png`} />
-                          <AvatarFallback>{app.professional?.first_name?.[0]}{app.professional?.last_name?.[0]}</AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <h3 className="text-lg font-semibold">{app.professional?.first_name} {app.professional?.last_name}</h3>
-                          <p className="text-sm text-gray-500">Applied on: {format(new Date(app.created_at), 'PPP')}</p>
-                        </div>
-                      </div>
-                      <div>
-                        {project.status === 'open' && (
-                          <>
-                            <Button
-                              size="sm"
-                              onClick={() => app.professional_id && handleAcceptApplication(app.id, app.professional_id)}
-                              disabled={loading || !app.professional_id}
-                            >
-                              Accept
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="destructive"
-                              onClick={() => handleRejectApplication(app.id)}
-                              disabled={loading}
-                              className="ml-2"
-                            >
-                              Reject
-                            </Button>
-                          </>
-                        )}
-                        {project.status !== 'open' && (
-                          <Badge variant="secondary">Assigned</Badge>
-                        )}
-                      </div>
-                    </div>
-                    <Separator />
-                    <div className="grid gap-6 py-4">
-                      <div>
-                        <h4 className="font-medium leading-none mb-2">Cover Letter</h4>
-                        <p className="text-sm text-gray-600">{app.cover_letter}</p>
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <Card>
-                          <CardHeader>
-                            <CardTitle>Bid Amount</CardTitle>
-                          </CardHeader>
-                          <CardContent>
-                            <div className="flex items-center gap-2">
-                              <CircleDollarSign className="w-4 h-4 text-gray-500" />
-                              <span>{app.bid_amount}</span>
-                            </div>
-                          </CardContent>
-                        </Card>
-                        <Card>
-                          <CardHeader>
-                            <CardTitle>Availability</CardTitle>
-                          </CardHeader>
-                          <CardContent>
-                            <div className="flex items-center gap-2">
-                              <User2 className="w-4 h-4 text-gray-500" />
-                              <span>{app.availability}</span>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      </div>
-                    </div>
-                    <Separator />
-                    <div className="flex justify-end mt-4">
-                      <Button variant="link">
-                        <Mail className="mr-2 h-4 w-4" /> Contact
-                      </Button>
-                      <Button variant="link">
-                        <MessageSquare className="mr-2 h-4 w-4" /> Chat
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </ScrollArea>
-          )}
-        </div>
+      <div className="container-custom py-8">
+        <ProjectApplicationsView
+          project={project}
+          applications={applications}
+          onApplicationUpdate={handleApplicationUpdate}
+        />
       </div>
     </Layout>
   );
 };
 
-export default ProjectApplications;
+export default ProjectApplications; 

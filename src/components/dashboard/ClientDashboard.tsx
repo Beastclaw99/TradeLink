@@ -1,82 +1,138 @@
-
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ProjectsTab from './client/ProjectsTab';
 import ApplicationsTab from './client/ApplicationsTab';
-import PaymentsTab from './client/PaymentsTab';
-import ProfileTab from './client/ProfileTab';
 import CreateProjectTab from './client/CreateProjectTab';
+import PaymentsTab from './client/PaymentsTab';
 import { useClientDashboard } from '@/hooks/useClientDashboard';
+import { useProjectOperations } from '@/hooks/useProjectOperations';
+import { useReviewOperations } from '@/hooks/useReviewOperations';
+import { useApplicationOperations } from '@/hooks/useApplicationOperations';
 
-export const ClientDashboard: React.FC = () => {
-  const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState('projects');
+interface ClientDashboardProps {
+  userId: string;
+  initialTab?: string;
+}
+
+const ClientDashboard: React.FC<ClientDashboardProps> = ({ userId, initialTab = 'projects' }) => {
+  const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState(initialTab);
+
+  // Use custom hooks for data fetching and operations
+  const { 
+    projects, 
+    applications, 
+    payments, 
+    reviews, 
+    profileData, 
+    isLoading, 
+    fetchDashboardData 
+  } = useClientDashboard(userId);
   
-  const {
+  const { 
+    editProject, 
+    projectToDelete, 
+    editedProject, 
+    newProject, 
+    isSubmitting: isProjectSubmitting, 
+    setEditedProject, 
+    setNewProject, 
+    handleCreateProject, 
+    handleEditInitiate, 
+    handleEditCancel, 
+    handleUpdateProject, 
+    handleDeleteInitiate, 
+    handleDeleteCancel, 
+    handleDeleteProject 
+  } = useProjectOperations(userId, fetchDashboardData);
+  
+  const { 
+    projectToReview, 
+    reviewData, 
+    isSubmitting: isReviewSubmitting, 
+    setReviewData, 
+    handleReviewInitiate, 
+    handleReviewCancel, 
+    handleReviewSubmit 
+  } = useReviewOperations(userId, applications, fetchDashboardData);
+  
+  const { 
+    isProcessing, 
+    handleApplicationUpdate 
+  } = useApplicationOperations(userId, fetchDashboardData);
+  
+  // Set the active tab based on initialTab prop
+  useEffect(() => {
+    if (initialTab && ['projects', 'applications', 'create', 'payments'].includes(initialTab)) {
+      setActiveTab(initialTab);
+    }
+  }, [initialTab]);
+  
+  // Props to pass to tab components
+  const projectsTabProps = {
+    isLoading,
     projects,
     applications,
-    payments,
-    reviews,
+    editProject,
+    projectToDelete,
+    editedProject,
+    isSubmitting: isProjectSubmitting,
+    setEditedProject,
+    handleEditInitiate,
+    handleEditCancel,
+    handleUpdateProject,
+    handleDeleteInitiate,
+    handleDeleteCancel,
+    handleDeleteProject
+  };
+  
+  const applicationsTabProps = {
     isLoading,
-    error,
-    fetchDashboardData
-  } = useClientDashboard(user?.id || '');
-
-  if (!user) {
-    return <div>Please log in to access your dashboard.</div>;
-  }
-
-  if (error) {
-    return <div>Error loading dashboard: {error.message}</div>;
-  }
-
+    projects,
+    applications,
+    handleApplicationUpdate
+  };
+  
+  const paymentsTabProps = {
+    isLoading,
+    projects,
+    reviews,
+    applications,
+    projectToReview,
+    reviewData,
+    isSubmitting: isReviewSubmitting,
+    handleReviewInitiate,
+    handleReviewCancel,
+    handleReviewSubmit,
+    setReviewData
+  };
+  
   return (
-    <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-8">Client Dashboard</h1>
+    <Tabs value={activeTab} onValueChange={setActiveTab}>
+      <TabsList className="mb-6">
+        <TabsTrigger value="projects" data-value="projects">Your Projects</TabsTrigger>
+        <TabsTrigger value="applications" data-value="applications">Applications</TabsTrigger>
+        <TabsTrigger value="create" data-value="create">Post New Project</TabsTrigger>
+        <TabsTrigger value="payments" data-value="payments">Payments</TabsTrigger>
+      </TabsList>
       
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-5">
-          <TabsTrigger value="projects">Projects</TabsTrigger>
-          <TabsTrigger value="applications">Applications</TabsTrigger>
-          <TabsTrigger value="payments">Payments</TabsTrigger>
-          <TabsTrigger value="create">Create Project</TabsTrigger>
-          <TabsTrigger value="profile">Profile</TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="projects" className="mt-6">
-          <ProjectsTab 
-            projects={projects}
-            isLoading={isLoading}
-            onUpdate={fetchDashboardData}
-          />
-        </TabsContent>
-        
-        <TabsContent value="applications" className="mt-6">
-          <ApplicationsTab 
-            applications={applications}
-            projects={projects}
-            isLoading={isLoading}
-            onUpdate={fetchDashboardData}
-          />
-        </TabsContent>
-        
-        <TabsContent value="payments" className="mt-6">
-          <PaymentsTab 
-            payments={payments}
-            isLoading={isLoading}
-          />
-        </TabsContent>
-        
-        <TabsContent value="create" className="mt-6">
-          <CreateProjectTab onProjectCreated={fetchDashboardData} />
-        </TabsContent>
-        
-        <TabsContent value="profile" className="mt-6">
-          <ProfileTab />
-        </TabsContent>
-      </Tabs>
-    </div>
+      <TabsContent value="projects">
+        <ProjectsTab {...projectsTabProps} />
+      </TabsContent>
+      
+      <TabsContent value="applications">
+        <ApplicationsTab {...applicationsTabProps} />
+      </TabsContent>
+      
+      <TabsContent value="create">
+        <CreateProjectTab />
+      </TabsContent>
+      
+      <TabsContent value="payments">
+        <PaymentsTab {...paymentsTabProps} />
+      </TabsContent>
+    </Tabs>
   );
 };
 

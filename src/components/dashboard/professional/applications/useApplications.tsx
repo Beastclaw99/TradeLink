@@ -1,127 +1,101 @@
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useEffect } from 'react';
+import { Application } from '../../types';
 import { supabase } from '@/integrations/supabase/client';
-import { Application } from '@/types';
 import { useToast } from "@/components/ui/use-toast";
 
-export const useApplications = (initialApplications: Application[], isLoading: boolean) => {
+/**
+ * Custom hook to manage applications state and fetch applications if needed
+ * @param applications Initial applications from props
+ * @param isLoading Initial loading state from props
+ * @param userId Optional user ID to fetch applications for
+ * @returns Object with local applications state and helpers
+ */
+export const useApplications = (
+  applications: Application[],
+  isLoading: boolean,
+  userId?: string
+) => {
   const { toast } = useToast();
-  const [localApplications, setLocalApplications] = useState<Application[]>(initialApplications);
+  const [localApplications, setLocalApplications] = useState<Application[]>(applications);
   const [localIsLoading, setLocalIsLoading] = useState(isLoading);
-
+  
+  // Handle applications update from props
   useEffect(() => {
-    setLocalApplications(initialApplications);
-    setLocalIsLoading(isLoading);
-  }, [initialApplications, isLoading]);
-
-  const updateLocalApplications = useCallback((applications: Application[]) => {
     setLocalApplications(applications);
-  }, []);
-
-  const fetchApplications = useCallback(async (userId: string) => {
-    try {
-      setLocalIsLoading(true);
-      const { data, error } = await supabase
-        .from('applications')
-        .select('*')
-        .eq('professional_id', userId)
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        throw error;
-      }
-
-      const transformedApplications: Application[] = (data || [])
-        .filter(app => app.project_id && app.status && app.professional_id)
-        .map(app => ({
-          id: app.id,
-          project_id: app.project_id!,
-          professional_id: app.professional_id!,
-          status: app.status as Application['status'],
-          created_at: app.created_at || new Date().toISOString(),
-          updated_at: app.updated_at || new Date().toISOString(),
-          cover_letter: app.cover_letter,
-          bid_amount: app.bid_amount,
-          proposal_message: app.proposal_message,
-          availability: app.availability
-        }));
-
-      setLocalApplications(transformedApplications);
-    } catch (error: any) {
-      console.error('Error fetching applications:', error);
-      toast({
-        title: "Error",
-        description: "Failed to fetch applications. Please try again.",
-        variant: "destructive"
-      });
-    } finally {
-      setLocalIsLoading(false);
-    }
-  }, [toast]);
-
-  const withdrawApplication = async (applicationId: string, userId: string) => {
-    try {
-      const { error } = await supabase
-        .from('applications')
-        .update({ status: 'withdrawn' })
-        .eq('id', applicationId)
-        .eq('professional_id', userId);
-
-      if (error) throw error;
-
-      toast({
-        title: "Application Withdrawn",
-        description: "Your application has been successfully withdrawn."
-      });
-
-      // Update local state
-      setLocalApplications(prev =>
-        prev.map(app =>
-          app.id === applicationId ? { ...app, status: 'withdrawn' as Application['status'] } : app
-        )
-      );
+  }, [applications]);
+  
+  // Handle loading state update from props
+  useEffect(() => {
+    setLocalIsLoading(isLoading);
+  }, [isLoading]);
+  
+  // Fetch applications directly if parent component doesn't provide them
+  useEffect(() => {
+    const fetchApplications = async () => {
+      if (!userId) return;
       
-    } catch (error: any) {
-      console.error('Error withdrawing application:', error);
-      toast({
-        title: "Error",
-        description: "Failed to withdraw application. Please try again.",
-        variant: "destructive"
-      });
-    }
-  };
-
-  const getStatusColor = (status: string, projectStatus?: string) => {
-    if (status === 'accepted' && projectStatus) {
-      return getProjectStatusColor(projectStatus);
-    }
+      if (applications.length === 0 && !isLoading) {
+        try {
+          setLocalIsLoading(true);
+          
+          const { data, error } = await supabase
+            .from('applications')
+            .select(`
+              *,
+              project:projects(id, title, status, budget, created_at)
+            `)
+            .eq('professional_id', userId);
+          
+          if (error) throw error;
+          
+          console.log('Fetched applications:', data);
+          
+          // Transform applications to match the Application type
+          const transformedApplications: Application[] = (data || []).map(app => ({
+            id: app.id,
+            project_id: app.project_id,
+            professional_id: app.professional_id,
+            cover_letter: app.cover_letter,
+            proposal_message: app.proposal_message,
+            bid_amount: app.bid_amount,
+            availability: app.availability,
+            status: app.status,
+            created_at: app.created_at,
+            updated_at: app.updated_at,
+            project: app.project ? {
+              id: app.project.id,
+              title: app.project.title,
+              status: app.project.status,
+              budget: app.project.budget,
+              created_at: app.project.created_at
+            } : undefined
+          }));
+          
+          setLocalApplications(transformedApplications);
+        } catch (error: any) {
+          console.error('Error fetching applications:', error);
+          toast({
+            title: "Error",
+            description: "Failed to load application data. Please try again later.",
+            variant: "destructive"
+          });
+        } finally {
+          setLocalIsLoading(false);
+        }
+      }
+    };
     
-    switch (status) {
-      case 'pending': return 'bg-yellow-100 text-yellow-800';
-      case 'accepted': return 'bg-green-100 text-green-800';
-      case 'rejected': return 'bg-red-100 text-red-800';
-      case 'withdrawn': return 'bg-gray-100 text-gray-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
+    fetchApplications();
+  }, [userId, applications, isLoading, toast]);
+  
+  const updateLocalApplications = (newApplications: Application[]) => {
+    setLocalApplications(newApplications);
   };
-
-  const getProjectStatusColor = (projectStatus: string) => {
-    switch (projectStatus) {
-      case 'open': return 'bg-blue-100 text-blue-800';
-      case 'in-progress': return 'bg-orange-100 text-orange-800';
-      case 'completed': return 'bg-green-100 text-green-800';
-      case 'assigned': return 'bg-purple-100 text-purple-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
-
+  
   return {
     localApplications,
     localIsLoading,
-    updateLocalApplications,
-    fetchApplications,
-    withdrawApplication,
-    getStatusColor,
-    getProjectStatusColor
+    updateLocalApplications
   };
 };
