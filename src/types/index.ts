@@ -6,7 +6,7 @@ export interface Project {
   description: string | null;
   budget: number | null;
   status: 'open' | 'applied' | 'assigned' | 'in-progress' | 'submitted' | 'revision' | 'completed' | 'paid' | 'archived' | 'disputed';
-  client_id: string;
+  client_id: string | null; // Aligned with database - can be null
   created_at: string;
   updated_at: string;
   assigned_to: string | null;
@@ -24,13 +24,13 @@ export interface Project {
   client?: {
     first_name: string | null;
     last_name: string | null;
-  };
+  } | null; // Aligned with database - can be null
 }
 
 export interface Application {
   id: string;
-  project_id: string;
-  professional_id: string;
+  project_id: string | null; // Aligned with database - can be null
+  professional_id: string | null; // Aligned with database - can be null
   cover_letter: string | null;
   status: 'pending' | 'accepted' | 'rejected' | 'withdrawn';
   created_at: string;
@@ -44,38 +44,38 @@ export interface Application {
     status: Project['status'];
     budget: number | null;
     created_at: string;
-  };
+  } | null; // Aligned with database - can be null
   professional?: {
     first_name: string | null;
     last_name: string | null;
     rating?: number;
     skills?: string[];
-  };
+  } | null; // Aligned with database - can be null
 }
 
 export interface Payment {
   id: string;
-  project_id: string;
-  client_id: string;
-  professional_id: string;
+  project_id: string | null; // Aligned with database - can be null
+  client_id: string | null; // Aligned with database - can be null
+  professional_id: string | null; // Aligned with database - can be null
   amount: number;
   status: 'pending' | 'completed' | 'failed';
   paid_at: string | null;
   created_at: string;
   project?: {
     title: string;
-  };
+  } | null; // Aligned with database - can be null
   professional?: {
     first_name: string | null;
     last_name: string | null;
-  };
+  } | null; // Aligned with database - can be null
 }
 
 export interface Review {
   id: string;
-  project_id: string;
-  professional_id: string;
-  client_id: string;
+  project_id: string | null; // Aligned with database - can be null
+  professional_id: string | null; // Aligned with database - can be null
+  client_id: string | null; // Aligned with database - can be null
   rating: number | null;
   comment: string | null;
   created_at: string;

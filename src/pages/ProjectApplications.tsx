@@ -42,10 +42,11 @@ const ProjectApplications: React.FC = () => {
       
       const transformedProject: Project = {
         ...data,
-        client_id: data.client_id || '',
+        client_id: data.client_id || null, // Handle null client_id
         status: data.status as Project['status'] || 'open',
         created_at: data.created_at || new Date().toISOString(),
-        updated_at: data.updated_at || data.created_at || new Date().toISOString()
+        updated_at: data.updated_at || data.created_at || new Date().toISOString(),
+        client: data.client || null // Handle null client
       };
       
       setProject(transformedProject);
@@ -81,8 +82,8 @@ const ProjectApplications: React.FC = () => {
         .filter(app => app.project_id && app.professional_id && app.status && app.created_at)
         .map(app => ({
           id: app.id,
-          project_id: app.project_id!,
-          professional_id: app.professional_id!,
+          project_id: app.project_id || null, // Handle null project_id
+          professional_id: app.professional_id || null, // Handle null professional_id
           status: app.status as Application['status'],
           created_at: app.created_at!,
           updated_at: app.updated_at || app.created_at!,
@@ -93,7 +94,7 @@ const ProjectApplications: React.FC = () => {
           professional: app.professional ? {
             first_name: app.professional.first_name,
             last_name: app.professional.last_name
-          } : undefined
+          } : null
         }));
       
       setApplications(transformedApplications);
@@ -115,7 +116,7 @@ const ProjectApplications: React.FC = () => {
   }, [projectId]);
 
   const handleAcceptApplication = async (applicationId: string, professionalId: string) => {
-    if (!projectId) return;
+    if (!projectId || !professionalId) return;
 
     try {
       setLoading(true);
@@ -247,8 +248,8 @@ const ProjectApplications: React.FC = () => {
                           <>
                             <Button
                               size="sm"
-                              onClick={() => handleAcceptApplication(app.id, app.professional_id)}
-                              disabled={loading}
+                              onClick={() => app.professional_id && handleAcceptApplication(app.id, app.professional_id)}
+                              disabled={loading || !app.professional_id}
                             >
                               Accept
                             </Button>

@@ -65,7 +65,7 @@ class FileUploadService {
     // Validate file before upload
     const validation = validateFile(file);
     if (!validation.isValid) {
-      throw new Error(validation.error);
+      throw new Error(validation.error || 'File validation failed');
     }
 
     const fileId = `${Date.now()}-${file.name}`;

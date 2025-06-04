@@ -1,108 +1,106 @@
 
-import React from 'react';
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Filter, Search } from 'lucide-react';
+import React, { useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Slider } from '@/components/ui/slider';
+import { Label } from '@/components/ui/label';
 
 interface SearchFiltersProps {
-  searchTerm: string;
-  setSearchTerm: (value: string) => void;
-  categoryFilter: string;
-  setCategoryFilter: (value: string) => void;
-  locationFilter: string;
-  setLocationFilter: (value: string) => void;
-  budgetFilter: string;
-  setBudgetFilter: (value: string) => void;
-  onFilterApply: () => void;
+  onFilterChange: (filters: any) => void;
 }
 
-const SearchFilters: React.FC<SearchFiltersProps> = ({
-  searchTerm,
-  setSearchTerm,
-  categoryFilter,
-  setCategoryFilter,
-  locationFilter,
-  setLocationFilter,
-  budgetFilter,
-  setBudgetFilter,
-  onFilterApply
-}) => {
+const SearchFilters: React.FC<SearchFiltersProps> = ({ onFilterChange }) => {
+  const [search, setSearch] = useState('');
+  const [category, setCategory] = useState('all');
+  const [location, setLocation] = useState('');
+  const [budgetRange, setBudgetRange] = useState([0, 10000]);
+
+  const handleFilterUpdate = () => {
+    onFilterChange({
+      search,
+      category: category === 'all' ? undefined : category,
+      location: location || undefined,
+      budgetRange: budgetRange[0] === 0 && budgetRange[1] === 10000 ? undefined : budgetRange
+    });
+  };
+
+  const handleClearFilters = () => {
+    setSearch('');
+    setCategory('all');
+    setLocation('');
+    setBudgetRange([0, 10000]);
+    onFilterChange({});
+  };
+
+  React.useEffect(() => {
+    handleFilterUpdate();
+  }, [search, category, location, budgetRange]);
+
   return (
-    <div className="bg-white p-6 rounded-lg shadow-md mb-8">
-      <div className="flex flex-col md:flex-row gap-4 items-end">
-        <div className="flex-1">
-          <label htmlFor="search" className="block text-sm font-medium text-gray-700 mb-1">Search Projects</label>
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
-            <Input 
-              id="search"
-              placeholder="Search by keyword..." 
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
-          </div>
+    <Card>
+      <CardHeader>
+        <CardTitle>Filters</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div>
+          <Label htmlFor="search">Search</Label>
+          <Input
+            id="search"
+            placeholder="Search projects..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
         </div>
-        
-        <div className="w-full md:w-48">
-          <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
-          <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+
+        <div>
+          <Label htmlFor="category">Category</Label>
+          <Select value={category} onValueChange={setCategory}>
             <SelectTrigger>
-              <SelectValue placeholder="All Categories" />
+              <SelectValue placeholder="Select category" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Categories</SelectItem>
-              <SelectItem value="Carpentry">Carpentry</SelectItem>
-              <SelectItem value="Electrical">Electrical</SelectItem>
-              <SelectItem value="Plumbing">Plumbing</SelectItem>
-              <SelectItem value="Painting">Painting</SelectItem>
-              <SelectItem value="Roofing">Roofing</SelectItem>
-              <SelectItem value="Landscaping">Landscaping</SelectItem>
-              <SelectItem value="Masonry">Masonry</SelectItem>
-              <SelectItem value="Flooring">Flooring</SelectItem>
+              <SelectItem value="plumbing">Plumbing</SelectItem>
+              <SelectItem value="electrical">Electrical</SelectItem>
+              <SelectItem value="carpentry">Carpentry</SelectItem>
+              <SelectItem value="painting">Painting</SelectItem>
+              <SelectItem value="landscaping">Landscaping</SelectItem>
+              <SelectItem value="roofing">Roofing</SelectItem>
+              <SelectItem value="flooring">Flooring</SelectItem>
+              <SelectItem value="masonry">Masonry</SelectItem>
             </SelectContent>
           </Select>
         </div>
-        
-        <div className="w-full md:w-48">
-          <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
-          <Select value={locationFilter} onValueChange={setLocationFilter}>
-            <SelectTrigger>
-              <SelectValue placeholder="All Locations" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Locations</SelectItem>
-              <SelectItem value="Port of Spain">Port of Spain</SelectItem>
-              <SelectItem value="San Fernando">San Fernando</SelectItem>
-              <SelectItem value="Arima">Arima</SelectItem>
-              <SelectItem value="Chaguanas">Chaguanas</SelectItem>
-              <SelectItem value="Point Fortin">Point Fortin</SelectItem>
-              <SelectItem value="Tobago">Tobago</SelectItem>
-            </SelectContent>
-          </Select>
+
+        <div>
+          <Label htmlFor="location">Location</Label>
+          <Input
+            id="location"
+            placeholder="Enter location..."
+            value={location}
+            onChange={(e) => setLocation(e.target.value)}
+          />
         </div>
-        
-        <div className="w-full md:w-48">
-          <label className="block text-sm font-medium text-gray-700 mb-1">Budget</label>
-          <Select value={budgetFilter} onValueChange={setBudgetFilter}>
-            <SelectTrigger>
-              <SelectValue placeholder="Any Budget" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="any">Any Budget</SelectItem>
-              <SelectItem value="under5k">Under $5,000</SelectItem>
-              <SelectItem value="5k-10k">$5,000 - $10,000</SelectItem>
-              <SelectItem value="over10k">Over $10,000</SelectItem>
-            </SelectContent>
-          </Select>
+
+        <div>
+          <Label>Budget Range: ${budgetRange[0]} - ${budgetRange[1]}</Label>
+          <Slider
+            value={budgetRange}
+            onValueChange={setBudgetRange}
+            max={10000}
+            min={0}
+            step={100}
+            className="mt-2"
+          />
         </div>
-        
-        <Button variant="outline" className="gap-2 md:w-auto w-full" onClick={onFilterApply}>
-          <Filter size={16} /> Filter
+
+        <Button variant="outline" onClick={handleClearFilters} className="w-full">
+          Clear Filters
         </Button>
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 };
 
