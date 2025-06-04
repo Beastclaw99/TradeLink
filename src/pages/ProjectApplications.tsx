@@ -42,6 +42,7 @@ const ProjectApplications: React.FC = () => {
       
       const transformedProject: Project = {
         ...data,
+        client_id: data.client_id || '',
         status: data.status as Project['status'] || 'open',
         created_at: data.created_at || new Date().toISOString(),
         updated_at: data.updated_at || data.created_at || new Date().toISOString()

@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
@@ -54,7 +55,7 @@ export const useProfessionalDashboard = (userId: string) => {
             title: app.project.title,
             status: app.project.status as Project['status'],
             budget: app.project.budget,
-            created_at: app.project.created_at
+            created_at: app.project.created_at || new Date().toISOString()
           } : undefined
         }));
 
@@ -134,6 +135,48 @@ export const useProfessionalDashboard = (userId: string) => {
       setError('Failed to fetch reviews');
     }
   }, [userId]);
+
+  const calculateAverageRating = useCallback(() => {
+    if (reviews.length === 0) return 0;
+    const sum = reviews.reduce((acc, review) => acc + (review.rating || 0), 0);
+    return sum / reviews.length;
+  }, [reviews]);
+
+  const calculatePaymentTotals = useCallback(() => {
+    const completed = payments.filter(p => p.status === 'completed');
+    const pending = payments.filter(p => p.status === 'pending');
+    
+    return {
+      totalEarned: completed.reduce((sum, p) => sum + p.amount, 0),
+      pendingAmount: pending.reduce((sum, p) => sum + p.amount, 0),
+      totalPayments: payments.length
+    };
+  }, [payments]);
+
+  const markProjectComplete = useCallback(async (projectId: string) => {
+    try {
+      const { error } = await supabase
+        .from('projects')
+        .update({ status: 'completed' })
+        .eq('id', projectId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Project Completed",
+        description: "Project has been marked as completed successfully."
+      });
+
+      fetchDashboardData();
+    } catch (error: any) {
+      console.error('Error completing project:', error);
+      toast({
+        title: "Error",
+        description: "Failed to mark project as complete",
+        variant: "destructive"
+      });
+    }
+  }, [toast]);
 
   const fetchDashboardData = async () => {
     setIsLoading(true);
