@@ -1,31 +1,30 @@
 
 import React from 'react';
-import { useAuth } from "@/contexts/AuthContext";
-import { Navigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
 import Layout from '@/components/layout/Layout';
+import { ClientDashboard } from '@/components/dashboard/ClientDashboard';
 import ProfessionalDashboard from '@/components/dashboard/ProfessionalDashboard';
-import ClientDashboard from '@/components/dashboard/ClientDashboard';
-import { LoadingSpinner } from '@/components/ui/loading-spinner';
-import AccountTypeSelection from '@/components/auth/AccountTypeSelection';
 
 const Dashboard: React.FC = () => {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
 
-  if (!user) {
-    return <Navigate to="/login" />;
+  if (!user || !profile) {
+    return (
+      <Layout>
+        <div className="container mx-auto px-4 py-8">
+          <p>Please log in to access your dashboard.</p>
+        </div>
+      </Layout>
+    );
   }
 
   return (
     <Layout>
-      <div className="min-h-screen bg-gray-50">
-        {user.user_metadata?.account_type === 'professional' ? (
-          <ProfessionalDashboard userId={user.id} />
-        ) : user.user_metadata?.account_type === 'client' ? (
-          <ClientDashboard userId={user.id} />
-        ) : (
-          <AccountTypeSelection />
-        )}
-      </div>
+      {profile.account_type === 'client' ? (
+        <ClientDashboard />
+      ) : (
+        <ProfessionalDashboard />
+      )}
     </Layout>
   );
 };

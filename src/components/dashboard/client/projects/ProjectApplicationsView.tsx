@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Application, Project } from '@/types';
 import { ApplicationCard } from './components/ApplicationCard';
@@ -23,7 +24,7 @@ export const ProjectApplicationsView: React.FC<ProjectApplicationsViewProps> = (
     handleCloseDialog,
     handleAcceptApplication,
     handleRejectApplication
-  } = useApplicationOperations({ onUpdate });
+  } = useApplicationOperations(onUpdate || (() => Promise.resolve()));
 
   if (applications.length === 0) {
     return (
@@ -62,4 +63,4 @@ export const ProjectApplicationsView: React.FC<ProjectApplicationsViewProps> = (
       />
     </div>
   );
-}; 
+};

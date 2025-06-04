@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
-import { Project, Application, Payment, Review } from '../components/dashboard/types';
+import { Project, Application, Payment, Review } from '@/types';
 
 export const useProfessionalDashboard = (userId: string) => {
   const { toast } = useToast();

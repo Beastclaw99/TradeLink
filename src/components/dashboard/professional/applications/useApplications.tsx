@@ -31,14 +31,19 @@ export const useApplications = (initialApplications: Application[], isLoading: b
         throw error;
       }
 
-      const transformedApplications = (data || [])
-        .filter(app => app.project_id && app.status)
+      const transformedApplications: Application[] = (data || [])
+        .filter(app => app.project_id && app.status && app.professional_id)
         .map(app => ({
-          ...app,
+          id: app.id,
           project_id: app.project_id!,
+          professional_id: app.professional_id!,
           status: app.status as Application['status'],
           created_at: app.created_at || new Date().toISOString(),
-          updated_at: app.updated_at || new Date().toISOString()
+          updated_at: app.updated_at || new Date().toISOString(),
+          cover_letter: app.cover_letter,
+          bid_amount: app.bid_amount,
+          proposal_message: app.proposal_message,
+          availability: app.availability
         }));
 
       setLocalApplications(transformedApplications);

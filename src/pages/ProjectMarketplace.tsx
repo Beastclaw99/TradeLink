@@ -1,110 +1,120 @@
 
 import React, { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 import Layout from '@/components/layout/Layout';
-import { Project } from '@/components/dashboard/types';
-import { ProjectCard } from '@/components/shared/ProjectCard';
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Button } from "@/components/ui/button"
-import { Search, Loader2 } from 'lucide-react';
-import { supabase } from "@/integrations/supabase/client";
+import ProjectsDisplay from '@/components/marketplace/ProjectsDisplay';
+import SearchFilters from '@/components/marketplace/SearchFilters';
+import { Project } from '@/types';
 
 const ProjectMarketplace: React.FC = () => {
   const [projects, setProjects] = useState<Project[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [isLoading, setIsLoading] = useState(true);
+  const [filteredProjects, setFilteredProjects] = useState<Project[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchProjects = async () => {
-      setIsLoading(true);
-      try {
-        const { data: projectsData, error } = await supabase
-          .from('projects')
-          .select('*')
-          .not('client_id', 'is', null);
-
-        if (error) {
-          console.error('Error fetching projects:', error);
-          return;
-        }
-        
-        const validStatuses = ['open', 'applied', 'assigned', 'in-progress', 'submitted', 'revision', 'completed', 'paid', 'archived', 'disputed'] as const;
-        
-        const transformedProjects = (projectsData || [])
-          .filter(project => project.client_id)
-          .map(project => ({
-            ...project,
-            client_id: project.client_id!,
-            description: project.description || '',
-            category: project.category || '',
-            location: project.location || '',
-            expected_timeline: project.expected_timeline || '',
-            urgency: project.urgency || '',
-            status: validStatuses.includes(project.status as any) ? project.status : 'open' as const,
-            created_at: project.created_at || new Date().toISOString(),
-            updated_at: project.updated_at || new Date().toISOString()
-          }));
-        
-        setProjects(transformedProjects);
-
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
     fetchProjects();
   }, []);
 
-  const filteredProjects = projects.filter(project =>
-    project.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (project.description && project.description.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
+  const fetchProjects = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('projects')
+        .select(`
+          *,
+          client:profiles!projects_client_id_fkey(first_name, last_name)
+        `)
+        .eq('status', 'open')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      const transformedProjects: Project[] = (data || []).map(project => ({
+        id: project.id,
+        title: project.title || '',
+        description: project.description,
+        budget: project.budget,
+        status: (project.status as Project['status']) || 'open',
+        client_id: project.client_id || '',
+        created_at: project.created_at || new Date().toISOString(),
+        updated_at: project.updated_at || project.created_at || new Date().toISOString(),
+        assigned_to: project.assigned_to,
+        location: project.location,
+        deadline: project.deadline,
+        required_skills: project.required_skills,
+        professional_id: project.professional_id,
+        project_start_time: project.project_start_time,
+        category: project.category,
+        expected_timeline: project.expected_timeline,
+        urgency: project.urgency,
+        requirements: project.requirements,
+        scope: project.scope,
+        service_contract: project.service_contract,
+        client: project.client ? {
+          first_name: project.client.first_name,
+          last_name: project.client.last_name
+        } : undefined
+      }));
+
+      setProjects(transformedProjects);
+      setFilteredProjects(transformedProjects);
+    } catch (error) {
+      console.error('Error fetching projects:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleFilterChange = (filters: any) => {
+    let filtered = projects;
+
+    if (filters.search) {
+      filtered = filtered.filter(project =>
+        project.title.toLowerCase().includes(filters.search.toLowerCase()) ||
+        (project.description && project.description.toLowerCase().includes(filters.search.toLowerCase()))
+      );
+    }
+
+    if (filters.category && filters.category !== 'all') {
+      filtered = filtered.filter(project => project.category === filters.category);
+    }
+
+    if (filters.location) {
+      filtered = filtered.filter(project =>
+        project.location && project.location.toLowerCase().includes(filters.location.toLowerCase())
+      );
+    }
+
+    if (filters.minBudget) {
+      filtered = filtered.filter(project => project.budget && project.budget >= filters.minBudget);
+    }
+
+    if (filters.maxBudget) {
+      filtered = filtered.filter(project => project.budget && project.budget <= filters.maxBudget);
+    }
+
+    setFilteredProjects(filtered);
+  };
 
   return (
     <Layout>
-      <div className="container-custom py-8">
-        <h1 className="text-3xl font-bold mb-4">Project Marketplace</h1>
-
-        {/* Search Input */}
-        <div className="mb-6">
-          <Label htmlFor="search" className="sr-only">
-            Search projects
-          </Label>
-          <div className="relative">
-            <Input
-              type="search"
-              id="search"
-              placeholder="Search for projects..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
-            />
-            <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-              <Search className="h-5 w-5 text-gray-400" />
-            </div>
-          </div>
+      <div className="container mx-auto px-4 py-8">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold mb-4">Project Marketplace</h1>
+          <p className="text-gray-600">
+            Find exciting projects that match your skills and interests
+          </p>
         </div>
 
-        {isLoading ? (
-          <div className="flex justify-center items-center min-h-[30vh]">
-            <Button variant="ghost" className="gap-2">
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Loading projects...
-            </Button>
+        <div className="flex flex-col lg:flex-row gap-8">
+          <div className="lg:w-1/4">
+            <SearchFilters onFilterChange={handleFilterChange} />
           </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredProjects.map((project) => (
-              <ProjectCard key={project.id} project={project} />
-            ))}
+          
+          <div className="lg:w-3/4">
+            <ProjectsDisplay projects={filteredProjects} loading={loading} />
           </div>
-        )}
-
-        {filteredProjects.length === 0 && !isLoading && (
-          <div className="text-gray-500 text-center mt-4">
-            No projects found matching your search criteria.
-          </div>
-        )}
+        </div>
       </div>
     </Layout>
   );

@@ -2,17 +2,7 @@
 import React, { createContext, useState, useEffect, useContext, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-
-interface Notification {
-  id: string;
-  title: string;
-  message: string;
-  type: 'info' | 'success' | 'warning' | 'error';
-  read: boolean;
-  created_at: string;
-  action_label?: string;
-  action_url?: string;
-}
+import { Notification } from '@/types';
 
 interface NotificationContextType {
   notifications: Notification[];
@@ -65,8 +55,9 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
           type: notification.type as 'info' | 'success' | 'warning' | 'error',
           read: notification.read || false,
           created_at: notification.created_at!,
-          action_label: notification.action_label,
-          action_url: notification.action_url
+          // Only include action properties if they exist in the database
+          ...(notification.action_label && { action_label: notification.action_label }),
+          ...(notification.action_url && { action_url: notification.action_url })
         }));
 
       setNotifications(transformedNotifications);

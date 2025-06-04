@@ -1,3 +1,5 @@
+
+// Consolidated type definitions - single source of truth
 export interface Project {
   id: string;
   title: string;
@@ -19,6 +21,10 @@ export interface Project {
   requirements: string[] | null;
   scope: string | null;
   service_contract: string | null;
+  client?: {
+    first_name: string | null;
+    last_name: string | null;
+  };
 }
 
 export interface Application {
@@ -26,11 +32,11 @@ export interface Application {
   project_id: string;
   professional_id: string;
   cover_letter: string | null;
-  proposal_message: string | null;
   status: 'pending' | 'accepted' | 'rejected' | 'withdrawn';
   created_at: string;
   updated_at: string;
   bid_amount: number | null;
+  proposal_message: string | null;
   availability: string | null;
   project?: {
     id: string;
@@ -47,15 +53,76 @@ export interface Application {
   };
 }
 
+export interface Payment {
+  id: string;
+  project_id: string;
+  client_id: string;
+  professional_id: string;
+  amount: number;
+  status: 'pending' | 'completed' | 'failed';
+  paid_at: string | null;
+  created_at: string;
+  project?: {
+    title: string;
+  };
+  professional?: {
+    first_name: string | null;
+    last_name: string | null;
+  };
+}
+
+export interface Review {
+  id: string;
+  project_id: string;
+  professional_id: string;
+  client_id: string;
+  rating: number | null;
+  comment: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Notification {
+  id: string;
+  title: string;
+  message: string;
+  type: 'info' | 'success' | 'warning' | 'error';
+  read: boolean;
+  created_at: string;
+  action_label?: string;
+  action_url?: string;
+}
+
+// Project creation types
+export interface ProjectData {
+  title: string;
+  description: string;
+  category: string;
+  budget: number;
+  timeline: string;
+  milestones: Milestone[];
+  location: string;
+  expectedTimeline: string;
+  urgency: 'low' | 'medium' | 'high';
+}
+
+export interface Milestone {
+  id: string;
+  title: string;
+  description: string;
+  due_date?: string;
+  deliverables: Deliverable[];
+  is_complete: boolean;
+  status?: 'not_started' | 'in_progress' | 'completed';
+}
+
 export interface Deliverable {
   id: string;
   title: string;
   description: string;
-  deliverable_type: 'text' | 'file';
+  deliverable_type: 'text' | 'file' | 'link';
   content: string;
   milestone_id: string;
-  file_name?: string;
   file_url?: string;
-  created_at?: string;
-  updated_at?: string;
-} 
+  file_name?: string;
+}

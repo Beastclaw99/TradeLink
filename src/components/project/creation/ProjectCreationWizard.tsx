@@ -6,7 +6,7 @@ import BudgetTimelineStep from './steps/BudgetTimelineStep';
 import MilestonesDeliverablesStep from './steps/MilestonesDeliverablesStep';
 import ServiceContractStep from './steps/ServiceContractStep';
 import ReviewStep from './steps/ReviewStep';
-import { ProjectData } from './types';
+import { ProjectData } from '@/types';
 
 interface ProjectCreationWizardProps {
   onProjectCreated: (projectData: ProjectData) => void;
@@ -20,7 +20,6 @@ const initialProjectData: ProjectData = {
   budget: 0,
   timeline: '',
   milestones: [],
-  termsAndConditions: false,
   location: '',
   expectedTimeline: '',
   urgency: 'low',
@@ -86,6 +85,8 @@ const ProjectCreationWizard: React.FC<ProjectCreationWizardProps> = ({
           <MilestonesDeliverablesStep
             data={projectData}
             onUpdate={handleDataUpdate}
+            onNext={handleNext}
+            onBack={handleBack}
           />
         );
       case 5:
@@ -99,7 +100,7 @@ const ProjectCreationWizard: React.FC<ProjectCreationWizardProps> = ({
         return (
           <ReviewStep
             data={projectData}
-            onSubmit={handleSubmit}
+            onNext={handleSubmit}
             isSubmitting={isSubmitting}
           />
         );
@@ -121,25 +122,25 @@ const ProjectCreationWizard: React.FC<ProjectCreationWizardProps> = ({
       <div className="bg-white rounded-lg shadow-sm border p-6">
         {renderStep()}
         
-        <div className="flex justify-between mt-6">
-          {currentStep > 1 && (
-            <button
-              onClick={handleBack}
-              className="px-4 py-2 text-gray-600 bg-gray-200 rounded-lg hover:bg-gray-300"
-            >
-              Back
-            </button>
-          )}
-          
-          {currentStep < 6 ? (
+        {currentStep < 4 && (
+          <div className="flex justify-between mt-6">
+            {currentStep > 1 && (
+              <button
+                onClick={handleBack}
+                className="px-4 py-2 text-gray-600 bg-gray-200 rounded-lg hover:bg-gray-300"
+              >
+                Back
+              </button>
+            )}
+            
             <button
               onClick={handleNext}
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 ml-auto"
             >
               Next
             </button>
-          ) : null}
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );
