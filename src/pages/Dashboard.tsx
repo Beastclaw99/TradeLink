@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useAuth } from "@/contexts/AuthContext";
 import { Navigate } from 'react-router-dom';
@@ -27,20 +28,12 @@ const Dashboard: React.FC = () => {
   return (
     <Layout>
       <div className="min-h-screen bg-gray-50">
-        {user ? (
-          <>
-            {user.user_metadata?.account_type === 'professional' ? (
-              <ProfessionalDashboard userId={user.id} />
-            ) : user.user_metadata?.account_type === 'client' ? (
-              <ClientDashboard userId={user.id} />
-            ) : (
-              <AccountTypeSelection />
-            )}
-          </>
+        {user.user_metadata?.account_type === 'professional' ? (
+          <ProfessionalDashboard userId={user.id} />
+        ) : user.user_metadata?.account_type === 'client' ? (
+          <ClientDashboard userId={user.id} />
         ) : (
-          <div className="flex items-center justify-center min-h-screen">
-            <LoadingSpinner size="lg" />
-          </div>
+          <AccountTypeSelection />
         )}
       </div>
     </Layout>

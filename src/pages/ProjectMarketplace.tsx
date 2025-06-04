@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import Layout from '@/components/layout/Layout';
 import { Project } from '@/components/dashboard/types';
@@ -5,7 +6,7 @@ import { ProjectCard } from '@/components/shared/ProjectCard';
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
-import { Search } from 'lucide-react';
+import { Search, Loader2 } from 'lucide-react';
 import { supabase } from "@/integrations/supabase/client";
 
 const ProjectMarketplace: React.FC = () => {
@@ -28,18 +29,20 @@ const ProjectMarketplace: React.FC = () => {
         
         const validStatuses = ['open', 'applied', 'assigned', 'in-progress', 'submitted', 'revision', 'completed', 'paid', 'archived', 'disputed'] as const;
         
-        const transformedProjects = (projectsData || []).map(project => ({
-          ...project,
-          client_id: project.client_id || '',
-          description: project.description || '',
-          category: project.category || '',
-          location: project.location || '',
-          expected_timeline: project.expected_timeline || '',
-          urgency: project.urgency || '',
-          status: validStatuses.includes(project.status as any) ? project.status : 'open' as const,
-          created_at: project.created_at || new Date().toISOString(),
-          updated_at: project.updated_at || new Date().toISOString()
-        }));
+        const transformedProjects = (projectsData || [])
+          .filter(project => project.client_id) // Filter out projects without client_id
+          .map(project => ({
+            ...project,
+            client_id: project.client_id!,
+            description: project.description || '',
+            category: project.category || '',
+            location: project.location || '',
+            expected_timeline: project.expected_timeline || '',
+            urgency: project.urgency || '',
+            status: validStatuses.includes(project.status as any) ? project.status : 'open' as const,
+            created_at: project.created_at || new Date().toISOString(),
+            updated_at: project.updated_at || new Date().toISOString()
+          }));
         
         setProjects(transformedProjects);
 
@@ -107,5 +110,3 @@ const ProjectMarketplace: React.FC = () => {
 };
 
 export default ProjectMarketplace;
-
-import { Loader2 } from 'lucide-react';
