@@ -141,48 +141,42 @@ export const useProfessionalDashboard = (userId: string) => {
   };
 
   const fetchApplications = useCallback(async () => {
+    if (!userId) return;
+    
     try {
-      const { data: applicationsData, error } = await supabase
+      const { data, error } = await supabase
         .from('applications')
         .select(`
           *,
-          project:projects(
-            id,
-            title,
-            status,
-            budget,
-            created_at,
-            client_id
-          )
+          project:projects(*)
         `)
         .eq('professional_id', userId)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
 
-      const transformedApplications = (applicationsData || [])
-        .filter(app => app.project_id && app.professional_id)
+      const transformedApplications = (data || [])
+        .filter(app => app.project_id && app.status)
         .map(app => ({
           ...app,
           project_id: app.project_id!,
-          professional_id: app.professional_id!,
+          status: (app.status as Application['status']) || 'pending',
           created_at: app.created_at || new Date().toISOString(),
-          updated_at: app.updated_at || new Date().toISOString(),
-          project: app.project ? {
-            ...app.project,
-            created_at: app.project.created_at || new Date().toISOString()
-          } : undefined
+          updated_at: app.updated_at || new Date().toISOString()
         }));
 
       setApplications(transformedApplications);
     } catch (error) {
       console.error('Error fetching applications:', error);
+      setError('Failed to fetch applications');
     }
   }, [userId]);
 
   const fetchPayments = useCallback(async () => {
+    if (!userId) return;
+    
     try {
-      const { data: paymentsData, error } = await supabase
+      const { data, error } = await supabase
         .from('payments')
         .select(`
           *,
@@ -193,25 +187,27 @@ export const useProfessionalDashboard = (userId: string) => {
 
       if (error) throw error;
 
-      const transformedPayments = (paymentsData || [])
-        .filter(payment => payment.project_id && payment.professional_id && payment.client_id)
+      const transformedPayments = (data || [])
+        .filter(payment => payment.status)
         .map(payment => ({
           ...payment,
-          project_id: payment.project_id!,
-          professional_id: payment.professional_id!,
-          client_id: payment.client_id!,
-          project: payment.project || undefined
+          status: (payment.status as Payment['status']) || 'pending',
+          created_at: payment.created_at || new Date().toISOString(),
+          paid_at: payment.paid_at
         }));
 
       setPayments(transformedPayments);
     } catch (error) {
       console.error('Error fetching payments:', error);
+      setError('Failed to fetch payments');
     }
   }, [userId]);
 
   const fetchReviews = useCallback(async () => {
+    if (!userId) return;
+    
     try {
-      const { data: reviewsData, error } = await supabase
+      const { data, error } = await supabase
         .from('reviews')
         .select('*')
         .eq('professional_id', userId)
@@ -219,20 +215,15 @@ export const useProfessionalDashboard = (userId: string) => {
 
       if (error) throw error;
 
-      const transformedReviews = (reviewsData || [])
-        .filter(review => review.project_id && review.professional_id && review.client_id && review.rating !== null)
-        .map(review => ({
-          ...review,
-          project_id: review.project_id!,
-          professional_id: review.professional_id!,
-          client_id: review.client_id!,
-          rating: review.rating!,
-          created_at: review.created_at || new Date().toISOString()
-        }));
+      const transformedReviews = (data || []).map(review => ({
+        ...review,
+        updated_at: review.updated_at || new Date().toISOString()
+      }));
 
       setReviews(transformedReviews);
     } catch (error) {
       console.error('Error fetching reviews:', error);
+      setError('Failed to fetch reviews');
     }
   }, [userId]);
 

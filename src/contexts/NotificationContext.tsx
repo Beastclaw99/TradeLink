@@ -10,12 +10,18 @@ interface Notification {
   type: 'info' | 'success' | 'warning' | 'error';
   read: boolean;
   created_at: string;
+  action_label?: string;
+  action_url?: string;
 }
 
 interface NotificationContextType {
   notifications: Notification[];
+  unreadCount: number;
+  isLoading: boolean;
   addNotification: (notification: Omit<Notification, 'id' | 'created_at'>) => void;
   markAsRead: (notificationId: string) => void;
+  markAllAsRead: () => void;
+  removeNotification: (notificationId: string) => void;
   fetchNotifications: () => Promise<void>;
 }
 
@@ -29,14 +35,19 @@ export const useNotification = () => {
   return context;
 };
 
+// Export with both names for compatibility
+export const useNotifications = useNotification;
+
 export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
   const { user } = useAuth();
 
   const fetchNotifications = useCallback(async () => {
     if (!user?.id) return;
 
     try {
+      setIsLoading(true);
       const { data, error } = await supabase
         .from('notifications')
         .select('*')
@@ -45,18 +56,24 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
       if (error) throw error;
 
-      const transformedNotifications = data.map(notification => ({
-        id: notification.id,
-        title: notification.title,
-        message: notification.message,
-        type: notification.type as 'info' | 'success' | 'warning' | 'error',
-        read: notification.read || false,
-        created_at: notification.created_at
-      }));
+      const transformedNotifications = (data || [])
+        .filter(notification => notification.created_at)
+        .map(notification => ({
+          id: notification.id,
+          title: notification.title,
+          message: notification.message,
+          type: notification.type as 'info' | 'success' | 'warning' | 'error',
+          read: notification.read || false,
+          created_at: notification.created_at!,
+          action_label: notification.action_label,
+          action_url: notification.action_url
+        }));
 
       setNotifications(transformedNotifications);
     } catch (error) {
       console.error('Error fetching notifications:', error);
+    } finally {
+      setIsLoading(false);
     }
   }, [user?.id]);
 
@@ -83,6 +100,30 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
   };
 
+  const markAllAsRead = async () => {
+    if (!user?.id) return;
+
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .update({ read: true })
+        .eq('user_id', user.id)
+        .eq('read', false);
+
+      if (error) throw error;
+
+      setNotifications(prev =>
+        prev.map(notification => ({ ...notification, read: true }))
+      );
+    } catch (error) {
+      console.error('Error marking all notifications as read:', error);
+    }
+  };
+
+  const removeNotification = async (notificationId: string) => {
+    setNotifications(prev => prev.filter(n => n.id !== notificationId));
+  };
+
   const addNotification = useCallback((notification: Omit<Notification, 'id' | 'created_at'>) => {
     const newNotification: Notification = {
       ...notification,
@@ -100,10 +141,16 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     }
   }, []);
 
+  const unreadCount = notifications.filter(n => !n.read).length;
+
   const value: NotificationContextType = {
     notifications,
+    unreadCount,
+    isLoading,
     addNotification,
     markAsRead,
+    markAllAsRead,
+    removeNotification,
     fetchNotifications
   };
 

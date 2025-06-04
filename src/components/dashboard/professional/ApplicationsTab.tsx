@@ -3,7 +3,6 @@ import React, { useState, useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
 import { useToast } from "@/components/ui/use-toast";
 import { Application } from '../types';
-import { supabase } from '@/integrations/supabase/client';
 import ApplicationsTable from './applications/ApplicationsTable';
 import ViewApplicationDialog from './applications/ViewApplicationDialog';
 import WithdrawApplicationDialog from './applications/WithdrawApplicationDialog';
@@ -26,8 +25,9 @@ const ApplicationsTab: React.FC<ApplicationsTabProps> = ({ isLoading, applicatio
   const { 
     localApplications, 
     localIsLoading, 
-    updateLocalApplications 
-  } = useApplications(applications || [], isLoading);
+    updateLocalApplications,
+    withdrawApplication 
+  } = useApplications(applications, isLoading);
   
   const handleViewApplication = (application: Application) => {
     setSelectedApplication(application);
@@ -46,30 +46,9 @@ const ApplicationsTab: React.FC<ApplicationsTabProps> = ({ isLoading, applicatio
       setIsProcessing(true);
       setError(null);
       
-      const { error } = await supabase
-        .from('applications')
-        .update({ status: 'withdrawn' })
-        .eq('id', selectedApplication.id)
-        .eq('professional_id', userId);
-      
-      if (error) throw error;
-      
-      toast({
-        title: "Application Withdrawn",
-        description: "Your application has been withdrawn successfully."
-      });
+      await withdrawApplication(selectedApplication.id, userId);
       
       setWithdrawDialogOpen(false);
-      
-      // Update the local application state with proper type casting
-      const updatedApplications = localApplications.map(app => {
-        if (app.id === selectedApplication.id) {
-          return { ...app, status: 'withdrawn' as Application['status'] };
-        }
-        return app;
-      });
-      
-      updateLocalApplications(updatedApplications);
       
     } catch (error: any) {
       console.error('Error withdrawing application:', error);

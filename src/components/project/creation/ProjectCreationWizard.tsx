@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import BasicDetailsStep from './steps/BasicDetailsStep';
 import RequirementsStep from './steps/RequirementsStep';
@@ -16,7 +17,6 @@ const initialProjectData: ProjectData = {
   title: '',
   description: '',
   category: '',
-  requiredSkills: [],
   budget: 0,
   timeline: '',
   milestones: [],
@@ -65,7 +65,6 @@ const ProjectCreationWizard: React.FC<ProjectCreationWizardProps> = ({
           <BasicDetailsStep
             data={projectData}
             onUpdate={handleDataUpdate}
-            onNext={handleNext}
           />
         );
       case 2:
@@ -73,8 +72,6 @@ const ProjectCreationWizard: React.FC<ProjectCreationWizardProps> = ({
           <RequirementsStep
             data={projectData}
             onUpdate={handleDataUpdate}
-            onNext={handleNext}
-            onBack={handleBack}
           />
         );
       case 3:
@@ -82,8 +79,6 @@ const ProjectCreationWizard: React.FC<ProjectCreationWizardProps> = ({
           <BudgetTimelineStep
             data={projectData}
             onUpdate={handleDataUpdate}
-            onNext={handleNext}
-            onBack={handleBack}
           />
         );
       case 4:
@@ -91,8 +86,6 @@ const ProjectCreationWizard: React.FC<ProjectCreationWizardProps> = ({
           <MilestonesDeliverablesStep
             data={projectData}
             onUpdate={handleDataUpdate}
-            onNext={handleNext}
-            onBack={handleBack}
           />
         );
       case 5:
@@ -100,17 +93,13 @@ const ProjectCreationWizard: React.FC<ProjectCreationWizardProps> = ({
           <ServiceContractStep
             data={projectData}
             onUpdate={handleDataUpdate}
-            onNext={handleNext}
-            onBack={handleBack}
           />
         );
       case 6:
         return (
           <ReviewStep
             data={projectData}
-            onUpdate={handleDataUpdate}
             onSubmit={handleSubmit}
-            onBack={handleBack}
             isSubmitting={isSubmitting}
           />
         );
@@ -131,6 +120,26 @@ const ProjectCreationWizard: React.FC<ProjectCreationWizardProps> = ({
       
       <div className="bg-white rounded-lg shadow-sm border p-6">
         {renderStep()}
+        
+        <div className="flex justify-between mt-6">
+          {currentStep > 1 && (
+            <button
+              onClick={handleBack}
+              className="px-4 py-2 text-gray-600 bg-gray-200 rounded-lg hover:bg-gray-300"
+            >
+              Back
+            </button>
+          )}
+          
+          {currentStep < 6 ? (
+            <button
+              onClick={handleNext}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 ml-auto"
+            >
+              Next
+            </button>
+          ) : null}
+        </div>
       </div>
     </div>
   );

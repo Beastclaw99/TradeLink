@@ -1,15 +1,26 @@
-import { useState, useCallback } from 'react';
+
+import { useState, useCallback, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Application } from '@/types';
 import { useToast } from "@/components/ui/use-toast";
 
-export const useApplications = (userId: string) => {
+export const useApplications = (initialApplications: Application[], isLoading: boolean) => {
   const { toast } = useToast();
-  const [applications, setApplications] = useState<Application[]>([]);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [localApplications, setLocalApplications] = useState<Application[]>(initialApplications);
+  const [localIsLoading, setLocalIsLoading] = useState(isLoading);
 
-  const fetchApplications = useCallback(async () => {
+  useEffect(() => {
+    setLocalApplications(initialApplications);
+    setLocalIsLoading(isLoading);
+  }, [initialApplications, isLoading]);
+
+  const updateLocalApplications = useCallback((applications: Application[]) => {
+    setLocalApplications(applications);
+  }, []);
+
+  const fetchApplications = useCallback(async (userId: string) => {
     try {
+      setLocalIsLoading(true);
       const { data, error } = await supabase
         .from('applications')
         .select('*')
@@ -20,7 +31,17 @@ export const useApplications = (userId: string) => {
         throw error;
       }
 
-      setApplications(data || []);
+      const transformedApplications = (data || [])
+        .filter(app => app.project_id && app.status)
+        .map(app => ({
+          ...app,
+          project_id: app.project_id!,
+          status: app.status as Application['status'],
+          created_at: app.created_at || new Date().toISOString(),
+          updated_at: app.updated_at || new Date().toISOString()
+        }));
+
+      setLocalApplications(transformedApplications);
     } catch (error: any) {
       console.error('Error fetching applications:', error);
       toast({
@@ -28,13 +49,13 @@ export const useApplications = (userId: string) => {
         description: "Failed to fetch applications. Please try again.",
         variant: "destructive"
       });
+    } finally {
+      setLocalIsLoading(false);
     }
-  }, [userId, toast]);
+  }, [toast]);
 
-  const withdrawApplication = async (applicationId: string) => {
+  const withdrawApplication = async (applicationId: string, userId: string) => {
     try {
-      setIsSubmitting(true);
-      
       const { error } = await supabase
         .from('applications')
         .update({ status: 'withdrawn' })
@@ -48,8 +69,12 @@ export const useApplications = (userId: string) => {
         description: "Your application has been successfully withdrawn."
       });
 
-      // Refresh applications
-      await fetchApplications();
+      // Update local state
+      setLocalApplications(prev =>
+        prev.map(app =>
+          app.id === applicationId ? { ...app, status: 'withdrawn' as Application['status'] } : app
+        )
+      );
       
     } catch (error: any) {
       console.error('Error withdrawing application:', error);
@@ -58,8 +83,6 @@ export const useApplications = (userId: string) => {
         description: "Failed to withdraw application. Please try again.",
         variant: "destructive"
       });
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
@@ -88,8 +111,9 @@ export const useApplications = (userId: string) => {
   };
 
   return {
-    applications,
-    isSubmitting,
+    localApplications,
+    localIsLoading,
+    updateLocalApplications,
     fetchApplications,
     withdrawApplication,
     getStatusColor,
