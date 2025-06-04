@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 import { Project, Application, Payment, Review } from '../components/dashboard/types';
@@ -119,132 +119,13 @@ export const useProfessionalDashboard = (userId: string) => {
       setProjects(allProjects);
       
       // Fetch applications made by the professional with better error handling and logging
-      try {
-        const { data: appsData, error: appsError } = await supabase
-          .from('applications')
-          .select(`
-            id,
-            created_at,
-            status,
-            bid_amount,
-            cover_letter,
-            professional_id,
-            project_id,
-            availability,
-            proposal_message,
-            updated_at,
-            project:projects (
-              id,
-              title,
-              status,
-              budget,
-              created_at,
-              client_id
-            )
-          `)
-          .eq('professional_id', userId)
-          .order('created_at', { ascending: false });
-        
-        if (appsError) {
-          console.error('Applications fetch error:', appsError);
-          throw appsError;
-        }
-        console.log('Applications data:', appsData);
-        
-        // Transform the data to match the Application type with proper type casting
-        const validApplicationStatuses = ['pending', 'accepted', 'rejected', 'withdrawn'] as const;
-        const validProjectStatuses = ['open', 'applied', 'assigned', 'in-progress', 'submitted', 'revision', 'completed', 'paid', 'archived', 'disputed'] as const;
-        
-        const transformedApps: Application[] = (appsData || [])
-          .filter(app => app.project_id && app.professional_id && app.created_at) // Filter out incomplete records
-          .map(app => ({
-            id: app.id,
-            project_id: app.project_id!,
-            professional_id: app.professional_id!,
-            cover_letter: app.cover_letter,
-            proposal_message: app.proposal_message || app.cover_letter || '',
-            bid_amount: app.bid_amount,
-            availability: app.availability,
-            status: validApplicationStatuses.includes(app.status as any) ? app.status as Application['status'] : 'pending',
-            created_at: app.created_at!,
-            updated_at: app.updated_at || app.created_at!,
-            project: app.project && app.project.client_id ? {
-              id: app.project.id,
-              title: app.project.title,
-              status: validProjectStatuses.includes(app.project.status as any) ? app.project.status as Project['status'] : 'open',
-              budget: app.project.budget,
-              created_at: app.project.created_at,
-              client_id: app.project.client_id
-            } : undefined
-          }));
-        
-        setApplications(transformedApps);
-      } catch (error: any) {
-        console.error('Error fetching applications:', error);
-        // Don't throw here, continue with other data fetching
-        toast({
-          title: "Warning",
-          description: "There was an issue loading your applications. Some data may be missing.",
-          variant: "destructive"
-        });
-      }
+      fetchApplications();
       
       // Fetch payments for the professional
-      const { data: paymentsData, error: paymentsError } = await supabase
-        .from('payments')
-        .select(`
-          *,
-          project:projects(title)
-        `)
-        .eq('professional_id', userId);
-      
-      if (paymentsError) {
-        console.error('Payments fetch error:', paymentsError);
-        throw paymentsError;
-      }
-      
-      console.log('Payments data:', paymentsData);
-      
-      // Ensure each payment has required fields
-      const validPaymentStatuses = ['pending', 'completed', 'failed'] as const;
-      const paymentsWithDates = (paymentsData || [])
-        .filter(payment => payment.project_id && payment.professional_id) // Filter out incomplete records
-        .map(payment => ({
-          ...payment,
-          project_id: payment.project_id!,
-          professional_id: payment.professional_id!,
-          client_id: payment.client_id || '',
-          created_at: payment.created_at || new Date().toISOString(),
-          status: validPaymentStatuses.includes(payment.status as any) ? payment.status as Payment['status'] : 'pending'
-        }));
-      
-      setPayments(paymentsWithDates);
+      fetchPayments();
       
       // Fetch reviews for the professional
-      const { data: reviewsData, error: reviewsError } = await supabase
-        .from('reviews')
-        .select('*')
-        .eq('professional_id', userId);
-      
-      if (reviewsError) {
-        console.error('Reviews fetch error:', reviewsError);
-        throw reviewsError;
-      }
-      
-      console.log('Reviews data:', reviewsData);
-      
-      // Transform reviews to handle the database field naming issue and ensure required fields
-      const transformedReviews = (reviewsData || [])
-        .filter(review => review.project_id && review.professional_id) // Filter out incomplete records
-        .map(review => ({
-          ...review,
-          project_id: review.project_id!,
-          professional_id: review.professional_id!,
-          client_id: review.client_id || '',
-          updated_at: review['updated at'] || review.created_at || new Date().toISOString()
-        }));
-      
-      setReviews(transformedReviews);
+      fetchReviews();
       
     } catch (error: any) {
       console.error('Dashboard data fetch error:', error);
@@ -258,6 +139,102 @@ export const useProfessionalDashboard = (userId: string) => {
       setIsLoading(false);
     }
   };
+
+  const fetchApplications = useCallback(async () => {
+    try {
+      const { data: applicationsData, error } = await supabase
+        .from('applications')
+        .select(`
+          *,
+          project:projects(
+            id,
+            title,
+            status,
+            budget,
+            created_at,
+            client_id
+          )
+        `)
+        .eq('professional_id', userId)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      const transformedApplications = (applicationsData || [])
+        .filter(app => app.project_id && app.professional_id)
+        .map(app => ({
+          ...app,
+          project_id: app.project_id!,
+          professional_id: app.professional_id!,
+          created_at: app.created_at || new Date().toISOString(),
+          updated_at: app.updated_at || new Date().toISOString(),
+          project: app.project ? {
+            ...app.project,
+            created_at: app.project.created_at || new Date().toISOString()
+          } : undefined
+        }));
+
+      setApplications(transformedApplications);
+    } catch (error) {
+      console.error('Error fetching applications:', error);
+    }
+  }, [userId]);
+
+  const fetchPayments = useCallback(async () => {
+    try {
+      const { data: paymentsData, error } = await supabase
+        .from('payments')
+        .select(`
+          *,
+          project:projects(title)
+        `)
+        .eq('professional_id', userId)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      const transformedPayments = (paymentsData || [])
+        .filter(payment => payment.project_id && payment.professional_id && payment.client_id)
+        .map(payment => ({
+          ...payment,
+          project_id: payment.project_id!,
+          professional_id: payment.professional_id!,
+          client_id: payment.client_id!,
+          project: payment.project || undefined
+        }));
+
+      setPayments(transformedPayments);
+    } catch (error) {
+      console.error('Error fetching payments:', error);
+    }
+  }, [userId]);
+
+  const fetchReviews = useCallback(async () => {
+    try {
+      const { data: reviewsData, error } = await supabase
+        .from('reviews')
+        .select('*')
+        .eq('professional_id', userId)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      const transformedReviews = (reviewsData || [])
+        .filter(review => review.project_id && review.professional_id && review.client_id && review.rating !== null)
+        .map(review => ({
+          ...review,
+          project_id: review.project_id!,
+          professional_id: review.professional_id!,
+          client_id: review.client_id!,
+          rating: review.rating!,
+          created_at: review.created_at || new Date().toISOString()
+        }));
+
+      setReviews(transformedReviews);
+    } catch (error) {
+      console.error('Error fetching reviews:', error);
+    }
+  }, [userId]);
 
   // Mark project as complete function
   const markProjectComplete = async (projectId: string) => {

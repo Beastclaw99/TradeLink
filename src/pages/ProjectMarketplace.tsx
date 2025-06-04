@@ -20,7 +20,8 @@ const ProjectMarketplace: React.FC = () => {
       try {
         const { data: projectsData, error } = await supabase
           .from('projects')
-          .select('*');
+          .select('*')
+          .not('client_id', 'is', null);
 
         if (error) {
           console.error('Error fetching projects:', error);
@@ -30,7 +31,7 @@ const ProjectMarketplace: React.FC = () => {
         const validStatuses = ['open', 'applied', 'assigned', 'in-progress', 'submitted', 'revision', 'completed', 'paid', 'archived', 'disputed'] as const;
         
         const transformedProjects = (projectsData || [])
-          .filter(project => project.client_id) // Filter out projects without client_id
+          .filter(project => project.client_id)
           .map(project => ({
             ...project,
             client_id: project.client_id!,
@@ -56,7 +57,7 @@ const ProjectMarketplace: React.FC = () => {
 
   const filteredProjects = projects.filter(project =>
     project.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    project.description.toLowerCase().includes(searchQuery.toLowerCase())
+    (project.description && project.description.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
   return (

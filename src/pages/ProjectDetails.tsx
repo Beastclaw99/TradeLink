@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -28,6 +29,8 @@ const ProjectDetails: React.FC = () => {
   }, [projectId]);
 
   const fetchProject = async (id: string) => {
+    if (!id) return;
+    
     setIsLoading(true);
     try {
       const { data, error } = await supabase
@@ -134,11 +137,11 @@ const ProjectDetails: React.FC = () => {
               <p className="text-gray-700">{project.description}</p>
             </div>
 
-            {project?.required_skills && (
+            {project?.required_skills && typeof project.required_skills === 'string' && (
               <div className="mb-6">
                 <h3 className="text-lg font-semibold mb-2">Skills Required</h3>
                 <div className="flex flex-wrap gap-2">
-                  {(project.required_skills as string).split(',').map((skill, index) => (
+                  {project.required_skills.split(',').map((skill: string, index: number) => (
                     <span
                       key={index}
                       className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-sm"
