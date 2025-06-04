@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -17,14 +18,16 @@ const ServiceContractStep: React.FC<ServiceContractStepProps> = ({ data, onUpdat
   const [accepted, setAccepted] = useState(false);
   const { user } = useAuth();
 
-  const formatCurrency = (amount: number) => {
+  const formatCurrency = (amount?: number) => {
+    if (!amount) return '$0.00';
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD'
     }).format(amount);
   };
 
-  const getTimelineLabel = (value: string) => {
+  const getTimelineLabel = (value?: string) => {
+    if (!value) return 'Not specified';
     const labels: Record<string, string> = {
       'less_than_1_month': 'Less than 1 month',
       '1_to_3_months': '1-3 months',
@@ -34,7 +37,8 @@ const ServiceContractStep: React.FC<ServiceContractStepProps> = ({ data, onUpdat
     return labels[value] || value;
   };
 
-  const getUrgencyLabel = (value: string) => {
+  const getUrgencyLabel = (value?: string) => {
+    if (!value) return 'Not specified';
     const labels: Record<string, string> = {
       'low': 'Low - Flexible timeline',
       'medium': 'Medium - Standard timeline',
@@ -58,8 +62,8 @@ PROJECT DETAILS:
 ════════════════════════════════════════════════════════════════════════════════
 Title: ${data.title}
 Description: ${data.description}
-Location: ${data.location}
-Category: ${data.category}
+Location: ${data.location || 'Not specified'}
+Category: ${data.category || 'Not specified'}
 
 BUDGET AND TIMELINE:
 ════════════════════════════════════════════════════════════════════════════════
@@ -71,13 +75,13 @@ SCOPE OF WORK:
 ════════════════════════════════════════════════════════════════════════════════
 The Professional agrees to perform the following services:
 
-${data.requirements.map(req => `• ${req}`).join('\n')}
+${data.requirements?.map((req: string) => `• ${req}`).join('\n') || 'No specific requirements listed'}
 
 REQUIRED SKILLS:
 ════════════════════════════════════════════════════════════════════════════════
 The Professional must possess the following skills:
 
-${data.skills.map(skill => `• ${skill}`).join('\n')}
+${data.recommended_skills?.map((skill: string) => `• ${skill}`).join('\n') || 'No specific skills required'}
 
 MILESTONES AND DELIVERABLES:
 ════════════════════════════════════════════════════════════════════════════════
@@ -85,16 +89,8 @@ ${data.milestones.map(milestone => `
 Milestone: ${milestone.title}
 • Description: ${milestone.description || 'N/A'}
 • Due Date: ${milestone.due_date || 'TBD'}
-• Requires Deliverable: ${milestone.requires_deliverable ? 'Yes' : 'No'}
+• Deliverables: ${milestone.deliverables?.length || 0} item(s)
 `).join('\n')}
-
-${data.deliverables.length > 0 ? `
-DELIVERABLES:
-${data.deliverables.map(deliverable => `
-• ${deliverable.description}
-  Type: ${deliverable.deliverable_type}
-  Content: ${deliverable.content || 'N/A'}
-`).join('\n')}` : ''}
 
 TERMS AND CONDITIONS:
 ════════════════════════════════════════════════════════════════════════════════
@@ -231,4 +227,4 @@ Date: ${new Date().toLocaleDateString()}
   );
 };
 
-export default ServiceContractStep; 
+export default ServiceContractStep;

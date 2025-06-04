@@ -21,7 +21,6 @@ export const DeliverableList: React.FC<DeliverableListProps> = ({
   onDelete,
   onReorder
 }) => {
-  // Component implementation here
   return (
     <div className="mt-4">
       <h4 className="text-sm font-medium text-gray-700 mb-2">Deliverables</h4>

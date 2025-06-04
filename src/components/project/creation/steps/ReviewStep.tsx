@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -9,14 +10,16 @@ interface ReviewStepProps {
 }
 
 const ReviewStep: React.FC<ReviewStepProps> = ({ data }) => {
-  const formatCurrency = (amount: number) => {
+  const formatCurrency = (amount?: number) => {
+    if (!amount) return '$0.00';
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD'
     }).format(amount);
   };
 
-  const getTimelineLabel = (value: string) => {
+  const getTimelineLabel = (value?: string) => {
+    if (!value) return 'Not specified';
     const labels: Record<string, string> = {
       'less_than_1_month': 'Less than 1 month',
       '1_to_3_months': '1-3 months',
@@ -26,7 +29,8 @@ const ReviewStep: React.FC<ReviewStepProps> = ({ data }) => {
     return labels[value] || value;
   };
 
-  const getUrgencyLabel = (value: string) => {
+  const getUrgencyLabel = (value?: string) => {
+    if (!value) return 'Not specified';
     const labels: Record<string, string> = {
       'low': 'Low - Flexible timeline',
       'medium': 'Medium - Standard timeline',
@@ -49,11 +53,11 @@ const ReviewStep: React.FC<ReviewStepProps> = ({ data }) => {
 
           <div className="grid grid-cols-2 gap-4">
             <div className="flex items-center space-x-2">
-              <Badge variant="secondary">{data.category}</Badge>
+              <Badge variant="secondary">{data.category || 'No category'}</Badge>
             </div>
             <div className="flex items-center space-x-2">
               <MapPin className="h-4 w-4 text-gray-500" />
-              <span>{data.location}</span>
+              <span>{data.location || 'No location specified'}</span>
             </div>
           </div>
         </CardContent>
@@ -64,19 +68,21 @@ const ReviewStep: React.FC<ReviewStepProps> = ({ data }) => {
           <CardTitle className="text-xl">Requirements & Skills</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div>
-            <h4 className="font-medium mb-2">Requirements</h4>
-            <div className="flex flex-wrap gap-2">
-              {data.requirements.map((req, index) => (
-                <Badge key={index} variant="outline">{req}</Badge>
-              ))}
+          {data.requirements && data.requirements.length > 0 && (
+            <div>
+              <h4 className="font-medium mb-2">Requirements</h4>
+              <div className="flex flex-wrap gap-2">
+                {data.requirements.map((req: string, index: number) => (
+                  <Badge key={index} variant="outline">{req}</Badge>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
           <div>
             <h4 className="font-medium mb-2">Required Skills</h4>
             <div className="flex flex-wrap gap-2">
-              {data.skills.map((skill, index) => (
+              {data.recommended_skills.map((skill: string, index: number) => (
                 <Badge key={index} variant="secondary">{skill}</Badge>
               ))}
             </div>
@@ -127,39 +133,13 @@ const ReviewStep: React.FC<ReviewStepProps> = ({ data }) => {
                   {milestone.description && (
                     <p className="text-gray-600 mt-2">{milestone.description}</p>
                   )}
-                  {milestone.requires_deliverable && (
-                    <Badge variant="outline" className="mt-2">
-                      Requires Deliverable
-                    </Badge>
+                  {milestone.deliverables && milestone.deliverables.length > 0 && (
+                    <div className="mt-2">
+                      <Badge variant="outline">
+                        {milestone.deliverables.length} deliverable(s)
+                      </Badge>
+                    </div>
                   )}
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {data.deliverables.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-xl">Deliverables</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {data.deliverables.map((deliverable, index) => (
-                <div key={index} className="border rounded-lg p-4">
-                  <div className="flex items-center space-x-2">
-                    {deliverable.deliverable_type === 'file' && <FileText className="h-4 w-4 text-gray-500" />}
-                    {deliverable.deliverable_type === 'note' && <ListChecks className="h-4 w-4 text-gray-500" />}
-                    {deliverable.deliverable_type === 'link' && <Link className="h-4 w-4 text-gray-500" />}
-                    <span className="font-medium">{deliverable.description}</span>
-                  </div>
-                  {deliverable.content && (
-                    <p className="text-gray-600 mt-2">{deliverable.content}</p>
-                  )}
-                  <Badge variant="secondary" className="mt-2">
-                    {deliverable.deliverable_type}
-                  </Badge>
                 </div>
               ))}
             </div>

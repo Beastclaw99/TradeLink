@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -21,27 +22,35 @@ import { AlertCircle } from 'lucide-react';
 const milestoneTemplates: Record<string, Milestone[]> = {
   'home-improvement': [
     {
+      id: `milestone-${Date.now()}-1`,
       title: 'Initial Consultation',
       description: 'Discuss project requirements and scope',
       due_date: format(addDays(new Date(), 7), 'yyyy-MM-dd'),
       deliverables: [
         {
-          description: 'Project Requirements Document',
-          deliverable_type: 'note',
-          content: 'Detailed list of project requirements and specifications'
+          id: `deliverable-${Date.now()}-1`,
+          title: 'Project Requirements Document',
+          description: 'Detailed list of project requirements and specifications',
+          deliverable_type: 'text',
+          content: 'Detailed list of project requirements and specifications',
+          milestone_id: `milestone-${Date.now()}-1`
         }
       ],
       is_complete: false
     },
     {
+      id: `milestone-${Date.now()}-2`,
       title: 'Design Approval',
       description: 'Review and approve design plans',
       due_date: format(addDays(new Date(), 14), 'yyyy-MM-dd'),
       deliverables: [
         {
-          description: 'Design Plans',
+          id: `deliverable-${Date.now()}-2`,
+          title: 'Design Plans',
+          description: 'Design plans and specifications',
           deliverable_type: 'file',
-          content: ''
+          content: '',
+          milestone_id: `milestone-${Date.now()}-2`
         }
       ],
       is_complete: false
@@ -49,14 +58,18 @@ const milestoneTemplates: Record<string, Milestone[]> = {
   ],
   'cleaning': [
     {
+      id: `milestone-${Date.now()}-3`,
       title: 'Initial Assessment',
       description: 'Evaluate cleaning requirements and areas',
       due_date: format(addDays(new Date(), 2), 'yyyy-MM-dd'),
       deliverables: [
         {
-          description: 'Cleaning Checklist',
-          deliverable_type: 'note',
-          content: 'Detailed cleaning requirements and schedule'
+          id: `deliverable-${Date.now()}-3`,
+          title: 'Cleaning Checklist',
+          description: 'Detailed cleaning requirements and schedule',
+          deliverable_type: 'text',
+          content: 'Detailed cleaning requirements and schedule',
+          milestone_id: `milestone-${Date.now()}-3`
         }
       ],
       is_complete: false
@@ -84,7 +97,7 @@ const MilestonesDeliverablesStep: React.FC<MilestonesDeliverablesStepProps> = ({
 
   const [newDeliverable, setNewDeliverable] = useState<Partial<Deliverable>>({
     description: '',
-    deliverable_type: 'note',
+    deliverable_type: 'text',
     content: ''
   });
 
@@ -110,7 +123,7 @@ const MilestonesDeliverablesStep: React.FC<MilestonesDeliverablesStepProps> = ({
     removeDeliverable,
     reorderMilestones,
     reorderDeliverables,
-  } = useProjectCreation({ milestones: data.milestones });
+  } = useProjectCreation(data);
 
   const handleDragEnd = (result: any) => {
     setIsDragging(false);
@@ -135,29 +148,45 @@ const MilestonesDeliverablesStep: React.FC<MilestonesDeliverablesStepProps> = ({
   };
 
   const handleAddMilestone = () => {
-    const newMilestone: Milestone = {
+    const milestone: Milestone = {
       id: `milestone-${Date.now()}`,
-      title: 'New Milestone',
-      description: '',
+      title: newMilestone.title || 'New Milestone',
+      description: newMilestone.description || '',
+      due_date: newMilestone.due_date,
       deliverables: [],
+      is_complete: false,
+      status: 'not_started'
     };
-    addMilestone(newMilestone);
+    
+    const updatedMilestones = [...data.milestones, milestone];
+    onUpdate({ milestones: updatedMilestones });
+    
+    // Reset form
+    setNewMilestone({
+      title: '',
+      description: '',
+      due_date: '',
+      deliverables: [],
+      is_complete: false,
+      status: 'not_started'
+    });
   };
 
   const handleDelete = (type: 'milestone' | 'deliverable', id: string, parentId?: string) => {
     if (type === 'milestone') {
-      const index = data.milestones.findIndex(m => m.id === id);
-      if (index !== -1) {
-        removeMilestone(index);
-      }
+      const updatedMilestones = data.milestones.filter(m => m.id !== id);
+      onUpdate({ milestones: updatedMilestones });
     } else if (type === 'deliverable' && parentId) {
-      const milestoneIndex = data.milestones.findIndex(m => m.id === parentId);
-      if (milestoneIndex !== -1) {
-        const deliverableIndex = data.milestones[milestoneIndex].deliverables.findIndex(d => d.id === id);
-        if (deliverableIndex !== -1) {
-          removeDeliverable(milestoneIndex, deliverableIndex);
+      const updatedMilestones = data.milestones.map(milestone => {
+        if (milestone.id === parentId) {
+          return {
+            ...milestone,
+            deliverables: milestone.deliverables.filter(d => d.id !== id)
+          };
         }
-      }
+        return milestone;
+      });
+      onUpdate({ milestones: updatedMilestones });
     }
   };
 
@@ -182,8 +211,8 @@ const MilestonesDeliverablesStep: React.FC<MilestonesDeliverablesStepProps> = ({
               if (deliverable.id === deliverableId) {
                 return {
                   ...deliverable,
-                  fileUrl: 'uploaded-file-url',
-                  fileName: file.name,
+                  file_url: 'uploaded-file-url',
+                  file_name: file.name,
                 };
               }
               return deliverable;
@@ -201,9 +230,68 @@ const MilestonesDeliverablesStep: React.FC<MilestonesDeliverablesStepProps> = ({
   };
 
   const handleNext = () => {
-    if (validationErrors.isValid) {
-      onNext();
-    }
+    onNext();
+  };
+
+  const handleMilestoneUpdate = (milestoneId: string, updatedMilestone: Milestone) => {
+    const updatedMilestones = data.milestones.map(m => 
+      m.id === milestoneId ? updatedMilestone : m
+    );
+    onUpdate({ milestones: updatedMilestones });
+  };
+
+  const handleDeliverableAdd = (milestoneId: string, deliverable: Deliverable) => {
+    const updatedMilestones = data.milestones.map(milestone => {
+      if (milestone.id === milestoneId) {
+        return {
+          ...milestone,
+          deliverables: [...milestone.deliverables, deliverable]
+        };
+      }
+      return milestone;
+    });
+    onUpdate({ milestones: updatedMilestones });
+  };
+
+  const handleDeliverableUpdate = (milestoneId: string, deliverableId: string, updatedDeliverable: Deliverable) => {
+    const updatedMilestones = data.milestones.map(milestone => {
+      if (milestone.id === milestoneId) {
+        return {
+          ...milestone,
+          deliverables: milestone.deliverables.map(d => 
+            d.id === deliverableId ? updatedDeliverable : d
+          )
+        };
+      }
+      return milestone;
+    });
+    onUpdate({ milestones: updatedMilestones });
+  };
+
+  const handleDeliverableDelete = (milestoneId: string, deliverableId: string) => {
+    setDeleteDialog({
+      isOpen: true,
+      type: 'deliverable',
+      id: deliverableId,
+      parentId: milestoneId,
+    });
+  };
+
+  const handleDeliverableReorder = (milestoneId: string, startIndex: number, endIndex: number) => {
+    const updatedMilestones = data.milestones.map(milestone => {
+      if (milestone.id === milestoneId) {
+        const reorderedDeliverables = [...milestone.deliverables];
+        const [removed] = reorderedDeliverables.splice(startIndex, 1);
+        reorderedDeliverables.splice(endIndex, 0, removed);
+        
+        return {
+          ...milestone,
+          deliverables: reorderedDeliverables
+        };
+      }
+      return milestone;
+    });
+    onUpdate({ milestones: updatedMilestones });
   };
 
   return (
@@ -272,20 +360,16 @@ const MilestonesDeliverablesStep: React.FC<MilestonesDeliverablesStepProps> = ({
                       key={milestone.id}
                       milestone={milestone}
                       index={index}
+                      onUpdate={(updated) => handleMilestoneUpdate(milestone.id, updated)}
                       onDelete={(id) => setDeleteDialog({
                         isOpen: true,
                         type: 'milestone',
                         id,
                       })}
-                      onDeliverableAdd={addDeliverable}
-                      onDeliverableUpdate={updateDeliverable}
-                      onDeliverableDelete={(milestoneId, deliverableId) => setDeleteDialog({
-                        isOpen: true,
-                        type: 'deliverable',
-                        id: deliverableId,
-                        parentId: milestoneId,
-                      })}
-                      onDeliverableReorder={reorderDeliverables}
+                      onDeliverableAdd={handleDeliverableAdd}
+                      onDeliverableUpdate={handleDeliverableUpdate}
+                      onDeliverableDelete={handleDeliverableDelete}
+                      onDeliverableReorder={handleDeliverableReorder}
                     />
                   ))}
                   {provided.placeholder}
@@ -294,9 +378,9 @@ const MilestonesDeliverablesStep: React.FC<MilestonesDeliverablesStepProps> = ({
             </Droppable>
           </DragDropContext>
 
-          {/* Add/Edit Milestone Form */}
+          {/* Add New Milestone Form */}
           <div className="space-y-4">
-            <Label>{editingMilestoneIndex !== null ? 'Edit Milestone' : 'Add New Milestone'}</Label>
+            <Label>Add New Milestone</Label>
             <div className="space-y-4">
               <Input
                 placeholder="Milestone title"
@@ -328,15 +412,10 @@ const MilestonesDeliverablesStep: React.FC<MilestonesDeliverablesStepProps> = ({
               </div>
               <Button
                 type="button"
-                onClick={() => {
-                  if (editingMilestoneIndex !== null) {
-                    updateMilestone(newMilestone);
-                  } else {
-                    addMilestone(newMilestone);
-                  }
-                }}
+                onClick={handleAddMilestone}
+                disabled={!newMilestone.title}
               >
-                {editingMilestoneIndex !== null ? 'Update Milestone' : 'Add Milestone'}
+                Add Milestone
               </Button>
             </div>
           </div>
@@ -352,8 +431,7 @@ const MilestonesDeliverablesStep: React.FC<MilestonesDeliverablesStepProps> = ({
         </button>
         <button
           onClick={handleNext}
-          disabled={!validationErrors.isValid}
-          className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
         >
           Next
         </button>
@@ -387,6 +465,7 @@ const MilestonesDeliverablesStep: React.FC<MilestonesDeliverablesStepProps> = ({
         onConfirm={() => {
           if (deleteDialog) {
             handleDelete(deleteDialog.type, deleteDialog.id, deleteDialog.parentId);
+            setDeleteDialog(null);
           }
         }}
         title={`Delete ${deleteDialog?.type === 'milestone' ? 'Milestone' : 'Deliverable'}`}
@@ -398,4 +477,4 @@ const MilestonesDeliverablesStep: React.FC<MilestonesDeliverablesStepProps> = ({
   );
 };
 
-export default MilestonesDeliverablesStep; 
+export default MilestonesDeliverablesStep;

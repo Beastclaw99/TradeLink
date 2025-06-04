@@ -18,6 +18,7 @@ export interface Milestone {
   deliverables: Deliverable[];
   status?: string;
   is_complete?: boolean;
+  requires_deliverable?: boolean;
 }
 
 export interface ProjectData {
@@ -27,10 +28,13 @@ export interface ProjectData {
   category?: string;
   location?: string;
   recommended_skills: string[];
+  requirements?: string[];
+  skills?: string[];
   budget?: number;
   timeline?: string;
   urgency?: string;
   service_contract?: string;
+  deliverables?: Deliverable[];
 }
 
 // Drag and Drop Types
@@ -65,4 +69,4 @@ export interface ValidationError {
 export interface ValidationResult {
   isValid: boolean;
   errors: ValidationError[];
-} 
+}
