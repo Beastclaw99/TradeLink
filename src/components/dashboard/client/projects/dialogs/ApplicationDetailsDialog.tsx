@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -48,10 +49,13 @@ export const ApplicationDetailsDialog: React.FC<ApplicationDetailsDialogProps> =
               <div className="mt-2 space-y-2">
                 <p><strong>Status:</strong> <Badge variant={application.status === 'pending' ? 'default' : application.status === 'accepted' ? 'secondary' : 'destructive'}>{application.status}</Badge></p>
                 <p><strong>Applied on:</strong> {format(new Date(application.created_at), 'PPP')}</p>
-                <p><strong>Proposal:</strong></p>
+                <p><strong>Cover Letter:</strong></p>
                 <div className="bg-muted p-4 rounded-lg">
-                  <p className="whitespace-pre-wrap">{application.proposal}</p>
+                  <p className="whitespace-pre-wrap">{application.cover_letter || application.proposal_message || 'No message provided.'}</p>
                 </div>
+                {application.bid_amount && (
+                  <p><strong>Bid Amount:</strong> ${application.bid_amount}</p>
+                )}
               </div>
             </div>
           </div>
@@ -84,4 +88,4 @@ export const ApplicationDetailsDialog: React.FC<ApplicationDetailsDialogProps> =
       </DialogContent>
     </Dialog>
   );
-}; 
+};

@@ -138,7 +138,8 @@ export const useProfessionalDashboard = (userId: string) => {
               title,
               status,
               budget,
-              created_at
+              created_at,
+              client_id
             )
           `)
           .eq('professional_id', userId)
@@ -165,12 +166,13 @@ export const useProfessionalDashboard = (userId: string) => {
           status: validApplicationStatuses.includes(app.status as any) ? app.status as Application['status'] : 'pending',
           created_at: app.created_at,
           updated_at: app.updated_at || app.created_at,
-          project: app.project ? {
+          project: app.project && app.project.client_id ? {
             id: app.project.id,
             title: app.project.title,
             status: validProjectStatuses.includes(app.project.status as any) ? app.project.status as Project['status'] : 'open',
             budget: app.project.budget,
-            created_at: app.project.created_at
+            created_at: app.project.created_at,
+            client_id: app.project.client_id
           } : undefined
         }));
         

@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Application } from '../../types';
 import {
@@ -49,16 +50,29 @@ const ViewApplicationDialog: React.FC<ViewApplicationDialogProps> = ({
           {/* Professional Information */}
           <div>
             <h3 className="text-lg font-semibold mb-2">Professional</h3>
-            <p className="text-gray-600">{selectedApplication.professional_name || 'Unknown Professional'}</p>
+            <p className="text-gray-600">
+              {selectedApplication.professional?.first_name && selectedApplication.professional?.last_name 
+                ? `${selectedApplication.professional.first_name} ${selectedApplication.professional.last_name}`
+                : 'Unknown Professional'
+              }
+            </p>
           </div>
 
           {/* Application Message */}
           <div>
-            <h3 className="text-lg font-semibold mb-2">Message</h3>
+            <h3 className="text-lg font-semibold mb-2">Cover Letter</h3>
             <p className="text-gray-600 whitespace-pre-wrap">
-              {selectedApplication.message || 'No message provided.'}
+              {selectedApplication.cover_letter || selectedApplication.proposal_message || 'No message provided.'}
             </p>
           </div>
+
+          {/* Bid Amount */}
+          {selectedApplication.bid_amount && (
+            <div>
+              <h3 className="text-lg font-semibold mb-2">Bid Amount</h3>
+              <p className="text-gray-600">${selectedApplication.bid_amount}</p>
+            </div>
+          )}
 
           {/* Application Status */}
           <div>
@@ -97,4 +111,4 @@ const ViewApplicationDialog: React.FC<ViewApplicationDialogProps> = ({
   );
 };
 
-export default ViewApplicationDialog; 
+export default ViewApplicationDialog;
