@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import {
   Table,
@@ -76,11 +77,11 @@ const ApplicationsTable: React.FC<ApplicationsTableProps> = ({
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      // Map raw data to Application interface
-      const mapped = (data || []).map((row: any) => {
-        // If join failed, skip this row
-        if (!row.professional || row.professional.error) return null;
-        return {
+      
+      // Filter out null values and properly type the data
+      const mapped = (data || [])
+        .filter((row: any) => row && row.professional && !row.professional.error)
+        .map((row: any): Application => ({
           id: row.id,
           project_id: row.project_id,
           professional_id: row.professional_id,
@@ -96,8 +97,8 @@ const ApplicationsTable: React.FC<ApplicationsTableProps> = ({
             avatar_url: row.professional.avatar_url,
             rating: row.professional.rating,
           },
-        };
-      }).filter(Boolean);
+        }));
+      
       setApplications(mapped);
     } catch (error) {
       console.error('Error fetching applications:', error);
@@ -281,4 +282,4 @@ const ApplicationsTable: React.FC<ApplicationsTableProps> = ({
   );
 };
 
-export default ApplicationsTable; 
+export default ApplicationsTable;

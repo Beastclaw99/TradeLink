@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { AlertDialog, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
@@ -71,18 +72,25 @@ const ProjectsTab: React.FC<ProjectsTabProps> = ({
             <ProjectCard
               key={project.id}
               project={project}
-              editProject={editProject}
+              isEditing={editProject?.id === project.id}
               editedProject={editedProject}
               isSubmitting={isSubmitting}
-              applications={applications}
               onEdit={() => handleEditInitiate(project)}
               onCancelEdit={handleEditCancel}
-              onSave={async (updates: Partial<Project>) => {
-                const processedUpdates = { ...updates };
-                const updatedProject = { ...project, ...processedUpdates };
-                handleUpdateProject(updatedProject.id, updatedProject);
+              onUpdate={async (updates: Partial<Project>) => {
+                handleUpdateProject(project.id, updates);
               }}
               onDelete={() => handleDeleteInitiate(project.id)}
+              onViewApplications={() => {
+                // Navigate to applications view
+                window.location.href = `/project/${project.id}/applications`;
+              }}
+              onEditedProjectChange={(field: string, value: any) => {
+                setEditedProject({
+                  ...editedProject,
+                  [field]: value
+                });
+              }}
             />
           ))}
         </div>
@@ -108,18 +116,6 @@ const ProjectsTab: React.FC<ProjectsTabProps> = ({
             );
           })}
         </div>
-      )}
-      
-      {/* Edit Project Form */}
-      {editProject && (
-        <EditProjectForm
-          project={editProject}
-          editedProject={editedProject}
-          isSubmitting={isSubmitting}
-          onCancel={handleEditCancel}
-          onUpdate={handleUpdateProject}
-          onChange={setEditedProject}
-        />
       )}
       
       {/* Delete Project Confirmation Dialog */}

@@ -1,3 +1,5 @@
+
+import React from 'react';
 import { Project } from '../types';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -27,21 +29,21 @@ interface EditProjectDialogProps {
   onUpdate: (projectId: string, updates: Partial<Project>) => Promise<void>;
 }
 
-export const EditProjectDialog = ({
+export const EditProjectDialog: React.FC<EditProjectDialogProps> = ({
   project,
   editedProject,
   isSubmitting,
   onCancel,
   onUpdate
-}: EditProjectDialogProps) => {
+}) => {
   const form = useForm<ProjectFormData>({
     resolver: zodResolver(projectSchema),
-    defaultValues: editedProject || {
-      title: '',
-      description: '',
-      budget: 0,
-      category: '',
-      deadline: '',
+    defaultValues: {
+      title: project?.title || '',
+      description: project?.description || '',
+      budget: project?.budget || 0,
+      category: project?.category || '',
+      deadline: project?.deadline ? new Date(project.deadline).toISOString().split('T')[0] : '',
       skills_required: []
     }
   });
@@ -153,4 +155,4 @@ export const EditProjectDialog = ({
       </DialogContent>
     </Dialog>
   );
-}; 
+};
