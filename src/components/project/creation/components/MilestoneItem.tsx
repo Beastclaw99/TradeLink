@@ -1,6 +1,6 @@
 import React, { memo, useCallback } from 'react';
 import { Draggable } from '@hello-pangea/dnd';
-import { Milestone, Deliverable } from '../../types';
+import { Milestone, Deliverable } from '../types';
 import { DeliverableList } from './DeliverableList';
 import { TrashIcon } from '@heroicons/react/24/outline';
 
@@ -110,4 +110,4 @@ export const MilestoneItem: React.FC<MilestoneItemProps> = memo(({
   );
 });
 
-MilestoneItem.displayName = 'MilestoneItem'; 
+MilestoneItem.displayName = 'MilestoneItem';

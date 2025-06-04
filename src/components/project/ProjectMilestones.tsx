@@ -68,7 +68,21 @@ const ProjectMilestones: React.FC<ProjectMilestonesProps> = ({
         .order('created_at', { ascending: true });
 
       if (error) throw error;
-      setMilestones(data || []);
+      
+      // Transform the data to handle null values
+      const transformedMilestones: Milestone[] = (data || []).map(item => ({
+        id: item.id,
+        title: item.title,
+        description: item.description || undefined,
+        due_date: item.due_date || undefined,
+        status: item.status || 'not_started',
+        is_complete: item.is_complete || false,
+        requires_deliverable: item.requires_deliverable || false,
+        created_at: item.created_at || new Date().toISOString(),
+        updated_at: item.updated_at || undefined
+      }));
+      
+      setMilestones(transformedMilestones);
     } catch (error) {
       console.error('Error fetching milestones:', error);
       toast({

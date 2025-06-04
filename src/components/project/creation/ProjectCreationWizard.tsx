@@ -218,6 +218,19 @@ const ProjectCreationWizard: React.FC = () => {
 
   const renderCurrentStep = () => {
     const StepComponent = steps[currentStep - 1].component;
+    
+    // Handle MilestonesDeliverablesStep specifically
+    if (currentStep === 4) {
+      return (
+        <StepComponent 
+          data={projectData} 
+          onUpdate={updateProjectData}
+          onNext={nextStep}
+          onBack={prevStep}
+        />
+      );
+    }
+    
     return <StepComponent data={projectData} onUpdate={updateProjectData} />;
   };
 

@@ -9,7 +9,19 @@ import { Badge } from "@/components/ui/badge";
 import { Upload, File, Download, Trash2, Plus, Calendar } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from "@/components/ui/use-toast";
-import { Deliverable } from '@/types';
+
+interface Deliverable {
+  id: string;
+  title: string;
+  description?: string;
+  deliverable_type: 'text' | 'file';
+  content: string;
+  milestone_id: string;
+  file_url?: string;
+  file_name?: string;
+  created_at?: string;
+  updated_at?: string;
+}
 
 interface ProjectDeliverablesProps {
   projectId: string;
@@ -20,10 +32,15 @@ const ProjectDeliverables: React.FC<ProjectDeliverablesProps> = ({ projectId }) 
   const [deliverables, setDeliverables] = useState<Deliverable[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [newDeliverable, setNewDeliverable] = useState({
+  const [newDeliverable, setNewDeliverable] = useState<{
+    title: string;
+    description: string;
+    deliverable_type: 'text' | 'file';
+    content: string;
+  }>({
     title: '',
     description: '',
-    deliverable_type: 'text' as const,
+    deliverable_type: 'text',
     content: ''
   });
 
@@ -41,7 +58,7 @@ const ProjectDeliverables: React.FC<ProjectDeliverablesProps> = ({ projectId }) 
       const transformedDeliverables: Deliverable[] = (data || []).map(item => ({
         id: item.id,
         title: item.description || 'Untitled Deliverable',
-        description: item.description || '',
+        description: item.description || undefined,
         deliverable_type: (item.deliverable_type === 'file' ? 'file' : 'text') as 'text' | 'file',
         content: item.content || '',
         milestone_id: item.milestone_id || '',
