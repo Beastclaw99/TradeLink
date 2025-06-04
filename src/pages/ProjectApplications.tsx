@@ -1,7 +1,8 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
-import ProjectApplicationsView from '@/components/dashboard/client/projects/ProjectApplicationsView';
+import { ProjectApplicationsView } from '@/components/dashboard/client/projects/ProjectApplicationsView';
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -148,13 +149,16 @@ const ProjectApplications: React.FC = () => {
     <Layout>
       <div className="container-custom py-8">
         <ProjectApplicationsView
-          project={project}
           applications={applications}
-          onApplicationUpdate={handleApplicationUpdate}
+          projects={[project]}
+          onUpdate={() => {
+            // Refresh the data when an update occurs
+            window.location.reload();
+          }}
         />
       </div>
     </Layout>
   );
 };
 
-export default ProjectApplications; 
+export default ProjectApplications;
