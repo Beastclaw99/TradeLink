@@ -1,3 +1,4 @@
+
 import { Review } from '../types';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Star } from "lucide-react";
@@ -7,6 +8,8 @@ interface ReviewCardProps {
 }
 
 export const ReviewCard = ({ review }: ReviewCardProps) => {
+  const rating = review.rating || 0; // Handle null rating
+  
   return (
     <Card>
       <CardHeader>
@@ -16,7 +19,7 @@ export const ReviewCard = ({ review }: ReviewCardProps) => {
               <Star
                 key={i}
                 className={`h-4 w-4 ${
-                  i < review.rating
+                  i < rating
                     ? 'fill-yellow-400 text-yellow-400'
                     : 'text-gray-300'
                 }`}
