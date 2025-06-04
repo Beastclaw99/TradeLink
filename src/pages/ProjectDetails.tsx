@@ -18,12 +18,37 @@ const ProjectDetails: React.FC = () => {
   const [project, setProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState(true);
   const [isApplying, setIsApplying] = useState(false);
+  const [hasApplied, setHasApplied] = useState(false);
 
   useEffect(() => {
     if (projectId) {
       fetchProjectDetails();
+      checkApplicationStatus();
     }
   }, [projectId]);
+
+  const checkApplicationStatus = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from('applications')
+        .select('status')
+        .eq('project_id', projectId)
+        .eq('professional_id', user.id)
+        .single();
+
+      if (error && error.code !== 'PGRST116') {
+        console.error('Error checking application status:', error);
+        return;
+      }
+
+      setHasApplied(!!data);
+    } catch (error) {
+      console.error('Error checking application status:', error);
+    }
+  };
 
   const fetchProjectDetails = async () => {
     try {
@@ -45,31 +70,31 @@ const ProjectDetails: React.FC = () => {
       const transformedProject: Project = {
         id: data.id,
         title: data.title || '',
-        description: data.description,
-        budget: data.budget,
+        description: data.description || '',
+        budget: data.budget || 0,
         status: validStatuses.includes(data.status as any) ? data.status as Project['status'] : 'open',
         client_id: data.client_id || '',
         created_at: data.created_at || new Date().toISOString(),
         updated_at: data.updated_at || data.created_at || new Date().toISOString(),
         assigned_to: data.assigned_to,
-        location: data.location,
+        location: data.location || '',
         deadline: data.deadline,
-        required_skills: data.required_skills,
+        required_skills: data.required_skills || '',
         professional_id: data.professional_id,
         project_start_time: data.project_start_time,
-        category: data.category,
-        expected_timeline: data.expected_timeline,
-        urgency: data.urgency,
-        requirements: data.requirements,
-        scope: data.scope,
-        service_contract: data.service_contract,
+        category: data.category || '',
+        expected_timeline: data.expected_timeline || '',
+        urgency: data.urgency || 'normal',
+        requirements: typeof data.requirements === 'string' ? data.requirements.split('\n') : (data.requirements || []),
+        scope: data.scope || '',
+        service_contract: data.service_contract || '',
         client: data.client ? {
-          first_name: data.client.first_name,
-          last_name: data.client.last_name
+          first_name: data.client.first_name || '',
+          last_name: data.client.last_name || ''
         } : undefined,
         professional: data.professional ? {
-          first_name: data.professional.first_name,
-          last_name: data.professional.last_name
+          first_name: data.professional.first_name || '',
+          last_name: data.professional.last_name || ''
         } : undefined
       };
       
@@ -117,6 +142,7 @@ const ProjectDetails: React.FC = () => {
         description: "Your application has been submitted successfully!"
       });
 
+      setHasApplied(true);
       fetchProjectDetails();
     } catch (error) {
       console.error('Error applying to project:', error);
@@ -159,23 +185,36 @@ const ProjectDetails: React.FC = () => {
     );
   }
 
+  const requirements: string[] = Array.isArray(project.requirements)
+    ? project.requirements.filter((r: unknown): r is string => typeof r === 'string')
+    : (typeof project.requirements === 'string' && project.requirements && project.requirements.length > 0 ? project.requirements.split('\n') : []);
+
+  const formattedBudget = typeof project.budget === 'number' ? `$${project.budget.toLocaleString()}` : 'N/A';
+
   const getStatusBadge = (status: string) => {
     const statusColors: Record<string, string> = {
       'open': 'bg-green-100 text-green-800',
-      'in_progress': 'bg-blue-100 text-blue-800',
+      'applied': 'bg-blue-100 text-blue-800',
+      'assigned': 'bg-purple-100 text-purple-800',
+      'in-progress': 'bg-yellow-100 text-yellow-800',
+      'submitted': 'bg-indigo-100 text-indigo-800',
+      'revision': 'bg-orange-100 text-orange-800',
       'completed': 'bg-gray-100 text-gray-800',
-      'cancelled': 'bg-red-100 text-red-800'
+      'paid': 'bg-green-100 text-green-800',
+      'archived': 'bg-gray-100 text-gray-800',
+      'disputed': 'bg-red-100 text-red-800',
+      'rejected': 'bg-red-100 text-red-800',
+      'accepted': 'bg-green-100 text-green-800',
     };
-
     return (
       <Badge className={statusColors[status] || 'bg-gray-100 text-gray-800'}>
-        {status.charAt(0).toUpperCase() + status.slice(1).replace('_', ' ')}
+        {status.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
       </Badge>
     );
   };
 
-  const requiredSkills = project.required_skills && typeof project.required_skills === 'string' 
-    ? project.required_skills.split(',').map(skill => skill.trim())
+  const requiredSkills = typeof project.required_skills === 'string' && project.required_skills && project.required_skills.length > 0
+    ? project.required_skills.split(',').map((skill: string) => skill.trim())
     : [];
 
   return (
@@ -216,14 +255,14 @@ const ProjectDetails: React.FC = () => {
                   <div className="space-y-4">
                     <div>
                       <h3 className="font-semibold mb-2">Description</h3>
-                      <p className="text-gray-700">{project.description}</p>
+                      <p className="text-gray-700 whitespace-pre-wrap">{project.description}</p>
                     </div>
 
-                    {project.requirements && project.requirements.length > 0 && (
+                    {requirements.length > 0 && (
                       <div>
                         <h3 className="font-semibold mb-2">Requirements</h3>
                         <ul className="list-disc pl-5 space-y-1">
-                          {project.requirements.map((req, index) => (
+                          {requirements.map((req: string, index: number) => (
                             <li key={index} className="text-gray-700">{req}</li>
                           ))}
                         </ul>
@@ -271,7 +310,7 @@ const ProjectDetails: React.FC = () => {
                   <div className="flex items-center gap-2">
                     <DollarSign className="h-4 w-4 text-gray-500" />
                     <span className="font-medium">Budget:</span>
-                    <span>{project.budget}</span>
+                    <span>{formattedBudget}</span>
                   </div>
 
                   {project.location && (
@@ -300,7 +339,7 @@ const ProjectDetails: React.FC = () => {
                 </CardContent>
               </Card>
 
-              {project.status === 'open' && (
+              {project.status === 'open' && !hasApplied && (
                 <Card>
                   <CardContent className="pt-6">
                     <Button 
@@ -310,6 +349,16 @@ const ProjectDetails: React.FC = () => {
                     >
                       {isApplying ? "Applying..." : "Apply for this Project"}
                     </Button>
+                  </CardContent>
+                </Card>
+              )}
+
+              {hasApplied && (
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="text-center text-gray-600">
+                      <p>You have already applied to this project</p>
+                    </div>
                   </CardContent>
                 </Card>
               )}

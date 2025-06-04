@@ -2,10 +2,10 @@ import React, { useState } from 'react';
 import { Application } from '../types';
 import { useToast } from "@/components/ui/use-toast";
 import { useNavigate } from 'react-router-dom';
-import ViewApplicationDialog from './dialogs/ViewApplicationDialog';
-import ActionConfirmationDialog from './dialogs/ActionConfirmationDialog';
-import PendingApplicationsTable from './tables/PendingApplicationsTable';
-import PastApplicationsTable from './tables/PastApplicationsTable';
+import ViewApplicationDialog from '@/components/dashboard/client/dialogs/ViewApplicationDialog';
+import ConfirmationDialog from '@/components/common/ConfirmationDialog';
+import PendingApplicationsTable from '@/components/dashboard/client/tables/PendingApplicationsTable';
+import PastApplicationsTable from '@/components/dashboard/client/tables/PastApplicationsTable';
 import { Button } from "@/components/ui/button";
 import { MessageSquare } from "lucide-react";
 
@@ -143,11 +143,11 @@ const ApplicationsTab: React.FC<ApplicationsTabProps> = ({
         onOpenChange={setViewDialogOpen}
         selectedApplication={selectedApplication}
         projects={projects}
-        onAccept={(app) => {
+        onAccept={(app: Application) => {
           setViewDialogOpen(false);
           handleActionInitiate(app, 'accept');
         }}
-        onReject={(app) => {
+        onReject={(app: Application) => {
           setViewDialogOpen(false);
           handleActionInitiate(app, 'reject');
         }}
@@ -155,6 +155,14 @@ const ApplicationsTab: React.FC<ApplicationsTabProps> = ({
       />
       
       {/* Action Confirmation Dialog */}
+      <ConfirmationDialog
+        isOpen={actionDialogOpen}
+        onClose={() => setActionDialogOpen(false)}
+        onConfirm={handleConfirmAction}
+        title={actionType === 'accept' ? 'Accept Application' : 'Reject Application'}
+        message={`Are you sure you want to ${actionType} this application?`}
+        confirmText={actionType === 'accept' ? 'Accept' : 'Reject'}
+        cancelText="Cancel"
       <ActionConfirmationDialog
         open={actionDialogOpen}
         onOpenChange={setActionDialogOpen}
