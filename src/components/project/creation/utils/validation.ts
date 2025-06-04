@@ -1,10 +1,9 @@
 
-import { ProjectData, ValidationResult, ValidationError } from '../types';
+import { ProjectData, Milestone, Deliverable, ValidationResult } from '@/types';
 
 export const validateProjectData = (data: ProjectData): ValidationResult => {
-  const errors: ValidationError[] = [];
+  const errors = [];
   
-  // Basic validation
   if (!data.title?.trim()) {
     errors.push({ field: 'title', message: 'Project title is required' });
   }
@@ -13,15 +12,10 @@ export const validateProjectData = (data: ProjectData): ValidationResult => {
     errors.push({ field: 'description', message: 'Project description is required' });
   }
   
-  if (!data.category) {
+  if (!data.category?.trim()) {
     errors.push({ field: 'category', message: 'Project category is required' });
   }
   
-  if (!data.location?.trim()) {
-    errors.push({ field: 'location', message: 'Project location is required' });
-  }
-  
-  // Budget and timeline validation
   if (!data.budget || data.budget <= 0) {
     errors.push({ field: 'budget', message: 'Valid budget amount is required' });
   }
@@ -29,16 +23,49 @@ export const validateProjectData = (data: ProjectData): ValidationResult => {
   if (!data.timeline?.trim()) {
     errors.push({ field: 'timeline', message: 'Project timeline is required' });
   }
+
+  if (!data.recommended_skills || data.recommended_skills.length === 0) {
+    errors.push({ field: 'recommended_skills', message: 'At least one required skill must be specified' });
+  }
+
+  return {
+    isValid: errors.length === 0,
+    errors
+  };
+};
+
+export const validateMilestone = (milestone: Milestone): ValidationResult => {
+  const errors = [];
   
-  if (!data.urgency) {
-    errors.push({ field: 'urgency', message: 'Project urgency level is required' });
+  if (!milestone.title?.trim()) {
+    errors.push({ field: 'title', message: 'Milestone title is required' });
   }
   
-  // Service contract validation
-  if (!data.service_contract?.trim()) {
-    errors.push({ field: 'service_contract', message: 'Service contract acceptance is required' });
+  if (!milestone.description?.trim()) {
+    errors.push({ field: 'description', message: 'Milestone description is required' });
+  }
+
+  return {
+    isValid: errors.length === 0,
+    errors
+  };
+};
+
+export const validateDeliverable = (deliverable: Deliverable): ValidationResult => {
+  const errors = [];
+  
+  if (!deliverable.title?.trim()) {
+    errors.push({ field: 'title', message: 'Deliverable title is required' });
   }
   
+  if (!deliverable.description?.trim()) {
+    errors.push({ field: 'description', message: 'Deliverable description is required' });
+  }
+
+  if (!deliverable.deliverable_type) {
+    errors.push({ field: 'deliverable_type', message: 'Deliverable type is required' });
+  }
+
   return {
     isValid: errors.length === 0,
     errors

@@ -156,10 +156,11 @@ export const useProfessionalDashboard = (userId: string) => {
       if (error) throw error;
 
       const transformedApplications = (data || [])
-        .filter(app => app.project_id && app.status)
+        .filter(app => app.project_id && app.status && app.professional_id)
         .map(app => ({
           ...app,
           project_id: app.project_id!,
+          professional_id: app.professional_id!,
           status: (app.status as Application['status']) || 'pending',
           created_at: app.created_at || new Date().toISOString(),
           updated_at: app.updated_at || new Date().toISOString()
@@ -188,9 +189,12 @@ export const useProfessionalDashboard = (userId: string) => {
       if (error) throw error;
 
       const transformedPayments = (data || [])
-        .filter(payment => payment.status)
+        .filter(payment => payment.status && payment.project_id && payment.professional_id)
         .map(payment => ({
           ...payment,
+          project_id: payment.project_id!,
+          professional_id: payment.professional_id!,
+          client_id: payment.client_id!,
           status: (payment.status as Payment['status']) || 'pending',
           created_at: payment.created_at || new Date().toISOString(),
           paid_at: payment.paid_at
@@ -215,10 +219,15 @@ export const useProfessionalDashboard = (userId: string) => {
 
       if (error) throw error;
 
-      const transformedReviews = (data || []).map(review => ({
-        ...review,
-        updated_at: review.updated_at || new Date().toISOString()
-      }));
+      const transformedReviews = (data || [])
+        .filter(review => review.project_id && review.professional_id && review.client_id)
+        .map(review => ({
+          ...review,
+          project_id: review.project_id!,
+          professional_id: review.professional_id!,
+          client_id: review.client_id!,
+          updated_at: review['updated at'] || review.created_at || new Date().toISOString()
+        }));
 
       setReviews(transformedReviews);
     } catch (error) {

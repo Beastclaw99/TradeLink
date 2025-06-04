@@ -3,7 +3,7 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Calendar, MapPin, DollarSign, Clock, AlertCircle, ListChecks, FileText, Link, CheckCircle } from 'lucide-react';
-import { ProjectData } from '../types';
+import { ProjectData } from '@/types';
 
 interface ReviewStepProps {
   data: ProjectData;
@@ -119,7 +119,7 @@ const ReviewStep: React.FC<ReviewStepProps> = ({ data }) => {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {data.milestones.map((milestone, index) => (
+              {data.milestones.map((milestone: any, index: number) => (
                 <div key={index} className="border rounded-lg p-4">
                   <div className="flex items-center justify-between">
                     <h4 className="font-medium">{milestone.title}</h4>

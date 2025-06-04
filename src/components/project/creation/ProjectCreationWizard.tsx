@@ -101,8 +101,6 @@ const ProjectCreationWizard: React.FC<ProjectCreationWizardProps> = ({
         return (
           <ReviewStep
             data={projectData}
-            onNext={handleSubmit}
-            isSubmitting={isSubmitting}
           />
         );
       default:
@@ -139,6 +137,43 @@ const ProjectCreationWizard: React.FC<ProjectCreationWizardProps> = ({
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 ml-auto"
             >
               Next
+            </button>
+          </div>
+        )}
+
+        {currentStep === 5 && (
+          <div className="flex justify-between mt-6">
+            <button
+              onClick={handleBack}
+              className="px-4 py-2 text-gray-600 bg-gray-200 rounded-lg hover:bg-gray-300"
+            >
+              Back
+            </button>
+            
+            <button
+              onClick={handleNext}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            >
+              Review Project
+            </button>
+          </div>
+        )}
+
+        {currentStep === 6 && (
+          <div className="flex justify-between mt-6">
+            <button
+              onClick={handleBack}
+              className="px-4 py-2 text-gray-600 bg-gray-200 rounded-lg hover:bg-gray-300"
+            >
+              Back
+            </button>
+            
+            <button
+              onClick={handleSubmit}
+              disabled={isSubmitting}
+              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
+            >
+              {isSubmitting ? 'Creating Project...' : 'Create Project'}
             </button>
           </div>
         )}

@@ -1,31 +1,46 @@
 
 import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import Layout from '@/components/layout/Layout';
-import { ClientDashboard } from '@/components/dashboard/ClientDashboard';
+import ClientDashboard from '@/components/dashboard/ClientDashboard';
 import ProfessionalDashboard from '@/components/dashboard/ProfessionalDashboard';
+import { Card, CardContent } from '@/components/ui/card';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
 
 const Dashboard: React.FC = () => {
-  const { user, profile } = useAuth();
+  const { user, profile, loading } = useAuth();
 
-  if (!user || !profile) {
+  if (loading) {
     return (
-      <Layout>
-        <div className="container mx-auto px-4 py-8">
-          <p>Please log in to access your dashboard.</p>
-        </div>
-      </Layout>
+      <div className="flex items-center justify-center min-h-screen">
+        <LoadingSpinner />
+      </div>
     );
   }
 
-  return (
-    <Layout>
-      {profile.account_type === 'client' ? (
-        <ClientDashboard />
-      ) : (
-        <ProfessionalDashboard />
-      )}
-    </Layout>
+  if (!user) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Card>
+          <CardContent className="p-6">
+            <p>Please log in to access your dashboard.</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (!profile) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <LoadingSpinner />
+      </div>
+    );
+  }
+
+  return profile.account_type === 'client' ? (
+    <ClientDashboard userId={user.id} />
+  ) : (
+    <ProfessionalDashboard userId={user.id} />
   );
 };
 
