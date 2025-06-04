@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Badge } from "@/components/ui/badge";
@@ -90,8 +89,12 @@ const UnifiedProjectCard: React.FC<UnifiedProjectCardProps> = ({
           <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
             <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
               <div className="flex items-center gap-2">
-                <DollarSign className="h-4 w-4 text-gray-500" />
-                <span className="font-semibold">{formatCurrency(project.budget)}</span>
+                {project.budget && (
+                  <div className="flex items-center gap-1 text-green-600">
+                    <DollarSign className="h-4 w-4" />
+                    <span className="font-medium">${formatCurrency(project.budget ?? 0)}</span>
+                  </div>
+                )}
               </div>
               
               <div className="flex items-center text-ttc-neutral-700">
@@ -141,8 +144,11 @@ const UnifiedProjectCard: React.FC<UnifiedProjectCardProps> = ({
         
         <div className="grid grid-cols-2 gap-2 text-sm">
           <div className="flex items-center gap-2">
-            <DollarSign className="h-4 w-4 text-gray-500" />
-            <span className="font-semibold">{formatCurrency(project.budget)}</span>
+            {project.budget && (
+              <span className="text-lg font-bold text-green-600">
+                ${formatCurrency(project.budget ?? 0)}
+              </span>
+            )}
           </div>
           
           <div className="flex items-center text-ttc-neutral-700">

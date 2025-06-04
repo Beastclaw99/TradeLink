@@ -1,13 +1,10 @@
+
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Application, Project } from '@/types';
 import { useToast } from "@/components/ui/use-toast";
 
-interface UseApplicationOperationsProps {
-  onUpdate?: () => void;
-}
-
-export const useApplicationOperations = ({ onUpdate }: UseApplicationOperationsProps = {}) => {
+export const useApplicationOperations = (fetchDashboardData: () => Promise<void>) => {
   const { toast } = useToast();
   const [selectedApplication, setSelectedApplication] = useState<Application | null>(null);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
@@ -21,6 +18,64 @@ export const useApplicationOperations = ({ onUpdate }: UseApplicationOperationsP
   const handleCloseDialog = () => {
     setSelectedApplication(null);
     setSelectedProject(null);
+  };
+
+  const handleApplicationUpdate = async (
+    applicationId: string,
+    newStatus: string,
+    projectId: string,
+    professionalId: string
+  ) => {
+    try {
+      setIsSubmitting(true);
+      
+      // Update application status
+      const { error: applicationError } = await supabase
+        .from('applications')
+        .update({ status: newStatus })
+        .eq('id', applicationId);
+      
+      if (applicationError) throw applicationError;
+      
+      // If application was accepted, update project status
+      if (newStatus === 'accepted') {
+        const { error: projectError } = await supabase
+          .from('projects')
+          .update({ status: 'assigned', assigned_to: professionalId })
+          .eq('id', projectId);
+        
+        if (projectError) throw projectError;
+        
+        // Update other applications to rejected
+        const { error: rejectError } = await supabase
+          .from('applications')
+          .update({ status: 'rejected' })
+          .eq('project_id', projectId)
+          .neq('id', applicationId);
+        
+        if (rejectError) throw rejectError;
+      }
+      
+      toast({
+        title: `Application ${newStatus === 'accepted' ? 'Accepted' : 'Rejected'}`,
+        description: newStatus === 'accepted' 
+          ? "The professional has been assigned to your project."
+          : "The application has been rejected."
+      });
+      
+      // Refresh data
+      await fetchDashboardData();
+      
+    } catch (error: any) {
+      console.error('Error updating application:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update application. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleAcceptApplication = async () => {
@@ -49,7 +104,7 @@ export const useApplicationOperations = ({ onUpdate }: UseApplicationOperationsP
       });
 
       handleCloseDialog();
-      onUpdate?.();
+      await fetchDashboardData();
     } catch (error) {
       console.error('Error accepting application:', error);
       toast({
@@ -80,7 +135,7 @@ export const useApplicationOperations = ({ onUpdate }: UseApplicationOperationsP
       });
 
       handleCloseDialog();
-      onUpdate?.();
+      await fetchDashboardData();
     } catch (error) {
       console.error('Error rejecting application:', error);
       toast({
@@ -100,6 +155,7 @@ export const useApplicationOperations = ({ onUpdate }: UseApplicationOperationsP
     handleViewApplication,
     handleCloseDialog,
     handleAcceptApplication,
-    handleRejectApplication
+    handleRejectApplication,
+    handleApplicationUpdate
   };
 };

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
@@ -23,6 +23,7 @@ interface NotificationContextType {
   markAllAsRead: () => Promise<void>;
   removeNotification: (id: string) => Promise<void>;
   refreshNotifications: () => Promise<void>;
+  addNotification: (notification: Omit<Notification, 'id' | 'timestamp'>) => void;
 }
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
@@ -136,6 +137,33 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const addNotification = useCallback((notification: Omit<Notification, 'id' | 'timestamp'>) => {
+    const newNotification: Notification = {
+      ...notification,
+      id: crypto.randomUUID(),
+      timestamp: new Date().toISOString()
+    };
+
+    setNotifications(prev => [newNotification, ...prev].slice(0, 50));
+
+    // Send to database if user is logged in
+    if (user?.id) {
+      supabase
+        .from('notifications')
+        .insert([{
+          user_id: user.id,
+          title: notification.title,
+          message: notification.message,
+          type: notification.type
+        }])
+        .then(({ error }) => {
+          if (error) {
+            console.error('Error saving notification:', error);
+          }
+        });
+    }
+  }, [user?.id]);
+
   useEffect(() => {
     if (user) {
       fetchNotifications();
@@ -192,7 +220,8 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
         markAsRead,
         markAllAsRead,
         removeNotification,
-        refreshNotifications: fetchNotifications
+        refreshNotifications: fetchNotifications,
+        addNotification
       }}
     >
       {children}

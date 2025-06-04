@@ -1,174 +1,111 @@
-
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
-import { useAuth } from '@/contexts/AuthContext';
-import { useToast } from "@/components/ui/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 import { Project } from '@/components/dashboard/types';
-
-// Import the refactored components
-import HeroSection from '@/components/marketplace/HeroSection';
-import SearchFilters from '@/components/marketplace/SearchFilters';
-import ViewModeToggle from '@/components/marketplace/ViewModeToggle';
-import ProjectsDisplay from '@/components/marketplace/ProjectsDisplay';
-import CTASection from '@/components/marketplace/CTASection';
+import { ProjectCard } from '@/components/shared/ProjectCard';
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Button } from "@/components/ui/button"
+import { Search } from 'lucide-react';
+import { supabase } from "@/integrations/supabase/client";
 
 const ProjectMarketplace: React.FC = () => {
-  const { user } = useAuth();
-  const navigate = useNavigate();
-  const location = useLocation();
-  const { toast } = useToast();
-  const [searchTerm, setSearchTerm] = useState("");
-  const [categoryFilter, setCategoryFilter] = useState("");
-  const [locationFilter, setLocationFilter] = useState("");
-  const [budgetFilter, setBudgetFilter] = useState("");
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [projects, setProjects] = useState<Project[]>([]);
-  const [loading, setLoading] = useState(true);
-  
-  useEffect(() => {
-    fetchProjects();
-    
-    // Show success message if redirected from project creation
-    if (location.state?.message) {
-      toast({
-        title: "Success",
-        description: location.state.message
-      });
-    }
-  }, [location.state, toast]);
-  
-  const fetchProjects = async () => {
-    try {
-      setLoading(true);
-      
-      console.log('Fetching projects from database...');
-      
-      const { data, error } = await supabase
-        .from('projects')
-        .select(`
-          *,
-          client:profiles!projects_client_id_fkey(first_name, last_name)
-        `)
-        .eq('status', 'open')
-        .order('created_at', { ascending: false });
-        
-      if (error) {
-        console.error('Database error:', error);
-        throw error;
-      }
-      
-      console.log('Fetched projects:', data);
-      
-      // Ensure the data is properly typed as Project[] with all required fields
-      const typedProjects: Project[] = data?.map(project => ({
-        id: project.id,
-        title: project.title,
-        description: project.description,
-        category: project.category,
-        budget: project.budget,
-        expected_timeline: project.expected_timeline,
-        location: project.location,
-        urgency: project.urgency,
-        requirements: project.requirements,
-        required_skills: project.required_skills,
-        status: project.status as Project['status'],
-        created_at: project.created_at,
-        updated_at: project.updated_at || new Date().toISOString(),
-        client_id: project.client_id,
-        assigned_to: project.assigned_to,
-        deadline: project.deadline,
-        professional_id: project.professional_id,
-        project_start_time: project.project_start_time,
-        scope: project.scope,
-        service_contract: project.service_contract,
-        client: project.client
-      })) || [];
-      
-      setProjects(typedProjects);
-      console.log('Projects state updated with:', typedProjects.length, 'projects');
-    } catch (error: any) {
-      console.error('Error fetching projects:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load projects. Please try again later.",
-        variant: "destructive"
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-  
-  // Filter logic
-  const filteredProjects = projects.filter(project => {
-    const matchesSearch = project.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          (project.description && project.description.toLowerCase().includes(searchTerm.toLowerCase()));
-    
-    const matchesCategory = categoryFilter === "" || categoryFilter === "all" || 
-                           (project.category && project.category.toLowerCase() === categoryFilter.toLowerCase());
-    
-    const matchesLocation = locationFilter === "" || locationFilter === "all" || 
-                           (project.location && project.location.toLowerCase().includes(locationFilter.toLowerCase()));
-    
-    let matchesBudget = true;
-    const projectBudget = project.budget;
-    if (projectBudget && typeof projectBudget === 'number') {
-      if (budgetFilter === "under5k") {
-        matchesBudget = projectBudget < 5000;
-      } else if (budgetFilter === "5k-10k") {
-        matchesBudget = projectBudget >= 5000 && projectBudget <= 10000;
-      } else if (budgetFilter === "over10k") {
-        matchesBudget = projectBudget > 10000;
-      }
-    }
-    
-    return matchesSearch && matchesCategory && matchesLocation && matchesBudget;
-  });
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
 
-  const handlePostProject = () => {
-    if (user) {
-      navigate('/client/create-project');
-    } else {
-      navigate('/login');
-    }
-  };
-  
+  useEffect(() => {
+    const fetchProjects = async () => {
+      setIsLoading(true);
+      try {
+        const { data: projectsData, error } = await supabase
+          .from('projects')
+          .select('*');
+
+        if (error) {
+          console.error('Error fetching projects:', error);
+          return;
+        }
+        
+        const validStatuses = ['open', 'applied', 'assigned', 'in-progress', 'submitted', 'revision', 'completed', 'paid', 'archived', 'disputed'] as const;
+        
+        const transformedProjects = (projectsData || []).map(project => ({
+          ...project,
+          client_id: project.client_id || '',
+          description: project.description || '',
+          category: project.category || '',
+          location: project.location || '',
+          expected_timeline: project.expected_timeline || '',
+          urgency: project.urgency || '',
+          status: validStatuses.includes(project.status as any) ? project.status : 'open' as const,
+          created_at: project.created_at || new Date().toISOString(),
+          updated_at: project.updated_at || new Date().toISOString()
+        }));
+        
+        setProjects(transformedProjects);
+
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchProjects();
+  }, []);
+
+  const filteredProjects = projects.filter(project =>
+    project.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    project.description.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   return (
     <Layout>
-      <HeroSection onPostProject={handlePostProject} />
-      
-      <section className="py-8 bg-gray-50">
-        <div className="container-custom">
-          <SearchFilters 
-            searchTerm={searchTerm}
-            setSearchTerm={setSearchTerm}
-            categoryFilter={categoryFilter}
-            setCategoryFilter={setCategoryFilter}
-            locationFilter={locationFilter}
-            setLocationFilter={setLocationFilter}
-            budgetFilter={budgetFilter}
-            setBudgetFilter={setBudgetFilter}
-            onFilterApply={fetchProjects}
-          />
-          
-          <ViewModeToggle 
-            viewMode={viewMode} 
-            setViewMode={setViewMode} 
-            projectCount={filteredProjects.length} 
-          />
-          
-          <ProjectsDisplay 
-            projects={filteredProjects} 
-            loading={loading} 
-            viewMode={viewMode} 
-          />
-        </div>
-      </section>
+      <div className="container-custom py-8">
+        <h1 className="text-3xl font-bold mb-4">Project Marketplace</h1>
 
-      <CTASection onPostProject={handlePostProject} />
+        {/* Search Input */}
+        <div className="mb-6">
+          <Label htmlFor="search" className="sr-only">
+            Search projects
+          </Label>
+          <div className="relative">
+            <Input
+              type="search"
+              id="search"
+              placeholder="Search for projects..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10"
+            />
+            <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+              <Search className="h-5 w-5 text-gray-400" />
+            </div>
+          </div>
+        </div>
+
+        {isLoading ? (
+          <div className="flex justify-center items-center min-h-[30vh]">
+            <Button variant="ghost" className="gap-2">
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Loading projects...
+            </Button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredProjects.map((project) => (
+              <ProjectCard key={project.id} project={project} />
+            ))}
+          </div>
+        )}
+
+        {filteredProjects.length === 0 && !isLoading && (
+          <div className="text-gray-500 text-center mt-4">
+            No projects found matching your search criteria.
+          </div>
+        )}
+      </div>
     </Layout>
   );
 };
 
 export default ProjectMarketplace;
+
+import { Loader2 } from 'lucide-react';
