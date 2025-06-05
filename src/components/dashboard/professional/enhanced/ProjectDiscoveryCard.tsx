@@ -25,11 +25,15 @@ const ProjectDiscoveryCard: React.FC<ProjectDiscoveryCardProps> = ({
   
   const userApplication = applications.find(app => app.project_id === project.id);
   
-  const requiredSkills = Array.isArray(project.required_skills) 
-    ? project.required_skills 
-    : typeof project.required_skills === 'string' 
-      ? project.required_skills.split(',').map(s => s.trim())
-      : [];
+  // Properly handle the required_skills field which can be string or array
+  const requiredSkills = (() => {
+    if (!project.required_skills) return [];
+    if (Array.isArray(project.required_skills)) return project.required_skills;
+    if (typeof project.required_skills === 'string') {
+      return project.required_skills.split(',').map(s => s.trim()).filter(s => s.length > 0);
+    }
+    return [];
+  })();
   
   const matchingSkills = userSkills.filter(skill => 
     requiredSkills.some(reqSkill => 
