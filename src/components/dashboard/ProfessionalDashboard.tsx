@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useProfessionalDashboard } from "@/hooks/useProfessionalDashboard";
+import { useApplicationNotifications } from "@/hooks/useApplicationNotifications";
 import AvailableProjectsTab from './professional/AvailableProjectsTab';
 import ApplicationsTab from './professional/ApplicationsTab';
 import ActiveProjectsTab from './professional/ActiveProjectsTab';
@@ -17,6 +18,10 @@ interface ProfessionalDashboardProps {
 
 const ProfessionalDashboard: React.FC<ProfessionalDashboardProps> = ({ userId }) => {
   const { toast } = useToast();
+  
+  // Use the application notifications hook
+  useApplicationNotifications();
+  
   const [isApplying, setIsApplying] = useState(false);
   const [coverLetter, setCoverLetter] = useState('');
   const [bidAmount, setBidAmount] = useState<number | null>(null);

@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+
+import React, { useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { useToast } from "@/components/ui/use-toast";
 import { Application } from '../types';
 import { supabase } from '@/integrations/supabase/client';
-import ApplicationsTable from './applications/ApplicationsTable';
+import ApplicationStatusTracker from './enhanced/ApplicationStatusTracker';
 import ViewApplicationDialog from './applications/ViewApplicationDialog';
 import WithdrawApplicationDialog from './applications/WithdrawApplicationDialog';
 import { useApplications } from './applications/useApplications';
@@ -85,26 +86,31 @@ const ApplicationsTab: React.FC<ApplicationsTabProps> = ({ isLoading, applicatio
   
   return (
     <>
-      <h2 className="text-2xl font-bold mb-4">Your Applications</h2>
-      
-      {error && (
-        <div className="bg-red-50 text-red-800 p-4 rounded-md mb-4">
-          {error}
+      <div className="space-y-6">
+        <div>
+          <h2 className="text-2xl font-bold mb-2">Application Status</h2>
+          <p className="text-gray-600">Track the progress of your project applications</p>
         </div>
-      )}
-      
-      {localIsLoading ? (
-        <div className="flex justify-center items-center py-8">
-          <Loader2 className="h-8 w-8 animate-spin text-ttc-blue-700 mr-2" />
-          <span>Loading your applications...</span>
-        </div>
-      ) : (
-        <ApplicationsTable 
-          applications={localApplications}
-          onViewApplication={handleViewApplication}
-          onWithdrawInitiate={handleWithdrawInitiate}
-        />
-      )}
+        
+        {error && (
+          <div className="bg-red-50 text-red-800 p-4 rounded-md">
+            {error}
+          </div>
+        )}
+        
+        {localIsLoading ? (
+          <div className="flex justify-center items-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-ttc-blue-700 mr-2" />
+            <span>Loading your applications...</span>
+          </div>
+        ) : (
+          <ApplicationStatusTracker 
+            applications={localApplications}
+            onViewApplication={handleViewApplication}
+            onWithdrawApplication={handleWithdrawInitiate}
+          />
+        )}
+      </div>
       
       {/* Dialogs */}
       <ViewApplicationDialog 
