@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { Application } from '../../types';
+import { Application, ApplicationProject } from '../../types';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from "@/components/ui/use-toast";
 
@@ -69,7 +69,7 @@ export const useApplications = (
               status: app.project.status,
               budget: app.project.budget,
               created_at: app.project.created_at
-            } : undefined
+            } as ApplicationProject : undefined
           }));
           
           setLocalApplications(transformedApplications);

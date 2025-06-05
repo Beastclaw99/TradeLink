@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
-import { Project, Application, Payment, Review } from '../components/dashboard/types';
+import { Project, Application, Payment, Review, ApplicationProject } from '../components/dashboard/types';
 
 export const useProfessionalDashboard = (userId: string) => {
   const { toast } = useToast();
@@ -152,7 +152,7 @@ export const useProfessionalDashboard = (userId: string) => {
             status: app.project.status,
             budget: app.project.budget,
             created_at: app.project.created_at
-          } : undefined
+          } as ApplicationProject : undefined
         }));
         
         setApplications(transformedApps);
@@ -182,13 +182,22 @@ export const useProfessionalDashboard = (userId: string) => {
       
       console.log('Payments data:', paymentsData);
       
-      // Ensure each payment has a created_at field
-      const paymentsWithDates = (paymentsData || []).map(payment => ({
-        ...payment,
-        created_at: payment.created_at || new Date().toISOString()
+      // Transform payments to include missing fields and ensure each payment has a created_at field
+      const paymentsWithRequiredFields: Payment[] = (paymentsData || []).map(payment => ({
+        id: payment.id,
+        amount: payment.amount,
+        status: payment.status,
+        payment_method: payment.payment_method || null,
+        transaction_id: payment.transaction_id || null,
+        created_at: payment.created_at || new Date().toISOString(),
+        paid_at: payment.paid_at,
+        client_id: payment.client_id,
+        professional_id: payment.professional_id,
+        project_id: payment.project_id,
+        project: payment.project
       }));
       
-      setPayments(paymentsWithDates);
+      setPayments(paymentsWithRequiredFields);
       
       // Fetch reviews for the professional
       const { data: reviewsData, error: reviewsError } = await supabase
@@ -202,7 +211,20 @@ export const useProfessionalDashboard = (userId: string) => {
       }
       
       console.log('Reviews data:', reviewsData);
-      setReviews(reviewsData || []);
+      
+      // Transform reviews to match the Review type
+      const transformedReviews: Review[] = (reviewsData || []).map(review => ({
+        id: review.id,
+        rating: review.rating,
+        comment: review.comment,
+        client_id: review.client_id,
+        professional_id: review.professional_id,
+        project_id: review.project_id,
+        created_at: review.created_at,
+        updated_at: review['updated at'] || review.created_at // Handle the space in column name
+      }));
+      
+      setReviews(transformedReviews);
       
     } catch (error: any) {
       console.error('Dashboard data fetch error:', error);
