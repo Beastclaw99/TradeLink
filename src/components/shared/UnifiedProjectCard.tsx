@@ -28,6 +28,8 @@ interface UnifiedProjectCardProps {
   variant?: 'list' | 'card';
   onStatusChange?: (newStatus: string) => void;
   isProfessional?: boolean;
+  onClick?: () => void;
+  actionLabel?: string;
 }
 
 const statusColors = {
@@ -106,7 +108,9 @@ export default function UnifiedProjectCard({
   project, 
   variant = 'card',
   onStatusChange,
-  isProfessional = false
+  isProfessional = false,
+  onClick,
+  actionLabel
 }: UnifiedProjectCardProps) {
   const [showChat, setShowChat] = useState(false);
   const [activeTab, setActiveTab] = useState('timeline');
@@ -130,7 +134,7 @@ export default function UnifiedProjectCard({
   if (variant === 'list') {
     return (
       <div className="relative">
-        <Card className="mb-4">
+        <Card className="mb-4" onClick={onClick}>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div className="flex-1">
@@ -149,11 +153,27 @@ export default function UnifiedProjectCard({
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setShowChat(!showChat)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowChat(!showChat);
+                  }}
                   className="ml-4"
                 >
                   <ChatBubbleLeftIcon className="h-4 w-4 mr-2" />
                   {showChat ? 'Hide Chat' : 'Show Chat'}
+                </Button>
+              )}
+              {actionLabel && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onClick?.();
+                  }}
+                  className="ml-4"
+                >
+                  {actionLabel}
                 </Button>
               )}
             </div>
@@ -175,7 +195,7 @@ export default function UnifiedProjectCard({
 
   return (
     <div className="relative">
-      <Card className="mb-4">
+      <Card className="mb-4" onClick={onClick}>
         <CardHeader className="pb-4">
           <div className="flex items-start justify-between">
             <div className="flex-1">
@@ -200,10 +220,26 @@ export default function UnifiedProjectCard({
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setShowChat(!showChat)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowChat(!showChat);
+                }}
               >
                 <ChatBubbleLeftIcon className="h-4 w-4 mr-2" />
                 {showChat ? 'Hide Chat' : 'Show Chat'}
+              </Button>
+            )}
+            {actionLabel && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onClick?.();
+                }}
+                className="ml-4"
+              >
+                {actionLabel}
               </Button>
             )}
           </div>
