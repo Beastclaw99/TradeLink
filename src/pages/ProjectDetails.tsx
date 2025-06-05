@@ -124,7 +124,7 @@ const ProjectDetails: React.FC = () => {
     );
   }
 
-  const getStatusBadge = (status: string) => {
+  const getStatusBadge = (status: string | null) => {
     const statusColors: Record<string, string> = {
       'open': 'bg-green-100 text-green-800',
       'in_progress': 'bg-blue-100 text-blue-800',
@@ -133,8 +133,8 @@ const ProjectDetails: React.FC = () => {
     };
 
     return (
-      <Badge className={statusColors[status] || 'bg-gray-100 text-gray-800'}>
-        {status.charAt(0).toUpperCase() + status.slice(1).replace('_', ' ')}
+      <Badge className={statusColors[status || ''] || 'bg-gray-100 text-gray-800'}>
+        {(status || 'Open').charAt(0).toUpperCase() + (status || 'Open').slice(1).replace('_', ' ')}
       </Badge>
     );
   };
@@ -166,11 +166,11 @@ const ProjectDetails: React.FC = () => {
                       <div className="flex items-center gap-4 text-sm text-gray-600">
                         <span className="flex items-center gap-1">
                           <Calendar className="h-4 w-4" />
-                          Posted {new Date(project.created_at).toLocaleDateString()}
+                          Posted {project.created_at ? new Date(project.created_at).toLocaleDateString() : 'Recently'}
                         </span>
                         <span className="flex items-center gap-1">
                           <User className="h-4 w-4" />
-                          {project.client?.first_name} {project.client?.last_name}
+                          {project.client?.first_name || 'Anonymous'} {project.client?.last_name || ''}
                         </span>
                       </div>
                     </div>
@@ -181,7 +181,7 @@ const ProjectDetails: React.FC = () => {
                   <div className="space-y-4">
                     <div>
                       <h3 className="font-semibold mb-2">Description</h3>
-                      <p className="text-gray-700">{project.description}</p>
+                      <p className="text-gray-700">{project.description || 'No description provided'}</p>
                     </div>
 
                     {project.requirements && project.requirements.length > 0 && (
@@ -219,7 +219,7 @@ const ProjectDetails: React.FC = () => {
                 <CardContent>
                   <ProjectUpdateTimeline 
                     projectId={project.id}
-                    projectStatus={project.status}
+                    projectStatus={project.status || 'open'}
                     showAddUpdate={false}
                   />
                 </CardContent>
@@ -236,7 +236,7 @@ const ProjectDetails: React.FC = () => {
                   <div className="flex items-center gap-2">
                     <DollarSign className="h-4 w-4 text-gray-500" />
                     <span className="font-medium">Budget:</span>
-                    <span>{project.budget}</span>
+                    <span>{project.budget ? new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(project.budget) : 'Not specified'}</span>
                   </div>
 
                   {project.location && (
@@ -259,7 +259,7 @@ const ProjectDetails: React.FC = () => {
                     <div className="flex items-center gap-2">
                       <AlertTriangle className="h-4 w-4 text-gray-500" />
                       <span className="font-medium">Urgency:</span>
-                      <span className="capitalize">{project.urgency}</span>
+                      <span>{project.urgency}</span>
                     </div>
                   )}
                 </CardContent>

@@ -127,7 +127,7 @@ export default function InvoiceSection({
         project_id: projectId,
         update_type: 'status_update',
         message: 'Payment has been processed',
-        created_by: user?.id,
+        professional_id: user?.id,
         metadata: {
           status_change: 'paid'
         }

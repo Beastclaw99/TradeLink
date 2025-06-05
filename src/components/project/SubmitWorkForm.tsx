@@ -88,8 +88,7 @@ export default function SubmitWorkForm({
         update_type: 'completion_note',
         message: summary || 'Work submitted for review',
         file_url: fileUrls[0], // Store first file URL in update
-        file_name: files[0]?.name,
-        created_by: user?.id,
+        professional_id: user?.id,
         metadata: {
           submitted_files: fileUrls
         }

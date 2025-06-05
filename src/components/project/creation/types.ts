@@ -1,7 +1,19 @@
 export interface Milestone {
+  id?: string;
   title: string;
-  description?: string;
-  due_date?: string;
+  description: string;
+  dueDate: string;
+  status: 'not_started' | 'in_progress' | 'completed' | 'overdue';
+  progress: number;
+  tasks: {
+    id: string;
+    title: string;
+    completed: boolean;
+  }[];
+  assignedTo?: {
+    id: string;
+    name: string;
+  };
   requires_deliverable: boolean;
 }
 

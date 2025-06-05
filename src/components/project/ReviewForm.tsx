@@ -110,7 +110,7 @@ export default function ReviewForm({
         project_id: projectId,
         update_type: 'review',
         message: `${isClient ? 'Client' : 'Professional'} has submitted a review`,
-        created_by: user.id,
+        professional_id: user.id,
         metadata: {
           review_submitted: true
         }
