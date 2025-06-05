@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
@@ -8,8 +7,11 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from '@/integrations/supabase/client';
 import { Project } from '@/components/dashboard/types';
-import ProjectUpdateTimeline from '@/components/shared/UnifiedProjectUpdateTimeline';
-import { MapPin, DollarSign, Calendar, User, Clock, CheckCircle, AlertTriangle } from 'lucide-react';
+import { MapPin, DollarSign, Calendar, User, Clock, AlertTriangle, FileText, CheckCircle } from 'lucide-react';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Separator } from '@/components/ui/separator';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const ProjectDetails: React.FC = () => {
   const { projectId } = useParams<{ projectId: string }>();
@@ -18,6 +20,7 @@ const ProjectDetails: React.FC = () => {
   const [project, setProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState(true);
   const [isApplying, setIsApplying] = useState(false);
+  const [hasAcceptedContract, setHasAcceptedContract] = useState(false);
 
   useEffect(() => {
     if (projectId) {
@@ -51,7 +54,7 @@ const ProjectDetails: React.FC = () => {
         location: data.location,
         urgency: data.urgency,
         requirements: data.requirements,
-        required_skills: data.recommended_skills || null, // Map recommended_skills to required_skills
+        required_skills: data.recommended_skills || null,
         status: data.status,
         created_at: data.created_at,
         updated_at: data.updated_at,
@@ -85,6 +88,15 @@ const ProjectDetails: React.FC = () => {
   };
 
   const handleApplyToProject = async () => {
+    if (!hasAcceptedContract) {
+      toast({
+        title: "Contract Required",
+        description: "Please review and accept the service contract before applying",
+        variant: "destructive"
+      });
+      return;
+    }
+
     try {
       setIsApplying(true);
       
@@ -157,21 +169,6 @@ const ProjectDetails: React.FC = () => {
     );
   }
 
-  const getStatusBadge = (status: string | null) => {
-    const statusColors: Record<string, string> = {
-      'open': 'bg-green-100 text-green-800',
-      'in_progress': 'bg-blue-100 text-blue-800',
-      'completed': 'bg-gray-100 text-gray-800',
-      'cancelled': 'bg-red-100 text-red-800'
-    };
-
-    return (
-      <Badge className={statusColors[status || ''] || 'bg-gray-100 text-gray-800'}>
-        {(status || 'Open').charAt(0).toUpperCase() + (status || 'Open').slice(1).replace('_', ' ')}
-      </Badge>
-    );
-  };
-
   const requiredSkills = project.required_skills && typeof project.required_skills === 'string' 
     ? project.required_skills.split(',').map(skill => skill.trim())
     : [];
@@ -207,11 +204,10 @@ const ProjectDetails: React.FC = () => {
                         </span>
                       </div>
                     </div>
-                    {getStatusBadge(project.status)}
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-4">
+                  <div className="space-y-6">
                     <div>
                       <h3 className="font-semibold mb-2">Description</h3>
                       <p className="text-gray-700">{project.description || 'No description provided'}</p>
@@ -244,17 +240,36 @@ const ProjectDetails: React.FC = () => {
                 </CardContent>
               </Card>
 
-              {/* Project Timeline */}
+              {/* Service Contract Card */}
               <Card>
                 <CardHeader>
-                  <CardTitle>Project Updates</CardTitle>
+                  <CardTitle>Service Contract</CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <ProjectUpdateTimeline 
-                    projectId={project.id}
-                    projectStatus={project.status || 'open'}
-                    showAddUpdate={false}
-                  />
+                <CardContent className="space-y-6">
+                  <Alert>
+                    <AlertDescription>
+                      Please review the service contract carefully. By applying to this project, you agree to all terms and conditions.
+                    </AlertDescription>
+                  </Alert>
+
+                  <ScrollArea className="h-[400px] rounded-md border p-4">
+                    <pre className="whitespace-pre-wrap font-mono text-sm">
+                      {project.service_contract || 'No service contract available'}
+                    </pre>
+                  </ScrollArea>
+
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id="accept-contract"
+                      checked={hasAcceptedContract}
+                      onChange={(e) => setHasAcceptedContract(e.target.checked)}
+                      className="h-4 w-4 rounded border-gray-300"
+                    />
+                    <label htmlFor="accept-contract" className="text-sm">
+                      I have read and agree to the terms of this service contract
+                    </label>
+                  </div>
                 </CardContent>
               </Card>
             </div>
@@ -298,19 +313,26 @@ const ProjectDetails: React.FC = () => {
                 </CardContent>
               </Card>
 
-              {project.status === 'open' && (
-                <Card>
-                  <CardContent className="pt-6">
-                    <Button 
-                      onClick={handleApplyToProject}
-                      disabled={isApplying}
-                      className="w-full bg-ttc-blue-700 hover:bg-ttc-blue-800"
-                    >
-                      {isApplying ? "Applying..." : "Apply for this Project"}
-                    </Button>
-                  </CardContent>
-                </Card>
-              )}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Apply for Project</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <Button 
+                    onClick={handleApplyToProject}
+                    disabled={isApplying || !hasAcceptedContract}
+                    className="w-full bg-ttc-blue-700 hover:bg-ttc-blue-800"
+                  >
+                    {isApplying ? "Applying..." : "Apply for this Project"}
+                  </Button>
+                  
+                  {!hasAcceptedContract && (
+                    <p className="text-sm text-yellow-600">
+                      Please review and accept the service contract before applying
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
 
               {project.professional && (
                 <Card>
