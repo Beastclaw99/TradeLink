@@ -1,35 +1,24 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from "@/components/ui/use-toast";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { UpdateType, ProjectUpdate } from '@/types/projectUpdates';
+import { ProjectUpdate } from '@/types/projectUpdates';
 import { useAuth } from '@/contexts/AuthContext';
-import { formatDistanceToNow } from 'date-fns';
 import {
   ClockIcon,
   ExclamationCircleIcon,
   DocumentIcon,
   CurrencyDollarIcon,
   CalendarIcon,
-  FunnelIcon,
-  MagnifyingGlassIcon,
-  ArrowUpIcon,
-  ArrowDownIcon,
   CheckCircleIcon,
-  XMarkIcon,
   PaperClipIcon,
   MapPinIcon,
   TruckIcon,
   BanknotesIcon,
   ListBulletIcon,
   PencilSquareIcon,
-  XMarkIcon as XMark,
 } from '@heroicons/react/24/outline';
 import AddProjectUpdate from '../project/updates/AddProjectUpdate';
 
@@ -39,77 +28,47 @@ interface UnifiedProjectUpdateTimelineProps {
   projectStatus: string;
 }
 
-const UpdateTypeIcons: Record<string, React.ElementType> = {
+const UpdateTypeIcons = {
   message: DocumentIcon,
-  status_change: CheckCircleIcon,
+  status_change: ClockIcon,
   file_upload: PaperClipIcon,
   site_check: MapPinIcon,
   start_time: ClockIcon,
   completion_note: CheckCircleIcon,
-  check_in: CheckCircleIcon,
-  check_out: XMarkIcon,
+  check_in: ClockIcon,
+  check_out: ClockIcon,
   on_my_way: TruckIcon,
   delayed: ExclamationCircleIcon,
-  cancelled: XMarkIcon,
-  revisit_required: XMarkIcon,
+  cancelled: ExclamationCircleIcon,
+  revisit_required: MapPinIcon,
   expense_submitted: BanknotesIcon,
   expense_approved: CurrencyDollarIcon,
-  payment_processed: BanknotesIcon,
+  payment_processed: CurrencyDollarIcon,
   schedule_updated: CalendarIcon,
   task_completed: ListBulletIcon,
   custom_field_updated: PencilSquareIcon,
 };
 
-const UpdateTypeBadgeColors: Record<string, { bg: string; text: string }> = {
-  status_change: { bg: 'bg-blue-100', text: 'text-blue-800' },
-  start_time: { bg: 'bg-green-100', text: 'text-green-800' },
+const UpdateTypeBadgeColors = {
+  message: { bg: 'bg-blue-100', text: 'text-blue-800' },
+  status_change: { bg: 'bg-purple-100', text: 'text-purple-800' },
+  file_upload: { bg: 'bg-gray-100', text: 'text-gray-800' },
+  site_check: { bg: 'bg-green-100', text: 'text-green-800' },
+  start_time: { bg: 'bg-blue-100', text: 'text-blue-800' },
   completion_note: { bg: 'bg-green-100', text: 'text-green-800' },
   check_in: { bg: 'bg-blue-100', text: 'text-blue-800' },
-  check_out: { bg: 'bg-gray-100', text: 'text-gray-800' },
-  on_my_way: { bg: 'bg-yellow-100', text: 'text-yellow-800' },
-  delayed: { bg: 'bg-red-100', text: 'text-red-800' },
+  check_out: { bg: 'bg-blue-100', text: 'text-blue-800' },
+  on_my_way: { bg: 'bg-blue-100', text: 'text-blue-800' },
+  delayed: { bg: 'bg-yellow-100', text: 'text-yellow-800' },
   cancelled: { bg: 'bg-red-100', text: 'text-red-800' },
   revisit_required: { bg: 'bg-orange-100', text: 'text-orange-800' },
-  expense_submitted: { bg: 'bg-purple-100', text: 'text-purple-800' },
+  expense_submitted: { bg: 'bg-green-100', text: 'text-green-800' },
   expense_approved: { bg: 'bg-green-100', text: 'text-green-800' },
   payment_processed: { bg: 'bg-green-100', text: 'text-green-800' },
+  schedule_updated: { bg: 'bg-blue-100', text: 'text-blue-800' },
   task_completed: { bg: 'bg-green-100', text: 'text-green-800' },
+  custom_field_updated: { bg: 'bg-purple-100', text: 'text-purple-800' },
 };
-
-type UpdateGroupKey = 'activity' | 'status' | 'files' | 'expenses' | 'schedule';
-
-// Update type groups for better organization
-const UPDATE_TYPE_GROUPS: Record<UpdateGroupKey, {
-  label: string;
-  types: readonly UpdateType[];
-  icon: typeof ClockIcon;
-}> = {
-  activity: {
-    label: 'Activity',
-    types: ['message', 'check_in', 'check_out', 'on_my_way', 'site_check'] as const,
-    icon: ClockIcon
-  },
-  status: {
-    label: 'Status',
-    types: ['status_change', 'delayed', 'cancelled', 'revisit_required'] as const,
-    icon: ExclamationCircleIcon
-  },
-  files: {
-    label: 'Files & Notes',
-    types: ['file_upload', 'completion_note'] as const,
-    icon: DocumentIcon
-  },
-  expenses: {
-    label: 'Expenses',
-    types: ['expense_submitted', 'expense_approved', 'payment_processed'] as const,
-    icon: CurrencyDollarIcon
-  },
-  schedule: {
-    label: 'Schedule',
-    types: ['start_time', 'schedule_updated'] as const,
-    icon: CalendarIcon
-  }
-} as const;
 
 export default function UnifiedProjectUpdateTimeline({ 
   projectId, 
@@ -121,20 +80,15 @@ export default function UnifiedProjectUpdateTimeline({
   const [updates, setUpdates] = useState<ProjectUpdate[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedGroup, setSelectedGroup] = useState<UpdateGroupKey>('activity');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
   const fetchUpdates = async () => {
     try {
       setLoading(true);
-      let query = supabase
+      const { data, error: fetchError } = await supabase
         .from('project_updates')
         .select('*, profiles(first_name, last_name)')
         .eq('project_id', projectId)
-        .order('created_at', { ascending: sortOrder === 'asc' });
-
-      const { data, error: fetchError } = await query;
+        .order('created_at', { ascending: false });
 
       if (fetchError) throw fetchError;
       setUpdates((data || []) as ProjectUpdate[]);
@@ -164,37 +118,7 @@ export default function UnifiedProjectUpdateTimeline({
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [projectId, sortOrder]);
-
-  // Filter and sort updates
-  const filteredUpdates = useMemo(() => {
-    let filtered = [...updates];
-    
-    // Filter by type
-    const groupTypes = UPDATE_TYPE_GROUPS[selectedGroup].types;
-    filtered = filtered.filter(update => 
-      groupTypes.includes(update.update_type as UpdateType)
-    );
-    
-    // Filter by search query
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(update => 
-        update.message?.toLowerCase().includes(query) ||
-        (update.profiles?.first_name?.toLowerCase() || '').includes(query) ||
-        (update.profiles?.last_name?.toLowerCase() || '').includes(query)
-      );
-    }
-    
-    // Sort updates
-    filtered.sort((a, b) => {
-      const dateA = new Date(a.created_at || '').getTime();
-      const dateB = new Date(b.created_at || '').getTime();
-      return sortOrder === 'asc' ? dateA - dateB : dateB - dateA;
-    });
-    
-    return filtered;
-  }, [updates, selectedGroup, searchQuery, sortOrder]);
+  }, [projectId]);
 
   if (loading) {
     return (
@@ -335,60 +259,21 @@ export default function UnifiedProjectUpdateTimeline({
     <div className="space-y-6">
       <AddProjectUpdate 
         projectId={projectId} 
-        onUpdateAdded={() => {
-          fetchUpdates();
-        }}
+        onUpdateAdded={fetchUpdates}
         projectStatus={projectStatus}
         isProfessional={isProfessional}
       />
 
-      {/* Filters and Search */}
-      <Card>
-        <CardContent className="p-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="relative">
-              <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <Input
-                placeholder="Search updates..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9"
-              />
-            </div>
-            <Tabs value={selectedGroup} onValueChange={(value: UpdateGroupKey) => setSelectedGroup(value)}>
-              <TabsList className="w-full">
-                {Object.entries(UPDATE_TYPE_GROUPS).map(([key, { label }]) => (
-                  <TabsTrigger key={key} value={key}>{label}</TabsTrigger>
-                ))}
-              </TabsList>
-            </Tabs>
-            <Button
-              variant="outline"
-              onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
-              className="w-full"
-            >
-              {sortOrder === 'asc' ? (
-                <ArrowUpIcon className="h-4 w-4 mr-2" />
-              ) : (
-                <ArrowDownIcon className="h-4 w-4 mr-2" />
-              )}
-              {sortOrder === 'asc' ? 'Oldest First' : 'Newest First'}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Updates Timeline */}
       <ScrollArea className="h-[600px] pr-4">
         <div className="space-y-4">
-          {filteredUpdates.length === 0 ? (
+          {updates.length === 0 ? (
             <Card>
               <CardContent className="p-6 text-center text-gray-500">
                 No updates found.
               </CardContent>
             </Card>
           ) : (
-            filteredUpdates.map((update) => (
+            updates.map((update) => (
               <div key={update.id}>
                 {renderUpdateContent(update)}
               </div>
