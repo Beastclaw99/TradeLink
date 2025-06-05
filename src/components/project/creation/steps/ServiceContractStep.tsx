@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -69,22 +70,20 @@ Urgency Level: ${getUrgencyLabel(data.urgency)}
 
 SCOPE OF WORK:
 ════════════════════════════════════════════════════════════════════════════════
-The Professional agrees to perform the following services:
+The Professional agrees to perform the following services as described in the project description above.
 
-${data.requirements.map(req => `• ${req}`).join('\n')}
-
-REQUIRED SKILLS:
+RECOMMENDED SKILLS:
 ════════════════════════════════════════════════════════════════════════════════
-The Professional must possess the following skills:
+The Professional should possess the following skills:
 
-${data.skills.map(skill => `• ${skill}`).join('\n')}
+${data.recommendedSkills.map(skill => `• ${skill}`).join('\n')}
 
 MILESTONES AND DELIVERABLES:
 ════════════════════════════════════════════════════════════════════════════════
 ${data.milestones.map(milestone => `
 Milestone: ${milestone.title}
 • Description: ${milestone.description || 'N/A'}
-• Due Date: ${milestone.due_date || 'TBD'}
+• Due Date: ${milestone.dueDate || 'TBD'}
 • Requires Deliverable: ${milestone.requires_deliverable ? 'Yes' : 'No'}
 `).join('\n')}
 
@@ -231,4 +230,4 @@ Date: ${new Date().toLocaleDateString()}
   );
 };
 
-export default ServiceContractStep; 
+export default ServiceContractStep;

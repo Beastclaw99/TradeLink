@@ -1,3 +1,4 @@
+
 export interface Project {
   id: string;
   title: string;
@@ -34,6 +35,15 @@ export interface Project {
   };
 }
 
+// Simplified project interface for applications
+export interface ApplicationProject {
+  id: string;
+  title: string;
+  status: string | null;
+  budget: number | null;
+  created_at: string | null;
+}
+
 export interface Application {
   id: string;
   project_id: string;
@@ -45,7 +55,7 @@ export interface Application {
   status: string;
   created_at: string;
   updated_at: string;
-  project?: Project;
+  project?: ApplicationProject;
   professional?: {
     first_name?: string;
     last_name?: string;

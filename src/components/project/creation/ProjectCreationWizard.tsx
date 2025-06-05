@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -27,8 +26,7 @@ const ProjectCreationWizard: React.FC = () => {
     description: '',
     category: '',
     location: '',
-    requirements: [],
-    skills: [],
+    recommendedSkills: [],
     budget: 0,
     timeline: '',
     urgency: '',
@@ -46,9 +44,9 @@ const ProjectCreationWizard: React.FC = () => {
     },
     { 
       number: 2, 
-      title: 'Requirements', 
+      title: 'Recommended Skills', 
       component: RequirementsStep,
-      description: 'Detailed requirements and skills needed'
+      description: 'Skills that would be helpful for your project'
     },
     { 
       number: 3, 
@@ -81,7 +79,7 @@ const ProjectCreationWizard: React.FC = () => {
       case 1:
         return ['Project title', 'Description', 'Category', 'Location'];
       case 2:
-        return ['At least one requirement (optional)', 'Skills needed (optional)'];
+        return ['Recommended skills (optional but helpful)'];
       case 3:
         return ['Budget amount', 'Timeline', 'Urgency level'];
       case 4:
@@ -100,7 +98,7 @@ const ProjectCreationWizard: React.FC = () => {
       case 1:
         return projectData.title && projectData.description && projectData.category && projectData.location;
       case 2:
-        return true; // Requirements are optional
+        return true; // Skills are optional
       case 3:
         return projectData.budget > 0 && projectData.timeline && projectData.urgency;
       case 4:
@@ -154,9 +152,9 @@ const ProjectCreationWizard: React.FC = () => {
             description: projectData.description,
             category: projectData.category,
             location: projectData.location,
-            requirements: projectData.requirements,
-            required_skills: projectData.skills.join(','),
-            budget: projectData.budget, // Now correctly a number
+            requirements: [], // Empty array for now
+            required_skills: projectData.recommendedSkills.join(','),
+            budget: projectData.budget,
             expected_timeline: projectData.timeline,
             urgency: projectData.urgency,
             client_id: user.id,

@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -61,22 +62,13 @@ const ReviewStep: React.FC<ReviewStepProps> = ({ data }) => {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-xl">Requirements & Skills</CardTitle>
+          <CardTitle className="text-xl">Recommended Skills</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <h4 className="font-medium mb-2">Requirements</h4>
+            <h4 className="font-medium mb-2">Skills that would be helpful for this project</h4>
             <div className="flex flex-wrap gap-2">
-              {data.requirements.map((req, index) => (
-                <Badge key={index} variant="outline">{req}</Badge>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <h4 className="font-medium mb-2">Required Skills</h4>
-            <div className="flex flex-wrap gap-2">
-              {data.skills.map((skill, index) => (
+              {data.recommendedSkills.map((skill, index) => (
                 <Badge key={index} variant="secondary">{skill}</Badge>
               ))}
             </div>

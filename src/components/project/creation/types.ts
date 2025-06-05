@@ -1,3 +1,4 @@
+
 export interface Milestone {
   id?: string;
   title: string;
@@ -28,8 +29,7 @@ export interface ProjectData {
   description: string;
   category: string;
   location: string;
-  requirements: string[];
-  skills: string[];
+  recommendedSkills: string[];
   budget: number;
   timeline: string;
   urgency: string;
