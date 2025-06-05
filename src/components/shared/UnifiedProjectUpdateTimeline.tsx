@@ -1,33 +1,41 @@
-import { useEffect, useState } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { format } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
-import { ProjectUpdate } from '@/types/projectUpdates';
-import AddProjectUpdate from '../project/updates/AddProjectUpdate';
+import { useToast } from "@/components/ui/use-toast";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { UpdateType, ProjectUpdate } from '@/types/projectUpdates';
+import { useAuth } from '@/contexts/AuthContext';
+import { formatDistanceToNow } from 'date-fns';
 import {
-  CheckCircleIcon,
   ClockIcon,
-  DocumentIcon,
   ExclamationCircleIcon,
-  MapPinIcon,
-  PaperClipIcon,
+  DocumentIcon,
   CurrencyDollarIcon,
   CalendarIcon,
-  CheckIcon,
+  FunnelIcon,
+  MagnifyingGlassIcon,
+  ArrowUpIcon,
+  ArrowDownIcon,
+  CheckCircleIcon,
   XMarkIcon,
+  PaperClipIcon,
+  MapPinIcon,
   TruckIcon,
-  ArrowPathIcon,
   BanknotesIcon,
   ListBulletIcon,
   PencilSquareIcon,
+  XMarkIcon as XMark,
 } from '@heroicons/react/24/outline';
+import AddProjectUpdate from '../project/updates/AddProjectUpdate';
 
 interface UnifiedProjectUpdateTimelineProps {
   projectId: string;
-  showAddUpdate?: boolean;
-  maxUpdates?: number;
-  isProfessionalView?: boolean;
-  canEdit?: boolean;
-  onUpdateAdded?: () => void;
+  isProfessional: boolean;
   projectStatus: string;
 }
 
@@ -38,12 +46,12 @@ const UpdateTypeIcons: Record<string, React.ElementType> = {
   site_check: MapPinIcon,
   start_time: ClockIcon,
   completion_note: CheckCircleIcon,
-  check_in: CheckIcon,
+  check_in: CheckCircleIcon,
   check_out: XMarkIcon,
   on_my_way: TruckIcon,
   delayed: ExclamationCircleIcon,
   cancelled: XMarkIcon,
-  revisit_required: ArrowPathIcon,
+  revisit_required: XMarkIcon,
   expense_submitted: BanknotesIcon,
   expense_approved: CurrencyDollarIcon,
   payment_processed: BanknotesIcon,
@@ -68,18 +76,54 @@ const UpdateTypeBadgeColors: Record<string, { bg: string; text: string }> = {
   task_completed: { bg: 'bg-green-100', text: 'text-green-800' },
 };
 
+type UpdateGroupKey = 'activity' | 'status' | 'files' | 'expenses' | 'schedule';
+
+// Update type groups for better organization
+const UPDATE_TYPE_GROUPS: Record<UpdateGroupKey, {
+  label: string;
+  types: readonly UpdateType[];
+  icon: typeof ClockIcon;
+}> = {
+  activity: {
+    label: 'Activity',
+    types: ['message', 'check_in', 'check_out', 'on_my_way', 'site_check'] as const,
+    icon: ClockIcon
+  },
+  status: {
+    label: 'Status',
+    types: ['status_change', 'delayed', 'cancelled', 'revisit_required'] as const,
+    icon: ExclamationCircleIcon
+  },
+  files: {
+    label: 'Files & Notes',
+    types: ['file_upload', 'completion_note'] as const,
+    icon: DocumentIcon
+  },
+  expenses: {
+    label: 'Expenses',
+    types: ['expense_submitted', 'expense_approved', 'payment_processed'] as const,
+    icon: CurrencyDollarIcon
+  },
+  schedule: {
+    label: 'Schedule',
+    types: ['start_time', 'schedule_updated'] as const,
+    icon: CalendarIcon
+  }
+} as const;
+
 export default function UnifiedProjectUpdateTimeline({ 
   projectId, 
-  showAddUpdate = true, 
-  maxUpdates,
-  isProfessionalView = false,
-  canEdit = false,
-  onUpdateAdded,
-  projectStatus
+  isProfessional,
+  projectStatus 
 }: UnifiedProjectUpdateTimelineProps) {
+  const { user } = useAuth();
+  const { toast } = useToast();
   const [updates, setUpdates] = useState<ProjectUpdate[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedGroup, setSelectedGroup] = useState<UpdateGroupKey>('activity');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
   const fetchUpdates = async () => {
     try {
@@ -88,11 +132,7 @@ export default function UnifiedProjectUpdateTimeline({
         .from('project_updates')
         .select('*, profiles(first_name, last_name)')
         .eq('project_id', projectId)
-        .order('created_at', { ascending: false });
-
-      if (maxUpdates) {
-        query = query.limit(maxUpdates);
-      }
+        .order('created_at', { ascending: sortOrder === 'asc' });
 
       const { data, error: fetchError } = await query;
 
@@ -124,7 +164,37 @@ export default function UnifiedProjectUpdateTimeline({
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [projectId]);
+  }, [projectId, sortOrder]);
+
+  // Filter and sort updates
+  const filteredUpdates = useMemo(() => {
+    let filtered = [...updates];
+    
+    // Filter by type
+    const groupTypes = UPDATE_TYPE_GROUPS[selectedGroup].types;
+    filtered = filtered.filter(update => 
+      groupTypes.includes(update.update_type as UpdateType)
+    );
+    
+    // Filter by search query
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(update => 
+        update.message?.toLowerCase().includes(query) ||
+        (update.profiles?.first_name?.toLowerCase() || '').includes(query) ||
+        (update.profiles?.last_name?.toLowerCase() || '').includes(query)
+      );
+    }
+    
+    // Sort updates
+    filtered.sort((a, b) => {
+      const dateA = new Date(a.created_at || '').getTime();
+      const dateB = new Date(b.created_at || '').getTime();
+      return sortOrder === 'asc' ? dateA - dateB : dateB - dateA;
+    });
+    
+    return filtered;
+  }, [updates, selectedGroup, searchQuery, sortOrder]);
 
   if (loading) {
     return (
@@ -208,86 +278,124 @@ export default function UnifiedProjectUpdateTimeline({
     };
 
     return (
-      <div className="flex space-x-4 group">
-        <div className="flex-shrink-0 w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
-          <Icon className={`h-5 w-5 ${colors.text}`} />
-        </div>
-        <div className="flex-grow">
-          <div className="flex items-center justify-between">
-            <div className="flex flex-col">
-              <span className="text-sm text-gray-500">
-                {format(new Date(update.created_at || ''), 'MMM d, yyyy h:mm a')}
-              </span>
-              {isProfessionalView && update.profiles && (
-                <span className="text-sm text-gray-600">
-                  By: {update.profiles.first_name} {update.profiles.last_name}
-                </span>
-              )}
+      <Card className="mb-4">
+        <CardContent className="p-4">
+          <div className="flex space-x-4">
+            <div className="flex-shrink-0 w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+              <Icon className={`h-5 w-5 ${colors.text}`} />
             </div>
-            {update.update_type !== 'message' && renderBadge(update.update_type.replace('_', ' '))}
-          </div>
-          
-          <div className="mt-2">
-            {update.message && (
-              <p className="text-gray-700">{update.message}</p>
-            )}
-            
-            {update.status_update && (
-              <div className="mt-1">{renderBadge(update.status_update)}</div>
-            )}
-            
-            {update.file_url && (
-              <div className="mt-2">
-                <a
-                  href={`${supabase.storage.from('project-files').getPublicUrl(update.file_url).data.publicUrl}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center text-sm text-blue-600 hover:text-blue-800"
-                >
-                  <PaperClipIcon className="h-4 w-4 mr-1" />
-                  Download File
-                </a>
+            <div className="flex-grow">
+              <div className="flex items-center justify-between">
+                <div className="flex flex-col">
+                  <span className="text-sm text-gray-500">
+                    {format(new Date(update.created_at || ''), 'MMM d, yyyy h:mm a')}
+                  </span>
+                  {isProfessional && update.profiles && (
+                    <span className="text-sm text-gray-600">
+                      By: {update.profiles.first_name} {update.profiles.last_name}
+                    </span>
+                  )}
+                </div>
+                {update.update_type !== 'message' && renderBadge(update.update_type.replace('_', ' '))}
               </div>
-            )}
-            
-            {renderMetadata()}
+              
+              <div className="mt-2">
+                {update.message && (
+                  <p className="text-gray-700">{update.message}</p>
+                )}
+                
+                {update.status_update && (
+                  <div className="mt-1">{renderBadge(update.status_update)}</div>
+                )}
+                
+                {update.file_url && (
+                  <div className="mt-2">
+                    <a
+                      href={`${supabase.storage.from('project-files').getPublicUrl(update.file_url).data.publicUrl}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center text-sm text-blue-600 hover:text-blue-800"
+                    >
+                      <PaperClipIcon className="h-4 w-4 mr-1" />
+                      Download File
+                    </a>
+                  </div>
+                )}
+                
+                {renderMetadata()}
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
     );
   };
 
   return (
     <div className="space-y-6">
-      {showAddUpdate && canEdit && (
-        <AddProjectUpdate 
-          projectId={projectId} 
-          onUpdateAdded={() => {
-            fetchUpdates();
-            onUpdateAdded?.();
-          }}
-          projectStatus={projectStatus}
-          isProfessional={isProfessionalView}
-        />
-      )}
+      <AddProjectUpdate 
+        projectId={projectId} 
+        onUpdateAdded={() => {
+          fetchUpdates();
+        }}
+        projectStatus={projectStatus}
+        isProfessional={isProfessional}
+      />
 
-      <div className="flow-root">
-        <ul role="list" className="-mb-8">
-          {updates.map((update, idx) => (
-            <li key={update.id}>
-              <div className="relative pb-8">
-                {idx !== updates.length - 1 && (
-                  <span
-                    className="absolute top-5 left-5 -ml-px h-full w-0.5 bg-gray-200"
-                    aria-hidden="true"
-                  />
-                )}
+      {/* Filters and Search */}
+      <Card>
+        <CardContent className="p-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="relative">
+              <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Input
+                placeholder="Search updates..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+            <Tabs value={selectedGroup} onValueChange={(value: UpdateGroupKey) => setSelectedGroup(value)}>
+              <TabsList className="w-full">
+                {Object.entries(UPDATE_TYPE_GROUPS).map(([key, { label }]) => (
+                  <TabsTrigger key={key} value={key}>{label}</TabsTrigger>
+                ))}
+              </TabsList>
+            </Tabs>
+            <Button
+              variant="outline"
+              onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+              className="w-full"
+            >
+              {sortOrder === 'asc' ? (
+                <ArrowUpIcon className="h-4 w-4 mr-2" />
+              ) : (
+                <ArrowDownIcon className="h-4 w-4 mr-2" />
+              )}
+              {sortOrder === 'asc' ? 'Oldest First' : 'Newest First'}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Updates Timeline */}
+      <ScrollArea className="h-[600px] pr-4">
+        <div className="space-y-4">
+          {filteredUpdates.length === 0 ? (
+            <Card>
+              <CardContent className="p-6 text-center text-gray-500">
+                No updates found.
+              </CardContent>
+            </Card>
+          ) : (
+            filteredUpdates.map((update) => (
+              <div key={update.id}>
                 {renderUpdateContent(update)}
               </div>
-            </li>
-          ))}
-        </ul>
-      </div>
+            ))
+          )}
+        </div>
+      </ScrollArea>
     </div>
   );
 }

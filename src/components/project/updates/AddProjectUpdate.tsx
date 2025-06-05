@@ -5,10 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { UpdateType } from '@/types/projectUpdates';
 import { useAuth } from '@/contexts/AuthContext';
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import {
   CheckCircleIcon,
   ClockIcon,
@@ -32,23 +33,28 @@ import {
 const UPDATE_TYPE_GROUPS = {
   activity: {
     label: 'Activity',
-    types: ['message', 'check_in', 'check_out', 'on_my_way', 'site_check'] as UpdateType[]
+    types: ['message', 'check_in', 'check_out', 'on_my_way', 'site_check'] as UpdateType[],
+    icon: ClockIcon
   },
   status: {
     label: 'Status',
-    types: ['status_change', 'delayed', 'cancelled', 'revisit_required'] as UpdateType[]
+    types: ['status_change', 'delayed', 'cancelled', 'revisit_required'] as UpdateType[],
+    icon: ExclamationCircleIcon
   },
   files: {
     label: 'Files & Notes',
-    types: ['file_upload', 'completion_note'] as UpdateType[]
+    types: ['file_upload', 'completion_note'] as UpdateType[],
+    icon: DocumentIcon
   },
   expenses: {
     label: 'Expenses',
-    types: ['expense_submitted', 'expense_approved', 'payment_processed'] as UpdateType[]
+    types: ['expense_submitted', 'expense_approved', 'payment_processed'] as UpdateType[],
+    icon: CurrencyDollarIcon
   },
   schedule: {
     label: 'Schedule',
-    types: ['start_time', 'schedule_updated'] as UpdateType[]
+    types: ['start_time', 'schedule_updated'] as UpdateType[],
+    icon: CalendarIcon
   }
 } as const;
 
@@ -84,6 +90,7 @@ export default function AddProjectUpdate({
   const [location, setLocation] = useState<GeolocationPosition | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [previewMode, setPreviewMode] = useState(false);
+  const [metadata, setMetadata] = useState<any>({});
 
   // Check if component should be visible
   const isVisible = isProfessional && ['assigned', 'in_progress', 'revision'].includes(projectStatus);
@@ -100,137 +107,51 @@ export default function AddProjectUpdate({
     });
   };
 
-  // Handle quick action clicks
   const handleQuickAction = async (type: UpdateType) => {
     try {
       setIsSubmitting(true);
       
-      let metadata = {};
-      
+      let updateData: any = {
+        project_id: projectId,
+        update_type: type,
+        user_id: user?.id,
+        message: `Professional ${type.replace('_', ' ')}`
+      };
+
       if (type === 'site_check') {
-        const position = await getCurrentLocation();
-        if (position) {
-          metadata = {
+        try {
+          const position = await getCurrentLocation();
+          setLocation(position);
+          updateData.metadata = {
             geolocation: {
               latitude: position.coords.latitude,
               longitude: position.coords.longitude
             }
           };
+        } catch (error) {
+          console.error('Error getting location:', error);
         }
       }
-      
-      await supabase.from('project_updates').insert([{
-        project_id: projectId,
-        update_type: type,
-        professional_id: user?.id,
-        metadata
-      }]);
-      
+
+      const { error: insertError } = await supabase
+        .from('project_updates')
+        .insert([updateData]);
+
+      if (insertError) throw insertError;
+
       toast({
         title: "Update Added",
-        description: `Successfully added ${type.replace('_', ' ')} update.`
+        description: "Your update has been added successfully."
       });
-      
+
       onUpdateAdded();
-    } catch (error) {
-      console.error('Error adding quick update:', error);
-      toast({
-        title: "Error",
-        description: "Failed to add update. Please try again.",
-        variant: "destructive"
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  // Handle file selection with preview
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const selectedFile = e.target.files[0];
-      setFile(selectedFile);
-
-      // Create preview for images
-      if (selectedFile.type.startsWith('image/')) {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          setFilePreview(reader.result as string);
-        };
-        reader.readAsDataURL(selectedFile);
-      } else {
-        setFilePreview(null);
-      }
-    }
-  };
-
-  // Remove file
-  const removeFile = () => {
-    setFile(null);
-    setFilePreview(null);
-  };
-
-  // Handle form submission
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    try {
-      setIsSubmitting(true);
-      
-      let metadata = {};
-      let fileUrl = null;
-      
-      if (file && selectedType === 'file_upload') {
-        const { data: fileData, error: fileError } = await supabase.storage
-          .from('project-files')
-          .upload(`${projectId}/${file.name}`, file);
-          
-        if (fileError) throw fileError;
-        
-        fileUrl = fileData.path;
-      }
-      
-      if (selectedType === 'site_check' && location) {
-        metadata = {
-          geolocation: {
-            latitude: location.coords.latitude,
-            longitude: location.coords.longitude
-          }
-        };
-      }
-
-      // Check if message contains "completed" and update project status
-      if (message.toLowerCase().includes('completed')) {
-        const { error: statusError } = await supabase
-          .from('projects')
-          .update({ status: 'submitted' })
-          .eq('id', projectId);
-
-        if (statusError) throw statusError;
-      }
-      
-      await supabase.from('project_updates').insert([{
-        project_id: projectId,
-        update_type: selectedType,
-        message,
-        file_url: fileUrl,
-        professional_id: user?.id,
-        metadata
-      }]);
-      
-      // Reset form
       setMessage('');
       setFile(null);
       setFilePreview(null);
       setLocation(null);
-      setPreviewMode(false);
+      setMetadata({});
       
-      toast({
-        title: "Update Added",
-        description: "Successfully added project update."
-      });
-      
-      onUpdateAdded();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error adding update:', error);
       toast({
         title: "Error",
@@ -239,6 +160,125 @@ export default function AddProjectUpdate({
       });
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!message && !file) return;
+
+    try {
+      setIsSubmitting(true);
+      
+      let fileUrl = null;
+      if (file) {
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${Math.random()}.${fileExt}`;
+        const filePath = `${projectId}/${fileName}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('project-files')
+          .upload(filePath, file);
+
+        if (uploadError) throw uploadError;
+        fileUrl = filePath;
+      }
+
+      const updateData = {
+        project_id: projectId,
+        update_type: selectedType,
+        user_id: user?.id,
+        message,
+        file_url: fileUrl,
+        metadata
+      };
+
+      const { error: insertError } = await supabase
+        .from('project_updates')
+        .insert([updateData]);
+
+      if (insertError) throw insertError;
+
+      toast({
+        title: "Update Added",
+        description: "Your update has been added successfully."
+      });
+
+      onUpdateAdded();
+      setMessage('');
+      setFile(null);
+      setFilePreview(null);
+      setLocation(null);
+      setMetadata({});
+      
+    } catch (error: any) {
+      console.error('Error adding update:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add update. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = e.target.files?.[0];
+    if (!selectedFile) return;
+
+    setFile(selectedFile);
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setFilePreview(reader.result as string);
+    };
+    reader.readAsDataURL(selectedFile);
+  };
+
+  const renderMetadataFields = () => {
+    switch (selectedType) {
+      case 'expense_submitted':
+      case 'expense_approved':
+        return (
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="amount">Amount</Label>
+              <Input
+                id="amount"
+                type="number"
+                value={metadata.amount || ''}
+                onChange={(e) => setMetadata({ ...metadata, amount: e.target.value })}
+                placeholder="Enter amount"
+              />
+            </div>
+            <div>
+              <Label htmlFor="description">Description</Label>
+              <Textarea
+                id="description"
+                value={metadata.description || ''}
+                onChange={(e) => setMetadata({ ...metadata, description: e.target.value })}
+                placeholder="Enter expense description"
+              />
+            </div>
+          </div>
+        );
+      
+      case 'delayed':
+        return (
+          <div>
+            <Label htmlFor="delay_reason">Reason for Delay</Label>
+            <Textarea
+              id="delay_reason"
+              value={metadata.delay_reason || ''}
+              onChange={(e) => setMetadata({ ...metadata, delay_reason: e.target.value })}
+              placeholder="Enter reason for delay"
+            />
+          </div>
+        );
+      
+      default:
+        return null;
     }
   };
 
@@ -265,104 +305,103 @@ export default function AddProjectUpdate({
       </div>
 
       {/* Main Update Form */}
-      <Card className="p-6">
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Update Type Selection */}
-          <Tabs
-            value={selectedGroup}
-            onValueChange={(value: UpdateGroup) => setSelectedGroup(value)}
-          >
-            <TabsList className="grid grid-cols-5">
-              {Object.entries(UPDATE_TYPE_GROUPS).map(([key, { label }]) => (
-                <TabsTrigger key={key} value={key}>{label}</TabsTrigger>
+      <Card>
+        <CardHeader>
+          <CardTitle>Add Project Update</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Update Type Selection */}
+            <Tabs
+              value={selectedGroup}
+              onValueChange={(value: UpdateGroup) => setSelectedGroup(value)}
+            >
+              <TabsList className="grid grid-cols-5">
+                {Object.entries(UPDATE_TYPE_GROUPS).map(([key, { label, icon: Icon }]) => (
+                  <TabsTrigger key={key} value={key} className="flex items-center gap-2">
+                    <Icon className="h-4 w-4" />
+                    {label}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+              
+              {Object.entries(UPDATE_TYPE_GROUPS).map(([key, { types }]) => (
+                <TabsContent key={key} value={key} className="mt-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    {types.map(type => (
+                      <Button
+                        key={type}
+                        type="button"
+                        variant={selectedType === type ? "default" : "outline"}
+                        className="justify-start"
+                        onClick={() => setSelectedType(type)}
+                      >
+                        {type.replace('_', ' ')}
+                      </Button>
+                    ))}
+                  </div>
+                </TabsContent>
               ))}
-            </TabsList>
-            
-            {Object.entries(UPDATE_TYPE_GROUPS).map(([key, { types }]) => (
-              <TabsContent key={key} value={key} className="mt-4">
-                <div className="grid grid-cols-2 gap-4">
-                  {types.map(type => (
-                    <Button
-                      key={type}
-                      type="button"
-                      variant={selectedType === type ? "default" : "outline"}
-                      className="justify-start"
-                      onClick={() => setSelectedType(type)}
-                    >
-                      {type.replace('_', ' ')}
-                    </Button>
-                  ))}
-                </div>
-              </TabsContent>
-            ))}
-          </Tabs>
+            </Tabs>
 
-          {/* Message Input */}
-          <div className="space-y-2">
-            <Label htmlFor="message">Message</Label>
-            <Textarea
-              id="message"
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              placeholder="Enter your update message..."
-              className="min-h-[100px]"
-            />
-          </div>
+            {/* Message Input */}
+            <div className="space-y-2">
+              <Label htmlFor="message">Message</Label>
+              <Textarea
+                id="message"
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                placeholder="Enter your update message"
+                className="min-h-[100px]"
+              />
+            </div>
 
-          {/* File Upload */}
-          {selectedType === 'file_upload' && (
+            {/* File Upload */}
             <div className="space-y-2">
               <Label htmlFor="file">Attachment</Label>
-              <div className="flex items-center gap-4">
-                <input
-                  type="file"
-                  id="file"
-                  onChange={handleFileChange}
-                  className="hidden"
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => document.getElementById('file')?.click()}
-                >
-                  <PaperClipIcon className="h-4 w-4 mr-2" />
-                  Choose File
-                </Button>
-                {file && (
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-gray-600">{file.name}</span>
+              <Input
+                id="file"
+                type="file"
+                onChange={handleFileChange}
+                accept="image/*,.pdf,.doc,.docx,.xls,.xlsx"
+              />
+              {filePreview && (
+                <div className="mt-2">
+                  <div className="relative inline-block">
+                    <img
+                      src={filePreview}
+                      alt="Preview"
+                      className="max-h-32 rounded-md"
+                    />
                     <Button
                       type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={removeFile}
+                      variant="destructive"
+                      size="icon"
+                      className="absolute -top-2 -right-2 h-6 w-6"
+                      onClick={() => {
+                        setFile(null);
+                        setFilePreview(null);
+                      }}
                     >
                       <XMark className="h-4 w-4" />
                     </Button>
                   </div>
-                )}
-              </div>
-              {filePreview && (
-                <div className="mt-2">
-                  <img
-                    src={filePreview}
-                    alt="Preview"
-                    className="max-w-xs rounded-lg border"
-                  />
                 </div>
               )}
             </div>
-          )}
 
-          {/* Submit Button */}
-          <Button
-            type="submit"
-            disabled={isSubmitting || (!message && !file)}
-            className="w-full"
-          >
-            {isSubmitting ? 'Adding Update...' : 'Add Update'}
-          </Button>
-        </form>
+            {/* Metadata Fields */}
+            {renderMetadataFields()}
+
+            <Button
+              type="submit"
+              disabled={isSubmitting || (!message && !file)}
+              className="w-full"
+            >
+              {isSubmitting ? 'Adding Update...' : 'Add Update'}
+            </Button>
+          </form>
+        </CardContent>
       </Card>
     </div>
   );
