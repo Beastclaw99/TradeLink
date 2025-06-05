@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Project, Application, Payment, Review } from '@/components/dashboard/types';
+import { Project, Application, Payment, Review, ApplicationProject } from '@/components/dashboard/types';
 
 export const useClientDashboard = (userId: string) => {
   const { toast } = useToast();
@@ -35,7 +35,37 @@ export const useClientDashboard = (userId: string) => {
         .order('created_at', { ascending: false });
       
       if (projectsError) throw projectsError;
-      setProjects(projectsData || []);
+      
+      // Transform projects to match Project interface
+      const transformedProjects: Project[] = (projectsData || []).map(project => ({
+        id: project.id,
+        title: project.title,
+        description: project.description,
+        category: project.category,
+        budget: project.budget,
+        expected_timeline: project.expected_timeline,
+        location: project.location,
+        urgency: project.urgency,
+        requirements: project.requirements,
+        required_skills: project.recommended_skills || null, // Map recommended_skills to required_skills
+        status: project.status,
+        created_at: project.created_at,
+        updated_at: project.updated_at,
+        client_id: project.client_id,
+        assigned_to: project.assigned_to,
+        professional_id: project.professional_id,
+        contract_template_id: project.contract_template_id,
+        deadline: project.deadline,
+        industry_specific_fields: project.industry_specific_fields,
+        location_coordinates: project.location_coordinates,
+        project_start_time: project.project_start_time,
+        rich_description: project.rich_description,
+        scope: project.scope,
+        service_contract: project.service_contract,
+        sla_terms: project.sla_terms
+      }));
+      
+      setProjects(transformedProjects);
       
       // Fetch applications for client's projects
       const { data: appsData, error: appsError } = await supabase
@@ -67,7 +97,7 @@ export const useClientDashboard = (userId: string) => {
           status: app.project.status,
           budget: app.project.budget,
           created_at: app.project.created_at
-        } : undefined,
+        } as ApplicationProject : undefined,
         professional: app.professional
       }));
       
@@ -84,7 +114,24 @@ export const useClientDashboard = (userId: string) => {
         .eq('client_id', userId);
       
       if (paymentsError) throw paymentsError;
-      setPayments(paymentsData || []);
+      
+      // Transform payments to include missing fields
+      const transformedPayments: Payment[] = (paymentsData || []).map(payment => ({
+        id: payment.id,
+        amount: payment.amount,
+        status: payment.status,
+        payment_method: (payment as any).payment_method || null,
+        transaction_id: (payment as any).transaction_id || null,
+        created_at: payment.created_at,
+        paid_at: payment.paid_at,
+        client_id: payment.client_id,
+        professional_id: payment.professional_id,
+        project_id: payment.project_id,
+        project: payment.project,
+        professional: payment.professional
+      }));
+      
+      setPayments(transformedPayments);
       
       // Fetch reviews submitted by the client
       const { data: reviewsData, error: reviewsError } = await supabase
@@ -93,7 +140,20 @@ export const useClientDashboard = (userId: string) => {
         .eq('client_id', userId);
       
       if (reviewsError) throw reviewsError;
-      setReviews(reviewsData || []);
+      
+      // Transform reviews to match the Review type
+      const transformedReviews: Review[] = (reviewsData || []).map(review => ({
+        id: review.id,
+        rating: review.rating,
+        comment: review.comment,
+        client_id: review.client_id,
+        professional_id: review.professional_id,
+        project_id: review.project_id,
+        created_at: review.created_at,
+        updated_at: review['updated at'] || review.created_at // Handle the space in column name
+      }));
+      
+      setReviews(transformedReviews);
       
     } catch (error: any) {
       console.error('Error fetching data:', error);

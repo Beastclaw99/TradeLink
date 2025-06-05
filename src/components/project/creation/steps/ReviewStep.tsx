@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -61,22 +62,13 @@ const ReviewStep: React.FC<ReviewStepProps> = ({ data }) => {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-xl">Requirements & Skills</CardTitle>
+          <CardTitle className="text-xl">Recommended Skills</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <h4 className="font-medium mb-2">Requirements</h4>
+            <h4 className="font-medium mb-2">Skills that would be helpful for this project</h4>
             <div className="flex flex-wrap gap-2">
-              {data.requirements.map((req, index) => (
-                <Badge key={index} variant="outline">{req}</Badge>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <h4 className="font-medium mb-2">Required Skills</h4>
-            <div className="flex flex-wrap gap-2">
-              {data.skills.map((skill, index) => (
+              {data.recommendedSkills.map((skill, index) => (
                 <Badge key={index} variant="secondary">{skill}</Badge>
               ))}
             </div>
@@ -117,21 +109,26 @@ const ReviewStep: React.FC<ReviewStepProps> = ({ data }) => {
                 <div key={index} className="border rounded-lg p-4">
                   <div className="flex items-center justify-between">
                     <h4 className="font-medium">{milestone.title}</h4>
-                    {milestone.due_date && (
+                    {milestone.dueDate && (
                       <div className="flex items-center space-x-2">
                         <Calendar className="h-4 w-4 text-gray-500" />
-                        <span>{new Date(milestone.due_date).toLocaleDateString()}</span>
+                        <span>{new Date(milestone.dueDate).toLocaleDateString()}</span>
                       </div>
                     )}
                   </div>
                   {milestone.description && (
                     <p className="text-gray-600 mt-2">{milestone.description}</p>
                   )}
-                  {milestone.requires_deliverable && (
-                    <Badge variant="outline" className="mt-2">
-                      Requires Deliverable
+                  <div className="flex gap-2 mt-2">
+                    {milestone.requires_deliverable && (
+                      <Badge variant="outline" className="border-blue-200 bg-blue-50 text-blue-700">
+                        Requires Deliverable
+                      </Badge>
+                    )}
+                    <Badge variant="outline" className="border-gray-200 bg-gray-50 text-gray-700">
+                      {milestone.status}
                     </Badge>
-                  )}
+                  </div>
                 </div>
               ))}
             </div>

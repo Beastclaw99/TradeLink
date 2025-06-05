@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -72,7 +71,7 @@ const WorkReviewForm: React.FC<WorkReviewFormProps> = ({
         project_id: projectId,
         update_type: 'status_update',
         message: message || 'Work approved',
-        created_by: user?.id,
+        professional_id: user?.id,
         metadata: {
           status_change: 'completed'
         }
@@ -126,7 +125,7 @@ const WorkReviewForm: React.FC<WorkReviewFormProps> = ({
         project_id: projectId,
         update_type: 'status_update',
         message: message || 'Revision requested',
-        created_by: user?.id,
+        professional_id: user?.id,
         metadata: {
           status_change: 'revision'
         }

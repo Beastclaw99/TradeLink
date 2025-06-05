@@ -13,7 +13,7 @@ interface ProfessionalCardProps {
 }
 
 const ProfessionalCard: React.FC<ProfessionalCardProps> = ({ professional }) => {
-  const fullName = `${professional.first_name} ${professional.last_name}`;
+  const fullName = `${professional.first_name || 'Anonymous'} ${professional.last_name || ''}`;
   const initials = `${professional.first_name?.[0] || ''}${professional.last_name?.[0] || ''}`;
 
   return (
@@ -21,7 +21,7 @@ const ProfessionalCard: React.FC<ProfessionalCardProps> = ({ professional }) => 
       <CardContent className="p-6">
         <div className="flex flex-col items-center text-center">
           <Avatar className="h-24 w-24 mb-4">
-            <AvatarImage src={`https://api.dicebear.com/6/initials/svg?seed=${fullName}`} />
+            <AvatarImage src={professional.profile_image || `https://api.dicebear.com/6/initials/svg?seed=${fullName}`} />
             <AvatarFallback>{initials}</AvatarFallback>
           </Avatar>
           
@@ -55,9 +55,25 @@ const ProfessionalCard: React.FC<ProfessionalCardProps> = ({ professional }) => 
               <span className="text-sm font-normal text-gray-500">/hour</span>
             </div>
             <div className="text-sm text-gray-600">
-              {professional.years_experience || 0} years experience
+              {professional.completed_projects || 0} projects completed
             </div>
+            {professional.response_rate && (
+              <div className="text-sm text-gray-600">
+                {professional.response_rate}% response rate
+              </div>
+            )}
+            {professional.on_time_completion && (
+              <div className="text-sm text-gray-600">
+                {professional.on_time_completion}% on-time completion
+              </div>
+            )}
           </div>
+
+          {professional.verification_status === 'verified' && (
+            <Badge className="mt-2" variant="secondary">
+              Verified Professional
+            </Badge>
+          )}
         </div>
       </CardContent>
       

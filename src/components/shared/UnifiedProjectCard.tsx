@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Badge } from "@/components/ui/badge";
@@ -38,15 +37,16 @@ const UnifiedProjectCard: React.FC<UnifiedProjectCardProps> = ({
     cancelled: 'bg-red-100 text-red-800 border-red-200'
   };
 
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString: string | null) => {
+    if (!dateString) return 'Recent';
     return new Date(dateString).toLocaleDateString('en-US', { 
       month: 'short', 
       day: 'numeric' 
     });
   };
 
-  const formatCurrency = (amount: number | undefined) => {
-    if (!amount || isNaN(amount)) return 'N/A';
+  const formatCurrency = (amount: number | null) => {
+    if (amount === null || isNaN(amount)) return 'N/A';
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD'
@@ -70,15 +70,15 @@ const UnifiedProjectCard: React.FC<UnifiedProjectCardProps> = ({
             <h3 className="text-lg font-semibold mb-1">{project.title}</h3>
             
             <div className="flex items-center text-sm text-gray-600 mb-2">
-              <MapPin size={14} className="mr-1" /> Location
+              <MapPin size={14} className="mr-1" /> {project.location || 'Location not specified'}
               <span className="mx-2">|</span>
               <span>Posted by: <span className="font-medium">
-                {project.client?.first_name} {project.client?.last_name}
+                {project.client?.first_name || 'Anonymous'} {project.client?.last_name || ''}
               </span></span>
             </div>
             
             <p className="text-sm text-gray-600 mb-3 line-clamp-2">
-              {project.description}
+              {project.description || 'No description provided'}
             </p>
           </div>
           
@@ -125,13 +125,13 @@ const UnifiedProjectCard: React.FC<UnifiedProjectCardProps> = ({
         </div>
         <CardTitle className="text-lg">{project.title}</CardTitle>
         <CardDescription className="flex items-center gap-1">
-          <MapPin size={14} /> Location
+          <MapPin size={14} /> {project.location || 'Location not specified'}
         </CardDescription>
       </CardHeader>
       
       <CardContent className="pb-4">
         <p className="text-sm text-gray-600 line-clamp-3 mb-4">
-          {project.description}
+          {project.description || 'No description provided'}
         </p>
         
         <div className="grid grid-cols-2 gap-2 text-sm">
@@ -158,7 +158,7 @@ const UnifiedProjectCard: React.FC<UnifiedProjectCardProps> = ({
         <CardFooter className="pt-0 flex justify-between items-center">
           <div className="text-sm text-gray-600">
             Posted by: <span className="font-medium">
-              {project.client?.first_name} {project.client?.last_name}
+              {project.client?.first_name || 'Anonymous'} {project.client?.last_name || ''}
             </span>
           </div>
           <Button 

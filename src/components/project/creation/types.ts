@@ -1,7 +1,20 @@
+
 export interface Milestone {
+  id?: string;
   title: string;
-  description?: string;
-  due_date?: string;
+  description: string;
+  dueDate: string;
+  status: 'not_started' | 'in_progress' | 'completed' | 'overdue';
+  progress: number;
+  tasks: {
+    id: string;
+    title: string;
+    completed: boolean;
+  }[];
+  assignedTo?: {
+    id: string;
+    name: string;
+  };
   requires_deliverable: boolean;
 }
 
@@ -16,8 +29,7 @@ export interface ProjectData {
   description: string;
   category: string;
   location: string;
-  requirements: string[];
-  skills: string[];
+  recommendedSkills: string[];
   budget: number;
   timeline: string;
   urgency: string;

@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import PortfolioUpload from '@/components/profile/PortfolioUpload';
+import { ProfileData } from '@/components/profile/types';
 import {
   MapPin,
   Star,
@@ -22,27 +23,6 @@ import {
   Briefcase
 } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
-
-interface ProfileData {
-  id: string;
-  first_name: string;
-  last_name: string;
-  account_type: 'professional' | 'client';
-  profile_image?: string;
-  location?: string;
-  rating?: number;
-  completed_projects?: number;
-  created_at: string;
-  phone?: string;
-  email?: string;
-  bio?: string;
-  skills?: string[];
-  hourly_rate?: number;
-  availability?: string;
-  portfolio_images?: string[];
-  response_rate?: number;
-  on_time_completion?: number;
-}
 
 const Profile: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -65,7 +45,31 @@ const Profile: React.FC = () => {
           .single();
 
         if (error) throw error;
-        setProfile(data);
+        
+        // Cast the database profile to our ProfileData type
+        const profileData: ProfileData = {
+          ...data,
+          bio: data.bio || null,
+          location: data.location || null,
+          phone: data.phone || null,
+          email: data.email || null,
+          hourly_rate: data.hourly_rate || null,
+          availability: (data.availability as 'available' | 'busy' | 'unavailable') || null,
+          skills: data.skills || null,
+          certifications: data.certifications || null,
+          completed_projects: data.completed_projects || null,
+          response_rate: data.response_rate || null,
+          on_time_completion: data.on_time_completion || null,
+          profile_visibility: data.profile_visibility ?? true,
+          show_email: data.show_email ?? true,
+          show_phone: data.show_phone ?? true,
+          allow_messages: data.allow_messages ?? true,
+          profile_image: data.profile_image || null,
+          verification_status: (data.verification_status as 'unverified' | 'pending' | 'verified') || null,
+          years_experience: data.years_experience || null,
+        };
+        
+        setProfile(profileData);
       } catch (error) {
         console.error('Error fetching profile:', error);
       } finally {
@@ -148,7 +152,7 @@ const Profile: React.FC = () => {
                 <div className="flex-1">
                   <div className="flex items-start justify-between mb-4">
                     <div>
-                      <h1 className="text-3xl font-bold mb-2">{profile?.first_name} {profile?.last_name}</h1>
+                      <h1 className="text-3xl font-bold mb-2">{profile?.first_name || 'Anonymous'} {profile?.last_name || ''}</h1>
                       <p className="text-xl text-ttc-blue-600 font-medium mb-2">{profile?.account_type === 'professional' ? 'Professional' : 'Client'}</p>
                       <div className="flex items-center gap-4 text-gray-600">
                         {profile?.location && (
@@ -207,6 +211,11 @@ const Profile: React.FC = () => {
                       {profile.hourly_rate && (
                         <span className="text-lg font-semibold">TTD {profile.hourly_rate}/hour</span>
                       )}
+                      {profile.verification_status === 'verified' && (
+                        <Badge variant="secondary">
+                          Verified Professional
+                        </Badge>
+                      )}
                     </div>
                   )}
                   
@@ -241,6 +250,51 @@ const Profile: React.FC = () => {
                                 {skill}
                               </Badge>
                             ))}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )}
+
+                    {profile?.certifications && profile.certifications.length > 0 && (
+                      <Card>
+                        <CardHeader>
+                          <CardTitle>Certifications</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="flex flex-wrap gap-2">
+                            {profile.certifications.map((cert, index) => (
+                              <Badge key={index} variant="secondary">
+                                {cert}
+                              </Badge>
+                            ))}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )}
+
+                    {profile?.account_type === 'professional' && (
+                      <Card>
+                        <CardHeader>
+                          <CardTitle>Performance Metrics</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            {profile.response_rate && (
+                              <div className="text-center">
+                                <div className="text-2xl font-bold text-ttc-blue-700">{profile.response_rate}%</div>
+                                <div className="text-sm text-gray-600">Response Rate</div>
+                              </div>
+                            )}
+                            {profile.on_time_completion && (
+                              <div className="text-center">
+                                <div className="text-2xl font-bold text-ttc-blue-700">{profile.on_time_completion}%</div>
+                                <div className="text-sm text-gray-600">On-Time Completion</div>
+                              </div>
+                            )}
+                            <div className="text-center">
+                              <div className="text-2xl font-bold text-ttc-blue-700">{profile.completed_projects || 0}</div>
+                              <div className="text-sm text-gray-600">Projects Completed</div>
+                            </div>
                           </div>
                         </CardContent>
                       </Card>

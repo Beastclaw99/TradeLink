@@ -122,7 +122,7 @@ export default function AddProjectUpdate({
       await supabase.from('project_updates').insert([{
         project_id: projectId,
         update_type: type,
-        created_by: user?.id,
+        professional_id: user?.id,
         metadata
       }]);
       
@@ -213,8 +213,7 @@ export default function AddProjectUpdate({
         update_type: selectedType,
         message,
         file_url: fileUrl,
-        file_name: file?.name,
-        created_by: user?.id,
+        professional_id: user?.id,
         metadata
       }]);
       

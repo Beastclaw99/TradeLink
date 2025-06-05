@@ -699,7 +699,7 @@ export type Database = {
           location_coordinates: unknown | null
           professional_id: string | null
           project_start_time: string | null
-          required_skills: string | null
+          recommended_skills: string | null
           requirements: string[] | null
           rich_description: string | null
           scope: string | null
@@ -726,7 +726,7 @@ export type Database = {
           location_coordinates?: unknown | null
           professional_id?: string | null
           project_start_time?: string | null
-          required_skills?: string | null
+          recommended_skills?: string | null
           requirements?: string[] | null
           rich_description?: string | null
           scope?: string | null
@@ -753,7 +753,7 @@ export type Database = {
           location_coordinates?: unknown | null
           professional_id?: string | null
           project_start_time?: string | null
-          required_skills?: string | null
+          recommended_skills?: string | null
           requirements?: string[] | null
           rich_description?: string | null
           scope?: string | null
