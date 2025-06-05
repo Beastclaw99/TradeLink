@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 
 const Footer: React.FC = () => {
   return (
-    <footer className="bg-ttc-neutral-800 text-ttc-neutral-200">
+    <footer className="bg-[#20B2AA] text-white">
       <div className="container-custom py-12">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           <div>
@@ -12,7 +12,7 @@ const Footer: React.FC = () => {
                 <span className="text-xl font-bold text-white">ProLinkTT</span>
               </Link>
             </div>
-            <p className="text-ttc-neutral-400 text-sm mb-4">
+            <p className="text-white/90 text-sm mb-4">
               Connecting quality tradesmen with clients across Trinidad and Tobago.
               Find skilled professionals for your projects or grow your business.
             </p>
@@ -22,22 +22,22 @@ const Footer: React.FC = () => {
             <h3 className="font-semibold text-white mb-4">For Clients</h3>
             <ul className="space-y-2">
               <li>
-                <Link to="/project-marketplace" className="text-ttc-neutral-400 hover:text-white text-sm">
+                <Link to="/project-marketplace" className="text-white/80 hover:text-white text-sm transition-colors">
                   Project Marketplace
                 </Link>
               </li>
               <li>
-                <Link to="/marketplace" className="text-ttc-neutral-400 hover:text-white text-sm">
+                <Link to="/marketplace" className="text-white/80 hover:text-white text-sm transition-colors">
                   Professional Marketplace
                 </Link>
               </li>
               <li>
-                <Link to="/client/create-project" className="text-ttc-neutral-400 hover:text-white text-sm">
+                <Link to="/client/create-project" className="text-white/80 hover:text-white text-sm transition-colors">
                   Post a Project
                 </Link>
               </li>
               <li>
-                <Link to="/resources" className="text-ttc-neutral-400 hover:text-white text-sm">
+                <Link to="/resources" className="text-white/80 hover:text-white text-sm transition-colors">
                   Resources
                 </Link>
               </li>
@@ -48,17 +48,17 @@ const Footer: React.FC = () => {
             <h3 className="font-semibold text-white mb-4">For Professionals</h3>
             <ul className="space-y-2">
               <li>
-                <Link to="/signup" className="text-ttc-neutral-400 hover:text-white text-sm">
+                <Link to="/signup" className="text-white/80 hover:text-white text-sm transition-colors">
                   Join as Professional
                 </Link>
               </li>
               <li>
-                <Link to="/marketplace" className="text-ttc-neutral-400 hover:text-white text-sm">
+                <Link to="/marketplace" className="text-white/80 hover:text-white text-sm transition-colors">
                   Find Projects
                 </Link>
               </li>
               <li>
-                <Link to="/resources" className="text-ttc-neutral-400 hover:text-white text-sm">
+                <Link to="/resources" className="text-white/80 hover:text-white text-sm transition-colors">
                   Professional Resources
                 </Link>
               </li>
@@ -69,17 +69,17 @@ const Footer: React.FC = () => {
             <h3 className="font-semibold text-white mb-4">Company</h3>
             <ul className="space-y-2">
               <li>
-                <Link to="/about" className="text-ttc-neutral-400 hover:text-white text-sm">
+                <Link to="/about" className="text-white/80 hover:text-white text-sm transition-colors">
                   About
                 </Link>
               </li>
               <li>
-                <Link to="/help" className="text-ttc-neutral-400 hover:text-white text-sm">
+                <Link to="/help" className="text-white/80 hover:text-white text-sm transition-colors">
                   Help Center
                 </Link>
               </li>
               <li>
-                <Link to="/support" className="text-ttc-neutral-400 hover:text-white text-sm">
+                <Link to="/support" className="text-white/80 hover:text-white text-sm transition-colors">
                   Support
                 </Link>
               </li>
@@ -87,20 +87,10 @@ const Footer: React.FC = () => {
           </div>
         </div>
         
-        <div className="mt-12 pt-8 border-t border-ttc-neutral-700">
-          <div className="flex flex-col md:flex-row justify-between items-center">
-            <p className="text-ttc-neutral-400 text-sm">
-              © {new Date().getFullYear()} ProLinkTT. All rights reserved.
-            </p>
-            <div className="flex space-x-6 mt-4 md:mt-0">
-              <Link to="/privacy" className="text-ttc-neutral-400 hover:text-white text-sm">
-                Privacy Policy
-              </Link>
-              <Link to="/terms" className="text-ttc-neutral-400 hover:text-white text-sm">
-                Terms of Service
-              </Link>
-            </div>
-          </div>
+        <div className="mt-8 pt-8 border-t border-white/20">
+          <p className="text-white/80 text-sm text-center">
+            © {new Date().getFullYear()} ProLinkTT. All rights reserved.
+          </p>
         </div>
       </div>
     </footer>

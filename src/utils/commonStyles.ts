@@ -2,9 +2,9 @@
 export const commonStyles = {
   // Button variants
   buttons: {
-    primary: "bg-[#00FFFF] hover:bg-[#00E6E6] text-ttc-blue-900 font-semibold py-2 px-4 rounded transition-colors",
-    secondary: "bg-[#00B3B3] hover:bg-[#009999] text-white font-semibold py-2 px-4 rounded transition-colors",
-    outline: "border-2 border-[#00FFFF] text-[#00FFFF] hover:bg-[#00FFFF] hover:text-ttc-blue-900 font-semibold py-2 px-4 rounded transition-colors",
+    primary: "bg-[#40E0D0] hover:bg-[#30C0B0] text-white font-semibold py-2 px-4 rounded transition-colors",
+    secondary: "bg-[#20B2AA] hover:bg-[#1A9E97] text-white font-semibold py-2 px-4 rounded transition-colors",
+    outline: "border-2 border-[#40E0D0] text-[#40E0D0] hover:bg-[#40E0D0] hover:text-white font-semibold py-2 px-4 rounded transition-colors",
   },
   
   // Card styles
@@ -16,8 +16,8 @@ export const commonStyles = {
   
   // Status badges
   statusBadges: {
-    open: "bg-[#E6FFFF] text-[#008080] border border-[#00FFFF]",
-    in_progress: "bg-[#E6FFFF] text-[#008080] border border-[#00FFFF]", 
+    open: "bg-[#E0F7F5] text-[#20B2AA] border border-[#40E0D0]",
+    in_progress: "bg-[#E0F7F5] text-[#20B2AA] border border-[#40E0D0]", 
     completed: "bg-gray-50 text-gray-700 border border-gray-200",
     cancelled: "bg-red-50 text-red-700 border border-red-200",
     pending: "bg-yellow-50 text-yellow-700 border border-yellow-200",
@@ -25,10 +25,10 @@ export const commonStyles = {
   
   // Text styles
   text: {
-    heading: "font-heading font-semibold text-ttc-blue-900",
+    heading: "font-heading font-semibold text-[#1A9E97]",
     body: "text-gray-700",
     muted: "text-gray-500",
-    accent: "text-[#00FFFF]",
+    accent: "text-[#40E0D0]",
   },
   
   // Layout helpers

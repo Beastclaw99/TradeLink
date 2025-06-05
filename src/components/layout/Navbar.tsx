@@ -47,28 +47,28 @@ const Navbar: React.FC = () => {
           <NavigationMenuList className="space-x-6">
             <NavigationMenuItem>
               <NavigationMenuLink>
-                <Link to="/marketplace" className="text-sm font-medium leading-none text-[#00FFFF] hover:text-[#00B3B3] focus:text-[#00B3B3] transition-colors">
+                <Link to="/marketplace" className="text-sm font-medium leading-none text-[#40E0D0] hover:text-[#20B2AA] focus:text-[#20B2AA] transition-colors">
                   Professional Marketplace
                 </Link>
               </NavigationMenuLink>
             </NavigationMenuItem>
             <NavigationMenuItem>
               <NavigationMenuLink>
-                <Link to="/project-marketplace" className="text-sm font-medium leading-none text-[#00FFFF] hover:text-[#00B3B3] focus:text-[#00B3B3] transition-colors">
+                <Link to="/project-marketplace" className="text-sm font-medium leading-none text-[#40E0D0] hover:text-[#20B2AA] focus:text-[#20B2AA] transition-colors">
                   Project Marketplace
                 </Link>
               </NavigationMenuLink>
             </NavigationMenuItem>
             <NavigationMenuItem>
               <NavigationMenuLink>
-                <Link to="/about" className="text-sm font-medium leading-none text-[#00FFFF] hover:text-[#00B3B3] focus:text-[#00B3B3] transition-colors">
+                <Link to="/about" className="text-sm font-medium leading-none text-[#40E0D0] hover:text-[#20B2AA] focus:text-[#20B2AA] transition-colors">
                   About
                 </Link>
               </NavigationMenuLink>
             </NavigationMenuItem>
             <NavigationMenuItem>
               <NavigationMenuLink>
-                <Link to="/resources" className="text-sm font-medium leading-none text-[#00FFFF] hover:text-[#00B3B3] focus:text-[#00B3B3] transition-colors">
+                <Link to="/resources" className="text-sm font-medium leading-none text-[#40E0D0] hover:text-[#20B2AA] focus:text-[#20B2AA] transition-colors">
                   Resources
                 </Link>
               </NavigationMenuLink>
