@@ -35,7 +35,37 @@ export const useClientDashboard = (userId: string) => {
         .order('created_at', { ascending: false });
       
       if (projectsError) throw projectsError;
-      setProjects(projectsData || []);
+      
+      // Transform projects to match Project interface
+      const transformedProjects: Project[] = (projectsData || []).map(project => ({
+        id: project.id,
+        title: project.title,
+        description: project.description,
+        category: project.category,
+        budget: project.budget,
+        expected_timeline: project.expected_timeline,
+        location: project.location,
+        urgency: project.urgency,
+        requirements: project.requirements,
+        required_skills: project.recommended_skills || null, // Map recommended_skills to required_skills
+        status: project.status,
+        created_at: project.created_at,
+        updated_at: project.updated_at,
+        client_id: project.client_id,
+        assigned_to: project.assigned_to,
+        professional_id: project.professional_id,
+        contract_template_id: project.contract_template_id,
+        deadline: project.deadline,
+        industry_specific_fields: project.industry_specific_fields,
+        location_coordinates: project.location_coordinates,
+        project_start_time: project.project_start_time,
+        rich_description: project.rich_description,
+        scope: project.scope,
+        service_contract: project.service_contract,
+        sla_terms: project.sla_terms
+      }));
+      
+      setProjects(transformedProjects);
       
       // Fetch applications for client's projects
       const { data: appsData, error: appsError } = await supabase

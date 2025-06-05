@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
@@ -71,7 +72,7 @@ const ProjectMarketplace: React.FC = () => {
         location: project.location || null,
         urgency: project.urgency || null,
         requirements: project.requirements || null,
-        required_skills: project.required_skills || null,
+        required_skills: project.recommended_skills || null, // Map recommended_skills to required_skills
         status: project.status || null,
         created_at: project.created_at || null,
         updated_at: project.updated_at || null,

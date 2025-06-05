@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
@@ -38,7 +39,39 @@ const ProjectDetails: React.FC = () => {
         .single();
 
       if (error) throw error;
-      setProject(data);
+      
+      // Transform the data to match Project interface
+      const transformedProject: Project = {
+        id: data.id,
+        title: data.title,
+        description: data.description,
+        category: data.category,
+        budget: data.budget,
+        expected_timeline: data.expected_timeline,
+        location: data.location,
+        urgency: data.urgency,
+        requirements: data.requirements,
+        required_skills: data.recommended_skills || null, // Map recommended_skills to required_skills
+        status: data.status,
+        created_at: data.created_at,
+        updated_at: data.updated_at,
+        client_id: data.client_id,
+        assigned_to: data.assigned_to,
+        professional_id: data.professional_id,
+        contract_template_id: data.contract_template_id,
+        deadline: data.deadline,
+        industry_specific_fields: data.industry_specific_fields,
+        location_coordinates: data.location_coordinates,
+        project_start_time: data.project_start_time,
+        rich_description: data.rich_description,
+        scope: data.scope,
+        service_contract: data.service_contract,
+        sla_terms: data.sla_terms,
+        client: data.client,
+        professional: data.professional
+      };
+      
+      setProject(transformedProject);
     } catch (error) {
       console.error('Error fetching project details:', error);
       toast({
