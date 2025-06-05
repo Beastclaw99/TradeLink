@@ -1,11 +1,10 @@
-
 // Common style utilities to reduce duplication across components
 export const commonStyles = {
   // Button variants
   buttons: {
-    primary: "bg-ttc-blue-700 hover:bg-ttc-blue-800 text-white font-semibold py-2 px-4 rounded transition-colors",
-    secondary: "bg-ttc-green-500 hover:bg-ttc-green-600 text-white font-semibold py-2 px-4 rounded transition-colors",
-    outline: "border border-ttc-blue-700 text-ttc-blue-700 hover:bg-ttc-blue-700 hover:text-white font-semibold py-2 px-4 rounded transition-colors",
+    primary: "bg-ttc-blue-600 hover:bg-ttc-blue-700 text-white font-semibold py-2 px-4 rounded transition-colors",
+    secondary: "bg-ttc-green-400 hover:bg-ttc-green-500 text-white font-semibold py-2 px-4 rounded transition-colors",
+    outline: "border border-ttc-blue-600 text-ttc-blue-600 hover:bg-ttc-blue-600 hover:text-white font-semibold py-2 px-4 rounded transition-colors",
   },
   
   // Card styles
@@ -29,7 +28,7 @@ export const commonStyles = {
     heading: "font-heading font-semibold",
     body: "text-gray-600",
     muted: "text-gray-500",
-    accent: "text-ttc-blue-700",
+    accent: "text-ttc-blue-600",
   },
   
   // Layout helpers
