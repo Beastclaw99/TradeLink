@@ -44,31 +44,31 @@ const Navbar: React.FC = () => {
           <span className="font-bold">ProLinkTT</span>
         </Link>
         <NavigationMenu>
-          <NavigationMenuList>
+          <NavigationMenuList className="space-x-6">
             <NavigationMenuItem>
               <NavigationMenuLink>
-                <Link to="/marketplace" className="text-sm font-medium leading-none hover:text-accent focus:text-accent">
+                <Link to="/marketplace" className="text-sm font-medium leading-none text-ttc-blue-700 hover:text-ttc-blue-800 focus:text-ttc-blue-800 transition-colors">
                   Professional Marketplace
                 </Link>
               </NavigationMenuLink>
             </NavigationMenuItem>
             <NavigationMenuItem>
               <NavigationMenuLink>
-                <Link to="/project-marketplace" className="text-sm font-medium leading-none hover:text-accent focus:text-accent">
+                <Link to="/project-marketplace" className="text-sm font-medium leading-none text-ttc-blue-700 hover:text-ttc-blue-800 focus:text-ttc-blue-800 transition-colors">
                   Project Marketplace
                 </Link>
               </NavigationMenuLink>
             </NavigationMenuItem>
             <NavigationMenuItem>
               <NavigationMenuLink>
-                <Link to="/about" className="text-sm font-medium leading-none hover:text-accent focus:text-accent">
+                <Link to="/about" className="text-sm font-medium leading-none text-ttc-blue-700 hover:text-ttc-blue-800 focus:text-ttc-blue-800 transition-colors">
                   About
                 </Link>
               </NavigationMenuLink>
             </NavigationMenuItem>
             <NavigationMenuItem>
               <NavigationMenuLink>
-                <Link to="/resources" className="text-sm font-medium leading-none hover:text-accent focus:text-accent">
+                <Link to="/resources" className="text-sm font-medium leading-none text-ttc-blue-700 hover:text-ttc-blue-800 focus:text-ttc-blue-800 transition-colors">
                   Resources
                 </Link>
               </NavigationMenuLink>
