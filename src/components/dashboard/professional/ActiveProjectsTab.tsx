@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -26,6 +25,44 @@ import ProjectUpdateTimeline from "@/components/project/ProjectUpdateTimeline";
 import ProjectMilestones from "@/components/project/ProjectMilestones";
 import ProjectDeliverables from "@/components/project/ProjectDeliverables";
 import { ProgressIndicator } from "@/components/ui/progress-indicator";
+import AddProjectUpdate from "@/components/project/updates/AddProjectUpdate";
+import { useToast } from "@/components/ui/use-toast";
+import { supabase } from '@/integrations/supabase/client';
+
+// Database schema interface
+interface DBMilestone {
+  id: string;
+  title: string;
+  description: string;
+  due_date: string;
+  status: string;
+  is_complete: boolean;
+  project_id: string;
+  requires_deliverable: boolean;
+  created_at: string;
+  created_by: string;
+  updated_at: string;
+}
+
+// Component interface
+interface Milestone {
+  id: string;
+  title: string;
+  description: string;
+  dueDate: string;
+  status: 'not_started' | 'in_progress' | 'completed' | 'overdue';
+  progress: number;
+  tasks: {
+    id: string;
+    title: string;
+    completed: boolean;
+  }[];
+  assignedTo?: {
+    id: string;
+    name: string;
+    avatar?: string;
+  };
+}
 
 interface ActiveProjectsTabProps {
   isLoading: boolean;
@@ -40,11 +77,185 @@ const ActiveProjectsTab: React.FC<ActiveProjectsTabProps> = ({
   userId, 
   markProjectComplete 
 }) => {
+  const { toast } = useToast();
   const [expandedProjects, setExpandedProjects] = useState<Record<string, boolean>>({});
   const [activeTab, setActiveTab] = useState<Record<string, string>>({});
+  const [showUpdateForm, setShowUpdateForm] = useState<Record<string, boolean>>({});
+  const [projectMilestones, setProjectMilestones] = useState<Record<string, Milestone[]>>({});
+
+  // Convert DB milestone to component milestone
+  const convertDBMilestoneToMilestone = (dbMilestone: DBMilestone): Milestone => {
+    return {
+      id: dbMilestone.id,
+      title: dbMilestone.title,
+      description: dbMilestone.description,
+      dueDate: dbMilestone.due_date,
+      status: dbMilestone.status as Milestone['status'],
+      progress: dbMilestone.is_complete ? 100 : 0,
+      tasks: [],
+      assignedTo: undefined
+    };
+  };
+
+  // Convert component milestone to DB milestone
+  const convertMilestoneToDBMilestone = (milestone: Omit<Milestone, 'id'>): Omit<DBMilestone, 'id' | 'created_at' | 'updated_at' | 'created_by'> => {
+    return {
+      title: milestone.title,
+      description: milestone.description,
+      due_date: milestone.dueDate,
+      status: milestone.status,
+      is_complete: milestone.progress === 100,
+      project_id: '', // Will be set when adding
+      requires_deliverable: false
+    };
+  };
+
+  // Fetch milestones for a project
+  const fetchMilestones = async (projectId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('project_milestones')
+        .select('*')
+        .eq('project_id', projectId)
+        .order('due_date', { ascending: true });
+
+      if (error) throw error;
+
+      setProjectMilestones(prev => ({
+        ...prev,
+        [projectId]: (data || []).map(convertDBMilestoneToMilestone)
+      }));
+    } catch (error) {
+      console.error('Error fetching milestones:', error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch project milestones.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleAddMilestone = async (projectId: string, milestone: Omit<Milestone, 'id'>) => {
+    try {
+      const dbMilestone = convertMilestoneToDBMilestone(milestone);
+      const { data, error } = await supabase
+        .from('project_milestones')
+        .insert([{ 
+          ...dbMilestone, 
+          project_id: projectId,
+          created_by: userId,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        }])
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      setProjectMilestones(prev => ({
+        ...prev,
+        [projectId]: [...(prev[projectId] || []), convertDBMilestoneToMilestone(data)]
+      }));
+
+      toast({
+        title: "Success",
+        description: "Milestone added successfully."
+      });
+    } catch (error) {
+      console.error('Error adding milestone:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add milestone.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleEditMilestone = async (projectId: string, milestoneId: string, updates: Partial<Milestone>) => {
+    try {
+      const dbUpdates = {
+        ...(updates.title && { title: updates.title }),
+        ...(updates.description && { description: updates.description }),
+        ...(updates.dueDate && { due_date: updates.dueDate }),
+        ...(updates.status && { status: updates.status }),
+        ...(updates.progress !== undefined && { is_complete: updates.progress === 100 }),
+        updated_at: new Date().toISOString()
+      };
+
+      const { error } = await supabase
+        .from('project_milestones')
+        .update(dbUpdates)
+        .eq('id', milestoneId);
+
+      if (error) throw error;
+
+      setProjectMilestones(prev => ({
+        ...prev,
+        [projectId]: prev[projectId].map(m => 
+          m.id === milestoneId ? { ...m, ...updates } : m
+        )
+      }));
+
+      toast({
+        title: "Success",
+        description: "Milestone updated successfully."
+      });
+    } catch (error) {
+      console.error('Error updating milestone:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update milestone.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleDeleteMilestone = async (projectId: string, milestoneId: string) => {
+    try {
+      const { error } = await supabase
+        .from('project_milestones')
+        .delete()
+        .eq('id', milestoneId);
+
+      if (error) throw error;
+
+      setProjectMilestones(prev => ({
+        ...prev,
+        [projectId]: prev[projectId].filter(m => m.id !== milestoneId)
+      }));
+
+      toast({
+        title: "Success",
+        description: "Milestone deleted successfully."
+      });
+    } catch (error) {
+      console.error('Error deleting milestone:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete milestone.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // Load milestones when a project is expanded and the milestones tab is selected
+  useEffect(() => {
+    Object.entries(expandedProjects).forEach(([projectId, isExpanded]) => {
+      if (isExpanded && activeTab[projectId] === 'milestones') {
+        fetchMilestones(projectId);
+      }
+    });
+  }, [expandedProjects, activeTab]);
 
   const toggleProjectExpansion = (projectId: string) => {
     setExpandedProjects(prev => ({
+      ...prev,
+      [projectId]: !prev[projectId]
+    }));
+  };
+
+  const toggleUpdateForm = (projectId: string) => {
+    setShowUpdateForm(prev => ({
       ...prev,
       [projectId]: !prev[projectId]
     }));
@@ -291,14 +502,26 @@ const ActiveProjectsTab: React.FC<ActiveProjectsTabProps> = ({
                         <TabsContent value="timeline" className="mt-4">
                           <ProjectUpdateTimeline 
                             projectId={project.id} 
-                            projectStatus={project.status}
+                            projectStatus={project.status || ''}
+                            isProfessional={true}
                           />
                         </TabsContent>
 
                         <TabsContent value="milestones" className="mt-4">
                           <ProjectMilestones 
-                            projectId={project.id}
-                            canEdit={true}
+                            milestones={projectMilestones[project.id] || []}
+                            isClient={false}
+                            onAddMilestone={(milestone) => handleAddMilestone(project.id, milestone)}
+                            onEditMilestone={(milestoneId, updates) => handleEditMilestone(project.id, milestoneId, updates)}
+                            onDeleteMilestone={(milestoneId) => handleDeleteMilestone(project.id, milestoneId)}
+                            onUpdateTaskStatus={async () => {
+                              // Task status updates are not supported in the current schema
+                              toast({
+                                title: "Not Supported",
+                                description: "Task status updates are not supported in the current version.",
+                                variant: "destructive"
+                              });
+                            }}
                           />
                         </TabsContent>
 
@@ -350,12 +573,36 @@ const ActiveProjectsTab: React.FC<ActiveProjectsTabProps> = ({
                       <CheckCircle className="h-4 w-4 mr-2" />
                       Mark as Completed
                     </Button>
-                    <Button variant="outline" className="flex-1">
+                    <Button 
+                      variant="outline" 
+                      className="flex-1"
+                      onClick={() => toggleUpdateForm(project.id)}
+                    >
                       <FileText className="h-4 w-4 mr-2" />
                       Submit Update
                     </Button>
                   </div>
                 </CardFooter>
+
+                {showUpdateForm[project.id] && (
+                  <CardContent className="border-t pt-6">
+                    <AddProjectUpdate
+                      projectId={project.id}
+                      onUpdateAdded={() => {
+                        toggleUpdateForm(project.id);
+                        // Refresh the project updates
+                        if (activeTab[project.id] === 'timeline') {
+                          const timelineElement = document.querySelector(`[data-project-id="${project.id}"] .project-timeline`);
+                          if (timelineElement) {
+                            (timelineElement as any).refresh?.();
+                          }
+                        }
+                      }}
+                      projectStatus={project.status || ''}
+                      isProfessional={true}
+                    />
+                  </CardContent>
+                )}
               </Card>
             ))}
           </div>
