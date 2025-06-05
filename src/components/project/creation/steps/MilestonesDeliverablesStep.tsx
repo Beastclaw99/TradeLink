@@ -18,7 +18,10 @@ const MilestonesDeliverablesStep: React.FC<MilestonesDeliverablesStepProps> = ({
   const [newMilestone, setNewMilestone] = useState<Milestone>({
     title: '',
     description: '',
-    due_date: '',
+    dueDate: '',
+    status: 'not_started',
+    progress: 0,
+    tasks: [],
     requires_deliverable: false
   });
 
@@ -31,12 +34,18 @@ const MilestonesDeliverablesStep: React.FC<MilestonesDeliverablesStepProps> = ({
   const addMilestone = () => {
     if (newMilestone.title.trim()) {
       onUpdate({
-        milestones: [...(data.milestones || []), { ...newMilestone }]
+        milestones: [...(data.milestones || []), { 
+          ...newMilestone,
+          id: crypto.randomUUID() // Generate ID for new milestone
+        }]
       });
       setNewMilestone({
         title: '',
         description: '',
-        due_date: '',
+        dueDate: '',
+        status: 'not_started',
+        progress: 0,
+        tasks: [],
         requires_deliverable: false
       });
     }
@@ -101,8 +110,8 @@ const MilestonesDeliverablesStep: React.FC<MilestonesDeliverablesStepProps> = ({
               <Input
                 id="milestone-due-date"
                 type="date"
-                value={newMilestone.due_date}
-                onChange={(e) => setNewMilestone(prev => ({ ...prev, due_date: e.target.value }))}
+                value={newMilestone.dueDate}
+                onChange={(e) => setNewMilestone(prev => ({ ...prev, dueDate: e.target.value }))}
               />
             </div>
             
@@ -136,12 +145,17 @@ const MilestonesDeliverablesStep: React.FC<MilestonesDeliverablesStepProps> = ({
                       <p className="text-sm text-gray-600 mt-1">{milestone.description}</p>
                     )}
                     <div className="flex items-center gap-4 mt-2 text-sm text-gray-600">
-                      {milestone.due_date && (
-                        <span>Due: {new Date(milestone.due_date).toLocaleDateString()}</span>
+                      {milestone.dueDate && (
+                        <span>Due: {new Date(milestone.dueDate).toLocaleDateString()}</span>
                       )}
                       {milestone.requires_deliverable && (
-                        <Badge variant="outline">Requires Deliverable</Badge>
+                        <Badge variant="outline" className="border-blue-200 bg-blue-50 text-blue-700">
+                          Requires Deliverable
+                        </Badge>
                       )}
+                      <Badge variant="outline" className="border-gray-200 bg-gray-50 text-gray-700">
+                        {milestone.status}
+                      </Badge>
                     </div>
                   </div>
                   <Button

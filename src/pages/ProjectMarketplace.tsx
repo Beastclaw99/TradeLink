@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
@@ -65,19 +64,30 @@ const ProjectMarketplace: React.FC = () => {
       const typedProjects: Project[] = data?.map(project => ({
         id: project.id,
         title: project.title,
-        description: project.description,
-        category: project.category,
-        budget: project.budget,
-        expected_timeline: project.expected_timeline,
-        location: project.location,
-        urgency: project.urgency,
-        requirements: project.requirements,
-        required_skills: project.required_skills,
-        status: project.status,
-        created_at: project.created_at,
-        client_id: project.client_id,
-        assigned_to: project.assigned_to,
-        client: project.client
+        description: project.description || null,
+        category: project.category || null,
+        budget: project.budget || null,
+        expected_timeline: project.expected_timeline || null,
+        location: project.location || null,
+        urgency: project.urgency || null,
+        requirements: project.requirements || null,
+        required_skills: project.required_skills || null,
+        status: project.status || null,
+        created_at: project.created_at || null,
+        updated_at: project.updated_at || null,
+        client_id: project.client_id || null,
+        assigned_to: project.assigned_to || null,
+        professional_id: project.professional_id || null,
+        contract_template_id: project.contract_template_id || null,
+        deadline: project.deadline || null,
+        industry_specific_fields: project.industry_specific_fields || null,
+        location_coordinates: project.location_coordinates || null,
+        project_start_time: project.project_start_time || null,
+        rich_description: project.rich_description || null,
+        scope: project.scope || null,
+        service_contract: project.service_contract || null,
+        sla_terms: project.sla_terms || null,
+        client: project.client || undefined
       })) || [];
       
       setProjects(typedProjects);
@@ -97,17 +107,17 @@ const ProjectMarketplace: React.FC = () => {
   // Filter logic
   const filteredProjects = projects.filter(project => {
     const matchesSearch = project.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          (project.description && project.description.toLowerCase().includes(searchTerm.toLowerCase()));
+                          (project.description?.toLowerCase().includes(searchTerm.toLowerCase()) || false);
     
     const matchesCategory = categoryFilter === "" || categoryFilter === "all" || 
-                           (project.category && project.category.toLowerCase() === categoryFilter.toLowerCase());
+                           (project.category?.toLowerCase() === categoryFilter.toLowerCase() || false);
     
     const matchesLocation = locationFilter === "" || locationFilter === "all" || 
-                           (project.location && project.location.toLowerCase().includes(locationFilter.toLowerCase()));
+                           (project.location?.toLowerCase().includes(locationFilter.toLowerCase()) || false);
     
     let matchesBudget = true;
     const projectBudget = project.budget;
-    if (projectBudget && typeof projectBudget === 'number') {
+    if (projectBudget !== null && typeof projectBudget === 'number') {
       if (budgetFilter === "under5k") {
         matchesBudget = projectBudget < 5000;
       } else if (budgetFilter === "5k-10k") {

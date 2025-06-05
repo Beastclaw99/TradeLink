@@ -216,7 +216,7 @@ export default function UnifiedProjectUpdateTimeline({
           <div className="flex items-center justify-between">
             <div className="flex flex-col">
               <span className="text-sm text-gray-500">
-                {format(new Date(update.created_at), 'MMM d, yyyy h:mm a')}
+                {format(new Date(update.created_at || ''), 'MMM d, yyyy h:mm a')}
               </span>
               {isProfessionalView && update.profiles && (
                 <span className="text-sm text-gray-600">

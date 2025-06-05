@@ -14,7 +14,7 @@ interface ProfessionalListItemProps {
 }
 
 const ProfessionalListItem: React.FC<ProfessionalListItemProps> = ({ professional }) => {
-  const fullName = `${professional.first_name} ${professional.last_name}`;
+  const fullName = `${professional.first_name || 'Anonymous'} ${professional.last_name || ''}`;
   const initials = `${professional.first_name?.[0] || ''}${professional.last_name?.[0] || ''}`;
 
   return (
@@ -23,7 +23,7 @@ const ProfessionalListItem: React.FC<ProfessionalListItemProps> = ({ professiona
         <div className="flex items-start justify-between">
           <div className="flex items-start space-x-4 flex-1">
             <Avatar className="h-16 w-16">
-              <AvatarImage src={`https://api.dicebear.com/6/initials/svg?seed=${fullName}`} />
+              <AvatarImage src={professional.profile_image || `https://api.dicebear.com/6/initials/svg?seed=${fullName}`} />
               <AvatarFallback>{initials}</AvatarFallback>
             </Avatar>
             
@@ -42,8 +42,18 @@ const ProfessionalListItem: React.FC<ProfessionalListItemProps> = ({ professiona
                     <span className="text-sm font-normal text-gray-500">/hour</span>
                   </div>
                   <div className="text-sm text-gray-600">
-                    {professional.years_experience || 0} years experience
+                    {professional.completed_projects || 0} projects completed
                   </div>
+                  {professional.response_rate && (
+                    <div className="text-sm text-gray-600">
+                      {professional.response_rate}% response rate
+                    </div>
+                  )}
+                  {professional.on_time_completion && (
+                    <div className="text-sm text-gray-600">
+                      {professional.on_time_completion}% on-time completion
+                    </div>
+                  )}
                 </div>
               </div>
               
@@ -65,6 +75,12 @@ const ProfessionalListItem: React.FC<ProfessionalListItemProps> = ({ professiona
                   ))}
                 </div>
               </div>
+
+              {professional.verification_status === 'verified' && (
+                <Badge className="mt-2" variant="secondary">
+                  Verified Professional
+                </Badge>
+              )}
             </div>
           </div>
           

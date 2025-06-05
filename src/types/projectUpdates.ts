@@ -28,10 +28,7 @@ export type UpdateType =
   | 'payment_processed'      // Payment processed
   | 'schedule_updated'       // Schedule updated
   | 'task_completed'         // Task completed
-  | 'custom_field_updated'   // Custom field updated
-  | 'work_submitted'         // Work submitted for review
-  | 'work_revision_requested' // Work revision requested
-  | 'work_approved';         // Work approved
+  | 'custom_field_updated';  // Custom field updated
 
 interface ProjectUpdateMetadata {
   checked_by?: string;
@@ -53,12 +50,12 @@ export interface ProjectUpdate {
   id: string;
   project_id: string;
   update_type: UpdateType;
-  message?: string;
-  status_update?: string;
-  file_url?: string;
-  created_at: string;
-  professional_id: string;
-  metadata?: ProjectUpdateMetadata;
+  message?: string | null;
+  status_update?: string | null;
+  file_url?: string | null;
+  created_at: string | null;
+  professional_id: string | null;
+  metadata?: ProjectUpdateMetadata | null;
   profiles?: {
     first_name: string;
     last_name: string;
