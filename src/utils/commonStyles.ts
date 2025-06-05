@@ -2,33 +2,33 @@
 export const commonStyles = {
   // Button variants
   buttons: {
-    primary: "bg-ttc-blue-600 hover:bg-ttc-blue-700 text-white font-semibold py-2 px-4 rounded transition-colors",
-    secondary: "bg-ttc-green-400 hover:bg-ttc-green-500 text-white font-semibold py-2 px-4 rounded transition-colors",
-    outline: "border border-ttc-blue-600 text-ttc-blue-600 hover:bg-ttc-blue-600 hover:text-white font-semibold py-2 px-4 rounded transition-colors",
+    primary: "bg-ttc-blue-700 hover:bg-ttc-blue-800 text-white font-semibold py-2 px-4 rounded transition-colors",
+    secondary: "bg-ttc-green-500 hover:bg-ttc-green-600 text-white font-semibold py-2 px-4 rounded transition-colors",
+    outline: "border-2 border-ttc-blue-700 text-ttc-blue-700 hover:bg-ttc-blue-700 hover:text-white font-semibold py-2 px-4 rounded transition-colors",
   },
   
   // Card styles
   cards: {
-    base: "bg-white rounded-lg shadow-sm border border-gray-200",
+    base: "bg-white rounded-lg shadow-md border border-gray-100",
     hover: "transition-all duration-200 hover:shadow-lg hover:-translate-y-1",
-    interactive: "bg-white rounded-lg shadow-sm border border-gray-200 transition-all duration-200 hover:shadow-lg hover:-translate-y-1 cursor-pointer",
+    interactive: "bg-white rounded-lg shadow-md border border-gray-100 transition-all duration-200 hover:shadow-lg hover:-translate-y-1 cursor-pointer",
   },
   
   // Status badges
   statusBadges: {
-    open: "bg-green-100 text-green-800 border-green-200",
-    in_progress: "bg-blue-100 text-blue-800 border-blue-200", 
-    completed: "bg-gray-100 text-gray-800 border-gray-200",
-    cancelled: "bg-red-100 text-red-800 border-red-200",
-    pending: "bg-yellow-100 text-yellow-800 border-yellow-200",
+    open: "bg-green-50 text-green-700 border border-green-200",
+    in_progress: "bg-blue-50 text-blue-700 border border-blue-200", 
+    completed: "bg-gray-50 text-gray-700 border border-gray-200",
+    cancelled: "bg-red-50 text-red-700 border border-red-200",
+    pending: "bg-yellow-50 text-yellow-700 border border-yellow-200",
   },
   
   // Text styles
   text: {
-    heading: "font-heading font-semibold",
-    body: "text-gray-600",
+    heading: "font-heading font-semibold text-ttc-blue-900",
+    body: "text-gray-700",
     muted: "text-gray-500",
-    accent: "text-ttc-blue-600",
+    accent: "text-ttc-blue-700",
   },
   
   // Layout helpers

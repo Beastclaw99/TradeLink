@@ -47,28 +47,28 @@ const Navbar: React.FC = () => {
           <NavigationMenuList className="space-x-6">
             <NavigationMenuItem>
               <NavigationMenuLink>
-                <Link to="/marketplace" className="text-sm font-medium leading-none text-ttc-blue-600 hover:text-ttc-blue-700 focus:text-ttc-blue-700">
+                <Link to="/marketplace" className="text-sm font-medium leading-none text-ttc-blue-700 hover:text-ttc-blue-800 focus:text-ttc-blue-800 transition-colors">
                   Professional Marketplace
                 </Link>
               </NavigationMenuLink>
             </NavigationMenuItem>
             <NavigationMenuItem>
               <NavigationMenuLink>
-                <Link to="/project-marketplace" className="text-sm font-medium leading-none text-ttc-blue-600 hover:text-ttc-blue-700 focus:text-ttc-blue-700">
+                <Link to="/project-marketplace" className="text-sm font-medium leading-none text-ttc-blue-700 hover:text-ttc-blue-800 focus:text-ttc-blue-800 transition-colors">
                   Project Marketplace
                 </Link>
               </NavigationMenuLink>
             </NavigationMenuItem>
             <NavigationMenuItem>
               <NavigationMenuLink>
-                <Link to="/about" className="text-sm font-medium leading-none text-ttc-blue-600 hover:text-ttc-blue-700 focus:text-ttc-blue-700">
+                <Link to="/about" className="text-sm font-medium leading-none text-ttc-blue-700 hover:text-ttc-blue-800 focus:text-ttc-blue-800 transition-colors">
                   About
                 </Link>
               </NavigationMenuLink>
             </NavigationMenuItem>
             <NavigationMenuItem>
               <NavigationMenuLink>
-                <Link to="/resources" className="text-sm font-medium leading-none text-ttc-blue-600 hover:text-ttc-blue-700 focus:text-ttc-blue-700">
+                <Link to="/resources" className="text-sm font-medium leading-none text-ttc-blue-700 hover:text-ttc-blue-800 focus:text-ttc-blue-800 transition-colors">
                   Resources
                 </Link>
               </NavigationMenuLink>
