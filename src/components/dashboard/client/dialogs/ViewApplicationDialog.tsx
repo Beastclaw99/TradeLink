@@ -7,11 +7,13 @@ import {
   DialogFooter 
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Check, X, MessageSquare, Star, Calendar, DollarSign, Award } from "lucide-react";
+import { Check, X, MessageSquare, Star, Calendar, DollarSign, Award, User, Briefcase } from "lucide-react";
 import { Application } from '../../types';
 import { getStatusBadgeClass } from '../../professional/applications/applicationUtils';
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { Card, CardContent } from "@/components/ui/card";
+import { formatDistanceToNow } from 'date-fns';
 
 interface ViewApplicationDialogProps {
   open: boolean;
@@ -33,142 +35,113 @@ const ViewApplicationDialog: React.FC<ViewApplicationDialogProps> = ({
   onMessage
 }) => {
   if (!selectedApplication) return null;
-  
+
   const project = projects.find(p => p.id === selectedApplication.project_id);
   const professional = selectedApplication.professional;
-  
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-3xl">
         <DialogHeader>
-          <DialogTitle>Application Details</DialogTitle>
+          <DialogTitle className="text-2xl">Application Details</DialogTitle>
         </DialogHeader>
-        
-        <div className="space-y-6">
-          {/* Project Information */}
-          <div>
-            <h3 className="text-sm font-medium text-gray-500 mb-2">Project</h3>
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <h4 className="font-medium">{project?.title || 'Unknown Project'}</h4>
-              <p className="text-sm text-gray-600 mt-1">{project?.description}</p>
-              <div className="flex gap-2 mt-2">
-                <Badge variant="outline" className="bg-gray-100">
-                  Budget: {project?.budget || 'N/A'}
-                </Badge>
-                <Badge variant="outline" className="bg-gray-100">
-                  Status: {project?.status}
-                </Badge>
-              </div>
-            </div>
-          </div>
 
+        <div className="space-y-6">
           {/* Professional Information */}
-          <div>
-            <h3 className="text-sm font-medium text-gray-500 mb-2">Professional</h3>
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h4 className="font-medium">
-                    {professional ? 
-                      `${professional.first_name} ${professional.last_name}` : 
-                      'Unknown Applicant'}
-                  </h4>
-                  {professional?.rating && (
-                    <div className="flex items-center mt-1">
-                      <Star className="w-4 h-4 text-yellow-400 fill-current" />
-                      <span className="text-sm text-gray-600 ml-1">
-                        {professional.rating.toFixed(1)} Rating
-                      </span>
-                    </div>
-                  )}
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-start space-x-4">
+                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                  <User className="w-6 h-6 text-primary" />
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => onMessage(selectedApplication)}
-                >
-                  <MessageSquare className="w-4 h-4 mr-2" />
-                  Message
-                </Button>
+                <div className="flex-1">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-semibold">
+                      {professional?.first_name} {professional?.last_name}
+                    </h3>
+                    <Badge variant="secondary">
+                      {selectedApplication.status}
+                    </Badge>
+                  </div>
+                  <p className="text-sm text-gray-500 mt-1">
+                    Applied {formatDistanceToNow(new Date(selectedApplication.created_at), { addSuffix: true })}
+                  </p>
+                </div>
               </div>
-              
-              {professional?.skills && (
-                <div className="mt-3">
-                  <h5 className="text-sm font-medium text-gray-500 mb-1">Skills</h5>
-                  <div className="flex flex-wrap gap-2">
-                    {professional.skills.map((skill: string) => (
-                      <Badge key={skill} variant="secondary">
-                        {skill}
-                      </Badge>
-                    ))}
+            </CardContent>
+          </Card>
+
+          {/* Project Information */}
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-start space-x-4">
+                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                  <Briefcase className="w-6 h-6 text-primary" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-lg font-semibold">{project?.title}</h3>
+                  <div className="grid grid-cols-2 gap-4 mt-4">
+                    <div className="flex items-center space-x-2">
+                      <DollarSign className="w-4 h-4 text-gray-500" />
+                      <span className="text-sm">Bid Amount: ${selectedApplication.bid_amount}</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Calendar className="w-4 h-4 text-gray-500" />
+                      <span className="text-sm">Availability: {selectedApplication.availability}</span>
+                    </div>
                   </div>
                 </div>
-              )}
-            </div>
-          </div>
+              </div>
+            </CardContent>
+          </Card>
 
           {/* Application Details */}
-          <div>
-            <h3 className="text-sm font-medium text-gray-500 mb-2">Application Details</h3>
-            <div className="bg-gray-50 p-4 rounded-lg space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <div className="flex items-center text-sm text-gray-500 mb-1">
-                    <DollarSign className="w-4 h-4 mr-1" />
-                    Bid Amount
-                  </div>
-                  <p className="font-medium">
-                    ${selectedApplication.bid_amount?.toLocaleString() || 'Same as project budget'}
-                  </p>
-                </div>
-                
-                <div>
-                  <div className="flex items-center text-sm text-gray-500 mb-1">
-                    <Calendar className="w-4 h-4 mr-1" />
-                    Availability
-                  </div>
-                  <p className="font-medium">
-                    {selectedApplication.availability || 'Not specified'}
-                  </p>
-                </div>
-              </div>
+          <div className="space-y-4">
+            <h4 className="font-semibold">Cover Letter</h4>
+            <Card>
+              <CardContent className="p-6">
+                <p className="whitespace-pre-wrap">{selectedApplication.cover_letter}</p>
+              </CardContent>
+            </Card>
 
-              <div>
-                <div className="flex items-center text-sm text-gray-500 mb-1">
-                  <Award className="w-4 h-4 mr-1" />
-                  Status
-                </div>
-                <span className={`px-2 py-1 text-xs rounded-full ${getStatusBadgeClass(selectedApplication.status)}`}>
-                  {selectedApplication.status}
-                </span>
-              </div>
-
-              <div>
-                <div className="text-sm text-gray-500 mb-1">Proposal Message</div>
-                <p className="text-sm whitespace-pre-wrap bg-white p-3 rounded border">
-                  {selectedApplication.proposal_message || selectedApplication.cover_letter || 'No proposal provided'}
-                </p>
-              </div>
-            </div>
+            {selectedApplication.proposal_message && (
+              <>
+                <h4 className="font-semibold">Proposal Message</h4>
+                <Card>
+                  <CardContent className="p-6">
+                    <p className="whitespace-pre-wrap">{selectedApplication.proposal_message}</p>
+                  </CardContent>
+                </Card>
+              </>
+            )}
           </div>
         </div>
-        
-        <DialogFooter className="flex justify-between">
-          <Button 
-            variant="outline" 
-            onClick={() => onReject(selectedApplication)}
-            className="text-red-600 border-red-200 hover:bg-red-50"
+
+        <DialogFooter className="flex justify-between sm:justify-between">
+          <Button
+            variant="outline"
+            onClick={() => onMessage(selectedApplication)}
           >
-            <X className="w-4 h-4 mr-2" />
-            Reject
+            <MessageSquare className="w-4 h-4 mr-2" />
+            Message Professional
           </Button>
-          <Button 
-            onClick={() => onAccept(selectedApplication)}
-            className="bg-green-600 hover:bg-green-700"
-          >
-            <Check className="w-4 h-4 mr-2" />
-            Accept
-          </Button>
+          <div className="flex space-x-2">
+            <Button
+              variant="outline"
+              onClick={() => onReject(selectedApplication)}
+              className="text-red-600 hover:text-red-700"
+            >
+              <X className="w-4 h-4 mr-2" />
+              Reject
+            </Button>
+            <Button
+              onClick={() => onAccept(selectedApplication)}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              <Check className="w-4 h-4 mr-2" />
+              Accept
+            </Button>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>

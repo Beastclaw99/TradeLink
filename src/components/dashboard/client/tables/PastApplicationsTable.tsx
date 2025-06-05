@@ -1,11 +1,10 @@
-
 import React from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Eye } from "lucide-react";
-import { Link } from 'react-router-dom';
+import { Eye, User, Calendar, DollarSign } from "lucide-react";
 import { Application } from '../../types';
-import { getStatusBadgeClass } from '../../professional/applications/applicationUtils';
+import { Badge } from "@/components/ui/badge";
+import { formatDistanceToNow } from 'date-fns';
 
 interface PastApplicationsTableProps {
   applications: Application[];
@@ -18,68 +17,80 @@ const PastApplicationsTable: React.FC<PastApplicationsTableProps> = ({
   projects,
   onViewApplication
 }) => {
-  const pastApplications = applications.filter(app => app.status !== 'pending');
-  
-  if (pastApplications.length === 0) {
-    return (
-      <div className="text-center py-8">
-        <p className="text-ttc-neutral-600">No past applications.</p>
-      </div>
-    );
-  }
-
   return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>Project</TableHead>
-          <TableHead>Applicant</TableHead>
-          <TableHead>Bid Amount</TableHead>
-          <TableHead>Status</TableHead>
-          <TableHead>Actions</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {pastApplications.map(app => {
-          const project = projects.find(p => p.id === app.project_id);
-          
-          return (
-            <TableRow key={app.id}>
-              <TableCell className="font-medium">
-                <Link to={`/projects/${app.project_id}`} className="text-ttc-blue-700 hover:underline">
-                  {project?.title || 'Unknown Project'}
-                </Link>
-              </TableCell>
-              <TableCell>
-                {app.professional ? (
-                  <Link to={`/professionals/${app.professional_id}`} className="text-ttc-blue-700 hover:underline">
-                    {`${app.professional.first_name} ${app.professional.last_name}`}
-                  </Link>
-                ) : (
-                  'Unknown Applicant'
-                )}
-              </TableCell>
-              <TableCell>${app.bid_amount || project?.budget || 'N/A'}</TableCell>
-              <TableCell>
-                <span className={`px-2 py-1 text-xs rounded-full ${getStatusBadgeClass(app.status)}`}>
-                  {app.status}
-                </span>
-              </TableCell>
-              <TableCell>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="h-8 w-8"
-                  onClick={() => onViewApplication(app)}
-                >
-                  <Eye className="h-4 w-4" />
-                </Button>
-              </TableCell>
-            </TableRow>
-          );
-        })}
-      </TableBody>
-    </Table>
+    <div className="rounded-md border">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Professional</TableHead>
+            <TableHead>Project</TableHead>
+            <TableHead>Bid Amount</TableHead>
+            <TableHead>Availability</TableHead>
+            <TableHead>Applied</TableHead>
+            <TableHead className="text-right">Actions</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {applications.map((application) => {
+            const project = projects.find(p => p.id === application.project_id);
+            const professional = application.professional;
+
+            return (
+              <TableRow key={application.id}>
+                <TableCell>
+                  <div className="flex items-center space-x-3">
+                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                      <User className="w-4 h-4 text-primary" />
+                    </div>
+                    <div>
+                      <div className="font-medium">
+                        {professional?.first_name} {professional?.last_name}
+                      </div>
+                      <Badge 
+                        variant={application.status === 'accepted' ? 'default' : 'destructive'}
+                        className="mt-1"
+                      >
+                        {application.status}
+                      </Badge>
+                    </div>
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <div className="font-medium">{project?.title}</div>
+                  <div className="text-sm text-gray-500">
+                    Budget: ${project?.budget}
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <div className="flex items-center space-x-2">
+                    <DollarSign className="w-4 h-4 text-gray-500" />
+                    <span>${application.bid_amount}</span>
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <div className="flex items-center space-x-2">
+                    <Calendar className="w-4 h-4 text-gray-500" />
+                    <span>{application.availability}</span>
+                  </div>
+                </TableCell>
+                <TableCell>
+                  {formatDistanceToNow(new Date(application.created_at), { addSuffix: true })}
+                </TableCell>
+                <TableCell className="text-right">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => onViewApplication(application)}
+                  >
+                    <Eye className="w-4 h-4" />
+                  </Button>
+                </TableCell>
+              </TableRow>
+            );
+          })}
+        </TableBody>
+      </Table>
+    </div>
   );
 };
 

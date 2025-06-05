@@ -1,10 +1,8 @@
-
 import React from 'react';
 import { AlertDialog, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Project } from '../types';
-import ProjectCard from './projects/ProjectCard';
-import AssignedProjectCard from './projects/AssignedProjectCard';
+import UnifiedProjectCard from '@/components/shared/UnifiedProjectCard';
 import EditProjectForm from './projects/EditProjectForm';
 import EmptyProjectState from './projects/EmptyProjectState';
 
@@ -67,38 +65,35 @@ const ProjectsTab: React.FC<ProjectsTabProps> = ({
           onCreateClick={navigateToCreateTab}
         />
       ) : (
-        <div className="grid gap-6 md:grid-cols-2">
+        <div className="space-y-4">
           {openProjects.map(project => (
-            <ProjectCard
+            <UnifiedProjectCard
               key={project.id}
               project={project}
-              applications={applications}
-              onEdit={handleEditInitiate}
-              onDelete={handleDeleteInitiate}
+              variant="list"
+              isProfessional={false}
+              actionLabel="View Details"
             />
           ))}
         </div>
       )}
       
       <h2 className="text-2xl font-bold mb-4 mt-8">Assigned Projects</h2>
-      {assignedProjects.length === 0 ? (
+      {isLoading ? (
+        <p>Loading your projects...</p>
+      ) : assignedProjects.length === 0 ? (
         <EmptyProjectState message="You don't have any assigned projects." />
       ) : (
-        <div className="grid gap-6 md:grid-cols-2">
-          {assignedProjects.map(project => {
-            // Find the accepted application for this project
-            const acceptedApp = applications.find(app => 
-              app.project_id === project.id && app.status === 'accepted'
-            );
-            
-            return (
-              <AssignedProjectCard 
-                key={project.id}
-                project={project}
-                acceptedApp={acceptedApp}
-              />
-            );
-          })}
+        <div className="space-y-4">
+          {assignedProjects.map(project => (
+            <UnifiedProjectCard
+              key={project.id}
+              project={project}
+              variant="list"
+              isProfessional={false}
+              actionLabel="View Details"
+            />
+          ))}
         </div>
       )}
       
@@ -115,30 +110,27 @@ const ProjectsTab: React.FC<ProjectsTabProps> = ({
       )}
       
       {/* Delete Project Confirmation Dialog */}
-      {projectToDelete && (
-        <AlertDialog open={!!projectToDelete} onOpenChange={() => handleDeleteCancel()}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Are you sure you want to delete this project?</AlertDialogTitle>
-              <AlertDialogDescription>
-                This action cannot be undone.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <Button variant="outline" onClick={() => handleDeleteCancel()}>
-                Cancel
-              </Button>
-              <Button 
-                variant="destructive" 
-                onClick={() => handleDeleteProject(projectToDelete)}
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? "Deleting..." : "Delete Project"}
-              </Button>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-      )}
+      <AlertDialog open={!!projectToDelete} onOpenChange={() => handleDeleteCancel()}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Project</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this project? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <Button variant="outline" onClick={handleDeleteCancel}>
+              Cancel
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={() => projectToDelete && handleDeleteProject(projectToDelete)}
+            >
+              Delete
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 };
