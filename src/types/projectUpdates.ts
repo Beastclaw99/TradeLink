@@ -30,34 +30,28 @@ export type UpdateType =
   | 'task_completed'         // Task completed
   | 'custom_field_updated';  // Custom field updated
 
-interface ProjectUpdateMetadata {
-  checked_by?: string;
-  geolocation?: {
-    latitude: number;
-    longitude: number;
-  };
-  amount?: number;
-  description?: string;
-  task_name?: string;
-  field_name?: string;
-  field_value?: string;
-  delay_reason?: string;
-  cancelled_by?: string;
-  new_time?: string;
+export interface StatusMetadata {
+  previous_status?: ProjectStatus;
+  cancellation_reason?: string;
+  dispute_reason?: string;
+  revision_notes?: string;
+  [key: string]: any;
 }
 
 export interface ProjectUpdate {
   id: string;
   project_id: string;
   update_type: UpdateType;
-  message?: string | null;
-  status_update?: string | null;
-  file_url?: string | null;
-  created_at: string | null;
-  professional_id: string | null;
-  metadata?: ProjectUpdateMetadata | null;
+  message?: string;
+  status_update?: ProjectStatus;
+  file_url?: string;
+  file_name?: string;
+  created_at: string;
+  professional_id: string;
+  metadata?: StatusMetadata;
   profiles?: {
-    first_name: string;
-    last_name: string;
+    first_name: string | null;
+    last_name: string | null;
+    profile_image: string | null;
   };
 }
