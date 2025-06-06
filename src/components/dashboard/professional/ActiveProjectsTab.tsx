@@ -76,20 +76,32 @@ const ActiveProjectsTab: React.FC<ActiveProjectsTabProps> = ({
 
   const handleAddMilestone = async (projectId: string, milestone: Omit<Milestone, 'id'>) => {
     try {
-      const dbMilestone = convertMilestoneToDBMilestone(milestone);
       const { data, error } = await supabase
         .from('project_milestones')
-        .insert([{ 
-          ...dbMilestone, 
-          project_id: projectId,
-          created_by: userId,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        }])
+        .insert([convertMilestoneToDBMilestone(milestone, projectId)])
         .select()
         .single();
 
       if (error) throw error;
+
+      // Create deliverables for the milestone
+      if (milestone.deliverables.length > 0) {
+        const { error: deliverablesError } = await supabase
+          .from('project_deliverables')
+          .insert(
+            milestone.deliverables.map(deliverable => ({
+              description: deliverable.description,
+              deliverable_type: deliverable.deliverable_type,
+              content: deliverable.content || null,
+              file_url: deliverable.deliverable_type === 'file' ? deliverable.content || '' : '',
+              milestone_id: data.id,
+              project_id: projectId,
+              uploaded_by: userId
+            }))
+          );
+
+        if (deliverablesError) throw deliverablesError;
+      }
 
       setProjectMilestones(prev => ({
         ...prev,
@@ -112,26 +124,46 @@ const ActiveProjectsTab: React.FC<ActiveProjectsTabProps> = ({
 
   const handleEditMilestone = async (projectId: string, milestoneId: string, updates: Partial<Milestone>) => {
     try {
-      const dbUpdates = {
-        ...(updates.title && { title: updates.title }),
-        ...(updates.description && { description: updates.description }),
-        ...(updates.dueDate && { due_date: updates.dueDate }),
-        ...(updates.status && { status: updates.status }),
-        ...(updates.progress !== undefined && { is_complete: updates.progress === 100 }),
-        ...(updates.requires_deliverable !== undefined && { requires_deliverable: updates.requires_deliverable }),
-        updated_at: new Date().toISOString()
-      };
-
       const { error } = await supabase
         .from('project_milestones')
-        .update(dbUpdates)
+        .update(convertMilestoneToDBMilestone(updates as Milestone, projectId))
         .eq('id', milestoneId);
 
       if (error) throw error;
 
+      // Update deliverables if they were changed
+      if (updates.deliverables) {
+        // First delete existing deliverables
+        const { error: deleteError } = await supabase
+          .from('project_deliverables')
+          .delete()
+          .eq('milestone_id', milestoneId);
+
+        if (deleteError) throw deleteError;
+
+        // Then insert new deliverables
+        if (updates.deliverables.length > 0) {
+          const { error: deliverablesError } = await supabase
+            .from('project_deliverables')
+            .insert(
+              updates.deliverables.map(deliverable => ({
+                description: deliverable.description,
+                deliverable_type: deliverable.deliverable_type,
+                content: deliverable.content || null,
+                file_url: deliverable.deliverable_type === 'file' ? deliverable.content || '' : '',
+                milestone_id: milestoneId,
+                project_id: projectId,
+                uploaded_by: userId
+              }))
+            );
+
+          if (deliverablesError) throw deliverablesError;
+        }
+      }
+
       setProjectMilestones(prev => ({
         ...prev,
-        [projectId]: prev[projectId].map(m => 
+        [projectId]: prev[projectId].map(m =>
           m.id === milestoneId ? { ...m, ...updates } : m
         )
       }));

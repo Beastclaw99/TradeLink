@@ -50,7 +50,7 @@ const ProjectMilestones: React.FC<ProjectMilestonesProps> = ({
     status: 'not_started',
     progress: 0,
     tasks: [],
-    requires_deliverable: false
+    deliverables: []
   });
   const [newTask, setNewTask] = useState('');
 
@@ -71,7 +71,7 @@ const ProjectMilestones: React.FC<ProjectMilestonesProps> = ({
         status: 'not_started',
         progress: 0,
         tasks: [],
-        requires_deliverable: false
+        deliverables: []
       });
       setIsAddingMilestone(false);
       toast({
@@ -353,6 +353,26 @@ const ProjectMilestones: React.FC<ProjectMilestonesProps> = ({
                         </div>
                       ))}
                     </div>
+                    {milestone.deliverables.length > 0 && (
+                      <div className="space-y-2">
+                        <h4 className="font-medium">Deliverables</h4>
+                        <div className="space-y-2">
+                          {milestone.deliverables.map((deliverable, index) => (
+                            <div key={index} className="flex items-start gap-2 p-2 bg-gray-50 rounded">
+                              <div className="flex-1">
+                                <p className="text-sm font-medium">{deliverable.description}</p>
+                                <p className="text-xs text-gray-500 mt-1">
+                                  Type: {deliverable.deliverable_type}
+                                </p>
+                                {deliverable.content && (
+                                  <p className="text-sm mt-1">{deliverable.content}</p>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                     {isClient && (
                       <div className="flex justify-end gap-2">
                         <Button
