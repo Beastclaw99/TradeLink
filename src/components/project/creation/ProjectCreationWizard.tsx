@@ -172,7 +172,7 @@ const ProjectCreationWizard: React.FC = () => {
       if (projectError) throw projectError;
 
       // Create milestones
-      if (projectData.milestones.length > 0) {
+      if (projectData.milestones && projectData.milestones.length > 0) {
         const { error: milestonesError } = await supabase
           .from('project_milestones')
           .insert(
@@ -183,7 +183,9 @@ const ProjectCreationWizard: React.FC = () => {
               status: milestone.status,
               is_complete: milestone.progress === 100,
               project_id: project.id,
-              created_by: user.id
+              created_by: user.id,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
             }))
           );
 
@@ -200,18 +202,19 @@ const ProjectCreationWizard: React.FC = () => {
         // Create deliverables for each milestone
         for (const milestone of projectData.milestones) {
           const createdMilestone = createdMilestones.find(m => m.title === milestone.title);
-          if (createdMilestone && milestone.deliverables.length > 0) {
+          if (createdMilestone && milestone.deliverables && milestone.deliverables.length > 0) {
             const { error: deliverablesError } = await supabase
               .from('project_deliverables')
               .insert(
                 milestone.deliverables.map(deliverable => ({
                   description: deliverable.description,
                   deliverable_type: deliverable.deliverable_type,
-                  content: deliverable.content,
+                  content: deliverable.content || null,
                   file_url: deliverable.deliverable_type === 'file' ? deliverable.content || '' : '',
                   milestone_id: createdMilestone.id,
                   project_id: project.id,
-                  uploaded_by: user.id
+                  uploaded_by: user.id,
+                  created_at: new Date().toISOString()
                 }))
               );
 

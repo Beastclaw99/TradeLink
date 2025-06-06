@@ -60,6 +60,9 @@ const MilestonesDeliverablesStep: React.FC<MilestonesDeliverablesStepProps> = ({
   const addDeliverable = (milestoneIndex: number) => {
     if (newDeliverable.description.trim()) {
       const updatedMilestones = [...data.milestones];
+      if (!updatedMilestones[milestoneIndex].deliverables) {
+        updatedMilestones[milestoneIndex].deliverables = [];
+      }
       updatedMilestones[milestoneIndex].deliverables = [
         ...updatedMilestones[milestoneIndex].deliverables,
         newDeliverable
@@ -75,10 +78,12 @@ const MilestonesDeliverablesStep: React.FC<MilestonesDeliverablesStepProps> = ({
 
   const removeDeliverable = (milestoneIndex: number, deliverableIndex: number) => {
     const updatedMilestones = [...data.milestones];
-    updatedMilestones[milestoneIndex].deliverables = updatedMilestones[milestoneIndex].deliverables.filter(
-      (_, i) => i !== deliverableIndex
-    );
-    onUpdate({ milestones: updatedMilestones });
+    if (updatedMilestones[milestoneIndex].deliverables) {
+      updatedMilestones[milestoneIndex].deliverables = updatedMilestones[milestoneIndex].deliverables.filter(
+        (_, i) => i !== deliverableIndex
+      );
+      onUpdate({ milestones: updatedMilestones });
+    }
   };
 
   return (
@@ -218,7 +223,7 @@ const MilestonesDeliverablesStep: React.FC<MilestonesDeliverablesStepProps> = ({
 
                   {/* Display Deliverables */}
                   <div className="space-y-2">
-                    {milestone.deliverables.map((deliverable, deliverableIndex) => (
+                    {(milestone.deliverables || []).map((deliverable, deliverableIndex) => (
                       <div key={deliverableIndex} className="flex items-center justify-between p-2 border rounded-lg">
                         <div className="flex items-center gap-2">
                           <Badge variant="outline" className="capitalize">
