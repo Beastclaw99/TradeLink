@@ -28,41 +28,7 @@ import { ProgressIndicator } from "@/components/ui/progress-indicator";
 import AddProjectUpdate from "@/components/project/updates/AddProjectUpdate";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from '@/integrations/supabase/client';
-
-// Database schema interface
-interface DBMilestone {
-  id: string;
-  title: string;
-  description: string;
-  due_date: string;
-  status: string;
-  is_complete: boolean;
-  project_id: string;
-  requires_deliverable: boolean;
-  created_at: string;
-  created_by: string;
-  updated_at: string;
-}
-
-// Component interface
-interface Milestone {
-  id: string;
-  title: string;
-  description: string;
-  dueDate: string;
-  status: 'not_started' | 'in_progress' | 'completed' | 'overdue';
-  progress: number;
-  tasks: {
-    id: string;
-    title: string;
-    completed: boolean;
-  }[];
-  assignedTo?: {
-    id: string;
-    name: string;
-    avatar?: string;
-  };
-}
+import { Milestone, DBMilestone, convertDBMilestoneToMilestone, convertMilestoneToDBMilestone } from '@/components/project/creation/types';
 
 interface ActiveProjectsTabProps {
   isLoading: boolean;
@@ -82,33 +48,6 @@ const ActiveProjectsTab: React.FC<ActiveProjectsTabProps> = ({
   const [activeTab, setActiveTab] = useState<Record<string, string>>({});
   const [showUpdateForm, setShowUpdateForm] = useState<Record<string, boolean>>({});
   const [projectMilestones, setProjectMilestones] = useState<Record<string, Milestone[]>>({});
-
-  // Convert DB milestone to component milestone
-  const convertDBMilestoneToMilestone = (dbMilestone: DBMilestone): Milestone => {
-    return {
-      id: dbMilestone.id,
-      title: dbMilestone.title,
-      description: dbMilestone.description,
-      dueDate: dbMilestone.due_date,
-      status: dbMilestone.status as Milestone['status'],
-      progress: dbMilestone.is_complete ? 100 : 0,
-      tasks: [],
-      assignedTo: undefined
-    };
-  };
-
-  // Convert component milestone to DB milestone
-  const convertMilestoneToDBMilestone = (milestone: Omit<Milestone, 'id'>): Omit<DBMilestone, 'id' | 'created_at' | 'updated_at' | 'created_by'> => {
-    return {
-      title: milestone.title,
-      description: milestone.description,
-      due_date: milestone.dueDate,
-      status: milestone.status,
-      is_complete: milestone.progress === 100,
-      project_id: '', // Will be set when adding
-      requires_deliverable: false
-    };
-  };
 
   // Fetch milestones for a project
   const fetchMilestones = async (projectId: string) => {
@@ -179,6 +118,7 @@ const ActiveProjectsTab: React.FC<ActiveProjectsTabProps> = ({
         ...(updates.dueDate && { due_date: updates.dueDate }),
         ...(updates.status && { status: updates.status }),
         ...(updates.progress !== undefined && { is_complete: updates.progress === 100 }),
+        ...(updates.requires_deliverable !== undefined && { requires_deliverable: updates.requires_deliverable }),
         updated_at: new Date().toISOString()
       };
 

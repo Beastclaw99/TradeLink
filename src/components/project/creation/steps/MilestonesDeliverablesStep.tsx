@@ -5,9 +5,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
-import { Card, CardContent } from '@/components/ui/card';
-import { Plus, X, Target, FileText } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Plus, X, Target, FileText, Trash2, Calendar } from 'lucide-react';
 import { ProjectData, Milestone, Deliverable } from '../types';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface MilestonesDeliverablesStepProps {
   data: ProjectData;
@@ -15,7 +16,7 @@ interface MilestonesDeliverablesStepProps {
 }
 
 const MilestonesDeliverablesStep: React.FC<MilestonesDeliverablesStepProps> = ({ data, onUpdate }) => {
-  const [newMilestone, setNewMilestone] = useState<Milestone>({
+  const [newMilestone, setNewMilestone] = useState<Omit<Milestone, 'id'>>({
     title: '',
     description: '',
     dueDate: '',
@@ -115,7 +116,7 @@ const MilestonesDeliverablesStep: React.FC<MilestonesDeliverablesStepProps> = ({
               />
             </div>
             
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center gap-2">
               <Switch
                 id="requires-deliverable"
                 checked={newMilestone.requires_deliverable}
@@ -137,34 +138,32 @@ const MilestonesDeliverablesStep: React.FC<MilestonesDeliverablesStepProps> = ({
         <div className="space-y-3">
           {(data.milestones || []).map((milestone, index) => (
             <Card key={index}>
-              <CardContent className="p-4">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <h4 className="font-medium">{milestone.title}</h4>
-                    {milestone.description && (
-                      <p className="text-sm text-gray-600 mt-1">{milestone.description}</p>
-                    )}
-                    <div className="flex items-center gap-4 mt-2 text-sm text-gray-600">
-                      {milestone.dueDate && (
-                        <span>Due: {new Date(milestone.dueDate).toLocaleDateString()}</span>
-                      )}
-                      {milestone.requires_deliverable && (
-                        <Badge variant="outline" className="border-blue-200 bg-blue-50 text-blue-700">
-                          Requires Deliverable
-                        </Badge>
-                      )}
-                      <Badge variant="outline" className="border-gray-200 bg-gray-50 text-gray-700">
-                        {milestone.status}
-                      </Badge>
-                    </div>
-                  </div>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle>{milestone.title}</CardTitle>
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={() => removeMilestone(index)}
                   >
-                    <X className="h-4 w-4" />
+                    <Trash2 className="h-4 w-4" />
                   </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-gray-600">{milestone.description}</p>
+                <div className="mt-2 flex items-center gap-4">
+                  <div className="flex items-center gap-2">
+                    <Calendar className="h-4 w-4 text-gray-500" />
+                    <span className="text-sm text-gray-600">
+                      {new Date(milestone.dueDate).toLocaleDateString()}
+                    </span>
+                  </div>
+                  {milestone.requires_deliverable && (
+                    <Badge variant="outline" className="border-blue-200 bg-blue-50 text-blue-700">
+                      Requires Deliverable
+                    </Badge>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -183,43 +182,40 @@ const MilestonesDeliverablesStep: React.FC<MilestonesDeliverablesStepProps> = ({
           <div className="grid gap-4">
             <div>
               <Label htmlFor="deliverable-description">Description</Label>
-              <Textarea
+              <Input
                 id="deliverable-description"
                 value={newDeliverable.description}
                 onChange={(e) => setNewDeliverable(prev => ({ ...prev, description: e.target.value }))}
-                placeholder="Describe the deliverable..."
+                placeholder="e.g., Final Design Files"
               />
             </div>
             
             <div>
               <Label htmlFor="deliverable-type">Type</Label>
-              <select
-                id="deliverable-type"
+              <Select
                 value={newDeliverable.deliverable_type}
-                onChange={(e) => setNewDeliverable(prev => ({ 
-                  ...prev, 
-                  deliverable_type: e.target.value as 'file' | 'note' | 'link' 
-                }))}
-                className="w-full rounded-md border border-input bg-background px-3 py-2"
+                onValueChange={(value) => setNewDeliverable(prev => ({ ...prev, deliverable_type: value }))}
               >
-                <option value="note">Note</option>
-                <option value="link">External Link</option>
-                <option value="file">File Upload</option>
-              </select>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="note">Note</SelectItem>
+                  <SelectItem value="file">File</SelectItem>
+                  <SelectItem value="link">Link</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-
-            {newDeliverable.deliverable_type === 'link' && (
-              <div>
-                <Label htmlFor="deliverable-link">Link URL</Label>
-                <Input
-                  id="deliverable-link"
-                  type="url"
-                  value={newDeliverable.content}
-                  onChange={(e) => setNewDeliverable(prev => ({ ...prev, content: e.target.value }))}
-                  placeholder="https://..."
-                />
-              </div>
-            )}
+            
+            <div>
+              <Label htmlFor="deliverable-content">Content</Label>
+              <Textarea
+                id="deliverable-content"
+                value={newDeliverable.content}
+                onChange={(e) => setNewDeliverable(prev => ({ ...prev, content: e.target.value }))}
+                placeholder="Enter deliverable content..."
+              />
+            </div>
           </div>
           
           <Button onClick={addDeliverable} className="w-full">
@@ -232,27 +228,23 @@ const MilestonesDeliverablesStep: React.FC<MilestonesDeliverablesStepProps> = ({
         <div className="space-y-3">
           {(data.deliverables || []).map((deliverable, index) => (
             <Card key={index}>
-              <CardContent className="p-4">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h4 className="font-medium">{deliverable.description}</h4>
-                      <Badge variant="outline" className="capitalize">
-                        {deliverable.deliverable_type}
-                      </Badge>
-                    </div>
-                    {deliverable.content && (
-                      <p className="text-sm text-gray-600 mt-1">{deliverable.content}</p>
-                    )}
-                  </div>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle>{deliverable.description}</CardTitle>
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={() => removeDeliverable(index)}
                   >
-                    <X className="h-4 w-4" />
+                    <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
+              </CardHeader>
+              <CardContent>
+                <Badge variant="outline" className="mb-2">
+                  {deliverable.deliverable_type}
+                </Badge>
+                <p className="text-sm text-gray-600">{deliverable.content}</p>
               </CardContent>
             </Card>
           ))}
