@@ -27,6 +27,11 @@ interface Review {
   quality_rating?: number;
   timeliness_rating?: number;
   professionalism_rating?: number;
+  moderated_at?: string;
+  moderated_by?: string;
+  moderation_notes?: string;
+  is_verified?: boolean;
+  verification_method?: string;
 }
 
 const ReviewModeration: React.FC = () => {
@@ -51,7 +56,7 @@ const ReviewModeration: React.FC = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setReviews(data || []);
+      setReviews(data as Review[]);
     } catch (error: any) {
       console.error('Error fetching reviews:', error);
       toast({
