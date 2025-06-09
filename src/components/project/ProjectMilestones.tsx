@@ -17,10 +17,15 @@ import {
   Edit2,
   Trash2,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Target,
+  FileText
 } from 'lucide-react';
 import { format, isPast, isToday, isFuture } from 'date-fns';
 import { Milestone } from './creation/types';
+import MilestoneStatusUpdate from './MilestoneStatusUpdate';
+import DeliverableSubmission from './DeliverableSubmission';
+import { ProjectStatus } from '@/types/projectUpdates';
 
 interface ProjectMilestonesProps {
   milestones: Milestone[];
@@ -29,6 +34,8 @@ interface ProjectMilestonesProps {
   onEditMilestone: (milestoneId: string, milestone: Partial<Milestone>) => Promise<void>;
   onDeleteMilestone: (milestoneId: string) => Promise<void>;
   onUpdateTaskStatus: (milestoneId: string, taskId: string, completed: boolean) => Promise<void>;
+  projectId: string;
+  projectStatus: ProjectStatus;
 }
 
 const ProjectMilestones: React.FC<ProjectMilestonesProps> = ({
@@ -37,7 +44,9 @@ const ProjectMilestones: React.FC<ProjectMilestonesProps> = ({
   onAddMilestone,
   onEditMilestone,
   onDeleteMilestone,
-  onUpdateTaskStatus
+  onUpdateTaskStatus,
+  projectId,
+  projectStatus
 }) => {
   const { toast } = useToast();
   const [isAddingMilestone, setIsAddingMilestone] = useState(false);
@@ -197,6 +206,19 @@ const ProjectMilestones: React.FC<ProjectMilestonesProps> = ({
     });
   };
 
+  const handleStatusUpdate = (milestoneId: string, newStatus: Milestone['status']) => {
+    if (onEditMilestone) {
+      onEditMilestone(milestoneId, { status: newStatus });
+    }
+  };
+
+  const handleDeliverableSubmitted = () => {
+    // Refresh the milestones data
+    if (onEditMilestone) {
+      onEditMilestone(milestones[0].id!, {});
+    }
+  };
+
   return (
     <Card>
       <CardHeader className="border-b">
@@ -299,104 +321,94 @@ const ProjectMilestones: React.FC<ProjectMilestonesProps> = ({
         ) : (
           <div className="space-y-4">
             {milestones.map((milestone) => (
-              <div
-                key={milestone.id}
-                className="border rounded-lg overflow-hidden"
-              >
-                <div
-                  className="p-4 cursor-pointer hover:bg-gray-50"
-                  onClick={() => toggleMilestoneExpansion(milestone.id)}
-                >
+              <Card key={milestone.id}>
+                <CardHeader>
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <h3 className="font-medium">{milestone.title}</h3>
-                      {getStatusBadge(milestone.status)}
+                    <div className="flex items-center gap-2">
+                      <Target className="h-5 w-5 text-gray-600" />
+                      <CardTitle className="text-lg">{milestone.title}</CardTitle>
                     </div>
-                    <div className="flex items-center gap-4">
-                      <div className="flex items-center gap-2">
-                        <Calendar className="h-4 w-4" />
-                        <span className={getDueDateStatus(milestone.dueDate)}>
-                          {format(new Date(milestone.dueDate), 'MMM d, yyyy')}
-                        </span>
-                      </div>
-                      {expandedMilestones.has(milestone.id) ? (
-                        <ChevronUp className="h-4 w-4" />
-                      ) : (
-                        <ChevronDown className="h-4 w-4" />
-                      )}
-                    </div>
-                  </div>
-                  <div className="mt-2">
-                    <Progress value={milestone.progress} className="h-2" />
-                    <div className="flex justify-between text-sm text-gray-500 mt-1">
-                      <span>{milestone.progress}% Complete</span>
-                      <span>{milestone.tasks.filter(t => t.completed).length} of {milestone.tasks.length} tasks</span>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="capitalize">
+                        {milestone.status.replace('_', ' ')}
+                      </Badge>
+                      <MilestoneStatusUpdate
+                        milestone={milestone}
+                        projectId={projectId}
+                        onStatusUpdate={handleStatusUpdate}
+                        isClient={isClient}
+                        projectStatus={projectStatus}
+                      />
                     </div>
                   </div>
-                </div>
-                {expandedMilestones.has(milestone.id) && (
-                  <div className="border-t p-4 space-y-4">
-                    <p className="text-gray-700">{milestone.description}</p>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <p className="text-sm text-gray-600">{milestone.description}</p>
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2">
+                      <Calendar className="h-4 w-4 text-gray-500" />
+                      <span className="text-sm text-gray-600">
+                        {new Date(milestone.dueDate).toLocaleDateString()}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Tasks Section */}
+                  {milestone.tasks && milestone.tasks.length > 0 && (
                     <div className="space-y-2">
                       <h4 className="font-medium">Tasks</h4>
-                      {milestone.tasks.map((task) => (
-                        <div key={task.id} className="flex items-center gap-2">
-                          <input
-                            type="checkbox"
-                            checked={task.completed}
-                            onChange={(e) => handleUpdateTaskStatus(milestone.id!, task.id, e.target.checked)}
-                            disabled={!isClient}
-                          />
-                          <span className={task.completed ? 'line-through text-gray-500' : ''}>
-                            {task.title}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                    {milestone.deliverables.length > 0 && (
                       <div className="space-y-2">
-                        <h4 className="font-medium">Deliverables</h4>
-                        <div className="space-y-2">
-                          {milestone.deliverables.map((deliverable, index) => (
-                            <div key={index} className="flex items-start gap-2 p-2 bg-gray-50 rounded">
-                              <div className="flex-1">
-                                <p className="text-sm font-medium">{deliverable.description}</p>
-                                <p className="text-xs text-gray-500 mt-1">
-                                  Type: {deliverable.deliverable_type}
-                                </p>
-                                {deliverable.content && (
-                                  <p className="text-sm mt-1">{deliverable.content}</p>
-                                )}
-                              </div>
+                        {milestone.tasks.map((task) => (
+                          <div key={task.id} className="flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              checked={task.completed}
+                              onChange={(e) => handleUpdateTaskStatus(milestone.id!, task.id, e.target.checked)}
+                              className="h-4 w-4 rounded border-gray-300"
+                            />
+                            <span className={task.completed ? 'line-through text-gray-500' : ''}>
+                              {task.title}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Deliverables Section */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <h4 className="font-medium">Deliverables</h4>
+                      {!isClient && milestone.status === 'in_progress' && projectStatus === 'in_progress' && (
+                        <DeliverableSubmission
+                          milestoneId={milestone.id!}
+                          projectId={projectId}
+                          onDeliverableSubmitted={handleDeliverableSubmitted}
+                        />
+                      )}
+                    </div>
+                    {milestone.deliverables && milestone.deliverables.length > 0 ? (
+                      <div className="space-y-2">
+                        {milestone.deliverables.map((deliverable, index) => (
+                          <div key={index} className="flex items-start gap-2 p-2 bg-gray-50 rounded">
+                            <div className="flex-1">
+                              <p className="text-sm font-medium">{deliverable.description}</p>
+                              <p className="text-xs text-gray-500 mt-1">
+                                Type: {deliverable.deliverable_type}
+                              </p>
+                              {deliverable.content && (
+                                <p className="text-sm mt-1">{deliverable.content}</p>
+                              )}
                             </div>
-                          ))}
-                        </div>
+                          </div>
+                        ))}
                       </div>
-                    )}
-                    {isClient && (
-                      <div className="flex justify-end gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setEditingMilestone(milestone.id)}
-                        >
-                          <Edit2 className="h-4 w-4 mr-2" />
-                          Edit
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleDeleteMilestone(milestone.id!)}
-                          className="text-red-600 hover:text-red-700"
-                        >
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          Delete
-                        </Button>
-                      </div>
+                    ) : (
+                      <p className="text-sm text-gray-500">No deliverables submitted yet</p>
                     )}
                   </div>
-                )}
-              </div>
+                </CardContent>
+              </Card>
             ))}
           </div>
         )}
