@@ -1,73 +1,67 @@
+
 import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import { useToast } from '@/components/ui/use-toast';
-import { disputeService, Dispute, DisputeMessage, DisputeDocument, DisputeStatusHistory } from '@/services/disputeService';
-import { format } from 'date-fns';
-import { AlertCircle, MessageSquare, FileText, CheckCircle, XCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { useRouter } from 'next/navigation';
-import { FileUpload } from './FileUpload';
-import { fileService } from '@/services/fileService';
+import { Textarea } from '@/components/ui/textarea';
+import { useToast } from '@/hooks/use-toast';
+import { disputeService, Dispute, DisputeMessage } from '@/services/disputeService';
+import { MessageSquare, FileText, Clock } from 'lucide-react';
+import { format } from 'date-fns';
+import FileUpload from './FileUpload';
 
 interface DisputeDetailProps {
   disputeId: string;
-  projectId: string;
+  onStatusChange?: () => void;
 }
 
-const DisputeDetail: React.FC<DisputeDetailProps> = ({
-  disputeId,
-  projectId
-}) => {
+const DisputeDetail: React.FC<DisputeDetailProps> = ({ disputeId, onStatusChange }) => {
   const [dispute, setDispute] = useState<Dispute | null>(null);
   const [messages, setMessages] = useState<DisputeMessage[]>([]);
-  const [documents, setDocuments] = useState<DisputeDocument[]>([]);
-  const [statusHistory, setStatusHistory] = useState<DisputeStatusHistory[]>([]);
   const [newMessage, setNewMessage] = useState('');
-  const [resolution, setResolution] = useState('');
-  const [isLoading, setIsLoading] = useState(true);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [sending, setSending] = useState(false);
   const { toast } = useToast();
-  const router = useRouter();
 
   useEffect(() => {
-    fetchDisputeData();
+    loadDisputeData();
   }, [disputeId]);
 
-  const fetchDisputeData = async () => {
+  const loadDisputeData = async () => {
     try {
-      const [disputeData, messagesData, documentsData, historyData] = await Promise.all([
+      const [disputeData, messagesData] = await Promise.all([
         disputeService.getDispute(disputeId),
-        disputeService.getDisputeMessages(disputeId),
-        disputeService.getDisputeDocuments(disputeId),
-        disputeService.getStatusHistory(disputeId)
+        disputeService.getDisputeMessages(disputeId)
       ]);
-
+      
       setDispute(disputeData);
       setMessages(messagesData);
-      setDocuments(documentsData);
-      setStatusHistory(historyData);
-    } catch (error) {
-      console.error('Error fetching dispute data:', error);
+    } catch (error: any) {
+      console.error('Error loading dispute data:', error);
       toast({
         title: 'Error',
-        description: 'Failed to fetch dispute data.',
+        description: 'Failed to load dispute details.',
         variant: 'destructive'
       });
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
   const handleSendMessage = async () => {
     if (!newMessage.trim()) return;
 
-    setIsSubmitting(true);
     try {
-      const message = await disputeService.addMessage(disputeId, newMessage);
-      setMessages([...messages, message]);
+      setSending(true);
+      await disputeService.addMessage(disputeId, newMessage);
       setNewMessage('');
-    } catch (error) {
+      await loadDisputeData(); // Reload to get the new message
+      
+      toast({
+        title: 'Message sent',
+        description: 'Your message has been added to the dispute.'
+      });
+    } catch (error: any) {
       console.error('Error sending message:', error);
       toast({
         title: 'Error',
@@ -75,264 +69,111 @@ const DisputeDetail: React.FC<DisputeDetailProps> = ({
         variant: 'destructive'
       });
     } finally {
-      setIsSubmitting(false);
+      setSending(false);
     }
   };
 
-  const handleAddDocument = async (file: File) => {
-    try {
-      const uploadedFile = await fileService.uploadFileVersion(
-        projectId,
-        dispute!.work_version_id,
-        file,
-        'Dispute document',
-        'private'
-      );
-
-      const document = await disputeService.addDocument(
-        disputeId,
-        uploadedFile.id,
-        'Dispute document'
-      );
-
-      setDocuments([...documents, document]);
-      toast({
-        title: 'Success',
-        description: 'Document added successfully.'
-      });
-    } catch (error) {
-      console.error('Error adding document:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to add document.',
-        variant: 'destructive'
-      });
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'open': return 'bg-red-100 text-red-800';
+      case 'under_review': return 'bg-yellow-100 text-yellow-800';
+      case 'resolved': return 'bg-green-100 text-green-800';
+      case 'closed': return 'bg-gray-100 text-gray-800';
+      default: return 'bg-gray-100 text-gray-800';
     }
   };
 
-  const handleUpdateStatus = async (status: Dispute['status']) => {
-    setIsSubmitting(true);
-    try {
-      const updatedDispute = await disputeService.updateDisputeStatus(
-        disputeId,
-        status,
-        `Status changed to ${status}`
-      );
-      setDispute(updatedDispute);
-      await fetchDisputeData();
-    } catch (error) {
-      console.error('Error updating status:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to update status.',
-        variant: 'destructive'
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleAddResolution = async () => {
-    if (!resolution.trim()) {
-      toast({
-        title: 'Error',
-        description: 'Please provide a resolution.',
-        variant: 'destructive'
-      });
-      return;
-    }
-
-    setIsSubmitting(true);
-    try {
-      const updatedDispute = await disputeService.addResolution(disputeId, resolution);
-      setDispute(updatedDispute);
-      await fetchDisputeData();
-      setResolution('');
-    } catch (error) {
-      console.error('Error adding resolution:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to add resolution.',
-        variant: 'destructive'
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  if (isLoading || !dispute) {
+  if (loading) {
     return <div>Loading dispute details...</div>;
   }
 
-  const getStatusBadge = (status: Dispute['status']) => {
-    const variants: Record<Dispute['status'], { variant: 'default' | 'secondary' | 'destructive' | 'outline', label: string }> = {
-      open: { variant: 'default', label: 'Open' },
-      under_review: { variant: 'secondary', label: 'Under Review' },
-      resolved: { variant: 'outline', label: 'Resolved' },
-      closed: { variant: 'destructive', label: 'Closed' }
-    };
-
-    const { variant, label } = variants[status];
-    return <Badge variant={variant}>{label}</Badge>;
-  };
+  if (!dispute) {
+    return <div>Dispute not found.</div>;
+  }
 
   return (
-    <div className="space-y-8">
-      {/* Dispute Header */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-bold">{dispute.title}</h2>
-          {getStatusBadge(dispute.status)}
-        </div>
-        <p className="text-gray-600">{dispute.description}</p>
-        <div className="flex items-center gap-4 text-sm text-gray-500">
-          <span>Created: {format(new Date(dispute.created_at), 'PPP')}</span>
-          {dispute.resolved_at && (
-            <span>Resolved: {format(new Date(dispute.resolved_at), 'PPP')}</span>
-          )}
-        </div>
-      </div>
-
-      {/* Status Actions */}
-      {dispute.status !== 'closed' && (
-        <div className="flex items-center gap-4">
-          {dispute.status === 'open' && (
-            <Button
-              onClick={() => handleUpdateStatus('under_review')}
-              disabled={isSubmitting}
-            >
-              <AlertCircle className="h-4 w-4 mr-2" />
-              Start Review
-            </Button>
-          )}
-          {dispute.status === 'under_review' && (
-            <>
-              <Button
-                onClick={() => handleUpdateStatus('resolved')}
-                disabled={isSubmitting}
-                className="bg-green-600 hover:bg-green-700"
-              >
-                <CheckCircle className="h-4 w-4 mr-2" />
-                Mark as Resolved
-              </Button>
-              <Button
-                onClick={() => handleUpdateStatus('closed')}
-                disabled={isSubmitting}
-                variant="destructive"
-              >
-                <XCircle className="h-4 w-4 mr-2" />
-                Close Dispute
-              </Button>
-            </>
-          )}
-        </div>
-      )}
-
-      {/* Resolution Section */}
-      {dispute.status === 'under_review' && !dispute.resolution && (
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold">Add Resolution</h3>
-          <Textarea
-            value={resolution}
-            onChange={(e) => setResolution(e.target.value)}
-            placeholder="Enter resolution details..."
-            className="min-h-[100px]"
-          />
-          <Button onClick={handleAddResolution} disabled={isSubmitting}>
-            Submit Resolution
-          </Button>
-        </div>
-      )}
-
-      {dispute.resolution && (
-        <div className="space-y-2">
-          <h3 className="text-lg font-semibold">Resolution</h3>
-          <div className="p-4 bg-gray-50 rounded-lg">
-            <p className="text-gray-600">{dispute.resolution}</p>
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <div className="flex justify-between items-start">
+            <div>
+              <CardTitle>{dispute.title}</CardTitle>
+              <p className="text-gray-600 mt-2">{dispute.description}</p>
+            </div>
+            <Badge className={getStatusColor(dispute.status)}>
+              {dispute.status.replace('_', ' ')}
+            </Badge>
           </div>
-        </div>
-      )}
-
-      {/* Documents Section */}
-      <div className="space-y-4">
-        <h3 className="text-lg font-semibold">Documents</h3>
-        <FileUpload
-          projectId={projectId}
-          versionId={dispute.work_version_id}
-          onUploadComplete={handleAddDocument}
-        />
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {documents.map((doc) => (
-            <div key={doc.id} className="p-4 bg-gray-50 rounded-lg">
-              <p className="text-sm text-gray-600">{doc.description}</p>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <h4 className="font-medium">Type</h4>
+              <p className="text-gray-600">{dispute.type}</p>
             </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Messages Section */}
-      <div className="space-y-4">
-        <h3 className="text-lg font-semibold">Messages</h3>
-        <div className="space-y-4">
-          {messages.map((message) => (
-            <div
-              key={message.id}
-              className={`p-4 rounded-lg ${
-                message.is_internal ? 'bg-blue-50' : 'bg-gray-50'
-              }`}
-            >
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm text-gray-500">
-                  {format(new Date(message.created_at), 'PPP')}
-                </span>
-                {message.is_internal && (
-                  <Badge variant="secondary">Internal</Badge>
-                )}
-              </div>
-              <p className="text-gray-600">{message.content}</p>
+            <div>
+              <h4 className="font-medium">Created</h4>
+              <p className="text-gray-600">
+                {format(new Date(dispute.created_at), 'MMM d, yyyy h:mm a')}
+              </p>
             </div>
-          ))}
-        </div>
-        <div className="flex gap-2">
-          <Textarea
-            value={newMessage}
-            onChange={(e) => setNewMessage(e.target.value)}
-            placeholder="Type your message..."
-            className="min-h-[80px]"
-          />
-          <Button
-            onClick={handleSendMessage}
-            disabled={isSubmitting || !newMessage.trim()}
-          >
-            <MessageSquare className="h-4 w-4 mr-2" />
-            Send
-          </Button>
-        </div>
-      </div>
-
-      {/* Status History */}
-      <div className="space-y-4">
-        <h3 className="text-lg font-semibold">Status History</h3>
-        <div className="space-y-2">
-          {statusHistory.map((history) => (
-            <div key={history.id} className="p-4 bg-gray-50 rounded-lg">
-              <div className="flex items-center justify-between mb-2">
-                <span className="font-medium">
-                  {getStatusBadge(history.status)}
-                </span>
-                <span className="text-sm text-gray-500">
-                  {format(new Date(history.created_at), 'PPP')}
-                </span>
-              </div>
-              {history.reason && (
-                <p className="text-sm text-gray-600">{history.reason}</p>
-              )}
+          </div>
+          
+          {dispute.resolution && (
+            <div className="mt-4 p-4 bg-green-50 rounded-lg">
+              <h4 className="font-medium text-green-800">Resolution</h4>
+              <p className="text-green-700 mt-1">{dispute.resolution}</p>
             </div>
-          ))}
-        </div>
-      </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center">
+            <MessageSquare className="h-5 w-5 mr-2" />
+            Messages
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4 max-h-96 overflow-y-auto">
+            {messages.length === 0 ? (
+              <p className="text-gray-500 text-center py-4">No messages yet.</p>
+            ) : (
+              messages.map((message) => (
+                <div key={message.id} className="border-l-4 border-blue-200 pl-4">
+                  <div className="flex justify-between items-start">
+                    <p className="text-gray-800">{message.content}</p>
+                    <span className="text-xs text-gray-500">
+                      {format(new Date(message.created_at), 'MMM d, h:mm a')}
+                    </span>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+          
+          {dispute.status === 'open' && (
+            <div className="mt-4 space-y-2">
+              <Textarea
+                placeholder="Add a message to this dispute..."
+                value={newMessage}
+                onChange={(e) => setNewMessage(e.target.value)}
+                className="min-h-[80px]"
+              />
+              <Button
+                onClick={handleSendMessage}
+                disabled={!newMessage.trim() || sending}
+                className="w-full"
+              >
+                {sending ? 'Sending...' : 'Send Message'}
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 };
 
-export default DisputeDetail; 
+export default DisputeDetail;

@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -172,7 +173,7 @@ const ReviewStep: React.FC<ReviewStepProps> = ({ data }) => {
         </Card>
       )}
 
-      {data.deliverables.length > 0 && (
+      {data.deliverables && data.deliverables.length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle className="text-xl">Deliverables</CardTitle>

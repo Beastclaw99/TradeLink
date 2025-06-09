@@ -97,7 +97,7 @@ export const useApplicationNotifications = () => {
       // Create persistent notification in database
       const notificationData = {
         user_id: user?.id,
-        type: newStatus === 'accepted' ? 'success' : newStatus === 'rejected' ? 'warning' : 'info',
+        type: (newStatus === 'accepted' ? 'success' : newStatus === 'rejected' ? 'warning' : 'info') as 'info' | 'success' | 'warning' | 'error',
         title: getNotificationTitle(newStatus),
         message: `Your application for "${projectTitle}" ${getStatusMessage(newStatus)}`,
         action_url: newStatus === 'accepted' ? '/dashboard' : undefined,

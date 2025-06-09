@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 
 interface NotificationData {
@@ -7,6 +8,7 @@ interface NotificationData {
   message: string;
   action_url?: string;
   action_label?: string;
+  metadata?: any;
 }
 
 export const notificationService = {
