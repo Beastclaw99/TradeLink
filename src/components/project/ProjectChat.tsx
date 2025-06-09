@@ -2,13 +2,11 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Send, AlertCircle, Info, Lock } from 'lucide-react';
+import { Send } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Separator } from "@/components/ui/separator";
 
 interface ProjectMessage {
   id: string;
@@ -19,10 +17,6 @@ interface ProjectMessage {
   sent_at: string;
   sender_name: string;
   sender_role: 'client' | 'professional';
-  metadata?: {
-    type?: string;
-    title?: string;
-  };
   sender?: {
     first_name: string;
     last_name: string;
@@ -36,10 +30,6 @@ type DatabaseMessage = {
   recipient_id: string;
   content: string;
   sent_at: string;
-  metadata?: {
-    type?: string;
-    title?: string;
-  };
   sender: {
     first_name: string;
     last_name: string;
@@ -66,90 +56,13 @@ const ProjectChat: React.FC<ProjectChatProps> = ({
   const [isLoading, setIsLoading] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  const isChatDisabled = ['completed', 'archived', 'disputed'].includes(projectStatus);
   const userRole = user?.id === clientId ? 'client' : 'professional';
 
-  // Define chat restrictions based on project status
-  const getChatRestrictions = () => {
-    switch (projectStatus) {
-      case 'open':
-        return {
-          allowed: false,
-          readOnly: false,
-          message: 'Chat is only available after a professional is assigned to the project.'
-        };
-      case 'assigned':
-        return {
-          allowed: true,
-          readOnly: false,
-          message: 'Chat is now available. You can discuss project details with the professional.'
-        };
-      case 'in_progress':
-        return {
-          allowed: true,
-          readOnly: false,
-          message: 'Chat is available for discussing work progress and updates.'
-        };
-      case 'work_submitted':
-        return {
-          allowed: true,
-          readOnly: false,
-          message: 'Chat is available for discussing the submitted work and providing feedback.'
-        };
-      case 'work_revision_requested':
-        return {
-          allowed: true,
-          readOnly: false,
-          message: 'Chat is available for discussing revision requirements and clarifications.'
-        };
-      case 'work_approved':
-        return {
-          allowed: true,
-          readOnly: false,
-          message: 'Chat is available for discussing project completion and final details.'
-        };
-      case 'completed':
-        return {
-          allowed: true,
-          readOnly: true,
-          message: 'Chat is read-only for completed projects. All messages are preserved for reference.'
-        };
-      case 'archived':
-        return {
-          allowed: false,
-          readOnly: true,
-          message: 'Chat is no longer available for archived projects.'
-        };
-      case 'cancelled':
-        return {
-          allowed: false,
-          readOnly: true,
-          message: 'Chat is no longer available for cancelled projects.'
-        };
-      case 'disputed':
-        return {
-          allowed: true,
-          readOnly: true,
-          message: 'Chat is read-only during dispute resolution. All messages are preserved for reference.'
-        };
-      default:
-        return {
-          allowed: false,
-          readOnly: false,
-          message: 'Chat is currently unavailable.'
-        };
-    }
-  };
-
-  const chatRestrictions = getChatRestrictions();
-  const isChatDisabled = !chatRestrictions.allowed;
-  const isReadOnly = chatRestrictions.readOnly;
-
   useEffect(() => {
-    if (chatRestrictions.allowed) {
-      fetchMessages();
-      subscribeToMessages();
-    }
-  }, [projectId, chatRestrictions.allowed]);
+    fetchMessages();
+    subscribeToMessages();
+  }, [projectId]);
 
   const fetchMessages = async () => {
     try {
@@ -162,7 +75,6 @@ const ProjectChat: React.FC<ProjectChatProps> = ({
           recipient_id,
           content,
           sent_at,
-          metadata,
           sender:profiles!project_messages_sender_id_fkey(
             first_name,
             last_name
@@ -180,7 +92,6 @@ const ProjectChat: React.FC<ProjectChatProps> = ({
         recipient_id: msg.recipient_id,
         content: msg.content,
         sent_at: msg.sent_at,
-        metadata: msg.metadata,
         sender_name: msg.sender ? `${msg.sender.first_name} ${msg.sender.last_name}` : 'Unknown User',
         sender_role: msg.sender_id === clientId ? 'client' : 'professional' as const
       }));
@@ -219,7 +130,7 @@ const ProjectChat: React.FC<ProjectChatProps> = ({
   };
 
   const sendMessage = async () => {
-    if (!newMessage.trim() || !user || isChatDisabled) return;
+    if (!newMessage.trim() || !user) return;
 
     try {
       const { error } = await supabase
@@ -229,11 +140,7 @@ const ProjectChat: React.FC<ProjectChatProps> = ({
           sender_id: user.id,
           recipient_id: user.id === clientId ? professionalId : clientId,
           content: newMessage.trim(),
-          sent_at: new Date().toISOString(),
-          metadata: {
-            type: 'chat_message',
-            title: 'Chat Message'
-          }
+          sent_at: new Date().toISOString()
         });
 
       if (error) throw error;
@@ -272,24 +179,11 @@ const ProjectChat: React.FC<ProjectChatProps> = ({
   return (
     <Card className="h-[600px] flex flex-col">
       <CardHeader className="border-b">
-        <div className="flex items-center justify-between">
-          <CardTitle>Project Chat</CardTitle>
-          <div className="flex items-center gap-2">
-            {isReadOnly && (
-              <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">
-                Read Only
-              </Badge>
-            )}
-            <Badge variant="secondary" className={isChatDisabled ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}>
-              {isChatDisabled ? 'Chat Disabled' : 'Chat Active'}
-            </Badge>
-          </div>
-        </div>
-        {chatRestrictions.message && (
-          <Alert className="mt-2">
-            <Info className="h-4 w-4" />
-            <AlertDescription>{chatRestrictions.message}</AlertDescription>
-          </Alert>
+        <CardTitle>Project Chat</CardTitle>
+        {isChatDisabled && (
+          <Badge variant="secondary" className="mt-2">
+            Chat disabled - Project {projectStatus}
+          </Badge>
         )}
       </CardHeader>
 
@@ -310,13 +204,6 @@ const ProjectChat: React.FC<ProjectChatProps> = ({
                 </Badge>
                 <span className="text-xs opacity-75">{message.sender_name}</span>
               </div>
-              {message.metadata?.type === 'status_change' && (
-                <div className="mb-2">
-                  <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">
-                    {message.metadata.title || 'Status Update'}
-                  </Badge>
-                </div>
-              )}
               <p className="text-sm">{message.content}</p>
               <div className="text-xs opacity-75 mt-1">
                 {new Date(message.sent_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -327,25 +214,7 @@ const ProjectChat: React.FC<ProjectChatProps> = ({
         <div ref={messagesEndRef} />
       </CardContent>
 
-      {isChatDisabled ? (
-        <div className="border-t p-4 bg-gray-50">
-          <Alert variant="destructive">
-            <Lock className="h-4 w-4" />
-            <AlertDescription>
-              Chat is currently disabled. {chatRestrictions.message}
-            </AlertDescription>
-          </Alert>
-        </div>
-      ) : isReadOnly ? (
-        <div className="border-t p-4 bg-gray-50">
-          <Alert>
-            <Lock className="h-4 w-4" />
-            <AlertDescription>
-              Chat is read-only. {chatRestrictions.message}
-            </AlertDescription>
-          </Alert>
-        </div>
-      ) : (
+      {!isChatDisabled && (
         <div className="border-t p-4">
           <div className="flex gap-2">
             <Input

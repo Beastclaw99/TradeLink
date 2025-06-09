@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,13 +21,11 @@ import {
   Target,
   FileText
 } from 'lucide-react';
-import { format, isPast, isToday, isFuture, differenceInDays } from 'date-fns';
+import { format, isPast, isToday, isFuture } from 'date-fns';
 import { Milestone } from './creation/types';
 import MilestoneStatusUpdate from './MilestoneStatusUpdate';
 import DeliverableSubmission from './DeliverableSubmission';
-import DeliverableReview from './DeliverableReview';
 import { ProjectStatus } from '@/types/projectUpdates';
-import { supabase } from '@/integrations/supabase/client';
 
 interface ProjectMilestonesProps {
   milestones: Milestone[];
@@ -64,31 +62,6 @@ const ProjectMilestones: React.FC<ProjectMilestonesProps> = ({
     deliverables: []
   });
   const [newTask, setNewTask] = useState('');
-  const [deliverables, setDeliverables] = useState<Record<string, any[]>>({});
-
-  useEffect(() => {
-    const fetchDeliverables = async () => {
-      const deliverablesMap: Record<string, any[]> = {};
-      
-      for (const milestone of milestones) {
-        if (milestone.id) {
-          const { data, error } = await supabase
-            .from('project_deliverables')
-            .select('*')
-            .eq('milestone_id', milestone.id)
-            .order('created_at', { ascending: false });
-
-          if (!error && data) {
-            deliverablesMap[milestone.id] = data;
-          }
-        }
-      }
-      
-      setDeliverables(deliverablesMap);
-    };
-
-    fetchDeliverables();
-  }, [milestones]);
 
   const handleAddMilestone = async () => {
     if (!newMilestone.title.trim() || !newMilestone.dueDate) return;
@@ -186,7 +159,7 @@ const ProjectMilestones: React.FC<ProjectMilestonesProps> = ({
       },
       in_progress: {
         color: 'bg-blue-100 text-blue-800 border-blue-200',
-        icon: <Target className="h-4 w-4" />
+        icon: <AlertTriangle className="h-4 w-4" />
       },
       completed: {
         color: 'bg-green-100 text-green-800 border-green-200',
@@ -233,66 +206,16 @@ const ProjectMilestones: React.FC<ProjectMilestonesProps> = ({
     });
   };
 
-  const handleStatusUpdate = (newStatus: Milestone['status']) => {
-    if (editingMilestone && onEditMilestone) {
-      onEditMilestone(editingMilestone, { status: newStatus });
+  const handleStatusUpdate = (milestoneId: string, newStatus: Milestone['status']) => {
+    if (onEditMilestone) {
+      onEditMilestone(milestoneId, { status: newStatus });
     }
   };
 
   const handleDeliverableSubmitted = () => {
-    // Refresh the deliverables data
-    const fetchDeliverables = async () => {
-      const deliverablesMap: Record<string, any[]> = {};
-      
-      for (const milestone of milestones) {
-        if (milestone.id) {
-          const { data, error } = await supabase
-            .from('project_deliverables')
-            .select('*')
-            .eq('milestone_id', milestone.id)
-            .order('created_at', { ascending: false });
-
-          if (!error && data) {
-            deliverablesMap[milestone.id] = data;
-          }
-        }
-      }
-      
-      setDeliverables(deliverablesMap);
-    };
-
-    fetchDeliverables();
-  };
-
-  const getDeadlineStatus = (dueDate: string) => {
-    const today = new Date();
-    const deadline = new Date(dueDate);
-    const daysUntilDeadline = differenceInDays(deadline, today);
-
-    if (isPast(deadline) && !isToday(deadline)) {
-      return {
-        status: 'overdue',
-        message: 'Overdue',
-        color: 'text-red-600'
-      };
-    } else if (isToday(deadline)) {
-      return {
-        status: 'due-today',
-        message: 'Due today',
-        color: 'text-orange-600'
-      };
-    } else if (daysUntilDeadline <= 3) {
-      return {
-        status: 'due-soon',
-        message: `Due in ${daysUntilDeadline} days`,
-        color: 'text-yellow-600'
-      };
-    } else {
-      return {
-        status: 'upcoming',
-        message: `Due in ${daysUntilDeadline} days`,
-        color: 'text-green-600'
-      };
+    // Refresh the milestones data
+    if (onEditMilestone) {
+      onEditMilestone(milestones[0].id!, {});
     }
   };
 
@@ -397,129 +320,96 @@ const ProjectMilestones: React.FC<ProjectMilestonesProps> = ({
           </div>
         ) : (
           <div className="space-y-4">
-            {milestones.map((milestone) => {
-              const deadlineStatus = getDeadlineStatus(milestone.dueDate);
-              const milestoneDeliverables = deliverables[milestone.id!] || [];
+            {milestones.map((milestone) => (
+              <Card key={milestone.id}>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Target className="h-5 w-5 text-gray-600" />
+                      <CardTitle className="text-lg">{milestone.title}</CardTitle>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="capitalize">
+                        {milestone.status.replace('_', ' ')}
+                      </Badge>
+                      <MilestoneStatusUpdate
+                        milestone={milestone}
+                        projectId={projectId}
+                        onStatusUpdate={handleStatusUpdate}
+                        isClient={isClient}
+                        projectStatus={projectStatus}
+                      />
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <p className="text-sm text-gray-600">{milestone.description}</p>
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2">
+                      <Calendar className="h-4 w-4 text-gray-500" />
+                      <span className="text-sm text-gray-600">
+                        {new Date(milestone.dueDate).toLocaleDateString()}
+                      </span>
+                    </div>
+                  </div>
 
-              return (
-                <Card key={milestone.id}>
-                  <CardHeader>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Target className="h-5 w-5 text-gray-600" />
-                        <CardTitle className="text-lg">{milestone.title}</CardTitle>
+                  {/* Tasks Section */}
+                  {milestone.tasks && milestone.tasks.length > 0 && (
+                    <div className="space-y-2">
+                      <h4 className="font-medium">Tasks</h4>
+                      <div className="space-y-2">
+                        {milestone.tasks.map((task) => (
+                          <div key={task.id} className="flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              checked={task.completed}
+                              onChange={(e) => handleUpdateTaskStatus(milestone.id!, task.id, e.target.checked)}
+                              className="h-4 w-4 rounded border-gray-300"
+                            />
+                            <span className={task.completed ? 'line-through text-gray-500' : ''}>
+                              {task.title}
+                            </span>
+                          </div>
+                        ))}
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Badge variant="outline" className="capitalize">
-                          {milestone.status.replace('_', ' ')}
-                        </Badge>
-                        <MilestoneStatusUpdate
+                    </div>
+                  )}
+
+                  {/* Deliverables Section */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <h4 className="font-medium">Deliverables</h4>
+                      {!isClient && milestone.status === 'in_progress' && projectStatus === 'in_progress' && (
+                        <DeliverableSubmission
                           milestoneId={milestone.id!}
                           projectId={projectId}
-                          projectTitle={milestone.title}
-                          milestoneTitle={milestone.title}
-                          currentStatus={milestone.status}
-                          clientId={milestone.assignedTo?.id || ''}
-                          professionalId={milestone.created_by || ''}
-                          onStatusUpdate={handleStatusUpdate}
+                          onDeliverableSubmitted={handleDeliverableSubmitted}
                         />
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <p className="text-sm text-gray-600">{milestone.description}</p>
-                    <div className="flex items-center gap-4">
-                      <div className="flex items-center gap-2">
-                        <Calendar className="h-4 w-4 text-gray-500" />
-                        <span className={`text-sm ${deadlineStatus.color}`}>
-                          {deadlineStatus.message}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Tasks Section */}
-                    {milestone.tasks && milestone.tasks.length > 0 && (
-                      <div className="space-y-2">
-                        <h4 className="font-medium">Tasks</h4>
-                        <div className="space-y-2">
-                          {milestone.tasks.map((task) => (
-                            <div key={task.id} className="flex items-center gap-2">
-                              <input
-                                type="checkbox"
-                                checked={task.completed}
-                                onChange={(e) => handleUpdateTaskStatus(milestone.id!, task.id, e.target.checked)}
-                                className="h-4 w-4 rounded border-gray-300"
-                              />
-                              <span className={task.completed ? 'line-through text-gray-500' : ''}>
-                                {task.title}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Deliverables Section */}
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <h4 className="font-medium">Deliverables</h4>
-                        {!isClient && milestone.status === 'in_progress' && projectStatus === 'in_progress' && (
-                          <DeliverableSubmission
-                            milestoneId={milestone.id!}
-                            projectId={projectId}
-                            projectTitle={milestone.title}
-                            milestoneTitle={milestone.title}
-                            clientId={milestone.assignedTo?.id || ''}
-                            professionalId={milestone.created_by || ''}
-                            onSubmissionComplete={handleDeliverableSubmitted}
-                          />
-                        )}
-                      </div>
-                      {milestoneDeliverables.length > 0 ? (
-                        <div className="space-y-2">
-                          {milestoneDeliverables.map((deliverable) => (
-                            <div key={deliverable.id} className="flex items-start gap-2 p-2 bg-gray-50 rounded">
-                              <div className="flex-1">
-                                <div className="flex items-center justify-between">
-                                  <p className="text-sm font-medium">{deliverable.description}</p>
-                                  {isClient && projectStatus === 'work_submitted' && (
-                                    <DeliverableReview
-                                      deliverable={deliverable}
-                                      onReviewSubmitted={handleDeliverableSubmitted}
-                                    />
-                                  )}
-                                </div>
-                                <p className="text-xs text-gray-500 mt-1">
-                                  Type: {deliverable.deliverable_type}
-                                </p>
-                                {deliverable.content && (
-                                  <p className="text-sm mt-1">{deliverable.content}</p>
-                                )}
-                                {deliverable.status && (
-                                  <Badge 
-                                    variant={deliverable.status === 'approved' ? 'default' : 'destructive'}
-                                    className="mt-2"
-                                  >
-                                    {deliverable.status}
-                                  </Badge>
-                                )}
-                                {deliverable.feedback && (
-                                  <p className="text-sm text-gray-600 mt-2">
-                                    Feedback: {deliverable.feedback}
-                                  </p>
-                                )}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <p className="text-sm text-gray-500">No deliverables submitted yet</p>
                       )}
                     </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
+                    {milestone.deliverables && milestone.deliverables.length > 0 ? (
+                      <div className="space-y-2">
+                        {milestone.deliverables.map((deliverable, index) => (
+                          <div key={index} className="flex items-start gap-2 p-2 bg-gray-50 rounded">
+                            <div className="flex-1">
+                              <p className="text-sm font-medium">{deliverable.description}</p>
+                              <p className="text-xs text-gray-500 mt-1">
+                                Type: {deliverable.deliverable_type}
+                              </p>
+                              {deliverable.content && (
+                                <p className="text-sm mt-1">{deliverable.content}</p>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-gray-500">No deliverables submitted yet</p>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
           </div>
         )}
       </CardContent>

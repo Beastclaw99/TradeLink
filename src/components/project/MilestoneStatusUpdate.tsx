@@ -2,146 +2,152 @@ import React, { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { notificationService } from '@/services/notificationService';
+import { Milestone } from '@/components/project/creation/types';
+import { ProjectStatus } from '@/types/projectUpdates';
+import { useProjectStatus } from '@/hooks/useProjectStatus';
 
 interface MilestoneStatusUpdateProps {
+  milestone: Milestone;
   projectId: string;
-  projectTitle: string;
-  milestoneId: string;
-  milestoneTitle: string;
-  currentStatus: string;
-  clientId: string;
-  professionalId: string;
-  onStatusUpdate: (newStatus: string) => void;
+  onStatusUpdate: (milestoneId: string, newStatus: Milestone['status']) => void;
+  isClient: boolean;
+  projectStatus: ProjectStatus;
 }
 
-const MilestoneStatusUpdate: React.FC<MilestoneStatusUpdateProps> = ({
-  projectId,
-  projectTitle,
-  milestoneId,
-  milestoneTitle,
-  currentStatus,
-  clientId,
-  professionalId,
-  onStatusUpdate
-}) => {
-  const [isUpdating, setIsUpdating] = useState(false);
+export default function MilestoneStatusUpdate({ 
+  milestone, 
+  projectId, 
+  onStatusUpdate,
+  isClient,
+  projectStatus
+}: MilestoneStatusUpdateProps) {
   const { toast } = useToast();
+  const [userId, setUserId] = useState<string>('');
+  const { updateProjectStatus } = useProjectStatus(projectId, userId);
 
-  const getNextStatus = (currentStatus: string) => {
-    const statusFlow: Record<string, string> = {
-      not_started: 'in_progress',
-      in_progress: 'completed'
+  useEffect(() => {
+    const getUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        setUserId(user.id);
+      }
     };
-    return statusFlow[currentStatus];
-  };
+    getUser();
+  }, []);
 
-  const updateStatus = async () => {
-    const newStatus = getNextStatus(currentStatus);
-    if (!newStatus) return;
-
-    // If trying to mark as completed, validate all tasks are completed
-    if (newStatus === 'completed') {
-      const { data: milestone, error } = await supabase
-        .from('project_milestones')
-        .select('tasks')
-        .eq('id', milestoneId)
-        .single();
-      if (error) {
-        toast({
-          title: 'Error',
-          description: 'Could not fetch milestone tasks.',
-          variant: 'destructive'
-        });
-        return;
-      }
-      const tasks = (milestone?.tasks as { id: string; title: string; completed: boolean }[]) || [];
-      const incompleteTasks = tasks.filter(task => !task.completed);
-      if (tasks.length > 0 && incompleteTasks.length > 0) {
-        toast({
-          title: 'Cannot Complete Milestone',
-          description: 'All tasks must be completed before marking this milestone as completed.',
-          variant: 'destructive'
-        });
-        return;
-      }
-    }
-
-    setIsUpdating(true);
+  const handleStatusUpdate = async (newStatus: Milestone['status']) => {
     try {
-      const { error } = await supabase
+      // Update milestone status
+      const { error: milestoneError } = await supabase
         .from('project_milestones')
-        .update({ status: newStatus })
-        .eq('id', milestoneId);
+        .update({ 
+          status: newStatus,
+          is_complete: newStatus === 'completed',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', milestone.id);
 
-      if (error) throw error;
+      if (milestoneError) throw milestoneError;
 
-      // Create milestone notification
-      await notificationService.createMilestoneNotification(
-        projectId,
-        projectTitle,
-        milestoneTitle,
-        newStatus,
-        clientId,
-        professionalId
-      );
+      // Get all milestones for the project
+      const { data: allMilestones, error: milestonesError } = await supabase
+        .from('project_milestones')
+        .select('*')
+        .eq('project_id', projectId);
 
-      onStatusUpdate(newStatus);
+      if (milestonesError) throw milestonesError;
+
+      // Check if all milestones are completed and have deliverables
+      const allCompleted = allMilestones?.every(m => m.status === 'completed');
+      
+      // Check deliverables for each milestone
+      const deliverablesPromises = allMilestones?.map(async (m) => {
+        const { data: deliverables } = await supabase
+          .from('project_deliverables')
+          .select('id')
+          .eq('milestone_id', m.id);
+        return deliverables && deliverables.length > 0;
+      }) || [];
+
+      const deliverablesResults = await Promise.all(deliverablesPromises);
+      const allHaveDeliverables = deliverablesResults.every(hasDeliverables => hasDeliverables);
+
+      // Update project status based on milestone status
+      if (newStatus === 'completed' && allCompleted && allHaveDeliverables) {
+        // If all milestones are completed and have deliverables, update project status
+        if (projectStatus === 'in_progress') {
+          await updateProjectStatus('work_submitted', {
+            milestone_id: milestone.id,
+            milestone_title: milestone.title
+          });
+        }
+      } else if (newStatus === 'in_progress' && projectStatus === 'assigned') {
+        // If starting work on a milestone, update project status to in_progress
+        await updateProjectStatus('in_progress', {
+          milestone_id: milestone.id,
+          milestone_title: milestone.title
+        });
+      }
+
+      onStatusUpdate(milestone.id!, newStatus);
+
       toast({
-        title: 'Status Updated',
-        description: `Milestone status has been updated to ${newStatus.replace('_', ' ')}.`
+        title: "Success",
+        description: `Milestone status updated to ${newStatus}`
       });
     } catch (error) {
       console.error('Error updating milestone status:', error);
       toast({
-        title: 'Error',
-        description: 'Failed to update milestone status.',
-        variant: 'destructive'
+        title: "Error",
+        description: "Failed to update milestone status",
+        variant: "destructive"
       });
-    } finally {
-      setIsUpdating(false);
     }
   };
 
-  // Check for overdue milestones
-  useEffect(() => {
-    const checkOverdue = async () => {
-      if (currentStatus === 'in_progress') {
-        const { data: milestone } = await supabase
-          .from('project_milestones')
-          .select('due_date')
-          .eq('id', milestoneId)
-          .single();
+  const getNextStatus = (currentStatus: Milestone['status']): Milestone['status'] => {
+    switch (currentStatus) {
+      case 'not_started':
+        return 'in_progress';
+      case 'in_progress':
+        return 'completed';
+      case 'completed':
+        return 'not_started';
+      default:
+        return 'not_started';
+    }
+  };
 
-        if (milestone && new Date(milestone.due_date) < new Date()) {
-          // Create overdue notification
-          await notificationService.createMilestoneNotification(
-            projectId,
-            projectTitle,
-            milestoneTitle,
-            'overdue',
-            clientId,
-            professionalId
-          );
-        }
-      }
-    };
+  const getStatusButtonText = (status: Milestone['status']): string => {
+    switch (status) {
+      case 'not_started':
+        return 'Start Work';
+      case 'in_progress':
+        return 'Mark as Completed';
+      case 'completed':
+        return 'Reset Status';
+      default:
+        return 'Update Status';
+    }
+  };
 
-    checkOverdue();
-  }, [currentStatus, milestoneId, projectId, projectTitle, milestoneTitle, clientId, professionalId]);
-
-  const nextStatus = getNextStatus(currentStatus);
-  if (!nextStatus) return null;
+  const isButtonDisabled = () => {
+    if (isClient) return true;
+    if (projectStatus === 'cancelled' || projectStatus === 'archived') return true;
+    if (milestone.status === 'completed' && projectStatus === 'work_approved') return true;
+    return false;
+  };
 
   return (
-    <Button
-      onClick={updateStatus}
-      disabled={isUpdating}
-      className="w-full"
-    >
-      {isUpdating ? 'Updating...' : `Mark as ${nextStatus.replace('_', ' ')}`}
-    </Button>
+    <div className="flex items-center gap-2">
+      <Button
+        variant={milestone.status === 'completed' ? 'default' : 'outline'}
+        size="sm"
+        onClick={() => handleStatusUpdate(getNextStatus(milestone.status))}
+        disabled={isButtonDisabled()}
+      >
+        {getStatusButtonText(milestone.status)}
+      </Button>
+    </div>
   );
-};
-
-export default MilestoneStatusUpdate; 
+} 

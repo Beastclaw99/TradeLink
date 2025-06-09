@@ -8,27 +8,19 @@ import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Upload, FileText, Link } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { notificationService } from '@/services/notificationService';
 
 interface DeliverableSubmissionProps {
-  projectId: string;
-  projectTitle: string;
   milestoneId: string;
-  milestoneTitle: string;
-  clientId: string;
-  professionalId: string;
-  onSubmissionComplete: () => void;
+  projectId: string;
+  onDeliverableSubmitted: () => void;
 }
 
-const DeliverableSubmission: React.FC<DeliverableSubmissionProps> = ({
-  projectId,
-  projectTitle,
+export default function DeliverableSubmission({
   milestoneId,
-  milestoneTitle,
-  clientId,
-  professionalId,
-  onSubmissionComplete
-}) => {
+  projectId,
+  onDeliverableSubmitted
+}: DeliverableSubmissionProps) {
+  const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [deliverable, setDeliverable] = useState({
@@ -37,7 +29,6 @@ const DeliverableSubmission: React.FC<DeliverableSubmissionProps> = ({
     content: '',
     file: null as File | null
   });
-  const { toast } = useToast();
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -50,8 +41,9 @@ const DeliverableSubmission: React.FC<DeliverableSubmissionProps> = ({
   };
 
   const handleSubmit = async () => {
-    setIsSubmitting(true);
     try {
+      setIsSubmitting(true);
+
       let fileUrl = '';
       if (deliverable.deliverable_type === 'file' && deliverable.file) {
         const fileExt = deliverable.file.name.split('.').pop();
@@ -102,19 +94,9 @@ const DeliverableSubmission: React.FC<DeliverableSubmissionProps> = ({
 
       if (updateError) throw updateError;
 
-      // Create deliverable notification
-      await notificationService.createDeliverableNotification(
-        projectId,
-        projectTitle,
-        milestoneTitle,
-        clientId,
-        professionalId,
-        true // isSubmission
-      );
-
       toast({
-        title: 'Deliverable Submitted',
-        description: 'Your deliverable has been submitted successfully.'
+        title: "Success",
+        description: "Deliverable submitted successfully"
       });
 
       setIsOpen(false);
@@ -124,13 +106,13 @@ const DeliverableSubmission: React.FC<DeliverableSubmissionProps> = ({
         content: '',
         file: null
       });
-      onSubmissionComplete();
+      onDeliverableSubmitted();
     } catch (error) {
       console.error('Error submitting deliverable:', error);
       toast({
-        title: 'Error',
-        description: 'Failed to submit deliverable.',
-        variant: 'destructive'
+        title: "Error",
+        description: "Failed to submit deliverable",
+        variant: "destructive"
       });
     } finally {
       setIsSubmitting(false);
@@ -231,6 +213,4 @@ const DeliverableSubmission: React.FC<DeliverableSubmissionProps> = ({
       </DialogContent>
     </Dialog>
   );
-};
-
-export default DeliverableSubmission; 
+} 

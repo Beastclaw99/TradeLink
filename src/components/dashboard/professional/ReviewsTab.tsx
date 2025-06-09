@@ -1,10 +1,7 @@
 import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { StarRating } from "@/components/ui/star-rating";
 import { Review } from '../types';
-import EnhancedReviewDisplay from '@/components/reviews/EnhancedReviewDisplay';
-import { useEnhancedReviewOperations } from '@/hooks/useEnhancedReviewOperations';
-import { useAuth } from '@/contexts/AuthContext';
 
 interface ReviewsTabProps {
   isLoading: boolean;
@@ -17,12 +14,6 @@ const ReviewsTab: React.FC<ReviewsTabProps> = ({
   reviews, 
   calculateAverageRating 
 }) => {
-  const { user } = useAuth();
-  const { handleReviewReport } = useEnhancedReviewOperations({ 
-    userId: user?.id || '',
-    onUpdate: () => {} // Add refresh logic if needed
-  });
-
   return (
     <>
       <div className="flex items-center mb-8">
@@ -59,11 +50,24 @@ const ReviewsTab: React.FC<ReviewsTabProps> = ({
       ) : (
         <div className="space-y-6">
           {reviews.map(review => (
-            <EnhancedReviewDisplay
-              key={review.id}
-              review={review}
-              onReport={handleReviewReport}
-            />
+            <Card key={review.id}>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle>Project Review</CardTitle>
+                  <StarRating
+                    value={review.rating || 0}
+                    onChange={() => {}}
+                    className="mt-2"
+                  />
+                </div>
+                <CardDescription>
+                  {new Date(review.created_at).toLocaleDateString()}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p className="text-ttc-neutral-700">{review.comment}</p>
+              </CardContent>
+            </Card>
           ))}
         </div>
       )}
