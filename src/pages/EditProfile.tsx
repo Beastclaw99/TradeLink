@@ -423,7 +423,7 @@ const EditProfile: React.FC = () => {
 
             <TabsContent value="portfolio">
               {user?.id && (
-                <PortfolioUpload userId={user.id} onUploadComplete={fetchProfile} />
+                <PortfolioUpload profileId={user.id} onUploadComplete={fetchProfile} />
               )}
             </TabsContent>
           </Tabs>

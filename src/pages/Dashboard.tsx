@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useToast } from "@/components/ui/use-toast";
@@ -9,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import ClientDashboard from '@/components/dashboard/ClientDashboard';
 import ProfessionalDashboard from '@/components/dashboard/ProfessionalDashboard';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
 
 const Dashboard: React.FC = () => {
   const { user, isLoading: authLoading } = useAuth();
@@ -122,10 +122,10 @@ const Dashboard: React.FC = () => {
               Try Again
             </Button>
           </div>
-        ) : accountType === 'client' ? (
-          <ClientDashboard userId={user.id} initialTab={activeTab} />
-        ) : accountType === 'professional' ? (
-          <ProfessionalDashboard userId={user.id} />
+        ) : user.role === 'client' ? (
+          <ClientDashboard clientId={user.id} />
+        ) : user.role === 'professional' ? (
+          <ProfessionalDashboard professionalId={user.id} />
         ) : (
           <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-md">
             <p className="text-yellow-700">

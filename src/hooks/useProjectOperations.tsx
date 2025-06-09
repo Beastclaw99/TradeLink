@@ -1,12 +1,13 @@
-
 import { useState } from 'react';
-import { useToast } from "@/components/ui/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { useToast } from '@/components/ui/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 import { Project } from '@/components/dashboard/types';
 
-export const useProjectOperations = (userId: string, onUpdate: () => void) => {
+export const useProjectOperations = (clientId: string, onUpdate: () => void) => {
   const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(false);
   const [editProject, setEditProject] = useState<Project | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [projectToDelete, setProjectToDelete] = useState<string | null>(null);
   const [editedProject, setEditedProject] = useState({
     title: '',
@@ -18,7 +19,6 @@ export const useProjectOperations = (userId: string, onUpdate: () => void) => {
     description: '',
     budget: ''
   });
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleCreateProject = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,8 +32,9 @@ export const useProjectOperations = (userId: string, onUpdate: () => void) => {
             title: newProject.title,
             description: newProject.description,
             budget: parseFloat(newProject.budget),
-            client_id: userId,
-            status: 'open'
+            client_id: clientId,
+            status: 'open',
+            created_at: new Date().toISOString()
           }
         ])
         .select();
@@ -95,9 +96,10 @@ export const useProjectOperations = (userId: string, onUpdate: () => void) => {
           title: editedProject.title,
           description: editedProject.description,
           budget: parseFloat(editedProject.budget),
+          updated_at: new Date().toISOString()
         })
         .eq('id', project.id)
-        .eq('client_id', userId);
+        .eq('client_id', clientId);
       
       if (error) throw error;
       
@@ -164,7 +166,7 @@ export const useProjectOperations = (userId: string, onUpdate: () => void) => {
         .from('projects')
         .delete()
         .eq('id', projectId)
-        .eq('client_id', userId);
+        .eq('client_id', clientId);
       
       if (error) throw error;
       
@@ -191,12 +193,107 @@ export const useProjectOperations = (userId: string, onUpdate: () => void) => {
     }
   };
 
+  const createProject = async (projectData: Partial<Project>) => {
+    try {
+      setIsLoading(true);
+      const { error } = await supabase
+        .from('projects')
+        .insert({
+          ...projectData,
+          client_id: clientId,
+          status: 'open',
+          created_at: new Date().toISOString()
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: 'Project Created',
+        description: 'Your project has been created successfully.'
+      });
+
+      onUpdate();
+    } catch (error) {
+      console.error('Error creating project:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to create project. Please try again.',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const updateProject = async (projectId: string, updates: Partial<Project>) => {
+    try {
+      setIsLoading(true);
+      const { error } = await supabase
+        .from('projects')
+        .update({
+          ...updates,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', projectId)
+        .eq('client_id', clientId);
+
+      if (error) throw error;
+
+      toast({
+        title: 'Project Updated',
+        description: 'Your project has been updated successfully.'
+      });
+
+      onUpdate();
+    } catch (error) {
+      console.error('Error updating project:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to update project. Please try again.',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const deleteProject = async (projectId: string) => {
+    try {
+      setIsLoading(true);
+      const { error } = await supabase
+        .from('projects')
+        .delete()
+        .eq('id', projectId)
+        .eq('client_id', clientId);
+
+      if (error) throw error;
+
+      toast({
+        title: 'Project Deleted',
+        description: 'Your project has been deleted successfully.'
+      });
+
+      onUpdate();
+    } catch (error) {
+      console.error('Error deleting project:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to delete project. Please try again.',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return {
+    isLoading,
+    isSubmitting,
     editProject,
     projectToDelete,
     editedProject,
     newProject,
-    isSubmitting,
+    setEditProject,
     setEditedProject,
     setNewProject,
     handleCreateProject,
@@ -205,6 +302,9 @@ export const useProjectOperations = (userId: string, onUpdate: () => void) => {
     handleUpdateProject,
     handleDeleteInitiate,
     handleDeleteCancel,
-    handleDeleteProject
+    handleDeleteProject,
+    createProject,
+    updateProject,
+    deleteProject
   };
 };

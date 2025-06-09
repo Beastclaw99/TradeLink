@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { useToast } from "@/components/ui/use-toast";
@@ -8,14 +7,16 @@ import ApplicationStatusTracker from './enhanced/ApplicationStatusTracker';
 import ViewApplicationDialog from './applications/ViewApplicationDialog';
 import WithdrawApplicationDialog from './applications/WithdrawApplicationDialog';
 import { useApplications } from './applications/useApplications';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 
 interface ApplicationsTabProps {
   isLoading: boolean;
   applications: Application[];
-  userId: string;
+  professionalId: string;
 }
 
-const ApplicationsTab: React.FC<ApplicationsTabProps> = ({ isLoading, applications, userId }) => {
+const ApplicationsTab: React.FC<ApplicationsTabProps> = ({ isLoading, applications, professionalId }) => {
   const { toast } = useToast();
   const [selectedApplication, setSelectedApplication] = useState<Application | null>(null);
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
@@ -50,7 +51,7 @@ const ApplicationsTab: React.FC<ApplicationsTabProps> = ({ isLoading, applicatio
         .from('applications')
         .update({ status: 'withdrawn' })
         .eq('id', selectedApplication.id)
-        .eq('professional_id', userId);
+        .eq('professional_id', professionalId);
       
       if (error) throw error;
       
@@ -84,33 +85,57 @@ const ApplicationsTab: React.FC<ApplicationsTabProps> = ({ isLoading, applicatio
     }
   };
   
-  return (
-    <>
-      <div className="space-y-6">
-        <div>
-          <h2 className="text-2xl font-bold mb-2">Application Status</h2>
-          <p className="text-gray-600">Track the progress of your project applications</p>
-        </div>
-        
-        {error && (
-          <div className="bg-red-50 text-red-800 p-4 rounded-md">
-            {error}
-          </div>
-        )}
-        
-        {localIsLoading ? (
-          <div className="flex justify-center items-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-ttc-blue-700 mr-2" />
-            <span>Loading your applications...</span>
-          </div>
-        ) : (
-          <ApplicationStatusTracker 
-            applications={localApplications}
-            onViewApplication={handleViewApplication}
-            onWithdrawApplication={handleWithdrawInitiate}
-          />
-        )}
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle>Your Applications</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {applications.length === 0 ? (
+            <p className="text-muted-foreground">No applications found.</p>
+          ) : (
+            <div className="space-y-4">
+              {applications.map((application) => (
+                <div key={application.id} className="border rounded-lg p-4">
+                  <h3 className="font-semibold">{application.project.title}</h3>
+                  <p className="text-sm text-muted-foreground">{application.project.description}</p>
+                  <div className="mt-4 flex justify-between items-center">
+                    <div>
+                      <p className="text-sm">
+                        Status:{' '}
+                        <span className="font-medium capitalize">{application.status}</span>
+                      </p>
+                      <p className="text-sm">
+                        Applied:{' '}
+                        <span className="font-medium">
+                          {new Date(application.created_at).toLocaleDateString()}
+                        </span>
+                      </p>
+                    </div>
+                    {application.status === 'pending' && (
+                      <Button
+                        variant="destructive"
+                        onClick={() => handleWithdrawApplication()}
+                      >
+                        Withdraw Application
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
       
       {/* Dialogs */}
       <ViewApplicationDialog 
@@ -126,7 +151,7 @@ const ApplicationsTab: React.FC<ApplicationsTabProps> = ({ isLoading, applicatio
         isProcessing={isProcessing}
         onConfirm={handleWithdrawApplication}
       />
-    </>
+    </div>
   );
 };
 

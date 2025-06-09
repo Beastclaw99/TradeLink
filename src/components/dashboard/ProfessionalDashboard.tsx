@@ -11,12 +11,18 @@ import ProjectApplicationForm from './professional/ProjectApplicationForm';
 import DashboardError from './professional/DashboardError';
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { ProjectList } from '@/components/project/ProjectList';
+import { ApplicationList } from '@/components/application/ApplicationList';
+import { DashboardStats } from '@/components/dashboard/DashboardStats';
+import { RecentActivity } from '@/components/dashboard/RecentActivity';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
 
 interface ProfessionalDashboardProps {
-  userId: string;
+  professionalId: string;
 }
 
-const ProfessionalDashboard: React.FC<ProfessionalDashboardProps> = ({ userId }) => {
+const ProfessionalDashboard: React.FC<ProfessionalDashboardProps> = ({ professionalId }) => {
   const { toast } = useToast();
   
   // Use the application notifications hook
@@ -42,7 +48,10 @@ const ProfessionalDashboard: React.FC<ProfessionalDashboardProps> = ({ userId })
     fetchDashboardData,
     calculateAverageRating,
     calculatePaymentTotals,
-  } = useProfessionalDashboard(userId);
+    stats,
+    recentActivity,
+    refreshData
+  } = useProfessionalDashboard(professionalId);
 
   const handleApplyToProject = async () => {
     if (!selectedProject || !coverLetter.trim() || bidAmount === null) {
@@ -84,7 +93,7 @@ const ProfessionalDashboard: React.FC<ProfessionalDashboardProps> = ({ userId })
         .insert([
           {
             project_id: selectedProject,
-            professional_id: userId,
+            professional_id: professionalId,
             cover_letter: coverLetter,
             bid_amount: bidAmount,
             proposal_message: coverLetter,
@@ -128,7 +137,7 @@ const ProfessionalDashboard: React.FC<ProfessionalDashboardProps> = ({ userId })
         .from('projects')
         .update({ status: 'completed' })
         .eq('id', projectId)
-        .eq('assigned_to', userId);
+        .eq('assigned_to', professionalId);
       
       if (error) throw error;
       
@@ -158,7 +167,7 @@ const ProfessionalDashboard: React.FC<ProfessionalDashboardProps> = ({ userId })
         .update({
           skills: data.skills,
         })
-        .eq('id', userId)
+        .eq('id', professionalId)
         .select()
         .single();
       
@@ -192,7 +201,7 @@ const ProfessionalDashboard: React.FC<ProfessionalDashboardProps> = ({ userId })
 
   // Pass shared state and handlers to the tab components
   const sharedProps = {
-    userId,
+    professionalId,
     isLoading,
     projects,
     applications,
@@ -218,59 +227,93 @@ const ProfessionalDashboard: React.FC<ProfessionalDashboardProps> = ({ userId })
   };
 
   if (error) {
-    return <DashboardError error={error} isLoading={isLoading} onRetry={fetchDashboardData} />;
+    return (
+      <div className="flex h-[calc(100vh-4rem)] items-center justify-center">
+        <Card className="w-full max-w-md">
+          <CardContent className="pt-6">
+            <div className="text-center">
+              <h3 className="text-lg font-semibold text-destructive">Error Loading Dashboard</h3>
+              <p className="mt-2 text-sm text-muted-foreground">{error}</p>
+              <button
+                onClick={refreshData}
+                className="mt-4 text-sm text-primary hover:underline"
+              >
+                Try Again
+              </button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
 
   return (
-    <Tabs defaultValue="featured">
-      <TabsList className="mb-6">
-        <TabsTrigger value="featured" data-value="featured">Available Projects</TabsTrigger>
-        <TabsTrigger value="applications" data-value="applications">Your Applications</TabsTrigger>
-        <TabsTrigger value="active" data-value="active">Active Projects</TabsTrigger>
-        <TabsTrigger value="payments" data-value="payments">Payments</TabsTrigger>
-        <TabsTrigger value="reviews" data-value="reviews">Reviews</TabsTrigger>
-      </TabsList>
-      
-      <TabsContent value="featured">
-        <AvailableProjectsTab {...sharedProps} />
-        {selectedProject && (
-          <ProjectApplicationForm
-            selectedProject={selectedProject}
-            projects={projects}
-            coverLetter={coverLetter}
-            setCoverLetter={setCoverLetter}
-            bidAmount={bidAmount}
-            setBidAmount={setBidAmount}
-            availability={availability}
-            setAvailability={setAvailability}
-            isApplying={isApplying}
-            handleApplyToProject={handleApplyToProject}
-            onCancel={cancelApplication}
-            userSkills={skills}
-          />
-        )}
-      </TabsContent>
-      
-      <TabsContent value="applications">
-        <ApplicationsTab 
-          isLoading={isLoading} 
-          applications={applications}
-          userId={userId}
-        />
-      </TabsContent>
-      
-      <TabsContent value="active">
-        <ActiveProjectsTab {...sharedProps} />
-      </TabsContent>
-      
-      <TabsContent value="payments">
-        <PaymentsTab {...sharedProps} />
-      </TabsContent>
-      
-      <TabsContent value="reviews">
-        <ReviewsTab {...sharedProps} />
-      </TabsContent>
-    </Tabs>
+    <div className="container mx-auto p-6">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold">Professional Dashboard</h1>
+        <p className="mt-2 text-muted-foreground">
+          Manage your projects and applications
+        </p>
+      </div>
+
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+        <DashboardStats stats={stats} />
+      </div>
+
+      <div className="mt-8 grid gap-6 md:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>Recent Activity</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <RecentActivity activities={recentActivity} />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Quick Actions</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-4">
+              <button
+                onClick={() => window.location.href = '/projects/browse'}
+                className="flex items-center justify-center rounded-lg border p-4 hover:bg-accent"
+              >
+                Browse Projects
+              </button>
+              <button
+                onClick={() => window.location.href = '/applications'}
+                className="flex items-center justify-center rounded-lg border p-4 hover:bg-accent"
+              >
+                View Applications
+              </button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="mt-8">
+        <Tabs defaultValue="projects" className="w-full">
+          <TabsList>
+            <TabsTrigger value="projects">Projects</TabsTrigger>
+            <TabsTrigger value="applications">Applications</TabsTrigger>
+          </TabsList>
+          <TabsContent value="projects">
+            <ProjectList
+              projects={projects}
+              onProjectUpdate={refreshData}
+            />
+          </TabsContent>
+          <TabsContent value="applications">
+            <ApplicationList
+              applications={applications}
+              onApplicationUpdate={refreshData}
+            />
+          </TabsContent>
+        </Tabs>
+      </div>
+    </div>
   );
 };
 

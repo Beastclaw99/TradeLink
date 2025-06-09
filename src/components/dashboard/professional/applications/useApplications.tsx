@@ -1,101 +1,116 @@
-
 import { useState, useEffect } from 'react';
-import { Application, ApplicationProject } from '../../types';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from '@/hooks/useToast';
+import { Application } from '@/components/dashboard/types';
 
-/**
- * Custom hook to manage applications state and fetch applications if needed
- * @param applications Initial applications from props
- * @param isLoading Initial loading state from props
- * @param userId Optional user ID to fetch applications for
- * @returns Object with local applications state and helpers
- */
-export const useApplications = (
-  applications: Application[],
-  isLoading: boolean,
-  userId?: string
-) => {
-  const { toast } = useToast();
-  const [localApplications, setLocalApplications] = useState<Application[]>(applications);
-  const [localIsLoading, setLocalIsLoading] = useState(isLoading);
-  
-  // Handle applications update from props
-  useEffect(() => {
-    setLocalApplications(applications);
-  }, [applications]);
-  
-  // Handle loading state update from props
-  useEffect(() => {
-    setLocalIsLoading(isLoading);
-  }, [isLoading]);
-  
-  // Fetch applications directly if parent component doesn't provide them
-  useEffect(() => {
-    const fetchApplications = async () => {
-      if (!userId) return;
-      
-      if (applications.length === 0 && !isLoading) {
-        try {
-          setLocalIsLoading(true);
-          
-          const { data, error } = await supabase
-            .from('applications')
-            .select(`
-              *,
-              project:projects(id, title, status, budget, created_at)
-            `)
-            .eq('professional_id', userId);
-          
-          if (error) throw error;
-          
-          console.log('Fetched applications:', data);
-          
-          // Transform applications to match the Application type
-          const transformedApplications: Application[] = (data || []).map(app => ({
-            id: app.id,
-            project_id: app.project_id,
-            professional_id: app.professional_id,
-            cover_letter: app.cover_letter,
-            proposal_message: app.proposal_message,
-            bid_amount: app.bid_amount,
-            availability: app.availability,
-            status: app.status,
-            created_at: app.created_at,
-            updated_at: app.updated_at,
-            project: app.project ? {
-              id: app.project.id,
-              title: app.project.title,
-              status: app.project.status,
-              budget: app.project.budget,
-              created_at: app.project.created_at
-            } as ApplicationProject : undefined
-          }));
-          
-          setLocalApplications(transformedApplications);
-        } catch (error: any) {
-          console.error('Error fetching applications:', error);
-          toast({
-            title: "Error",
-            description: "Failed to load application data. Please try again later.",
-            variant: "destructive"
-          });
-        } finally {
-          setLocalIsLoading(false);
-        }
-      }
+interface UseApplicationsProps {
+  professionalId?: string;
+}
+
+interface ApplicationWithProject extends Application {
+  project: {
+    id: string;
+    title: string;
+    status: string;
+    budget: number;
+    created_at: string;
+    client: {
+      id: string;
+      full_name: string;
+      profile_image: string | null;
     };
-    
-    fetchApplications();
-  }, [userId, applications, isLoading, toast]);
-  
-  const updateLocalApplications = (newApplications: Application[]) => {
-    setLocalApplications(newApplications);
   };
-  
+}
+
+export const useApplications = ({ professionalId }: UseApplicationsProps) => {
+  const { toast } = useToast();
+  const [applications, setApplications] = useState<ApplicationWithProject[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!professionalId) return;
+    fetchApplications();
+  }, [professionalId]);
+
+  const fetchApplications = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      const { data, error } = await supabase
+        .from('applications')
+        .select(`
+          *,
+          project:projects (
+            *,
+            client:profiles!projects_client_id_fkey (
+              id,
+              full_name,
+              profile_image
+            )
+          )
+        `)
+        .eq('professional_id', professionalId)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      setApplications(data || []);
+    } catch (error) {
+      console.error('Error fetching applications:', error);
+      setError('Failed to load applications');
+      toast({
+        title: 'Error',
+        description: 'Failed to load applications',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const withdrawApplication = async (applicationId: string) => {
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      const { error } = await supabase
+        .from('applications')
+        .update({ status: 'withdrawn' })
+        .eq('id', applicationId)
+        .eq('professional_id', professionalId);
+
+      if (error) throw error;
+
+      setApplications((prev) =>
+        prev.map((app) =>
+          app.id === applicationId ? { ...app, status: 'withdrawn' } : app
+        )
+      );
+
+      toast({
+        title: 'Success',
+        description: 'Application withdrawn successfully',
+      });
+    } catch (error) {
+      console.error('Error withdrawing application:', error);
+      setError('Failed to withdraw application');
+      toast({
+        title: 'Error',
+        description: 'Failed to withdraw application',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return {
-    localApplications,
-    localIsLoading,
-    updateLocalApplications
+    applications,
+    isLoading,
+    error,
+    withdrawApplication,
+    refreshApplications: fetchApplications,
   };
 };
