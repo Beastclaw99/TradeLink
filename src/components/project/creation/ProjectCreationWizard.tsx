@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -22,7 +21,6 @@ const ProjectCreationWizard: React.FC = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [currentStep, setCurrentStep] = useState(1);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [projectData, setProjectData] = useState<ProjectData>({
     title: '',
     description: '',
@@ -142,144 +140,103 @@ const ProjectCreationWizard: React.FC = () => {
   };
 
   const handleSubmit = async () => {
-    if (!user) {
-      toast({
-        title: "Error",
-        description: "You must be logged in to create a project",
-        variant: "destructive"
-      });
-      return;
-    }
-
     try {
-      setIsSubmitting(true);
-
-      // Prepare project data according to database schema
-      const projectInsertData = {
-        title: projectData.title,
-        description: projectData.description,
-        category: projectData.category,
-        location: projectData.location,
-        budget: projectData.budget,
-        expected_timeline: projectData.timeline,
-        urgency: projectData.urgency,
-        status: 'open',
-        client_id: user.id,
-        requirements: projectData.requirements || [],
-        recommended_skills: projectData.recommendedSkills.join(','), // Store as comma-separated string
-        scope: projectData.scope || projectData.description,
-        service_contract: projectData.service_contract,
-        industry_specific_fields: projectData.industry_specific_fields,
-        location_coordinates: projectData.location_coordinates,
-        deadline: projectData.deadline || null,
-        project_start_time: projectData.project_start_time || null,
-        rich_description: projectData.rich_description || projectData.description,
-        sla_terms: projectData.sla_terms
-      };
-
-      console.log('Creating project with data:', projectInsertData);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
 
       // Create project
       const { data: project, error: projectError } = await supabase
         .from('projects')
-        .insert([projectInsertData])
+        .insert([{
+          title: projectData.title,
+          description: projectData.description,
+          category: projectData.category,
+          location: projectData.location,
+          budget: projectData.budget,
+          timeline: projectData.timeline,
+          urgency: projectData.urgency,
+          status: 'open',
+          created_by: user.id,
+          requirements: projectData.requirements || [],
+          scope: projectData.scope,
+          industry_specific_fields: projectData.industry_specific_fields,
+          location_coordinates: projectData.location_coordinates,
+          deadline: projectData.deadline,
+          project_start_time: projectData.project_start_time,
+          rich_description: projectData.rich_description,
+          sla_terms: projectData.sla_terms
+        }])
         .select()
         .single();
 
-      if (projectError) {
-        console.error('Project creation error:', projectError);
-        throw projectError;
-      }
+      if (projectError) throw projectError;
 
-      console.log('Project created:', project);
-
-      // Create milestones if any
+      // Create milestones
       if (projectData.milestones && projectData.milestones.length > 0) {
-        console.log('Creating milestones:', projectData.milestones);
-
-        const milestonesData = projectData.milestones.map(milestone => ({
-          title: milestone.title,
-          description: milestone.description,
-          due_date: milestone.dueDate,
-          status: 'not_started',
-          project_id: project.id,
-          created_by: user.id,
-          requires_deliverable: milestone.deliverables && milestone.deliverables.length > 0
-        }));
-
-        const { data: createdMilestones, error: milestonesError } = await supabase
+        const { error: milestonesError } = await supabase
           .from('project_milestones')
-          .insert(milestonesData)
-          .select();
-
-        if (milestonesError) {
-          console.error('Milestones creation error:', milestonesError);
-          throw milestonesError;
-        }
-
-        console.log('Milestones created:', createdMilestones);
-
-        // Create deliverables for milestones
-        for (let i = 0; i < projectData.milestones.length; i++) {
-          const milestone = projectData.milestones[i];
-          const createdMilestone = createdMilestones[i];
-          
-          if (milestone.deliverables && milestone.deliverables.length > 0) {
-            const deliverablesData = milestone.deliverables.map(deliverable => ({
-              description: deliverable.description,
-              deliverable_type: deliverable.deliverable_type,
-              content: deliverable.content || null,
-              file_url: deliverable.deliverable_type === 'file' ? (deliverable.content || '') : '',
-              milestone_id: createdMilestone.id,
+          .insert(
+            projectData.milestones.map(milestone => ({
+              title: milestone.title,
+              description: milestone.description,
+              due_date: milestone.dueDate,
+              status: milestone.status,
+              is_complete: milestone.progress === 100,
               project_id: project.id,
-              uploaded_by: user.id,
-              status: 'pending'
-            }));
+              created_by: user.id,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            }))
+          );
 
+        if (milestonesError) throw milestonesError;
+
+        // Get the created milestones to get their IDs
+        const { data: createdMilestones, error: fetchError } = await supabase
+          .from('project_milestones')
+          .select('id, title')
+          .eq('project_id', project.id);
+
+        if (fetchError) throw fetchError;
+
+        // Create deliverables for each milestone
+        for (const milestone of projectData.milestones) {
+          const createdMilestone = createdMilestones.find(m => m.title === milestone.title);
+          if (createdMilestone && milestone.deliverables && milestone.deliverables.length > 0) {
             const { error: deliverablesError } = await supabase
               .from('project_deliverables')
-              .insert(deliverablesData);
+              .insert(
+                milestone.deliverables.map(deliverable => ({
+                  description: deliverable.description,
+                  deliverable_type: deliverable.deliverable_type,
+                  content: deliverable.content || null,
+                  file_url: deliverable.deliverable_type === 'file' ? deliverable.content || '' : '',
+                  milestone_id: createdMilestone.id,
+                  project_id: project.id,
+                  uploaded_by: user.id,
+                  created_at: new Date().toISOString()
+                }))
+              );
 
-            if (deliverablesError) {
-              console.error('Deliverables creation error:', deliverablesError);
-              // Don't throw here, just log the error
-            }
+            if (deliverablesError) throw deliverablesError;
           }
         }
       }
-
-      // Create initial history record
-      await supabase
-        .from('project_history')
-        .insert({
-          project_id: project.id,
-          history_type: 'status_change',
-          history_data: {
-            new_status: 'open',
-            reason: 'Project created'
-          },
-          created_by: user.id
-        });
 
       toast({
         title: "Success",
         description: "Project created successfully!"
       });
 
-      // Navigate to project marketplace with success message
-      navigate('/project-marketplace', {
-        state: { message: "Project created and published successfully!" }
-      });
-
-    } catch (error: any) {
+      // Navigate to the project details page
+      navigate(`/project/${project.id}`);
+    } catch (error) {
       console.error('Error creating project:', error);
       toast({
         title: "Error",
-        description: error.message || "Failed to create project. Please try again.",
+        description: "Failed to create project. Please try again.",
         variant: "destructive"
       });
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
@@ -373,13 +330,8 @@ const ProjectCreationWizard: React.FC = () => {
             </div>
             
             {currentStep === steps.length ? (
-              <Button 
-                onClick={handleSubmit} 
-                size="lg" 
-                className="px-8"
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? 'Creating...' : '🚀 Publish Project'}
+              <Button onClick={handleSubmit} size="lg" className="px-8">
+                🚀 Publish Project
               </Button>
             ) : (
               <Button 

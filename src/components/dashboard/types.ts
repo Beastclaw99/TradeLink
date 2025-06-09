@@ -2,165 +2,140 @@
 export interface Project {
   id: string;
   title: string;
-  description: string;
-  client_id: string;
-  status: string;
-  budget: number;
-  created_at: string;
-  updated_at: string;
-  category?: string;
-  location?: string;
-  professional_id?: string;
-  assigned_to?: string;
-  deadline?: string;
-  requirements?: string[];
-  required_skills?: string[];
-  urgency?: string;
-  scope?: string;
-  rich_description?: string;
-  sla_terms?: any;
-  industry_specific_fields?: any;
-  location_coordinates?: any;
-  project_start_time?: string;
-  expected_timeline?: string;
-  service_contract?: string;
-  payment_status?: string;
-  payment_required?: boolean;
-  payment_due_date?: string;
-  contract_template_id?: string;
-  // Add missing properties that components expect
+  description: string | null;
+  category: string | null;
+  budget: number | null;
+  expected_timeline: string | null;
+  location: string | null;
+  urgency: string | null;
+  requirements: string[] | null;
+  required_skills: string | null;
+  status: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+  client_id: string | null;
+  assigned_to: string | null;
+  professional_id: string | null;
+  contract_template_id: string | null;
+  deadline: string | null;
+  industry_specific_fields: any | null;
+  location_coordinates: unknown | null;
+  project_start_time: string | null;
+  rich_description: string | null;
+  scope: string | null;
+  service_contract: string | null;
+  sla_terms: any | null;
   client?: {
-    id: string;
-    first_name: string;
-    last_name: string;
-    email?: string;
+    first_name?: string;
+    last_name?: string;
   };
   professional?: {
-    id: string;
-    first_name: string;
-    last_name: string;
-    email?: string;
+    first_name?: string;
+    last_name?: string;
   };
+}
+
+// Simplified project interface for applications
+export interface ApplicationProject {
+  id: string;
+  title: string;
+  status: string | null;
+  budget: number | null;
+  created_at: string | null;
 }
 
 export interface Application {
   id: string;
-  professional_id: string;
   project_id: string;
+  professional_id: string;
+  cover_letter: string | null;
+  proposal_message: string | null;
+  bid_amount: number | null;
+  availability: string | null;
   status: string;
   created_at: string;
   updated_at: string;
-  cover_letter?: string;
-  proposal_message?: string;
-  availability?: string;
-  bid_amount?: number;
-  professional?: {
-    id: string;
-    first_name: string;
-    last_name: string;
-    email?: string;
-    phone?: string;
-    bio?: string;
-    rating?: number;
-    hourly_rate?: number;
-    profile_image?: string;
-    skills?: string[];
-    years_experience?: number;
-    location?: string;
-    verification_status?: string;
-  };
   project?: ApplicationProject;
+  professional?: {
+    first_name?: string;
+    last_name?: string;
+    skills?: string[];
+    rating?: number;
+  };
 }
 
-export interface ApplicationProject {
+export interface Professional {
   id: string;
-  title: string;
-  status: string;
-  budget: number;
+  first_name: string | null;
+  last_name: string | null;
+  skills: string[] | null;
+  rating: number | null;
+  account_type: 'professional';
+  bio: string | null;
+  location: string | null;
+  phone: string | null;
+  email: string | null;
+  availability: 'available' | 'busy' | 'unavailable' | null;
+  certifications: string[] | null;
+  completed_projects: number | null;
+  response_rate: number | null;
+  on_time_completion: number | null;
+  profile_visibility: boolean | null;
+  show_email: boolean | null;
+  show_phone: boolean | null;
+  allow_messages: boolean | null;
+  profile_image: string | null;
+  verification_status: 'unverified' | 'pending' | 'verified' | null;
   created_at: string;
+  updated_at: string | null;
+}
+
+export interface Client {
+  id: string;
+  first_name: string | null;
+  last_name: string | null;
+  account_type: 'client';
+  bio: string | null;
+  location: string | null;
+  phone: string | null;
+  email: string | null;
+  profile_visibility: boolean | null;
+  show_email: boolean | null;
+  show_phone: boolean | null;
+  allow_messages: boolean | null;
+  profile_image: string | null;
+  verification_status: 'unverified' | 'pending' | 'verified' | null;
+  created_at: string;
+  updated_at?: string;
 }
 
 export interface Review {
   id: string;
-  project_id: string;
-  client_id: string;
-  professional_id: string;
-  rating: number;
-  comment?: string;
+  rating: number | null;
+  comment: string | null;
+  client_id: string | null;
+  professional_id: string | null;
+  project_id: string | null;
   created_at: string;
-  updated_at?: string;
-  status: 'pending' | 'approved' | 'rejected' | 'reported';
-  is_verified: boolean;
-  communication_rating?: number;
-  quality_rating?: number;
-  timeliness_rating?: number;
-  professionalism_rating?: number;
-  verification_method?: string;
-  reported_at?: string;
-  reported_by?: string;
-  report_reason?: string;
-  moderated_at?: string;
-  moderated_by?: string;
-  moderation_notes?: string;
+  updated_at: string | null;
 }
 
 export interface Payment {
   id: string;
-  project_id: string;
-  client_id: string;
-  professional_id: string;
   amount: number;
   status: string;
+  payment_method: string | null;
+  transaction_id: string | null;
   created_at: string;
-  paid_at?: string;
-  payment_method_id?: string;
-  currency?: string;
-  transaction_id?: string;
-  payment_url?: string;
-  metadata?: any;
+  paid_at: string | null;
+  client_id: string | null;
+  professional_id: string | null;
+  project_id: string | null;
   project?: {
-    id: string;
-    title: string;
-    status: string;
+    title?: string;
   };
-}
-
-export interface ProjectMember {
-  id: string;
-  project_id: string;
-  user_id: string;
-  role: 'client' | 'professional';
-  created_at: string;
-}
-
-// Fixed PaymentsTabProps interface to match client PaymentsTab usage
-export interface PaymentsTabProps {
-  isLoading: boolean;
-  projects: Project[];
-  reviews: Review[];
-  applications: Application[];
-  projectToReview: Project | null;
-  reviewData: { rating: number; comment: string };
-  isSubmitting: boolean;
-  handleReviewInitiate: (project: Project) => void;
-  handleReviewCancel: () => void;
-  handleReviewSubmit: () => Promise<void>;
-  setReviewData: (data: { rating: number; comment: string }) => void;
-}
-
-// Add FileVersion interface with missing properties
-export interface FileVersion {
-  id: string;
-  file_name: string;
-  file_size: number;
-  file_type: string;
-  file_url: string;
-  created_at: string;
-  updated_at: string;
-  project_id: string;
-  uploaded_by: string;
-  access_level?: string;
-  version_number?: number;
-  change_description?: string;
-  metadata?: any;
+  professional?: {
+    first_name?: string;
+    last_name?: string;
+  };
 }

@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { notificationService } from './notificationService';
 
@@ -82,7 +81,7 @@ export const disputeService = {
     // Notify respondent
     await notificationService.createNotification({
       user_id: respondentId,
-      type: 'warning',
+      type: 'dispute_created',
       title: 'New Dispute Created',
       message: `A new dispute has been created: ${title}`,
       metadata: {
@@ -91,7 +90,7 @@ export const disputeService = {
       }
     });
 
-    return dispute as Dispute;
+    return dispute;
   },
 
   // Get dispute details
@@ -103,7 +102,7 @@ export const disputeService = {
       .single();
 
     if (error) throw error;
-    return data as Dispute;
+    return data;
   },
 
   // Get disputes for a project
@@ -115,7 +114,7 @@ export const disputeService = {
       .order('created_at', { ascending: false });
 
     if (error) throw error;
-    return data as Dispute[];
+    return data;
   },
 
   // Update dispute status
@@ -159,16 +158,16 @@ export const disputeService = {
       notificationService.createNotification({
         ...notificationData,
         user_id: dispute.initiator_id,
-        type: 'info'
+        type: 'dispute_status_changed'
       }),
       notificationService.createNotification({
         ...notificationData,
         user_id: dispute.respondent_id,
-        type: 'info'
+        type: 'dispute_status_changed'
       })
     ]);
 
-    return dispute as Dispute;
+    return dispute;
   },
 
   // Add resolution to dispute
@@ -206,16 +205,16 @@ export const disputeService = {
       notificationService.createNotification({
         ...notificationData,
         user_id: dispute.initiator_id,
-        type: 'success'
+        type: 'dispute_resolved'
       }),
       notificationService.createNotification({
         ...notificationData,
         user_id: dispute.respondent_id,
-        type: 'success'
+        type: 'dispute_resolved'
       })
     ]);
 
-    return dispute as Dispute;
+    return dispute;
   },
 
   // Add document to dispute
@@ -289,7 +288,7 @@ export const disputeService = {
 
     await notificationService.createNotification({
       user_id: recipientId,
-      type: 'info',
+      type: 'dispute_message',
       title: 'New Dispute Message',
       message: 'You have received a new message in a dispute',
       metadata: {
@@ -333,7 +332,7 @@ export const disputeService = {
       .single();
 
     if (error) throw error;
-    return data as DisputeStatusHistory;
+    return data;
   },
 
   // Get status history
@@ -345,6 +344,6 @@ export const disputeService = {
       .order('created_at', { ascending: true });
 
     if (error) throw error;
-    return data as DisputeStatusHistory[];
+    return data;
   }
-};
+}; 

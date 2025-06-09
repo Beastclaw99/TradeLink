@@ -1,4 +1,3 @@
-
 import React from 'react';
 import DisputeDetail from '@/components/project/DisputeDetail';
 
@@ -13,9 +12,9 @@ export default function DisputeDetailPage({ params }: DisputeDetailPageProps) {
   return (
     <div className="container mx-auto py-8">
       <DisputeDetail
-        disputeId={params.disputeId}
         projectId={params.projectId}
+        disputeId={params.disputeId}
       />
     </div>
   );
-}
+} 

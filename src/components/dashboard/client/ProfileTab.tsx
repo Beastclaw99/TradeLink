@@ -90,7 +90,7 @@ const ProfileTab: React.FC<ProfileTabProps> = ({
         
         if (projectsError) throw projectsError;
         
-        // Transform projects to match Project interface with proper required_skills handling
+        // Transform projects to match Project interface
         const transformedProjects: Project[] = (projectsData || []).map(project => ({
           id: project.id,
           title: project.title,
@@ -101,11 +101,7 @@ const ProfileTab: React.FC<ProfileTabProps> = ({
           location: project.location,
           urgency: project.urgency,
           requirements: project.requirements,
-          required_skills: Array.isArray(project.recommended_skills) 
-            ? project.recommended_skills 
-            : project.recommended_skills 
-              ? [project.recommended_skills] 
-              : [],
+          required_skills: project.recommended_skills || null, // Map recommended_skills to required_skills
           status: project.status,
           created_at: project.created_at,
           updated_at: project.updated_at,

@@ -87,7 +87,7 @@ Milestone: ${milestone.title}
 • Requires Deliverable: ${milestone.requires_deliverable ? 'Yes' : 'No'}
 `).join('\n')}
 
-${data.deliverables && data.deliverables.length > 0 ? `
+${data.deliverables.length > 0 ? `
 DELIVERABLES:
 ${data.deliverables.map(deliverable => `
 • ${deliverable.description}

@@ -1,16 +1,25 @@
 
 import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { 
+  Card, 
+  CardContent, 
+  CardHeader, 
+  CardTitle, 
+  CardDescription, 
+  CardFooter 
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
+import { DollarSign, Calendar, CheckCircle2, AlertTriangle, Info, Star } from "lucide-react";
 import { Project } from '../types';
-import { DollarSign, MapPin, Calendar, Briefcase, Star } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Separator } from "@/components/ui/separator";
 
 interface ProjectApplicationFormProps {
-  selectedProject: string;
+  selectedProject: string | null;
   projects: Project[];
   coverLetter: string;
   setCoverLetter: (value: string) => void;
@@ -21,8 +30,16 @@ interface ProjectApplicationFormProps {
   isApplying: boolean;
   handleApplyToProject: () => Promise<void>;
   onCancel: () => void;
-  userSkills: string[];
+  userSkills?: string[];
 }
+
+const AVAILABILITY_OPTIONS = [
+  { value: 'immediate', label: 'Immediate', description: 'Can start right away' },
+  { value: 'within_week', label: 'Within a Week', description: 'Available to start within 7 days' },
+  { value: 'within_two_weeks', label: 'Within Two Weeks', description: 'Available within 14 days' },
+  { value: 'within_month', label: 'Within a Month', description: 'Available within 30 days' },
+  { value: 'flexible', label: 'Flexible', description: 'Timeline negotiable' }
+];
 
 const ProjectApplicationForm: React.FC<ProjectApplicationFormProps> = ({
   selectedProject,
@@ -36,146 +53,198 @@ const ProjectApplicationForm: React.FC<ProjectApplicationFormProps> = ({
   isApplying,
   handleApplyToProject,
   onCancel,
-  userSkills
+  userSkills = []
 }) => {
-  const project = projects.find(p => p.id === selectedProject);
+  if (!selectedProject) return null;
   
-  if (!project) return null;
+  const project = projects.find(p => p.id === selectedProject);
+  const requiredSkills = Array.isArray(project?.required_skills) ? project.required_skills : [];
+  const matchingSkills = userSkills.filter(skill => requiredSkills.includes(skill));
+  const missingSkills = requiredSkills.filter(skill => !userSkills.includes(skill));
+  const skillMatchPercentage = requiredSkills.length > 0 ? Math.round((matchingSkills.length / requiredSkills.length) * 100) : 100;
 
-  // Get project skills safely
-  const projectSkills = Array.isArray(project.required_skills) ? project.required_skills : [];
+  const getBudgetGuidance = () => {
+    const clientBudget = project?.budget;
+    if (!clientBudget || typeof clientBudget !== 'number') return null;
+    
+    return {
+      competitive: Math.round(clientBudget * 0.8),
+      market: clientBudget,
+      premium: Math.round(clientBudget * 1.2)
+    };
+  };
 
-  // Calculate skill match
-  const matchingSkills = projectSkills.filter(skill => 
-    userSkills.some(userSkill => 
-      userSkill.toLowerCase().includes(skill.toLowerCase()) ||
-      skill.toLowerCase().includes(userSkill.toLowerCase())
-    )
-  );
-
-  const skillMatchPercentage = projectSkills.length > 0 
-    ? Math.round((matchingSkills.length / projectSkills.length) * 100) 
-    : 100;
+  const budgetGuidance = getBudgetGuidance();
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <Card className="w-full max-w-4xl max-h-[90vh] overflow-y-auto">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Briefcase className="w-5 h-5" />
-            Apply to Project
-          </CardTitle>
-        </CardHeader>
+    <Card className="mt-8">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Star className="h-5 w-5 text-yellow-500" />
+          Apply to Project
+        </CardTitle>
+        <CardDescription>
+          Submit a compelling proposal to win this project. Take time to craft a thoughtful application.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-6">
         
-        <CardContent className="space-y-6">
-          {/* Project Summary */}
-          <div className="bg-gray-50 p-4 rounded-lg">
-            <h3 className="font-semibold text-lg mb-2">{project.title}</h3>
-            <p className="text-gray-700 mb-3">{project.description}</p>
-            
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-              <div className="flex items-center gap-2">
-                <DollarSign className="w-4 h-4 text-green-600" />
-                <span>${project.budget?.toLocaleString()}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <MapPin className="w-4 h-4 text-gray-600" />
-                <span>{project.location || 'Remote'}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Calendar className="w-4 h-4 text-blue-600" />
-                <span>{project.expected_timeline || 'Flexible'}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Star className="w-4 h-4 text-yellow-600" />
-                <span>{skillMatchPercentage}% Match</span>
-              </div>
-            </div>
-
-            {/* Skills Section */}
-            {projectSkills.length > 0 && (
-              <div className="mt-4">
-                <h4 className="font-medium text-sm mb-2">Required Skills:</h4>
-                <div className="flex flex-wrap gap-2">
-                  {projectSkills.map((skill, index) => {
-                    const isMatching = matchingSkills.includes(skill);
-                    return (
-                      <Badge 
-                        key={index} 
-                        variant={isMatching ? "default" : "outline"}
-                        className={isMatching ? "bg-green-100 text-green-800" : ""}
-                      >
-                        {skill}
-                      </Badge>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
+        {/* Skills Matching Section */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-medium text-gray-700">Skills Match</h3>
+            <Badge 
+              variant={skillMatchPercentage >= 80 ? "default" : skillMatchPercentage >= 50 ? "secondary" : "outline"}
+              className={skillMatchPercentage >= 80 ? "bg-green-100 text-green-800" : skillMatchPercentage >= 50 ? "bg-yellow-100 text-yellow-800" : "bg-red-100 text-red-800"}
+            >
+              {skillMatchPercentage}% Match
+            </Badge>
           </div>
-
-          {/* Application Form */}
-          <div className="grid gap-4">
-            <div>
-              <Label htmlFor="bidAmount">Your Bid Amount ($)</Label>
-              <Input
-                id="bidAmount"
-                type="number"
-                placeholder="Enter your bid amount"
-                value={bidAmount || ''}
-                onChange={(e) => setBidAmount(e.target.value ? Number(e.target.value) : null)}
-                min="0"
-                step="0.01"
-              />
+          
+          {matchingSkills.length > 0 && (
+            <div className="space-y-2">
+              <p className="text-sm text-green-700 font-medium">✓ Your matching skills:</p>
+              <div className="flex flex-wrap gap-2">
+                {matchingSkills.map(skill => (
+                  <Badge key={skill} variant="secondary" className="bg-green-100 text-green-800 border-green-200">
+                    <CheckCircle2 className="w-3 h-3 mr-1" />
+                    {skill}
+                  </Badge>
+                ))}
+              </div>
             </div>
-
-            <div>
-              <Label htmlFor="availability">Your Availability</Label>
-              <Input
-                id="availability"
-                placeholder="e.g., Available immediately, 2 weeks notice, etc."
-                value={availability}
-                onChange={(e) => setAvailability(e.target.value)}
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="coverLetter">Proposal Message</Label>
-              <Textarea
-                id="coverLetter"
-                placeholder="Explain why you're the right fit for this project. Highlight relevant experience and how you plan to approach the work..."
-                value={coverLetter}
-                onChange={(e) => setCoverLetter(e.target.value)}
-                rows={6}
-                className="resize-none"
-              />
-              <p className="text-sm text-gray-500 mt-1">
-                {coverLetter.length}/500 characters (minimum 100 recommended)
+          )}
+          
+          {missingSkills.length > 0 && (
+            <div className="space-y-2">
+              <p className="text-sm text-amber-700 font-medium">⚠ Skills to highlight in your proposal:</p>
+              <div className="flex flex-wrap gap-2">
+                {missingSkills.map(skill => (
+                  <Badge key={skill} variant="outline" className="border-amber-200 text-amber-700">
+                    {skill}
+                  </Badge>
+                ))}
+              </div>
+              <p className="text-xs text-amber-600">
+                Explain how your experience relates to these skills in your proposal.
               </p>
             </div>
-          </div>
+          )}
 
-          {/* Action Buttons */}
-          <div className="flex gap-3 pt-4 border-t">
-            <Button
-              variant="outline"
-              onClick={onCancel}
-              disabled={isApplying}
-              className="flex-1"
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={handleApplyToProject}
-              disabled={isApplying || !coverLetter.trim() || bidAmount === null}
-              className="flex-1"
-            >
-              {isApplying ? 'Submitting...' : 'Submit Application'}
-            </Button>
+          {skillMatchPercentage < 50 && (
+            <Alert>
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription className="text-sm">
+                Your skill match is below 50%. Consider explaining how your related experience applies to this project.
+              </AlertDescription>
+            </Alert>
+          )}
+        </div>
+
+        <Separator />
+
+        {/* Availability Selection */}
+        <div className="space-y-2">
+          <label className="block text-sm font-medium text-gray-700">
+            Your Availability *
+          </label>
+          <Select value={availability} onValueChange={setAvailability}>
+            <SelectTrigger>
+              <SelectValue placeholder="When can you start this project?" />
+            </SelectTrigger>
+            <SelectContent>
+              {AVAILABILITY_OPTIONS.map(option => (
+                <SelectItem key={option.value} value={option.value}>
+                  <div className="flex flex-col">
+                    <span className="font-medium">{option.label}</span>
+                    <span className="text-xs text-gray-500">{option.description}</span>
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Enhanced Bid Amount Section */}
+        <div className="space-y-3">
+          <label className="block text-sm font-medium text-gray-700">
+            Your Bid Amount (TTD) *
+          </label>
+          <div className="relative">
+            <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
+            <Input 
+              type="number"
+              placeholder="Enter your competitive bid"
+              className="pl-10"
+              value={bidAmount === null ? '' : bidAmount}
+              onChange={(e) => setBidAmount(e.target.value ? Number(e.target.value) : null)}
+            />
           </div>
-        </CardContent>
-      </Card>
-    </div>
+          
+          {budgetGuidance && (
+            <div className="bg-blue-50 p-3 rounded-lg space-y-2">
+              <p className="text-sm font-medium text-blue-900">Client's Budget: ${project?.budget || 'N/A'}</p>
+              <div className="grid grid-cols-3 gap-2 text-xs">
+                <div className="text-center">
+                  <div className="font-medium text-green-700">${budgetGuidance.competitive}</div>
+                  <div className="text-green-600">Competitive</div>
+                </div>
+                <div className="text-center">
+                  <div className="font-medium text-blue-700">${budgetGuidance.market}</div>
+                  <div className="text-blue-600">Market Rate</div>
+                </div>
+                <div className="text-center">
+                  <div className="font-medium text-purple-700">${budgetGuidance.premium}</div>
+                  <div className="text-purple-600">Premium</div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+        
+        {/* Enhanced Proposal Section */}
+        <div className="space-y-3">
+          <label className="block text-sm font-medium text-gray-700">
+            Proposal Message *
+          </label>
+          <Textarea 
+            placeholder="Write a compelling proposal that shows why you're the best fit for this project..."
+            className="min-h-[150px]"
+            value={coverLetter}
+            onChange={(e) => setCoverLetter(e.target.value)}
+          />
+          <div className="bg-gray-50 p-3 rounded-lg">
+            <p className="text-sm font-medium text-gray-700 mb-2">💡 Tips for a winning proposal:</p>
+            <ul className="text-xs text-gray-600 space-y-1">
+              <li>• Explain your relevant experience with similar projects</li>
+              <li>• Address how you'll handle the specific requirements</li>
+              <li>• Mention your approach and timeline</li>
+              <li>• Include any questions about the project</li>
+              {missingSkills.length > 0 && (
+                <li className="text-amber-600">• Explain how your experience relates to: {missingSkills.join(', ')}</li>
+              )}
+            </ul>
+          </div>
+          <div className="text-xs text-gray-500">
+            {coverLetter.length}/500 characters (aim for at least 200 for a competitive proposal)
+          </div>
+        </div>
+      </CardContent>
+
+      <CardFooter className="flex justify-between items-center bg-gray-50">
+        <Button variant="outline" onClick={onCancel}>
+          Cancel
+        </Button>
+        <Button 
+          onClick={handleApplyToProject}
+          disabled={isApplying || !coverLetter.trim() || !bidAmount || !availability}
+          size="lg"
+          className="px-8"
+        >
+          {isApplying ? 'Submitting...' : '🚀 Submit Application'}
+        </Button>
+      </CardFooter>
+    </Card>
   );
 };
 

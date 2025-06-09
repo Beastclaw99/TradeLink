@@ -49,7 +49,7 @@ const ProjectMarketplace: React.FC = () => {
         .from('projects')
         .select(`
           *,
-          client:profiles!projects_client_id_fkey(id, first_name, last_name)
+          client:profiles!projects_client_id_fkey(first_name, last_name)
         `)
         .eq('status', 'open')
         .order('created_at', { ascending: false });
@@ -61,7 +61,7 @@ const ProjectMarketplace: React.FC = () => {
       
       console.log('Fetched projects:', data);
       
-      // Ensure the data is properly typed as Project[] with correct required_skills handling
+      // Ensure the data is properly typed as Project[]
       const typedProjects: Project[] = data?.map(project => ({
         id: project.id,
         title: project.title,
@@ -72,11 +72,7 @@ const ProjectMarketplace: React.FC = () => {
         location: project.location || null,
         urgency: project.urgency || null,
         requirements: project.requirements || null,
-        required_skills: Array.isArray(project.recommended_skills) 
-          ? project.recommended_skills 
-          : (typeof project.recommended_skills === 'string' 
-             ? project.recommended_skills.split(',').map((skill: string) => skill.trim())
-             : []),
+        required_skills: project.recommended_skills || null, // Map recommended_skills to required_skills
         status: project.status || null,
         created_at: project.created_at || null,
         updated_at: project.updated_at || null,
@@ -92,11 +88,7 @@ const ProjectMarketplace: React.FC = () => {
         scope: project.scope || null,
         service_contract: project.service_contract || null,
         sla_terms: project.sla_terms || null,
-        client: project.client ? {
-          id: project.client.id || project.client_id || '',
-          first_name: project.client.first_name || 'Unknown',
-          last_name: project.client.last_name || 'User'
-        } : undefined
+        client: project.client || undefined
       })) || [];
       
       setProjects(typedProjects);
@@ -146,11 +138,6 @@ const ProjectMarketplace: React.FC = () => {
       navigate('/login');
     }
   };
-
-  const handleFilterApply = () => {
-    // Filters are applied automatically through the filteredProjects calculation
-    console.log('Filters applied');
-  };
   
   return (
     <Layout>
@@ -167,23 +154,23 @@ const ProjectMarketplace: React.FC = () => {
             setLocationFilter={setLocationFilter}
             budgetFilter={budgetFilter}
             setBudgetFilter={setBudgetFilter}
-            onFilterApply={handleFilterApply}
+            onFilterApply={fetchProjects}
           />
           
           <ViewModeToggle 
             viewMode={viewMode} 
-            setViewMode={setViewMode}
-            projectCount={filteredProjects.length}
+            setViewMode={setViewMode} 
+            projectCount={filteredProjects.length} 
           />
           
           <ProjectsDisplay 
-            projects={filteredProjects}
-            viewMode={viewMode}
-            loading={loading}
+            projects={filteredProjects} 
+            loading={loading} 
+            viewMode={viewMode} 
           />
         </div>
       </section>
-      
+
       <CTASection onPostProject={handlePostProject} />
     </Layout>
   );

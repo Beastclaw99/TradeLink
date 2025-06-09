@@ -1,4 +1,3 @@
-
 import React from 'react';
 import UnifiedProjectCard from '@/components/shared/UnifiedProjectCard';
 import { Project, Application } from '../../types';
@@ -17,7 +16,6 @@ const AssignedProjectCard: React.FC<AssignedProjectCardProps> = ({
       project={project}
       variant="card"
       isProfessional={false}
-      actionLabel="View Details"
     />
   );
 };

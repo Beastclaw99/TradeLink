@@ -1,4 +1,3 @@
-
 export interface Milestone {
   id?: string;
   title: string;
@@ -25,7 +24,6 @@ export interface Milestone {
   created_at?: string;
   created_by?: string;
   updated_at?: string;
-  requires_deliverable?: boolean;
 }
 
 // Database milestone type
@@ -110,9 +108,4 @@ export interface ProjectData {
   project_start_time: string;
   rich_description: string;
   sla_terms: string | null;
-  deliverables?: {
-    description: string;
-    deliverable_type: 'file' | 'note' | 'link';
-    content?: string;
-  }[];
-}
+} 

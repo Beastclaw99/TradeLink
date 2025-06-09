@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -35,7 +36,7 @@ export const useClientDashboard = (userId: string) => {
       
       if (projectsError) throw projectsError;
       
-      // Transform projects to match Project interface with proper required_skills handling
+      // Transform projects to match Project interface
       const transformedProjects: Project[] = (projectsData || []).map(project => ({
         id: project.id,
         title: project.title,
@@ -46,11 +47,7 @@ export const useClientDashboard = (userId: string) => {
         location: project.location,
         urgency: project.urgency,
         requirements: project.requirements,
-        required_skills: Array.isArray(project.recommended_skills) 
-          ? project.recommended_skills 
-          : (typeof project.recommended_skills === 'string' 
-             ? project.recommended_skills.split(',').map((skill: string) => skill.trim())
-             : []),
+        required_skills: project.recommended_skills || null, // Map recommended_skills to required_skills
         status: project.status,
         created_at: project.created_at,
         updated_at: project.updated_at,
@@ -76,7 +73,7 @@ export const useClientDashboard = (userId: string) => {
         .select(`
           *,
           project:projects(id, title, status, budget, created_at),
-          professional:profiles!applications_professional_id_fkey(id, first_name, last_name, email, phone, bio, rating, hourly_rate, profile_image, skills, years_experience, location, verification_status)
+          professional:profiles!applications_professional_id_fkey(first_name, last_name)
         `)
         .in('project_id', projectsData.map(project => project.id) || []);
       
@@ -101,21 +98,7 @@ export const useClientDashboard = (userId: string) => {
           budget: app.project.budget,
           created_at: app.project.created_at
         } as ApplicationProject : undefined,
-        professional: app.professional ? {
-          id: app.professional.id,
-          first_name: app.professional.first_name,
-          last_name: app.professional.last_name,
-          email: app.professional.email,
-          phone: app.professional.phone,
-          bio: app.professional.bio,
-          rating: app.professional.rating,
-          hourly_rate: app.professional.hourly_rate,
-          profile_image: app.professional.profile_image,
-          skills: app.professional.skills,
-          years_experience: app.professional.years_experience,
-          location: app.professional.location,
-          verification_status: app.professional.verification_status
-        } : undefined
+        professional: app.professional
       }));
       
       setApplications(transformedApplications);
@@ -125,7 +108,7 @@ export const useClientDashboard = (userId: string) => {
         .from('payments')
         .select(`
           *,
-          project:projects(id, title, status),
+          project:projects(title),
           professional:profiles!payments_professional_id_fkey(first_name, last_name)
         `)
         .eq('client_id', userId);
@@ -137,18 +120,15 @@ export const useClientDashboard = (userId: string) => {
         id: payment.id,
         amount: payment.amount,
         status: payment.status,
-        payment_method_id: payment.payment_method_id,
-        transaction_id: payment.transaction_id,
+        payment_method: (payment as any).payment_method || null,
+        transaction_id: (payment as any).transaction_id || null,
         created_at: payment.created_at,
         paid_at: payment.paid_at,
         client_id: payment.client_id,
         professional_id: payment.professional_id,
         project_id: payment.project_id,
-        project: payment.project ? {
-          id: payment.project.id,
-          title: payment.project.title,
-          status: payment.project.status
-        } : undefined
+        project: payment.project,
+        professional: payment.professional
       }));
       
       setPayments(transformedPayments);
@@ -161,29 +141,16 @@ export const useClientDashboard = (userId: string) => {
       
       if (reviewsError) throw reviewsError;
       
-      // Transform reviews to match the Review type with required properties
+      // Transform reviews to match the Review type
       const transformedReviews: Review[] = (reviewsData || []).map(review => ({
         id: review.id,
         rating: review.rating,
-        comment: review.comment || '',
+        comment: review.comment,
         client_id: review.client_id,
         professional_id: review.professional_id,
         project_id: review.project_id,
         created_at: review.created_at,
-        updated_at: review['updated at'] || review.created_at,
-        status: (review.status as 'pending' | 'approved' | 'rejected' | 'reported') || 'pending',
-        is_verified: review.is_verified || false,
-        communication_rating: review.communication_rating,
-        quality_rating: review.quality_rating,
-        timeliness_rating: review.timeliness_rating,
-        professionalism_rating: review.professionalism_rating,
-        verification_method: review.verification_method,
-        reported_at: review.reported_at,
-        reported_by: review.reported_by,
-        report_reason: review.report_reason,
-        moderated_at: review.moderated_at,
-        moderated_by: review.moderated_by,
-        moderation_notes: review.moderation_notes
+        updated_at: review['updated at'] || review.created_at // Handle the space in column name
       }));
       
       setReviews(transformedReviews);
