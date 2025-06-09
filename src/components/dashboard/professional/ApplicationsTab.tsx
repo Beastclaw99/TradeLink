@@ -1,14 +1,13 @@
 
 import React, { useState } from 'react';
 import { Loader2 } from 'lucide-react';
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@/components/ui/use-toast";
 import { Application } from '../types';
 import { supabase } from '@/integrations/supabase/client';
 import ApplicationStatusTracker from './enhanced/ApplicationStatusTracker';
 import ViewApplicationDialog from './applications/ViewApplicationDialog';
 import WithdrawApplicationDialog from './applications/WithdrawApplicationDialog';
 import { useApplications } from './applications/useApplications';
-import { notificationService } from '@/services/notificationService';
 
 interface ApplicationsTabProps {
   isLoading: boolean;
@@ -54,14 +53,6 @@ const ApplicationsTab: React.FC<ApplicationsTabProps> = ({ isLoading, applicatio
         .eq('professional_id', userId);
       
       if (error) throw error;
-      
-      // Create notification for withdrawal
-      await notificationService.createNotification({
-        user_id: userId,
-        type: 'info',
-        title: 'Application Withdrawn',
-        message: `You have withdrawn your application for "${selectedApplication.project?.title || 'the project'}".`
-      });
       
       toast({
         title: "Application Withdrawn",
