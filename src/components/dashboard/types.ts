@@ -1,4 +1,3 @@
-import { ProjectStatus } from '@/types/projectUpdates';
 
 export interface Project {
   id: string;
@@ -11,7 +10,7 @@ export interface Project {
   urgency: string | null;
   requirements: string[] | null;
   required_skills: string | null;
-  status: ProjectStatus | null;
+  status: string | null;
   created_at: string | null;
   updated_at: string | null;
   client_id: string | null;

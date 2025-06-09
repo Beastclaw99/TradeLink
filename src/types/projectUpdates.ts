@@ -11,13 +11,6 @@ export type ProjectStatus =
   | 'cancelled'               // Project was cancelled
   | 'disputed';               // Project is in dispute
 
-export type PaymentStatus =
-  | 'pending'     // Payment is pending
-  | 'processing'  // Payment is being processed
-  | 'completed'   // Payment has been completed
-  | 'failed'      // Payment has failed
-  | 'refunded';   // Payment has been refunded
-
 export type UpdateType =
   | 'message'                 // General message
   | 'status_change'           // Status change notification
