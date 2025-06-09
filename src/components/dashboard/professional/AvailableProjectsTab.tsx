@@ -54,9 +54,9 @@ const AvailableProjectsTab: React.FC<AvailableProjectsTabProps> = ({
 
   // Calculate skill matches for recommendations
   const getSkillMatchPercentage = (project: Project) => {
-    const projectSkills = Array.isArray(project.recommended_skills) 
-      ? project.recommended_skills 
-      : (project.recommended_skills?.split(',').map(skill => skill.trim()) || []);
+    const projectSkills = Array.isArray(project.required_skills) 
+      ? project.required_skills 
+      : (project.required_skills?.toString().split(',').map(skill => skill.trim()) || []);
     
     if (!projectSkills.length || !skills.length) return 0;
     

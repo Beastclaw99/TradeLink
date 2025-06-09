@@ -196,5 +196,32 @@ export const fileService = {
 
   async deleteFileStatusRestriction(id: string): Promise<void> {
     console.log('deleteFileStatusRestriction placeholder for id:', id);
+  },
+
+  // Additional placeholder methods that components expect
+  async validateFile(projectId: string, versionId: string, file: File): Promise<{ isValid: boolean; error?: string }> {
+    console.log('validateFile placeholder:', { projectId, versionId, fileName: file.name });
+    return { isValid: true };
+  },
+
+  async uploadFileVersion(
+    projectId: string,
+    versionId: string,
+    file: File,
+    changeDescription: string,
+    accessLevel: string
+  ): Promise<FileVersion> {
+    console.log('uploadFileVersion placeholder:', { projectId, versionId, fileName: file.name, changeDescription, accessLevel });
+    
+    // Simulate file upload
+    const fileUrl = await this.uploadFile(file, projectId);
+    
+    return this.createFileVersion({
+      file_name: file.name,
+      file_url: fileUrl,
+      file_type: file.type,
+      file_size: file.size,
+      version_id: versionId
+    });
   }
 };

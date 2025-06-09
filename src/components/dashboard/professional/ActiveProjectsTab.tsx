@@ -66,9 +66,9 @@ const ActiveProjectsTab: React.FC<ActiveProjectsTabProps> = ({
             const clientName = project.client ? 
               `${project.client.first_name} ${project.client.last_name}` : 
               'Unknown Client';
-            const projectSkills = Array.isArray(project.recommended_skills) 
-              ? project.recommended_skills 
-              : (project.recommended_skills?.split(',') || []);
+            const projectSkills = Array.isArray(project.required_skills) 
+              ? project.required_skills 
+              : (project.required_skills?.toString().split(',') || []);
             
             return (
               <Card key={project.id} className="hover:shadow-lg transition-shadow">

@@ -127,7 +127,7 @@ export interface ProjectMember {
   created_at: string;
 }
 
-// Updated PaymentsTabProps interface
+// Fixed PaymentsTabProps interface to match actual usage
 export interface PaymentsTabProps {
   isLoading: boolean;
   projects: Project[];

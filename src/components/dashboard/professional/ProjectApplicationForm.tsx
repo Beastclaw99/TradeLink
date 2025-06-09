@@ -58,9 +58,9 @@ const ProjectApplicationForm: React.FC<ProjectApplicationFormProps> = ({
   if (!selectedProject) return null;
   
   const project = projects.find(p => p.id === selectedProject);
-  const projectSkills = Array.isArray(project?.recommended_skills) 
-    ? project.recommended_skills 
-    : (project?.recommended_skills?.split(',').map(skill => skill.trim()) || []);
+  const projectSkills = Array.isArray(project?.required_skills) 
+    ? project.required_skills 
+    : (project?.required_skills?.toString().split(',').map(skill => skill.trim()) || []);
     
   const matchingSkills = userSkills.filter(skill => 
     projectSkills.some(projectSkill => 

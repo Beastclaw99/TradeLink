@@ -6,8 +6,9 @@ import { Badge } from '@/components/ui/badge';
 import { MapPin, Calendar, DollarSign, User, Clock, Star } from 'lucide-react';
 import { format } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
-import ProjectMilestones from '@/components/project/ProjectMilestones';
 import { Project } from '@/components/dashboard/types';
+
+export type ProjectStatus = 'not_started' | 'in_progress' | 'completed' | 'on_hold' | 'cancelled';
 
 interface UnifiedProjectCardProps {
   project: Project;
@@ -204,21 +205,6 @@ const UnifiedProjectCard: React.FC<UnifiedProjectCardProps> = ({
                 <li className="text-blue-600">+ {project.requirements.length - 3} more</li>
               )}
             </ul>
-          </div>
-        )}
-
-        {showMilestones && (
-          <div className="border-t pt-4">
-            <ProjectMilestones
-              projectId={project.id}
-              projectStatus={project.status}
-              milestones={[]}
-              isClient={!isProfessional}
-              onAddMilestone={async () => {}}
-              onEditMilestone={async () => {}}
-              onDeleteMilestone={async () => {}}
-              onUpdateTaskStatus={async () => {}}
-            />
           </div>
         )}
 

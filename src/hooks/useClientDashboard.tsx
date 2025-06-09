@@ -47,10 +47,10 @@ export const useClientDashboard = (userId: string) => {
         location: project.location,
         urgency: project.urgency,
         requirements: project.requirements,
-        required_skills: Array.isArray(project.recommended_skills) 
-          ? project.recommended_skills 
-          : project.recommended_skills 
-            ? [project.recommended_skills] 
+        required_skills: typeof project.recommended_skills === 'string' 
+          ? project.recommended_skills.split(',').map((skill: string) => skill.trim())
+          : Array.isArray(project.recommended_skills) 
+            ? project.recommended_skills 
             : [],
         status: project.status,
         created_at: project.created_at,
@@ -77,7 +77,7 @@ export const useClientDashboard = (userId: string) => {
         .select(`
           *,
           project:projects(id, title, status, budget, created_at),
-          professional:profiles!applications_professional_id_fkey(first_name, last_name)
+          professional:profiles!applications_professional_id_fkey(id, first_name, last_name, email, phone, bio, rating, hourly_rate, profile_image, skills, years_experience, location, verification_status)
         `)
         .in('project_id', projectsData.map(project => project.id) || []);
       
@@ -102,7 +102,21 @@ export const useClientDashboard = (userId: string) => {
           budget: app.project.budget,
           created_at: app.project.created_at
         } as ApplicationProject : undefined,
-        professional: app.professional
+        professional: app.professional ? {
+          id: app.professional.id,
+          first_name: app.professional.first_name,
+          last_name: app.professional.last_name,
+          email: app.professional.email,
+          phone: app.professional.phone,
+          bio: app.professional.bio,
+          rating: app.professional.rating,
+          hourly_rate: app.professional.hourly_rate,
+          profile_image: app.professional.profile_image,
+          skills: app.professional.skills,
+          years_experience: app.professional.years_experience,
+          location: app.professional.location,
+          verification_status: app.professional.verification_status
+        } : undefined
       }));
       
       setApplications(transformedApplications);
@@ -112,7 +126,7 @@ export const useClientDashboard = (userId: string) => {
         .from('payments')
         .select(`
           *,
-          project:projects(title),
+          project:projects(id, title, status),
           professional:profiles!payments_professional_id_fkey(first_name, last_name)
         `)
         .eq('client_id', userId);
@@ -124,15 +138,18 @@ export const useClientDashboard = (userId: string) => {
         id: payment.id,
         amount: payment.amount,
         status: payment.status,
-        payment_method: (payment as any).payment_method || null,
-        transaction_id: (payment as any).transaction_id || null,
+        payment_method_id: payment.payment_method_id,
+        transaction_id: payment.transaction_id,
         created_at: payment.created_at,
         paid_at: payment.paid_at,
         client_id: payment.client_id,
         professional_id: payment.professional_id,
         project_id: payment.project_id,
-        project: payment.project,
-        professional: payment.professional
+        project: payment.project ? {
+          id: payment.project.id,
+          title: payment.project.title,
+          status: payment.project.status
+        } : undefined
       }));
       
       setPayments(transformedPayments);
