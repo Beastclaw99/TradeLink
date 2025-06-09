@@ -1,15 +1,12 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { CheckCircle, RefreshCw, FileText, Paperclip, Info, AlertTriangle, MessageSquare } from 'lucide-react';
+import { FileText, Info } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Separator } from '@/components/ui/separator';
 import { useProjectStatus } from '@/hooks/useProjectStatus';
+import EnhancedReviewForm from '@/components/reviews/EnhancedReviewForm';
 
 interface WorkReviewFormProps {
   projectId: string;
@@ -26,8 +23,6 @@ const WorkReviewForm: React.FC<WorkReviewFormProps> = ({
 }: WorkReviewFormProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [message, setMessage] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [deliverables, setDeliverables] = useState<any[]>([]);
   const { updateProjectStatus } = useProjectStatus(projectId, user?.id || '');
 
@@ -55,120 +50,30 @@ const WorkReviewForm: React.FC<WorkReviewFormProps> = ({
     }
   }, [projectId, isVisible]);
 
-  // Handle approval
-  const handleApprove = async () => {
+  const handleReviewSubmit = async (reviewData: any) => {
     try {
-      setIsSubmitting(true);
-
-      // Update project status
-      const result = await updateProjectStatus('work_approved', {
-        approval_notes: message || 'Work approved'
-      });
-
-      if (!result.success) throw new Error(result.message);
+      // Update project status to work_approved
+      await updateProjectStatus('work_approved');
 
       // Create project update
-      await supabase.from('project_updates').insert([{
+      await supabase.from('project_updates').insert({
         project_id: projectId,
-        update_type: 'status_change',
-        message: message || 'Work approved',
+        update_type: 'work_approved',
+        message: 'Work has been approved by the client',
         professional_id: user?.id,
         metadata: {
-          status_change: 'work_approved',
-          approval_notes: message
+          review_submitted: true
         }
-      }]);
-
-      // Send message to project chat
-      await supabase.from('project_messages').insert([{
-        project_id: projectId,
-        sender_id: user?.id,
-        content: message || 'Work has been approved.',
-        sent_at: new Date().toISOString(),
-        metadata: {
-          type: 'work_approved',
-          title: 'Work Approved'
-        }
-      }]);
-
-      toast({
-        title: "Work Approved",
-        description: "The work has been approved successfully."
       });
 
       onReviewSubmitted();
     } catch (error: any) {
-      console.error('Error approving work:', error);
+      console.error('Error submitting review:', error);
       toast({
         title: "Error",
-        description: error.message || "Failed to approve work. Please try again.",
+        description: "Failed to submit review. Please try again.",
         variant: "destructive"
       });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  // Handle revision request
-  const handleRequestRevision = async () => {
-    if (!message.trim()) {
-      toast({
-        title: "Feedback Required",
-        description: "Please provide feedback explaining what needs to be revised.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    try {
-      setIsSubmitting(true);
-
-      // Update project status
-      const result = await updateProjectStatus('work_revision_requested', {
-        revision_notes: message
-      });
-
-      if (!result.success) throw new Error(result.message);
-
-      // Create project update
-      await supabase.from('project_updates').insert([{
-        project_id: projectId,
-        update_type: 'status_change',
-        message: message,
-        professional_id: user?.id,
-        metadata: {
-          status_change: 'work_revision_requested',
-          revision_notes: message
-        }
-      }]);
-
-      // Send message to project chat
-      await supabase.from('project_messages').insert([{
-        project_id: projectId,
-        sender_id: user?.id,
-        content: message,
-        sent_at: new Date().toISOString(),
-        metadata: {
-          type: 'revision_requested',
-          title: 'Revision Requested'
-        }
-      }]);
-
-      toast({
-        title: "Revision Requested",
-        description: "The professional has been notified to make the requested changes."
-      });
-
-      onReviewSubmitted();
-    } catch (error: any) {
-      console.error('Error requesting revision:', error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to request revision. Please try again.",
-        variant: "destructive"
-      });
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
@@ -188,7 +93,6 @@ const WorkReviewForm: React.FC<WorkReviewFormProps> = ({
         </p>
       </CardHeader>
       <CardContent className="space-y-6">
-        
         {/* Review Guidelines */}
         <Alert>
           <Info className="h-4 w-4" />
@@ -199,113 +103,34 @@ const WorkReviewForm: React.FC<WorkReviewFormProps> = ({
         </Alert>
 
         {/* Deliverables List */}
-        <div className="space-y-4">
-          <h3 className="font-medium flex items-center gap-2">
-            <FileText className="h-4 w-4" />
-            Submitted Deliverables
-          </h3>
-          {deliverables.length === 0 ? (
-            <div className="text-center py-8 bg-gray-50 rounded-lg">
-              <FileText className="h-12 w-12 text-gray-400 mx-auto mb-2" />
-              <p className="text-gray-500">No deliverables found.</p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {deliverables.map((deliverable) => (
-                <div key={deliverable.id} className="p-4 bg-white border border-gray-200 rounded-lg shadow-sm">
-                  <div className="flex items-start gap-3">
-                    <FileText className="w-6 h-6 text-blue-500 mt-1 flex-shrink-0" />
-                    <div className="flex-1 space-y-2">
-                      <div>
-                        <p className="font-medium text-gray-900">{deliverable.message}</p>
-                        <p className="text-sm text-gray-500">
-                          Submitted on {new Date(deliverable.created_at).toLocaleDateString()} at{' '}
-                          {new Date(deliverable.created_at).toLocaleTimeString()}
-                        </p>
-                      </div>
-                      {deliverable.file_url && (
-                        <a
-                          href={deliverable.file_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-2 text-sm text-blue-600 hover:text-blue-800 font-medium"
-                        >
-                          <Paperclip className="w-4 h-4" />
-                          Download Attachment
-                        </a>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        <Separator />
-
-        {/* Review Form */}
-        <div className="space-y-6">
-          <div className="space-y-2">
-            <Label htmlFor="message" className="flex items-center gap-2">
-              <MessageSquare className="h-4 w-4" />
-              Feedback Message
-            </Label>
-            <Textarea
-              id="message"
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              placeholder="Provide specific feedback about the work quality, any concerns, or appreciation for excellent work..."
-              className="min-h-[120px]"
-            />
-            <p className="text-xs text-gray-500">
-              Clear feedback helps professionals improve and builds better working relationships.
-            </p>
-          </div>
-
-          {/* Decision Buttons */}
-          <div className="grid md:grid-cols-2 gap-4">
-            <Button
-              type="button"
-              variant="outline"
-              className="w-full h-auto p-4 border-orange-200 hover:bg-orange-50"
-              onClick={handleRequestRevision}
-              disabled={isSubmitting}
-            >
-              <div className="flex flex-col items-center gap-2">
-                <RefreshCw className="h-5 w-5 text-orange-600" />
-                <div className="text-center">
-                  <div className="font-medium text-orange-700">Request Revision</div>
-                  <div className="text-sm text-orange-600">Work needs changes</div>
-                </div>
+        {deliverables.length > 0 && (
+          <div className="space-y-4">
+            <h3 className="font-medium">Submitted Deliverables</h3>
+            {deliverables.map((deliverable, index) => (
+              <div key={index} className="p-4 border rounded-lg">
+                <p className="text-sm text-gray-600">{deliverable.message}</p>
+                {deliverable.file_url && (
+                  <a
+                    href={deliverable.file_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:underline text-sm mt-2 inline-block"
+                  >
+                    View File
+                  </a>
+                )}
               </div>
-            </Button>
-            
-            <Button
-              type="button"
-              className="w-full h-auto p-4 bg-green-600 hover:bg-green-700"
-              onClick={handleApprove}
-              disabled={isSubmitting}
-            >
-              <div className="flex flex-col items-center gap-2">
-                <CheckCircle className="h-5 w-5" />
-                <div className="text-center">
-                  <div className="font-medium">Approve Work</div>
-                  <div className="text-sm opacity-90">Mark as complete</div>
-                </div>
-              </div>
-            </Button>
+            ))}
           </div>
+        )}
 
-          {/* Action Guidance */}
-          <Alert>
-            <AlertTriangle className="h-4 w-4" />
-            <AlertDescription>
-              <strong>Important:</strong> Once you approve the work, the project will move to the completion phase. 
-              Make sure all requirements are met before approving.
-            </AlertDescription>
-          </Alert>
-        </div>
+        {/* Enhanced Review Form */}
+        <EnhancedReviewForm
+          projectId={projectId}
+          revieweeId={user?.id || ''}
+          revieweeType="professional"
+          onSubmit={handleReviewSubmit}
+        />
       </CardContent>
     </Card>
   );

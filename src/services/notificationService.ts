@@ -59,7 +59,15 @@ export const notificationService = {
       },
       completed: {
         title: 'Project Completed',
-        message: `Project "${projectTitle}" has been completed.`
+        message: `Project "${projectTitle}" has been completed and is ready for payment.`
+      },
+      paid: {
+        title: 'Payment Received',
+        message: `Payment has been received for project "${projectTitle}".`
+      },
+      archived: {
+        title: 'Project Archived',
+        message: `Project "${projectTitle}" has been archived.`
       },
       cancelled: {
         title: 'Project Cancelled',

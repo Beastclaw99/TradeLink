@@ -5,8 +5,9 @@ export type ProjectStatus =
   | 'work_submitted'          // Professional has submitted work for review
   | 'work_revision_requested' // Client has requested revisions
   | 'work_approved'           // Client has approved the work
-  | 'completed'               // Project is completed but pending mutual reviews
-  | 'archived'                // Project is archived after mutual reviews
+  | 'completed'               // Project is completed but pending payment
+  | 'paid'                    // Project is paid and ready for archiving
+  | 'archived'                // Project is archived after payment
   | 'cancelled'               // Project was cancelled
   | 'disputed';               // Project is in dispute
 

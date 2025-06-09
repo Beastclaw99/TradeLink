@@ -10,7 +10,8 @@ const VALID_TRANSITIONS: Record<ProjectStatus, ProjectStatus[]> = {
   work_submitted: ['work_revision_requested', 'work_approved', 'cancelled'],
   work_revision_requested: ['work_submitted', 'cancelled'],
   work_approved: ['completed', 'cancelled'],
-  completed: ['archived'],
+  completed: ['paid', 'cancelled'],
+  paid: ['archived'],
   archived: [],
   cancelled: [],
   disputed: ['cancelled', 'in_progress']
@@ -59,9 +60,16 @@ const TRANSITION_REQUIREMENTS: Record<ProjectStatus, {
       ) ?? false;
     }
   },
+  paid: {
+    requiredFields: ['payment_id'],
+    requiredConditions: (project) => {
+      // Check if payment exists and is completed
+      return !!project.payment_id && project.payment_status === 'completed';
+    }
+  },
   archived: {
     requiredFields: [],
-    requiredConditions: (project) => project.status === 'completed'
+    requiredConditions: (project) => project.status === 'paid'
   },
   cancelled: {
     requiredFields: ['cancellation_reason'],
