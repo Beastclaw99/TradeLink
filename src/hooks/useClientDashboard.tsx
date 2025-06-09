@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -171,7 +170,7 @@ export const useClientDashboard = (userId: string) => {
         professional_id: review.professional_id,
         project_id: review.project_id,
         created_at: review.created_at,
-        updated_at: review['updated at'] || review.updated_at || review.created_at,
+        updated_at: review['updated at'] || review.created_at,
         status: (review.status as 'pending' | 'approved' | 'rejected' | 'reported') || 'pending',
         is_verified: review.is_verified || false,
         communication_rating: review.communication_rating,
