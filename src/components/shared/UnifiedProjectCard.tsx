@@ -1,18 +1,19 @@
-
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { Badge } from "@/components/ui/badge";
 import { 
   Card, 
   CardContent, 
   CardDescription, 
+  CardFooter, 
   CardHeader, 
   CardTitle 
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { DollarSign, MapPin, Clock, Tag, MessageSquare, ChevronDown, ChevronUp } from 'lucide-react';
 import { Project } from '@/components/dashboard/types';
-import { Milestone } from '@/components/project/creation/types';
 import ProjectChat from '../project/ProjectChat';
-import { ChatBubbleLeftIcon, ClockIcon, ExclamationCircleIcon, DocumentIcon, CalendarIcon, CheckCircleIcon, TagIcon, EyeIcon } from '@heroicons/react/24/outline';
+import { ChatBubbleLeftIcon, ClockIcon, ExclamationCircleIcon, DocumentIcon, CurrencyDollarIcon, CalendarIcon, CheckCircleIcon, PaperClipIcon, MapPinIcon, TruckIcon, BanknotesIcon, ListBulletIcon, PencilSquareIcon, TagIcon, EyeIcon } from '@heroicons/react/24/outline';
 import { format } from 'date-fns';
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -22,21 +23,16 @@ import ProjectMilestones from '../project/ProjectMilestones';
 import ProjectDeliverables from '../project/ProjectDeliverables';
 import { ProgressIndicator } from "@/components/ui/progress-indicator";
 import { supabase } from '@/integrations/supabase/client';
-import { convertDBMilestoneToMilestone } from '@/components/project/creation/types';
-import { useToast } from "@/hooks/use-toast";
-import { ProjectStatus } from '@/types/projectUpdates';
+import { Milestone, convertDBMilestoneToMilestone } from '@/components/project/creation/types';
+import { useToast } from "@/components/ui/use-toast";
 
 interface UnifiedProjectCardProps {
   project: Project;
   variant?: 'list' | 'card';
-  onStatusChange?: (newStatus: ProjectStatus) => void;
+  onStatusChange?: (newStatus: string) => void;
   isProfessional?: boolean;
   onClick?: () => void;
   actionLabel?: string;
-  isClient?: boolean;
-  onMilestoneUpdate?: (milestoneId: string, updates: Partial<Milestone>) => Promise<void>;
-  onMilestoneDelete?: (milestoneId: string) => Promise<void>;
-  onTaskStatusUpdate?: (milestoneId: string, taskId: string, completed: boolean) => Promise<void>;
 }
 
 const statusColors = {
@@ -47,7 +43,6 @@ const statusColors = {
   work_revision_requested: { bg: 'bg-orange-100', text: 'text-orange-800' },
   work_approved: { bg: 'bg-green-100', text: 'text-green-800' },
   completed: { bg: 'bg-green-100', text: 'text-green-800' },
-  paid: { bg: 'bg-green-100', text: 'text-green-800' },
   archived: { bg: 'bg-gray-100', text: 'text-gray-800' },
   cancelled: { bg: 'bg-red-100', text: 'text-red-800' },
   disputed: { bg: 'bg-red-100', text: 'text-red-800' },
@@ -95,7 +90,7 @@ const getProjectSteps = (project: Project) => {
     {
       id: 'review',
       title: 'Review',
-      status: project.status === 'work_submitted' ? 'current' : 
+      status: project.status === 'review' ? 'current' : 
              ['assigned', 'in_progress'].includes(project.status) ? 'pending' : 'completed' as 'completed' | 'current' | 'pending'
     },
     {
@@ -112,18 +107,14 @@ const getProjectProgress = (project: Project) => {
   return Math.round((completedSteps / steps.length) * 100);
 };
 
-const UnifiedProjectCard: React.FC<UnifiedProjectCardProps> = ({
-  project,
+export default function UnifiedProjectCard({ 
+  project, 
   variant = 'card',
   onStatusChange,
   isProfessional = false,
   onClick,
-  actionLabel,
-  isClient = false,
-  onMilestoneUpdate,
-  onMilestoneDelete,
-  onTaskStatusUpdate
-}) => {
+  actionLabel
+}: UnifiedProjectCardProps) {
   const { toast } = useToast();
   const [showChat, setShowChat] = useState(false);
   const [activeTab, setActiveTab] = useState('timeline');
@@ -244,7 +235,7 @@ const UnifiedProjectCard: React.FC<UnifiedProjectCardProps> = ({
               <div className="flex items-center gap-3 mb-2">
                 <CardTitle className="text-xl">{project.title}</CardTitle>
                 <div className="flex items-center gap-2">
-                  {getStatusIcon(project.status || 'open')}
+                  {getStatusIcon(project.status)}
                   {renderStatusBadge()}
                   {project.urgency && (
                     <Badge className="bg-yellow-100 text-yellow-800">
@@ -288,6 +279,7 @@ const UnifiedProjectCard: React.FC<UnifiedProjectCardProps> = ({
         </CardHeader>
 
         <CardContent className="space-y-4">
+          {/* Project Progress */}
           <div className="space-y-3">
             <div className="flex items-center justify-between text-sm">
               <span className="font-medium">Project Progress</span>
@@ -302,6 +294,7 @@ const UnifiedProjectCard: React.FC<UnifiedProjectCardProps> = ({
 
           <Separator />
 
+          {/* Project Details */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
             <div>
               <span className="font-medium text-gray-700">Budget:</span>
@@ -372,11 +365,11 @@ const UnifiedProjectCard: React.FC<UnifiedProjectCardProps> = ({
                 <TabsContent value="milestones" className="mt-4">
                   <ProjectMilestones 
                     milestones={milestones}
-                    isClient={isClient}
+                    isClient={!isProfessional}
                     onAddMilestone={async () => {}}
-                    onEditMilestone={onMilestoneUpdate || async () => {}}
-                    onDeleteMilestone={onMilestoneDelete || async () => {}}
-                    onUpdateTaskStatus={onTaskStatusUpdate || async () => {}}
+                    onEditMilestone={async () => {}}
+                    onDeleteMilestone={async () => {}}
+                    onUpdateTaskStatus={async () => {}}
                   />
                 </TabsContent>
 
@@ -432,6 +425,4 @@ const UnifiedProjectCard: React.FC<UnifiedProjectCardProps> = ({
       )}
     </div>
   );
-};
-
-export default UnifiedProjectCard;
+}
