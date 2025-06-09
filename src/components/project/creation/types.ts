@@ -51,6 +51,9 @@ export interface DBDeliverable {
   project_id: string;
   uploaded_by: string | null;
   created_at: string;
+  status: 'pending' | 'approved' | 'rejected';
+  feedback: string | null;
+  reviewed_at: string | null;
 }
 
 // Helper functions to convert between types
