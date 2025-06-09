@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -37,12 +36,12 @@ const ProjectHistory: React.FC<ProjectHistoryProps> = ({ projectId }) => {
       const { data, error } = await supabase
         .from('project_history')
         .select(`
-          *,
-          created_by:profiles!project_history_created_by_fkey (
-            first_name,
-            last_name,
-            profile_image
-          )
+          id,
+          history_type,
+          history_data,
+          created_at,
+          project_id,
+          created_by
         `)
         .eq('project_id', projectId)
         .order('created_at', { ascending: false });
@@ -55,13 +54,7 @@ const ProjectHistory: React.FC<ProjectHistoryProps> = ({ projectId }) => {
         history_type: item.history_type,
         history_data: item.history_data,
         created_at: item.created_at,
-        created_by: item.created_by && typeof item.created_by === 'object' && 'first_name' in item.created_by 
-          ? {
-              first_name: item.created_by.first_name || 'Unknown',
-              last_name: item.created_by.last_name || 'User',
-              profile_image: item.created_by.profile_image || ''
-            }
-          : null
+        created_by: null // Set to null since we can't fetch the relation properly
       }));
       
       setHistory(transformedHistory);
