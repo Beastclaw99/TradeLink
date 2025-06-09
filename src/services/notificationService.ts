@@ -13,6 +13,8 @@ export const notificationService = {
   // Create a notification
   async createNotification(data: NotificationData) {
     try {
+      console.log('Creating notification:', data);
+      
       const { error } = await supabase
         .from('notifications')
         .insert([{
@@ -20,9 +22,14 @@ export const notificationService = {
           created_at: new Date().toISOString()
         }]);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error creating notification:', error);
+        throw error;
+      }
+      
+      console.log('Notification created successfully');
     } catch (error) {
-      console.error('Error creating notification:', error);
+      console.error('Error in createNotification:', error);
     }
   },
 
@@ -185,4 +192,4 @@ export const notificationService = {
       action_label: 'View Project'
     });
   }
-}; 
+};

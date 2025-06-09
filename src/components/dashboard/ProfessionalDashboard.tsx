@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useProfessionalDashboard } from "@/hooks/useProfessionalDashboard";
@@ -9,8 +10,9 @@ import PaymentsTab from './professional/PaymentsTab';
 import ReviewsTab from './professional/ReviewsTab';
 import ProjectApplicationForm from './professional/ProjectApplicationForm';
 import DashboardError from './professional/DashboardError';
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { notificationService } from "@/services/notificationService";
 
 interface ProfessionalDashboardProps {
   userId: string;
@@ -60,7 +62,7 @@ const ProfessionalDashboard: React.FC<ProfessionalDashboardProps> = ({ userId })
       // Check if project is still open before applying
       const { data: projectData, error: projectError } = await supabase
         .from('projects')
-        .select('status')
+        .select('status, title')
         .eq('id', selectedProject)
         .single();
         
@@ -96,6 +98,16 @@ const ProfessionalDashboard: React.FC<ProfessionalDashboardProps> = ({ userId })
       
       if (error) throw error;
       
+      // Create notification for successful application
+      await notificationService.createNotification({
+        user_id: userId,
+        type: 'success',
+        title: 'Application Submitted',
+        message: `Your application for "${projectData.title}" has been submitted successfully and is under review.`,
+        action_url: '/dashboard',
+        action_label: 'View Applications'
+      });
+      
       toast({
         title: "Application Submitted",
         description: "Your application has been submitted successfully!"
@@ -112,6 +124,15 @@ const ProfessionalDashboard: React.FC<ProfessionalDashboardProps> = ({ userId })
       
     } catch (error: any) {
       console.error('Error applying to project:', error);
+      
+      // Create error notification
+      await notificationService.createNotification({
+        user_id: userId,
+        type: 'error',
+        title: 'Application Failed',
+        message: 'Failed to submit your application. Please try again.'
+      });
+      
       toast({
         title: "Error",
         description: "Failed to submit application. Please try again.",
@@ -131,6 +152,16 @@ const ProfessionalDashboard: React.FC<ProfessionalDashboardProps> = ({ userId })
         .eq('assigned_to', userId);
       
       if (error) throw error;
+      
+      // Create completion notification
+      await notificationService.createNotification({
+        user_id: userId,
+        type: 'success',
+        title: 'Project Completed',
+        message: 'The project has been marked as completed. The client can now leave a review.',
+        action_url: '/dashboard',
+        action_label: 'View Projects'
+      });
       
       toast({
         title: "Project Completed",
@@ -163,6 +194,14 @@ const ProfessionalDashboard: React.FC<ProfessionalDashboardProps> = ({ userId })
         .single();
       
       if (profileUpdateError) throw profileUpdateError;
+      
+      // Create profile update notification
+      await notificationService.createNotification({
+        user_id: userId,
+        type: 'success',
+        title: 'Profile Updated',
+        message: 'Your skills have been updated successfully!'
+      });
       
       toast({
         title: "Profile updated",

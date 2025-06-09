@@ -1,8 +1,9 @@
 
 import { useEffect } from 'react';
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from '@/contexts/AuthContext';
+import { notificationService } from '@/services/notificationService';
 
 export const useApplicationNotifications = () => {
   const { toast } = useToast();
@@ -10,6 +11,8 @@ export const useApplicationNotifications = () => {
 
   useEffect(() => {
     if (!user) return;
+
+    console.log('Setting up application notifications for user:', user.id);
 
     // Listen for application status changes
     const channel = supabase
@@ -29,28 +32,38 @@ export const useApplicationNotifications = () => {
           
           // Only show notification if status actually changed
           if (newRecord.status !== oldRecord.status) {
-            handleApplicationStatusChange(newRecord.status, newRecord.id);
+            handleApplicationStatusChange(newRecord.status, newRecord.id, newRecord.project_id);
           }
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('Application notifications subscription status:', status);
+      });
 
     return () => {
+      console.log('Cleaning up application notifications');
       supabase.removeChannel(channel);
     };
   }, [user, toast]);
 
-  const handleApplicationStatusChange = async (newStatus: string, applicationId: string) => {
+  const handleApplicationStatusChange = async (newStatus: string, applicationId: string, projectId: string) => {
     try {
+      console.log('Handling application status change:', { newStatus, applicationId, projectId });
+      
       // Get project details for the notification
-      const { data: applicationData } = await supabase
+      const { data: applicationData, error: applicationError } = await supabase
         .from('applications')
         .select(`
           id,
-          project:projects(title)
+          project:projects(title, id)
         `)
         .eq('id', applicationId)
         .single();
+
+      if (applicationError) {
+        console.error('Error fetching application data:', applicationError);
+        return;
+      }
 
       const projectTitle = applicationData?.project?.title || 'Unknown Project';
 
@@ -82,16 +95,17 @@ export const useApplicationNotifications = () => {
       }
 
       // Create persistent notification in database
-      await supabase
-        .from('notifications')
-        .insert({
-          user_id: user?.id,
-          type: newStatus === 'accepted' ? 'success' : newStatus === 'rejected' ? 'warning' : 'info',
-          title: getNotificationTitle(newStatus),
-          message: `Your application for "${projectTitle}" ${getStatusMessage(newStatus)}`,
-          action_url: newStatus === 'accepted' ? '/dashboard' : undefined,
-          action_label: newStatus === 'accepted' ? 'View Project' : undefined
-        });
+      const notificationData = {
+        user_id: user?.id,
+        type: newStatus === 'accepted' ? 'success' : newStatus === 'rejected' ? 'warning' : 'info',
+        title: getNotificationTitle(newStatus),
+        message: `Your application for "${projectTitle}" ${getStatusMessage(newStatus)}`,
+        action_url: newStatus === 'accepted' ? '/dashboard' : undefined,
+        action_label: newStatus === 'accepted' ? 'View Project' : undefined
+      };
+
+      await notificationService.createNotification(notificationData);
+      console.log('Notification created successfully');
 
     } catch (error) {
       console.error('Error handling application status change:', error);
