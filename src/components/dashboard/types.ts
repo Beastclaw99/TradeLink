@@ -133,31 +133,34 @@ export interface ProjectMember {
   created_at: string;
 }
 
-// Fixed PaymentsTabProps interface to match actual usage
+// Fixed PaymentsTabProps interface to match client PaymentsTab usage
 export interface PaymentsTabProps {
   isLoading: boolean;
   projects: Project[];
   reviews: Review[];
   applications: Application[];
   projectToReview: Project | null;
-  reviewData: {
-    rating: number;
-    communication_rating: number;
-    quality_rating: number;
-    timeliness_rating: number;
-    professionalism_rating: number;
-    comment: string;
-  };
+  reviewData: { rating: number; comment: string };
   isSubmitting: boolean;
   handleReviewInitiate: (project: Project) => void;
   handleReviewCancel: () => void;
   handleReviewSubmit: () => Promise<void>;
-  setReviewData: React.Dispatch<React.SetStateAction<{
-    rating: number;
-    communication_rating: number;
-    quality_rating: number;
-    timeliness_rating: number;
-    professionalism_rating: number;
-    comment: string;
-  }>>;
+  setReviewData: (data: { rating: number; comment: string }) => void;
+}
+
+// Add FileVersion interface with missing properties
+export interface FileVersion {
+  id: string;
+  file_name: string;
+  file_size: number;
+  file_type: string;
+  file_url: string;
+  created_at: string;
+  updated_at: string;
+  project_id: string;
+  uploaded_by: string;
+  access_level?: string;
+  version_number?: number;
+  change_description?: string;
+  metadata?: any;
 }

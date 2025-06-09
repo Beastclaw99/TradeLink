@@ -1,227 +1,198 @@
 
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from "@/integrations/supabase/client";
 
 export interface FileVersion {
   id: string;
   file_name: string;
-  file_url: string;
-  file_type: string;
   file_size: number;
-  version_id: string;
+  file_type: string;
+  file_url: string;
   created_at: string;
-  uploaded_at: string;
+  updated_at: string;
+  project_id: string;
+  uploaded_by: string;
+  access_level?: string;
+  version_number?: number;
+  change_description?: string;
+  metadata?: any;
 }
 
 export interface FileReview {
   id: string;
   file_id: string;
   reviewer_id: string;
-  status: 'pending' | 'approved' | 'rejected';
-  feedback?: string;
+  review_type: string;
+  status: string;
+  comments: string;
   created_at: string;
-  reviewed_at?: string;
 }
 
 export interface FileComment {
   id: string;
   file_id: string;
-  content: string;
+  user_id: string;
+  comment: string;
   created_at: string;
 }
 
 export interface FileStatusRestriction {
   id: string;
-  project_id: string;
+  file_id: string;
   status: string;
-  allowed_file_types: string[];
-  max_file_size?: number;
-  max_files_per_submission?: number;
+  allowed_actions: string[];
+  created_at: string;
 }
 
 export const fileService = {
-  // Upload a file
   async uploadFile(file: File, projectId: string): Promise<string> {
-    try {
-      const fileName = `${projectId}/${Date.now()}-${file.name}`;
-      
-      // Note: This is a placeholder for file upload functionality
-      // In a real implementation, you would use Supabase Storage
-      console.log('File upload placeholder:', { fileName, size: file.size, type: file.type });
-      
-      // Return a placeholder URL
-      return `https://placeholder.com/files/${fileName}`;
-    } catch (error) {
-      console.error('Error uploading file:', error);
-      throw new Error('Failed to upload file');
-    }
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${Math.random()}.${fileExt}`;
+    const filePath = `${projectId}/${fileName}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from('project-files')
+      .upload(filePath, file);
+
+    if (uploadError) throw uploadError;
+
+    const { data: { publicUrl } } = supabase.storage
+      .from('project-files')
+      .getPublicUrl(filePath);
+
+    return publicUrl;
   },
 
-  // Get file versions (using work_version_files table)
   async getFileVersions(versionId: string): Promise<FileVersion[]> {
-    try {
-      const { data, error } = await supabase
-        .from('work_version_files')
-        .select('*')
-        .eq('version_id', versionId)
-        .order('created_at', { ascending: false });
+    const { data, error } = await supabase
+      .from('file_versions')
+      .select('*')
+      .eq('id', versionId);
 
-      if (error) throw error;
-
-      return data.map(file => ({
-        id: file.id,
-        file_name: file.file_name,
-        file_url: file.file_url,
-        file_type: file.file_type || 'unknown',
-        file_size: file.file_size || 0,
-        version_id: file.version_id || '',
-        created_at: file.created_at,
-        uploaded_at: file.uploaded_at || file.created_at
-      }));
-    } catch (error) {
-      console.error('Error fetching file versions:', error);
-      return [];
-    }
+    if (error) throw error;
+    return data || [];
   },
 
-  // Create a new file version
   async createFileVersion(fileData: {
     file_name: string;
-    file_url: string;
-    file_type: string;
     file_size: number;
-    version_id: string;
+    file_type: string;
+    file_url: string;
+    project_id: string;
+    uploaded_by: string;
+    access_level?: string;
+    version_number?: number;
+    change_description?: string;
+    metadata?: any;
   }): Promise<FileVersion> {
-    try {
-      const { data, error } = await supabase
-        .from('work_version_files')
-        .insert({
-          file_name: fileData.file_name,
-          file_url: fileData.file_url,
-          file_type: fileData.file_type,
-          file_size: fileData.file_size,
-          version_id: fileData.version_id
-        })
-        .select()
-        .single();
+    const { data, error } = await supabase
+      .from('file_versions')
+      .insert(fileData)
+      .select()
+      .single();
 
-      if (error) throw error;
-
-      return {
-        id: data.id,
-        file_name: data.file_name,
-        file_url: data.file_url,
-        file_type: data.file_type || 'unknown',
-        file_size: data.file_size || 0,
-        version_id: data.version_id || '',
-        created_at: data.created_at,
-        uploaded_at: data.uploaded_at || data.created_at
-      };
-    } catch (error) {
-      console.error('Error creating file version:', error);
-      throw new Error('Failed to create file version');
-    }
+    if (error) throw error;
+    return data;
   },
 
-  // Delete a file
   async deleteFile(fileId: string): Promise<void> {
-    try {
-      const { error } = await supabase
-        .from('work_version_files')
-        .delete()
-        .eq('id', fileId);
+    const { error } = await supabase
+      .from('file_versions')
+      .delete()
+      .eq('id', fileId);
 
-      if (error) throw error;
-    } catch (error) {
-      console.error('Error deleting file:', error);
-      throw new Error('Failed to delete file');
-    }
+    if (error) throw error;
   },
 
-  // Placeholder methods for file reviews and comments
   async getFileReviews(fileId: string): Promise<FileReview[]> {
-    console.log('getFileReviews placeholder for fileId:', fileId);
-    return [];
+    const { data, error } = await supabase
+      .from('file_reviews')
+      .select('*')
+      .eq('file_id', fileId);
+
+    if (error) throw error;
+    return data || [];
   },
 
   async getFileComments(fileId: string): Promise<FileComment[]> {
-    console.log('getFileComments placeholder for fileId:', fileId);
-    return [];
+    const { data, error } = await supabase
+      .from('file_comments')
+      .select('*')
+      .eq('file_id', fileId);
+
+    if (error) throw error;
+    return data || [];
   },
 
-  async createFileReview(fileId: string, status: FileReview['status'], feedback?: string): Promise<FileReview> {
-    console.log('createFileReview placeholder:', { fileId, status, feedback });
-    return {
-      id: 'placeholder',
-      file_id: fileId,
-      reviewer_id: 'placeholder',
-      status,
-      feedback,
-      created_at: new Date().toISOString()
-    };
+  async createFileReview(reviewData: Omit<FileReview, 'id' | 'created_at'>): Promise<FileReview> {
+    const { data, error } = await supabase
+      .from('file_reviews')
+      .insert(reviewData)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
   },
 
-  async createFileComment(fileId: string, content: string): Promise<FileComment> {
-    console.log('createFileComment placeholder:', { fileId, content });
-    return {
-      id: 'placeholder',
-      file_id: fileId,
-      content,
-      created_at: new Date().toISOString()
-    };
+  async createFileComment(commentData: Omit<FileComment, 'id' | 'created_at'>): Promise<FileComment> {
+    const { data, error } = await supabase
+      .from('file_comments')
+      .insert(commentData)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
   },
 
-  // Placeholder methods for file status restrictions
-  async getFileStatusRestrictions(projectId: string): Promise<FileStatusRestriction[]> {
-    console.log('getFileStatusRestrictions placeholder for projectId:', projectId);
-    return [];
+  async getFileStatusRestrictions(fileId: string): Promise<FileStatusRestriction[]> {
+    const { data, error } = await supabase
+      .from('file_status_restrictions')
+      .select('*')
+      .eq('file_id', fileId);
+
+    if (error) throw error;
+    return data || [];
   },
 
-  async createFileStatusRestriction(
-    projectId: string,
-    status: string,
-    allowedFileTypes: string[],
-    maxFileSize?: number,
-    maxFiles?: number
-  ): Promise<FileStatusRestriction> {
-    console.log('createFileStatusRestriction placeholder:', { projectId, status, allowedFileTypes, maxFileSize, maxFiles });
-    return {
-      id: 'placeholder',
-      project_id: projectId,
-      status,
-      allowed_file_types: allowedFileTypes,
-      max_file_size: maxFileSize,
-      max_files_per_submission: maxFiles
-    };
+  async createFileStatusRestriction(restrictionData: Omit<FileStatusRestriction, 'id' | 'created_at'>): Promise<FileStatusRestriction> {
+    const { data, error } = await supabase
+      .from('file_status_restrictions')
+      .insert(restrictionData)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
   },
 
   async deleteFileStatusRestriction(id: string): Promise<void> {
-    console.log('deleteFileStatusRestriction placeholder for id:', id);
+    const { error } = await supabase
+      .from('file_status_restrictions')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
   },
 
-  // Additional placeholder methods that components expect
-  async validateFile(projectId: string, versionId: string, file: File): Promise<{ isValid: boolean; error?: string }> {
-    console.log('validateFile placeholder:', { projectId, versionId, fileName: file.name });
-    return { isValid: true };
+  async validateFile(file: File): Promise<boolean> {
+    // Add file validation logic here
+    return file.size <= 10 * 1024 * 1024; // 10MB limit
   },
 
-  async uploadFileVersion(
-    projectId: string,
-    versionId: string,
-    file: File,
-    changeDescription: string,
-    accessLevel: string
-  ): Promise<FileVersion> {
-    console.log('uploadFileVersion placeholder:', { projectId, versionId, fileName: file.name, changeDescription, accessLevel });
-    
-    // Simulate file upload
+  async uploadFileVersion(file: File, projectId: string, versionData: any): Promise<FileVersion> {
     const fileUrl = await this.uploadFile(file, projectId);
-    
     return this.createFileVersion({
       file_name: file.name,
-      file_url: fileUrl,
-      file_type: file.type,
       file_size: file.size,
-      version_id: versionId
+      file_type: file.type,
+      file_url: fileUrl,
+      project_id: projectId,
+      uploaded_by: versionData.uploaded_by,
+      access_level: versionData.access_level,
+      version_number: versionData.version_number,
+      change_description: versionData.change_description,
+      metadata: versionData.metadata
     });
   }
 };

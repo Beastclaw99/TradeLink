@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -88,12 +89,7 @@ const PaymentsTab: React.FC<PaymentsTabProps> = ({
                         className="w-full bg-yellow-600 hover:bg-yellow-700"
                         onClick={() => handleReviewInitiate(project)}
                       >
-                        <StarRating
-                          value={reviewData.rating}
-                          onChange={(rating) => setReviewData({ ...reviewData, rating })}
-                          size="large"
-                          className="mt-2"
-                        />
+                        Leave Review
                       </Button>
                     ) : hasReview ? (
                       <p className="text-sm text-center w-full text-green-600">

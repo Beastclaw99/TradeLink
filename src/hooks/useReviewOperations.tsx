@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -8,10 +9,6 @@ export const useReviewOperations = (userId: string, applications: Application[],
   const [projectToReview, setProjectToReview] = useState<Project | null>(null);
   const [reviewData, setReviewData] = useState({
     rating: 0,
-    communication_rating: 0,
-    quality_rating: 0,
-    timeliness_rating: 0,
-    professionalism_rating: 0,
     comment: ''
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -20,10 +17,6 @@ export const useReviewOperations = (userId: string, applications: Application[],
     setProjectToReview(project);
     setReviewData({
       rating: 0,
-      communication_rating: 0,
-      quality_rating: 0,
-      timeliness_rating: 0,
-      professionalism_rating: 0,
       comment: ''
     });
   };
@@ -32,10 +25,6 @@ export const useReviewOperations = (userId: string, applications: Application[],
     setProjectToReview(null);
     setReviewData({
       rating: 0,
-      communication_rating: 0,
-      quality_rating: 0,
-      timeliness_rating: 0,
-      professionalism_rating: 0,
       comment: ''
     });
   };
@@ -56,10 +45,6 @@ export const useReviewOperations = (userId: string, applications: Application[],
         project_id: projectId,
         [revieweeType === 'client' ? 'client_id' : 'professional_id']: revieweeId,
         rating: reviewData.rating,
-        communication_rating: reviewData.communication_rating,
-        quality_rating: reviewData.quality_rating,
-        timeliness_rating: reviewData.timeliness_rating,
-        professionalism_rating: reviewData.professionalism_rating,
         comment: reviewData.comment,
         status: 'pending',
         created_at: new Date().toISOString()
