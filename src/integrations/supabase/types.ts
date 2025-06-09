@@ -855,6 +855,193 @@ export type Database = {
           },
         ]
       }
+      work_versions: {
+        Row: {
+          id: string
+          project_id: string
+          version_number: number
+          submitted_by: string
+          submitted_at: string
+          status: 'pending' | 'approved' | 'revision_requested'
+          feedback: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          metadata: Record<string, any>
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          project_id: string
+          version_number: number
+          submitted_by: string
+          submitted_at?: string
+          status?: 'pending' | 'approved' | 'revision_requested'
+          feedback?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          metadata?: Record<string, any>
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          project_id?: string
+          version_number?: number
+          submitted_by?: string
+          submitted_at?: string
+          status?: 'pending' | 'approved' | 'revision_requested'
+          feedback?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          metadata?: Record<string, any>
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      work_version_files: {
+        Row: {
+          id: string
+          version_id: string
+          file_name: string
+          file_url: string
+          file_type: string | null
+          file_size: number | null
+          version_number: number
+          parent_file_id: string | null
+          is_latest: boolean
+          change_description: string | null
+          access_level: 'private' | 'project_members' | 'public'
+          uploaded_by: string
+          metadata: Record<string, any>
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          version_id: string
+          file_name: string
+          file_url: string
+          file_type?: string | null
+          file_size?: number | null
+          version_number: number
+          parent_file_id?: string | null
+          is_latest?: boolean
+          change_description?: string | null
+          access_level?: 'private' | 'project_members' | 'public'
+          uploaded_by: string
+          metadata?: Record<string, any>
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          version_id?: string
+          file_name?: string
+          file_url?: string
+          file_type?: string | null
+          file_size?: number | null
+          version_number?: number
+          parent_file_id?: string | null
+          is_latest?: boolean
+          change_description?: string | null
+          access_level?: 'private' | 'project_members' | 'public'
+          uploaded_by?: string
+          metadata?: Record<string, any>
+          created_at?: string
+        }
+      }
+      file_reviews: {
+        Row: {
+          id: string
+          file_id: string
+          reviewer_id: string
+          status: 'pending' | 'approved' | 'rejected'
+          feedback: string | null
+          reviewed_at: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          file_id: string
+          reviewer_id: string
+          status?: 'pending' | 'approved' | 'rejected'
+          feedback?: string | null
+          reviewed_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          file_id?: string
+          reviewer_id?: string
+          status?: 'pending' | 'approved' | 'rejected'
+          feedback?: string | null
+          reviewed_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      file_comments: {
+        Row: {
+          id: string
+          file_id: string
+          commenter_id: string
+          content: string
+          parent_comment_id: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          file_id: string
+          commenter_id: string
+          content: string
+          parent_comment_id?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          file_id?: string
+          commenter_id?: string
+          content?: string
+          parent_comment_id?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      file_status_restrictions: {
+        Row: {
+          id: string
+          project_id: string
+          status: string
+          allowed_file_types: string[]
+          max_file_size: number | null
+          max_files_per_submission: number | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          project_id: string
+          status: string
+          allowed_file_types: string[]
+          max_file_size?: number | null
+          max_files_per_submission?: number | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          project_id?: string
+          status?: string
+          allowed_file_types?: string[]
+          max_file_size?: number | null
+          max_files_per_submission?: number | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
     }
     Views: {
       [_ in never]: never
