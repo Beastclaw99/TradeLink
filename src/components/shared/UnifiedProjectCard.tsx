@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Badge } from "@/components/ui/badge";
@@ -24,7 +25,7 @@ import ProjectDeliverables from '../project/ProjectDeliverables';
 import { ProgressIndicator } from "@/components/ui/progress-indicator";
 import { supabase } from '@/integrations/supabase/client';
 import { convertDBMilestoneToMilestone } from '@/components/project/creation/types';
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { ProjectStatus } from '@/types/projectUpdates';
 
 interface UnifiedProjectCardProps {
