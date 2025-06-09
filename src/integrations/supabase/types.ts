@@ -471,9 +471,6 @@ export type Database = {
           milestone_id: string | null
           project_id: string | null
           uploaded_by: string | null
-          status: 'pending' | 'approved' | 'rejected'
-          feedback: string | null
-          reviewed_at: string | null
         }
         Insert: {
           content?: string | null
@@ -485,9 +482,6 @@ export type Database = {
           milestone_id?: string | null
           project_id?: string | null
           uploaded_by?: string | null
-          status?: 'pending' | 'approved' | 'rejected'
-          feedback?: string | null
-          reviewed_at?: string | null
         }
         Update: {
           content?: string | null
@@ -499,9 +493,6 @@ export type Database = {
           milestone_id?: string | null
           project_id?: string | null
           uploaded_by?: string | null
-          status?: 'pending' | 'approved' | 'rejected'
-          feedback?: string | null
-          reviewed_at?: string | null
         }
         Relationships: [
           {

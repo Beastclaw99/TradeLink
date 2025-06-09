@@ -494,7 +494,6 @@ const ActiveProjectsTab: React.FC<ActiveProjectsTabProps> = ({
                                 variant: "destructive"
                               });
                             }}
-                            projectId={project.id}
                           />
                         </TabsContent>
 
