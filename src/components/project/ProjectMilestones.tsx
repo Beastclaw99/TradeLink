@@ -186,7 +186,7 @@ const ProjectMilestones: React.FC<ProjectMilestonesProps> = ({
       },
       in_progress: {
         color: 'bg-blue-100 text-blue-800 border-blue-200',
-        icon: <Target className="h-4 w-4" />
+        icon: <AlertTriangle className="h-4 w-4" />
       },
       completed: {
         color: 'bg-green-100 text-green-800 border-green-200',
@@ -233,9 +233,9 @@ const ProjectMilestones: React.FC<ProjectMilestonesProps> = ({
     });
   };
 
-  const handleStatusUpdate = (newStatus: Milestone['status']) => {
-    if (editingMilestone && onEditMilestone) {
-      onEditMilestone(editingMilestone, { status: newStatus });
+  const handleStatusUpdate = (milestoneId: string, newStatus: Milestone['status']) => {
+    if (onEditMilestone) {
+      onEditMilestone(milestoneId, { status: newStatus });
     }
   };
 
@@ -414,14 +414,11 @@ const ProjectMilestones: React.FC<ProjectMilestonesProps> = ({
                           {milestone.status.replace('_', ' ')}
                         </Badge>
                         <MilestoneStatusUpdate
-                          milestoneId={milestone.id!}
+                          milestone={milestone}
                           projectId={projectId}
-                          projectTitle={milestone.title}
-                          milestoneTitle={milestone.title}
-                          currentStatus={milestone.status}
-                          clientId={milestone.assignedTo?.id || ''}
-                          professionalId={milestone.created_by || ''}
                           onStatusUpdate={handleStatusUpdate}
+                          isClient={isClient}
+                          projectStatus={projectStatus}
                         />
                       </div>
                     </div>
@@ -467,11 +464,7 @@ const ProjectMilestones: React.FC<ProjectMilestonesProps> = ({
                           <DeliverableSubmission
                             milestoneId={milestone.id!}
                             projectId={projectId}
-                            projectTitle={milestone.title}
-                            milestoneTitle={milestone.title}
-                            clientId={milestone.assignedTo?.id || ''}
-                            professionalId={milestone.created_by || ''}
-                            onSubmissionComplete={handleDeliverableSubmitted}
+                            onDeliverableSubmitted={handleDeliverableSubmitted}
                           />
                         )}
                       </div>
