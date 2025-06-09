@@ -47,11 +47,11 @@ export const useClientDashboard = (userId: string) => {
         location: project.location,
         urgency: project.urgency,
         requirements: project.requirements,
-        required_skills: typeof project.recommended_skills === 'string' 
-          ? project.recommended_skills.split(',').map((skill: string) => skill.trim())
-          : Array.isArray(project.recommended_skills) 
-            ? project.recommended_skills 
-            : [],
+        required_skills: Array.isArray(project.recommended_skills) 
+          ? project.recommended_skills 
+          : (typeof project.recommended_skills === 'string' 
+             ? project.recommended_skills.split(',').map((skill: string) => skill.trim())
+             : []),
         status: project.status,
         created_at: project.created_at,
         updated_at: project.updated_at,
@@ -171,7 +171,7 @@ export const useClientDashboard = (userId: string) => {
         professional_id: review.professional_id,
         project_id: review.project_id,
         created_at: review.created_at,
-        updated_at: review.updated_at || review.created_at,
+        updated_at: review['updated at'] || review.updated_at || review.created_at,
         status: (review.status as 'pending' | 'approved' | 'rejected' | 'reported') || 'pending',
         is_verified: review.is_verified || false,
         communication_rating: review.communication_rating,

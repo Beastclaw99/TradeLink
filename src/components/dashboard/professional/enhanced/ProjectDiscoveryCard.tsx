@@ -17,10 +17,10 @@ const ProjectDiscoveryCard: React.FC<ProjectDiscoveryCardProps> = ({
   userSkills,
   onApply
 }) => {
-  // Calculate skill match
+  // Calculate skill match safely
   const projectSkills = Array.isArray(project.required_skills) 
     ? project.required_skills 
-    : (project.required_skills?.toString().split(',').map(skill => skill.trim()) || []);
+    : [];
 
   const matchingSkills = projectSkills.filter(skill => 
     userSkills.some(userSkill => 

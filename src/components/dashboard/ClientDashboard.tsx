@@ -70,6 +70,19 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ userId, initialTab = 
     }
   }, [initialTab]);
   
+  // Create wrapper function for handleReviewSubmit to match PaymentsTabProps
+  const handleReviewSubmitWrapper = async () => {
+    if (projectToReview) {
+      const professional = applications.find(app => 
+        app.project_id === projectToReview.id && app.status === 'accepted'
+      )?.professional;
+      
+      if (professional) {
+        await handleReviewSubmit(projectToReview.id, professional.id, 'professional');
+      }
+    }
+  };
+  
   // Props to pass to tab components
   const projectsTabProps = {
     isLoading,
@@ -105,7 +118,7 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ userId, initialTab = 
     isSubmitting: isReviewSubmitting,
     handleReviewInitiate,
     handleReviewCancel,
-    handleReviewSubmit,
+    handleReviewSubmit: handleReviewSubmitWrapper,
     setReviewData
   };
   

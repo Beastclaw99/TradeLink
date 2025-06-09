@@ -35,6 +35,12 @@ export interface Project {
     last_name: string;
     email?: string;
   };
+  professional?: {
+    id: string;
+    first_name: string;
+    last_name: string;
+    email?: string;
+  };
 }
 
 export interface Application {
@@ -145,7 +151,7 @@ export interface PaymentsTabProps {
   isSubmitting: boolean;
   handleReviewInitiate: (project: Project) => void;
   handleReviewCancel: () => void;
-  handleReviewSubmit: (projectId: string, revieweeId: string, revieweeType: "client" | "professional") => Promise<void>;
+  handleReviewSubmit: () => Promise<void>;
   setReviewData: React.Dispatch<React.SetStateAction<{
     rating: number;
     communication_rating: number;
