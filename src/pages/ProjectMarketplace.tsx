@@ -49,7 +49,7 @@ const ProjectMarketplace: React.FC = () => {
         .from('projects')
         .select(`
           *,
-          client:profiles!projects_client_id_fkey(first_name, last_name)
+          client:profiles!projects_client_id_fkey(id, first_name, last_name)
         `)
         .eq('status', 'open')
         .order('created_at', { ascending: false });
@@ -92,7 +92,11 @@ const ProjectMarketplace: React.FC = () => {
         scope: project.scope || null,
         service_contract: project.service_contract || null,
         sla_terms: project.sla_terms || null,
-        client: project.client || undefined
+        client: project.client ? {
+          id: project.client.id || project.client_id || '',
+          first_name: project.client.first_name || 'Unknown',
+          last_name: project.client.last_name || 'User'
+        } : undefined
       })) || [];
       
       setProjects(typedProjects);
@@ -142,6 +146,11 @@ const ProjectMarketplace: React.FC = () => {
       navigate('/login');
     }
   };
+
+  const handleFilterApply = () => {
+    // Filters are applied automatically through the filteredProjects calculation
+    console.log('Filters applied');
+  };
   
   return (
     <Layout>
@@ -158,14 +167,14 @@ const ProjectMarketplace: React.FC = () => {
             setLocationFilter={setLocationFilter}
             budgetFilter={budgetFilter}
             setBudgetFilter={setBudgetFilter}
+            onFilterApply={handleFilterApply}
           />
           
-          <div className="flex justify-between items-center mb-6 mt-6">
-            <h2 className="text-xl font-semibold">
-              {filteredProjects.length} Project{filteredProjects.length !== 1 ? 's' : ''} Found
-            </h2>
-            <ViewModeToggle viewMode={viewMode} setViewMode={setViewMode} />
-          </div>
+          <ViewModeToggle 
+            viewMode={viewMode} 
+            setViewMode={setViewMode}
+            projectCount={filteredProjects.length}
+          />
           
           <ProjectsDisplay 
             projects={filteredProjects}
