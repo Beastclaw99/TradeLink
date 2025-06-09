@@ -51,7 +51,28 @@ const ReviewModeration: React.FC = () => {
       setLoading(true);
       const { data, error } = await supabase
         .from('reviews')
-        .select('*')
+        .select(`
+          id,
+          rating,
+          comment,
+          status,
+          reported_at,
+          reported_by,
+          report_reason,
+          created_at,
+          client_id,
+          professional_id,
+          project_id,
+          communication_rating,
+          quality_rating,
+          timeliness_rating,
+          professionalism_rating,
+          moderated_at,
+          moderated_by,
+          moderation_notes,
+          is_verified,
+          verification_method
+        `)
         .eq('status', activeTab)
         .order('created_at', { ascending: false });
 
