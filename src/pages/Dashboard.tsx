@@ -122,9 +122,9 @@ const Dashboard: React.FC = () => {
               Try Again
             </Button>
           </div>
-        ) : user.role === 'client' ? (
+        ) : accountType === 'client' ? (
           <ClientDashboard clientId={user.id} />
-        ) : user.role === 'professional' ? (
+        ) : accountType === 'professional' ? (
           <ProfessionalDashboard professionalId={user.id} />
         ) : (
           <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-md">
