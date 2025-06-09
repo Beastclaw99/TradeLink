@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,11 +12,8 @@ interface HistoryItem {
   history_type: string;
   history_data: any;
   created_at: string;
-  created_by: {
-    first_name: string;
-    last_name: string;
-    profile_image: string;
-  } | null;
+  created_by_name?: string;
+  created_by_id?: string;
 }
 
 interface ProjectHistoryProps {
@@ -33,29 +31,44 @@ const ProjectHistory: React.FC<ProjectHistoryProps> = ({ projectId }) => {
 
   const loadHistory = async () => {
     try {
-      const { data, error } = await supabase
+      // Fetch project history
+      const { data: historyData, error: historyError } = await supabase
         .from('project_history')
-        .select(`
-          id,
-          history_type,
-          history_data,
-          created_at,
-          project_id,
-          created_by
-        `)
+        .select('*')
         .eq('project_id', projectId)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
-      
-      // Transform the data to handle potential null created_by
-      const transformedHistory: HistoryItem[] = (data || []).map(item => ({
-        id: item.id,
-        history_type: item.history_type,
-        history_data: item.history_data,
-        created_at: item.created_at,
-        created_by: null // Set to null since we can't fetch the relation properly
-      }));
+      if (historyError) throw historyError;
+
+      // If we have history items with created_by, fetch user names
+      const userIds = historyData
+        ?.filter(item => item.created_by)
+        .map(item => item.created_by) || [];
+
+      let profiles: any[] = [];
+      if (userIds.length > 0) {
+        const { data: profilesData, error: profilesError } = await supabase
+          .from('profiles')
+          .select('id, first_name, last_name')
+          .in('id', userIds);
+
+        if (!profilesError) {
+          profiles = profilesData || [];
+        }
+      }
+
+      // Transform the data
+      const transformedHistory: HistoryItem[] = (historyData || []).map(item => {
+        const profile = profiles.find(p => p.id === item.created_by);
+        return {
+          id: item.id,
+          history_type: item.history_type,
+          history_data: item.history_data,
+          created_at: item.created_at,
+          created_by_name: profile ? `${profile.first_name} ${profile.last_name}` : 'System',
+          created_by_id: item.created_by
+        };
+      });
       
       setHistory(transformedHistory);
     } catch (error: any) {
@@ -88,9 +101,9 @@ const ProjectHistory: React.FC<ProjectHistoryProps> = ({ projectId }) => {
   const getHistoryTitle = (type: string, data: any) => {
     switch (type) {
       case 'status_change':
-        return `Status changed to ${data.new_status}`;
+        return `Status changed to ${data.new_status || 'Unknown'}`;
       case 'milestone':
-        return `Milestone "${data.milestone_title}" ${data.action}`;
+        return `Milestone "${data.milestone_title || 'Unknown'}" ${data.action || 'updated'}`;
       case 'message':
         return 'New message added';
       case 'archive':
@@ -101,17 +114,21 @@ const ProjectHistory: React.FC<ProjectHistoryProps> = ({ projectId }) => {
   };
 
   const getHistoryDescription = (type: string, data: any) => {
+    if (!data) return 'No additional details';
+    
     switch (type) {
       case 'status_change':
-        return data.reason || 'Status updated';
+        return data.reason || data.previous_status ? 
+          `Changed from ${data.previous_status || 'Unknown'} to ${data.new_status || 'Unknown'}` : 
+          'Status updated';
       case 'milestone':
         return data.description || 'Milestone updated';
       case 'message':
-        return data.message;
+        return data.message || 'Message content not available';
       case 'archive':
         return data.reason || 'Project archived';
       default:
-        return JSON.stringify(data);
+        return typeof data === 'object' ? JSON.stringify(data) : String(data);
     }
   };
 
@@ -152,21 +169,20 @@ const ProjectHistory: React.FC<ProjectHistoryProps> = ({ projectId }) => {
                     {getHistoryDescription(item.history_type, item.history_data)}
                   </p>
                   <div className="flex items-center mt-2">
-                    {item.created_by?.profile_image && (
-                      <img
-                        src={item.created_by.profile_image}
-                        alt=""
-                        className="h-6 w-6 rounded-full mr-2"
-                      />
-                    )}
                     <span className="text-xs text-gray-500">
-                      By {item.created_by?.first_name || 'Unknown'} {item.created_by?.last_name || 'User'}
+                      By {item.created_by_name || 'Unknown User'}
                     </span>
                   </div>
                 </div>
               </div>
             ))
           )}
+        </div>
+        
+        <div className="mt-4">
+          <Button variant="outline" onClick={loadHistory} size="sm">
+            Refresh History
+          </Button>
         </div>
       </CardContent>
     </Card>
