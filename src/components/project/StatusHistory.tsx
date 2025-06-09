@@ -1,7 +1,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { formatDistanceToNow, format } from 'date-fns';
+import { formatDistanceToNow } from 'date-fns';
 import { ProjectStatus, ProjectUpdate, UpdateType } from '@/types/projectUpdates';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
@@ -24,14 +24,20 @@ interface StatusUpdate extends Omit<ProjectUpdate, 'profiles'> {
 interface DatabaseUpdate {
   id: string;
   project_id: string;
-  update_type: string;
+  update_type: UpdateType;
   message: string | null;
-  status_update: string | null;
+  status_update: ProjectStatus | null;
   file_url: string | null;
   file_name: string | null;
   created_at: string;
   professional_id: string;
-  metadata: any;
+  metadata: {
+    previous_status?: ProjectStatus;
+    cancellation_reason?: string;
+    dispute_reason?: string;
+    revision_notes?: string;
+    [key: string]: any;
+  };
   profiles?: {
     first_name: string | null;
     last_name: string | null;
@@ -39,7 +45,7 @@ interface DatabaseUpdate {
   };
 }
 
-const statusColors: Record<string, string> = {
+const statusColors: Record<ProjectStatus, string> = {
   open: 'bg-blue-100 text-blue-800',
   assigned: 'bg-purple-100 text-purple-800',
   in_progress: 'bg-yellow-100 text-yellow-800',
@@ -50,10 +56,7 @@ const statusColors: Record<string, string> = {
   paid: 'bg-green-600 text-white',
   archived: 'bg-gray-100 text-gray-800',
   cancelled: 'bg-red-100 text-red-800',
-  disputed: 'bg-rose-100 text-rose-800',
-  payment_processed: 'bg-green-100 text-green-800',
-  payment_failed: 'bg-red-100 text-red-800',
-  payment_refunded: 'bg-blue-100 text-blue-800'
+  disputed: 'bg-rose-100 text-rose-800'
 };
 
 export function StatusHistory({ projectId }: StatusHistoryProps) {
@@ -76,11 +79,10 @@ export function StatusHistory({ projectId }: StatusHistoryProps) {
 
       if (error) throw error;
 
-      // Convert the response to match our StatusUpdate type
       return (data as DatabaseUpdate[]).map(update => ({
         ...update,
         update_type: update.update_type as UpdateType,
-        status_update: update.status_update as ProjectStatus | undefined,
+        status_update: update.status_update as ProjectStatus,
         metadata: update.metadata as StatusUpdate['metadata']
       }));
     }
@@ -140,7 +142,8 @@ export function StatusHistory({ projectId }: StatusHistoryProps) {
                   {update.profiles?.first_name?.[0] || 'U'}
                 </AvatarFallback>
               </Avatar>
-              <div className="flex-1 space-y-1">
+              
+              <div className="flex-1">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-2">
                     <span className="font-medium">
@@ -148,14 +151,17 @@ export function StatusHistory({ projectId }: StatusHistoryProps) {
                         ? `${update.profiles.first_name} ${update.profiles.last_name}`
                         : 'Unknown User'}
                     </span>
-                    <Badge variant="secondary" className={statusColors[update.status_update || '']}>
-                      {update.status_update?.replace('_', ' ')}
-                    </Badge>
+                    {update.status_update && (
+                      <Badge variant="secondary" className={statusColors[update.status_update]}>
+                        {update.status_update.replace('_', ' ')}
+                      </Badge>
+                    )}
                   </div>
                   <span className="text-sm text-gray-500">
                     {formatDistanceToNow(new Date(update.created_at), { addSuffix: true })}
                   </span>
                 </div>
+                
                 {update.metadata?.previous_status && (
                   <p className="text-sm text-gray-600">
                     Changed from{' '}
@@ -164,21 +170,25 @@ export function StatusHistory({ projectId }: StatusHistoryProps) {
                     </span>
                   </p>
                 )}
+                
                 {update.metadata?.cancellation_reason && (
                   <p className="text-sm text-gray-600">
                     Cancellation reason: {update.metadata.cancellation_reason}
                   </p>
                 )}
+                
                 {update.metadata?.dispute_reason && (
                   <p className="text-sm text-gray-600">
                     Dispute reason: {update.metadata.dispute_reason}
                   </p>
                 )}
+                
                 {update.metadata?.revision_notes && (
                   <p className="text-sm text-gray-600">
                     Revision notes: {update.metadata.revision_notes}
                   </p>
                 )}
+                
                 {update.message && (
                   <p className="text-sm text-gray-600">{update.message}</p>
                 )}

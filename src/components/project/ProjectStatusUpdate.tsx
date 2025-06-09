@@ -3,14 +3,16 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { notificationService } from '@/services/notificationService';
+import { ProjectStatus } from '@/types/projectUpdates';
+import { VALID_TRANSITIONS } from '@/utils/projectStatusTransitions';
 
 interface ProjectStatusUpdateProps {
   projectId: string;
   projectTitle: string;
-  currentStatus: string;
+  currentStatus: ProjectStatus;
   clientId: string;
   professionalId: string;
-  onStatusUpdate: (newStatus: string) => void;
+  onStatusUpdate: (newStatus: ProjectStatus) => void;
 }
 
 const ProjectStatusUpdate: React.FC<ProjectStatusUpdateProps> = ({
@@ -24,21 +26,24 @@ const ProjectStatusUpdate: React.FC<ProjectStatusUpdateProps> = ({
   const [isUpdating, setIsUpdating] = useState(false);
   const { toast } = useToast();
 
-  const getNextStatus = (currentStatus: string) => {
-    const statusFlow: Record<string, string> = {
-      open: 'assigned',
-      assigned: 'in_progress',
-      in_progress: 'work_submitted',
-      work_submitted: 'work_revision_requested',
-      work_revision_requested: 'work_approved',
-      work_approved: 'completed'
-    };
-    return statusFlow[currentStatus];
+  const getNextStatus = (currentStatus: ProjectStatus): ProjectStatus | null => {
+    const validTransitions = VALID_TRANSITIONS[currentStatus];
+    if (!validTransitions || validTransitions.length === 0) return null;
+    
+    // Get the first valid transition that's not 'cancelled'
+    return validTransitions.find(status => status !== 'cancelled') || null;
   };
 
   const updateStatus = async () => {
     const newStatus = getNextStatus(currentStatus);
-    if (!newStatus) return;
+    if (!newStatus) {
+      toast({
+        title: 'Error',
+        description: 'No valid status transition available.',
+        variant: 'destructive'
+      });
+      return;
+    }
 
     setIsUpdating(true);
     try {

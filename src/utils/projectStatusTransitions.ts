@@ -61,10 +61,12 @@ const TRANSITION_REQUIREMENTS: Record<ProjectStatus, {
     }
   },
   paid: {
-    requiredFields: ['payment_id'],
+    requiredFields: ['payment_id', 'payment_status'],
     requiredConditions: (project) => {
       // Check if payment exists and is completed
-      return !!project.payment_id && project.payment_status === 'completed';
+      return !!project.payment_id && 
+             project.payment_status === 'completed' &&
+             project.status === 'completed';
     }
   },
   archived: {

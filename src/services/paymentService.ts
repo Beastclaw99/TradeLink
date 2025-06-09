@@ -65,10 +65,13 @@ export class PaymentService {
 
       if (updateError) throw updateError;
 
-      // Update project status
+      // Update project status and payment status
       const { error: projectError } = await supabase
         .from('projects')
-        .update({ status: 'paid' })
+        .update({ 
+          status: 'paid',
+          payment_status: 'completed'
+        })
         .eq('id', payment.project_id);
 
       if (projectError) throw projectError;
@@ -76,12 +79,13 @@ export class PaymentService {
       // Create project update
       await supabase.from('project_updates').insert({
         project_id: payment.project_id,
-        update_type: 'payment_completed',
-        message: 'Payment has been completed successfully (Test Mode)',
+        update_type: 'payment_processed',
+        message: 'Payment has been completed successfully',
         professional_id: payment.professional_id,
         metadata: {
           payment_id: paymentId,
-          test_mode: true
+          payment_status: 'completed',
+          paid_at: new Date().toISOString()
         }
       });
 
@@ -89,6 +93,56 @@ export class PaymentService {
     } catch (error) {
       console.error('Payment success handling error:', error);
       throw new Error('Failed to process payment success');
+    }
+  }
+
+  static async handlePaymentFailure(paymentId: string) {
+    try {
+      // Get payment details
+      const { data: payment, error: paymentError } = await supabase
+        .from('payments')
+        .select('*')
+        .eq('id', paymentId)
+        .single();
+
+      if (paymentError) throw paymentError;
+
+      // Update payment status
+      const { error: updateError } = await supabase
+        .from('payments')
+        .update({
+          status: 'failed'
+        })
+        .eq('id', paymentId);
+
+      if (updateError) throw updateError;
+
+      // Update project payment status
+      const { error: projectError } = await supabase
+        .from('projects')
+        .update({ 
+          payment_status: 'failed'
+        })
+        .eq('id', payment.project_id);
+
+      if (projectError) throw projectError;
+
+      // Create project update
+      await supabase.from('project_updates').insert({
+        project_id: payment.project_id,
+        update_type: 'payment_failed',
+        message: 'Payment processing failed',
+        professional_id: payment.professional_id,
+        metadata: {
+          payment_id: paymentId,
+          payment_status: 'failed'
+        }
+      });
+
+      return true;
+    } catch (error) {
+      console.error('Payment failure handling error:', error);
+      throw new Error('Failed to process payment failure');
     }
   }
 

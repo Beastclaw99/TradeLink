@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -67,9 +66,12 @@ const PaymentsTab: React.FC<PaymentsTabProps> = ({
                     <TableCell>
                       <span className={`px-2 py-1 text-xs rounded-full ${
                         payment.status === 'completed' ? 'bg-green-100 text-green-800' : 
-                        'bg-yellow-100 text-yellow-800'
+                        payment.status === 'processing' ? 'bg-blue-100 text-blue-800' :
+                        payment.status === 'failed' ? 'bg-red-100 text-red-800' :
+                        payment.status === 'refunded' ? 'bg-purple-100 text-purple-800' :
+                        'bg-yellow-100 text-yellow-800' // pending
                       }`}>
-                        {payment.status}
+                        {payment.status.charAt(0).toUpperCase() + payment.status.slice(1)}
                       </span>
                     </TableCell>
                   </TableRow>

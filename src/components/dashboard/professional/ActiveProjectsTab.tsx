@@ -21,6 +21,7 @@ import {
   Eye
 } from "lucide-react";
 import { Project } from '../types';
+import { ProjectStatus, PaymentStatus } from '@/types/projectUpdates';
 import ProjectUpdateTimeline from "@/components/project/ProjectUpdateTimeline";
 import ProjectMilestones from "@/components/project/ProjectMilestones";
 import ProjectDeliverables from "@/components/project/ProjectDeliverables";
@@ -29,13 +30,23 @@ import AddProjectUpdate from "@/components/project/updates/AddProjectUpdate";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from '@/integrations/supabase/client';
 import { Milestone, DBMilestone, convertDBMilestoneToMilestone, convertMilestoneToDBMilestone } from '@/components/project/creation/types';
-import { ProjectStatus } from '@/types/projectUpdates';
+import { ProjectUpdateTimeline as ProjectUpdateTimelineType } from "@/components/project/ProjectUpdateTimeline";
+import { ProjectMilestones as ProjectMilestonesType } from "@/components/project/ProjectMilestones";
+import { ProjectDeliverables as ProjectDeliverablesType } from "@/components/project/ProjectDeliverables";
 
 interface ActiveProjectsTabProps {
   isLoading: boolean;
   projects: Project[];
   userId: string;
   markProjectComplete: (projectId: string) => Promise<void>;
+}
+
+type ProjectStepStatus = 'completed' | 'current' | 'pending';
+
+interface ProjectStep {
+  id: string;
+  title: string;
+  status: ProjectStepStatus;
 }
 
 const ActiveProjectsTab: React.FC<ActiveProjectsTabProps> = ({ 
@@ -241,12 +252,26 @@ const ActiveProjectsTab: React.FC<ActiveProjectsTabProps> = ({
     }));
   };
 
-  const getProjectProgress = (project: Project) => {
-    // Calculate progress based on project status and milestones
-    if (project.status === 'completed') return 100;
-    if (project.status === 'open') return 0;
-    if (project.status === 'assigned') return 25;
-    return 50; // default for in-progress
+  const getProjectProgress = (project: Project): number => {
+    if (!project.status) return 0;
+    
+    switch (project.status) {
+      case 'assigned':
+        return 20;
+      case 'in_progress':
+        return 40;
+      case 'work_submitted':
+      case 'work_revision_requested':
+        return 60;
+      case 'work_approved':
+        return 80;
+      case 'completed':
+      case 'paid':
+      case 'archived':
+        return 100;
+      default:
+        return 0;
+    }
   };
 
   const getUrgencyColor = (urgency?: string) => {
@@ -275,39 +300,50 @@ const ActiveProjectsTab: React.FC<ActiveProjectsTabProps> = ({
     }
   };
 
-  const getProjectSteps = (project: Project) => {
+  const getProjectSteps = (project: Project): ProjectStep[] => {
+    if (!project.status) return [];
+    
+    const currentStatus = project.status;
     return [
       {
         id: 'assigned',
         title: 'Assigned',
-        status: project.status === 'assigned' ? 'current' : 'completed' as 'completed' | 'current' | 'pending'
+        status: currentStatus === 'assigned' ? 'current' : 'completed'
       },
       {
         id: 'in_progress',
         title: 'In Progress',
-        status: project.status === 'in_progress' ? 'current' : 
-               ['assigned'].includes(project.status) ? 'pending' : 'completed' as 'completed' | 'current' | 'pending'
+        status: currentStatus === 'in_progress' ? 'current' : 
+               ['assigned'].includes(currentStatus) ? 'pending' : 'completed'
       },
       {
-        id: 'review',
-        title: 'Review',
-        status: project.status === 'review' ? 'current' : 
-               ['assigned', 'in_progress'].includes(project.status) ? 'pending' : 'completed' as 'completed' | 'current' | 'pending'
+        id: 'work_submitted',
+        title: 'Work Submitted',
+        status: currentStatus === 'work_submitted' ? 'current' : 
+               ['assigned', 'in_progress'].includes(currentStatus) ? 'pending' : 'completed'
+      },
+      {
+        id: 'work_approved',
+        title: 'Work Approved',
+        status: currentStatus === 'work_approved' ? 'current' : 
+               ['assigned', 'in_progress', 'work_submitted', 'work_revision_requested'].includes(currentStatus) ? 'pending' : 'completed'
       },
       {
         id: 'completed',
         title: 'Completed',
-        status: project.status === 'completed' ? 'completed' : 'pending' as 'completed' | 'current' | 'pending'
+        status: ['completed', 'paid', 'archived'].includes(currentStatus) ? 'completed' : 'pending'
       }
     ];
   };
 
   const activeProjects = projects.filter(p => 
-    ['assigned', 'in_progress', 'review'].includes(p.status) && p.assigned_to === userId
+    p.status && ['assigned', 'in_progress', 'work_submitted', 'work_revision_requested', 'work_approved'].includes(p.status) && 
+    p.assigned_to === userId
   );
 
   const completedProjects = projects.filter(p => 
-    p.status === 'completed' && p.assigned_to === userId
+    p.status && ['completed', 'paid', 'archived'].includes(p.status) && 
+    p.assigned_to === userId
   );
 
   if (isLoading) {
@@ -353,7 +389,7 @@ const ActiveProjectsTab: React.FC<ActiveProjectsTabProps> = ({
                       <div className="flex items-center gap-3 mb-2">
                         <CardTitle className="text-xl">{project.title}</CardTitle>
                         <div className="flex items-center gap-2">
-                          {getStatusIcon(project.status)}
+                          {getStatusIcon(project.status as string)}
                           <Badge variant="outline" className="capitalize">
                             {project.status.replace('_', ' ')}
                           </Badge>
@@ -475,7 +511,7 @@ const ActiveProjectsTab: React.FC<ActiveProjectsTabProps> = ({
                         <TabsContent value="timeline" className="mt-4">
                           <ProjectUpdateTimeline 
                             projectId={project.id} 
-                            projectStatus={project.status || ''}
+                            projectStatus={project.status as ProjectStatus}
                             isProfessional={true}
                           />
                         </TabsContent>
@@ -498,7 +534,7 @@ const ActiveProjectsTab: React.FC<ActiveProjectsTabProps> = ({
                               }
                             }}
                             projectId={project.id}
-                            projectStatus={(project.status || 'open') as ProjectStatus}
+                            projectStatus={(project.status as ProjectStatus) || 'open'}
                           />
                         </TabsContent>
 
@@ -575,7 +611,7 @@ const ActiveProjectsTab: React.FC<ActiveProjectsTabProps> = ({
                           }
                         }
                       }}
-                      projectStatus={project.status || ''}
+                      projectStatus={project.status as ProjectStatus}
                       isProfessional={true}
                     />
                   </CardContent>
