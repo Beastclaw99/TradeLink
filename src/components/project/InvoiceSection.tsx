@@ -150,14 +150,14 @@ export default function InvoiceSection({
         {invoice ? (
           <div className="space-y-6">
             {/* Invoice Status Banner */}
-            {invoice.status === 'paid' ? (
+            {(invoice.status === 'paid' || projectStatus === 'paid') ? (
               <div className="bg-green-50 p-4 rounded-lg text-green-800 border border-green-200">
                 <div className="flex items-center">
                   <CheckCircle className="mr-2" size={20} />
                   <h3 className="font-medium">Payment Processed</h3>
                 </div>
                 <p className="text-sm mt-1">
-                  Payment was processed on {new Date(invoice.paid_at).toLocaleDateString()}
+                  Payment was processed on {invoice.paid_at ? new Date(invoice.paid_at).toLocaleDateString() : 'N/A'}
                 </p>
               </div>
             ) : (
@@ -191,7 +191,7 @@ export default function InvoiceSection({
             </div>
 
             {/* Action Buttons */}
-            {isClient && invoice.status === 'pending' && (
+            {isClient && invoice.status === 'pending' && projectStatus !== 'paid' && (
               <div className="flex gap-4">
                 <Button
                   className="flex-1"
