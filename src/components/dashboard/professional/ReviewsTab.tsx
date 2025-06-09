@@ -1,134 +1,74 @@
-import React, { useEffect, useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/useToast';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { StarRating } from '@/components/ui/star-rating';
-import { Loader2 } from 'lucide-react';
-
-interface Review {
-  id: string;
-  rating: number;
-  comment: string;
-  created_at: string;
-  project?: {
-    id: string;
-    title: string;
-  };
-  client: {
-    id: string;
-    full_name: string;
-    profile_image: string | null;
-  };
-}
+import React from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { StarRating } from "@/components/ui/star-rating";
+import { Review } from '../types';
+import EnhancedReviewDisplay from '@/components/reviews/EnhancedReviewDisplay';
+import { useEnhancedReviewOperations } from '@/hooks/useEnhancedReviewOperations';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface ReviewsTabProps {
-  professionalId: string;
+  isLoading: boolean;
+  reviews: Review[];
+  calculateAverageRating: () => string | number;
 }
 
-export const ReviewsTab: React.FC<ReviewsTabProps> = ({ professionalId }) => {
-  const { toast } = useToast();
-  const [isLoading, setIsLoading] = useState(false);
-  const [reviews, setReviews] = useState<Review[]>([]);
-
-  useEffect(() => {
-    fetchReviews();
-  }, [professionalId]);
-
-  const fetchReviews = async () => {
-    try {
-      setIsLoading(true);
-      const { data, error } = await supabase
-        .from('reviews')
-        .select(`
-          *,
-          project:projects (
-            id,
-            title
-          ),
-          client:profiles!reviews_client_id_fkey (
-            id,
-            full_name,
-            profile_image
-          )
-        `)
-        .eq('professional_id', professionalId)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setReviews(data || []);
-    } catch (error) {
-      console.error('Error fetching reviews:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to load reviews',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const calculateAverageRating = () => {
-    if (reviews.length === 0) return 0;
-    const sum = reviews.reduce((acc, review) => acc + review.rating, 0);
-    return (sum / reviews.length).toFixed(1);
-  };
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center p-8">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
+const ReviewsTab: React.FC<ReviewsTabProps> = ({ 
+  isLoading, 
+  reviews, 
+  calculateAverageRating 
+}) => {
+  const { user } = useAuth();
+  const { handleReviewReport } = useEnhancedReviewOperations({ 
+    userId: user?.id || '',
+    onUpdate: () => {} // Add refresh logic if needed
+  });
 
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>Reviews & Ratings</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center mb-6">
-            <StarRating value={Number(calculateAverageRating())} onChange={() => {}} />
-            <span className="ml-2 text-2xl font-bold">{calculateAverageRating()}</span>
-            <span className="ml-2 text-muted-foreground">({reviews.length} reviews)</span>
-          </div>
-
-          {reviews.length === 0 ? (
-            <p className="text-muted-foreground">No reviews yet.</p>
-          ) : (
-            <div className="space-y-4">
-              {reviews.map((review) => (
-                <div key={review.id} className="border rounded-lg p-4">
-                  <div className="flex items-center mb-2">
-                    <img
-                      src={review.client.profile_image || '/default-avatar.png'}
-                      alt={review.client.full_name}
-                      className="w-10 h-10 rounded-full mr-3"
-                    />
-                    <div>
-                      <p className="font-medium">{review.client.full_name}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {new Date(review.created_at).toLocaleDateString()}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="mb-2">
-                    <StarRating value={review.rating} onChange={() => {}} />
-                  </div>
-                  <p className="text-sm">{review.comment}</p>
-                  {review.project && (
-                    <p className="text-sm text-muted-foreground mt-2">
-                      Project: {review.project.title}
-                    </p>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    </div>
+    <>
+      <div className="flex items-center mb-8">
+        <div className="flex-1">
+          <h2 className="text-2xl font-bold">Your Reviews</h2>
+          <p className="text-ttc-neutral-600">See what clients are saying about your work</p>
+        </div>
+        
+        <div className="flex items-center gap-2">
+          <StarRating
+            value={Number(calculateAverageRating())}
+            onChange={() => {}}
+            className="mt-2"
+          />
+          <span className="text-lg font-bold">{calculateAverageRating()}</span>
+          <span className="text-ttc-neutral-500">({reviews.length} reviews)</span>
+        </div>
+      </div>
+      
+      {isLoading ? (
+        <p>Loading reviews...</p>
+      ) : reviews.length === 0 ? (
+        <div className="text-center py-8">
+          <StarRating
+            value={0}
+            onChange={() => {}}
+            className="w-12 h-12 mx-auto text-ttc-neutral-400"
+          />
+          <p className="mt-4 text-ttc-neutral-600">No reviews yet.</p>
+          <p className="mt-2 text-sm text-ttc-neutral-500">
+            Complete projects to start receiving reviews from clients.
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-6">
+          {reviews.map(review => (
+            <EnhancedReviewDisplay
+              key={review.id}
+              review={review}
+              onReport={handleReviewReport}
+            />
+          ))}
+        </div>
+      )}
+    </>
   );
 };
+
+export default ReviewsTab;

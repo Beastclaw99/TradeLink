@@ -3,18 +3,6 @@ import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Project } from '@/components/dashboard/types';
 
-interface Review {
-  id: string;
-  project_id: string;
-  professional_id: string;
-  client_id: string;
-  rating: number;
-  comment: string;
-  status: 'pending' | 'approved' | 'reported';
-  created_at: string;
-  updated_at: string;
-}
-
 interface ReviewData {
   rating: number;
   communication_rating?: number;
@@ -25,11 +13,11 @@ interface ReviewData {
 }
 
 interface UseEnhancedReviewOperationsProps {
-  professionalId: string;
-  onUpdate: () => void;
+  userId: string;
+  onUpdate?: () => void;
 }
 
-export const useEnhancedReviewOperations = ({ professionalId, onUpdate }: UseEnhancedReviewOperationsProps) => {
+export const useEnhancedReviewOperations = ({ userId, onUpdate }: UseEnhancedReviewOperationsProps) => {
   const { toast } = useToast();
   const [projectToReview, setProjectToReview] = useState<Project | null>(null);
   const [reviewData, setReviewData] = useState<ReviewData>({
@@ -66,60 +54,93 @@ export const useEnhancedReviewOperations = ({ professionalId, onUpdate }: UseEnh
     });
   };
 
-  const handleReviewSubmit = async (reviewId: string, data: Partial<Review>) => {
+  const handleReviewSubmit = async (projectId: string, revieweeId: string, revieweeType: 'client' | 'professional') => {
+    if (!reviewData.rating || !reviewData.comment.trim()) {
+      toast({
+        title: "Error",
+        description: "Please provide a rating and review text.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
     try {
+      const reviewDataToSubmit = {
+        project_id: projectId,
+        [revieweeType === 'client' ? 'client_id' : 'professional_id']: revieweeId,
+        rating: reviewData.rating,
+        communication_rating: reviewData.communication_rating,
+        quality_rating: reviewData.quality_rating,
+        timeliness_rating: reviewData.timeliness_rating,
+        professionalism_rating: reviewData.professionalism_rating,
+        comment: reviewData.comment,
+        status: 'pending',
+        created_at: new Date().toISOString()
+      };
+
       const { error } = await supabase
         .from('reviews')
-        .update({
-          ...data,
-          professional_id: professionalId,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', reviewId);
+        .insert(reviewDataToSubmit);
 
       if (error) throw error;
 
-      toast({
-        title: 'Review Updated',
-        description: 'Your review has been updated successfully.'
+      // Create project update
+      await supabase.from('project_updates').insert({
+        project_id: projectId,
+        update_type: 'review',
+        message: `${revieweeType === 'client' ? 'Client' : 'Professional'} has submitted a review`,
+        professional_id: userId,
+        metadata: {
+          review_submitted: true
+        }
       });
 
-      onUpdate();
-    } catch (error) {
-      console.error('Error updating review:', error);
       toast({
-        title: 'Error',
-        description: 'Failed to update review.',
-        variant: 'destructive'
+        title: "Review Submitted",
+        description: "Thank you for your feedback! Your review will be visible after moderation."
       });
+
+      handleReviewCancel();
+      if (onUpdate) {
+        onUpdate();
+      }
+    } catch (error: any) {
+      console.error('Error submitting review:', error);
+      toast({
+        title: "Error",
+        description: "Failed to submit review. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handleReviewReport = async (reviewId: string, reason: string) => {
     try {
       const { error } = await supabase
-        .from('review_reports')
-        .insert({
-          review_id: reviewId,
-          reported_by: professionalId,
-          reason,
-          status: 'pending'
-        });
+        .from('reviews')
+        .update({
+          status: 'reported',
+          reported_at: new Date().toISOString(),
+          reported_by: userId,
+          report_reason: reason
+        })
+        .eq('id', reviewId);
 
       if (error) throw error;
 
       toast({
-        title: 'Review Reported',
-        description: 'Your report has been submitted for review.'
+        title: "Review Reported",
+        description: "Thank you for your report. Our team will review it shortly."
       });
-
-      onUpdate();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error reporting review:', error);
       toast({
-        title: 'Error',
-        description: 'Failed to submit report.',
-        variant: 'destructive'
+        title: "Error",
+        description: "Failed to report review. Please try again.",
+        variant: "destructive"
       });
     }
   };
@@ -130,7 +151,7 @@ export const useEnhancedReviewOperations = ({ professionalId, onUpdate }: UseEnh
         .from('review_helpfulness')
         .select('*')
         .eq('review_id', reviewId)
-        .eq('user_id', professionalId)
+        .eq('user_id', userId)
         .single();
 
       if (existingVote.data) {
@@ -153,7 +174,7 @@ export const useEnhancedReviewOperations = ({ professionalId, onUpdate }: UseEnh
           .from('review_helpfulness')
           .insert({
             review_id: reviewId,
-            user_id: professionalId,
+            user_id: userId,
             is_helpful: isHelpful
           });
       }
@@ -167,31 +188,28 @@ export const useEnhancedReviewOperations = ({ professionalId, onUpdate }: UseEnh
     }
   };
 
-  const handleReviewResponse = async (reviewId: string, response: string) => {
+  const handleReviewResponse = async (reviewId: string, responseText: string) => {
     try {
       const { error } = await supabase
         .from('review_responses')
         .insert({
           review_id: reviewId,
-          responder_id: professionalId,
-          response,
-          created_at: new Date().toISOString()
+          responder_id: userId,
+          response_text: responseText.trim()
         });
 
       if (error) throw error;
 
       toast({
-        title: 'Response Submitted',
-        description: 'Your response has been submitted successfully.'
+        title: "Response Submitted",
+        description: "Your response has been posted."
       });
-
-      onUpdate();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error submitting response:', error);
       toast({
-        title: 'Error',
-        description: 'Failed to submit response.',
-        variant: 'destructive'
+        title: "Error",
+        description: "Failed to submit your response.",
+        variant: "destructive"
       });
     }
   };

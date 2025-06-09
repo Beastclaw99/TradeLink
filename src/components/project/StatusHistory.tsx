@@ -24,14 +24,14 @@ interface StatusUpdate extends Omit<ProjectUpdate, 'profiles'> {
 interface DatabaseUpdate {
   id: string;
   project_id: string;
-  update_type: UpdateType;
+  update_type: string;
   message: string | null;
-  status_update: ProjectStatus | null;
+  status_update: string | null;
   file_url: string | null;
   file_name: string | null;
   created_at: string;
   professional_id: string;
-  metadata: StatusMetadata;
+  metadata: any;
   profiles?: {
     first_name: string | null;
     last_name: string | null;
@@ -39,15 +39,7 @@ interface DatabaseUpdate {
   };
 }
 
-interface StatusMetadata {
-  previous_status?: ProjectStatus;
-  cancellation_reason?: string;
-  dispute_reason?: string;
-  revision_notes?: string;
-  [key: string]: any;
-}
-
-const statusColors: Record<ProjectStatus, string> = {
+const statusColors: Record<string, string> = {
   open: 'bg-blue-100 text-blue-800',
   assigned: 'bg-purple-100 text-purple-800',
   in_progress: 'bg-yellow-100 text-yellow-800',
@@ -55,7 +47,6 @@ const statusColors: Record<ProjectStatus, string> = {
   work_revision_requested: 'bg-orange-100 text-orange-800',
   work_approved: 'bg-green-100 text-green-800',
   completed: 'bg-emerald-100 text-emerald-800',
-  paid: 'bg-green-600 text-white',
   archived: 'bg-gray-100 text-gray-800',
   cancelled: 'bg-red-100 text-red-800',
   disputed: 'bg-rose-100 text-rose-800'
@@ -114,7 +105,7 @@ export function StatusHistory({ projectId }: StatusHistoryProps) {
     );
   }
 
-  if (!statusUpdates || statusUpdates.length === 0) {
+  if (!statusUpdates?.length) {
     return (
       <Card>
         <CardHeader className="border-b">
@@ -153,7 +144,7 @@ export function StatusHistory({ projectId }: StatusHistoryProps) {
                         ? `${update.profiles.first_name} ${update.profiles.last_name}`
                         : 'Unknown User'}
                     </span>
-                    <Badge variant="secondary" className={statusColors[update.status_update as ProjectStatus]}>
+                    <Badge variant="secondary" className={statusColors[update.status_update || '']}>
                       {update.status_update?.replace('_', ' ')}
                     </Badge>
                   </div>

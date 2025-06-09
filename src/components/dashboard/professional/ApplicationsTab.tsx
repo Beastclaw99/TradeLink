@@ -1,22 +1,20 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
 import { useToast } from "@/components/ui/use-toast";
 import { Application } from '../types';
 import { supabase } from '@/integrations/supabase/client';
-import ApplicationStatusTracker from './enhanced/ApplicationStatusTracker';
+import ApplicationsTable from './applications/ApplicationsTable';
 import ViewApplicationDialog from './applications/ViewApplicationDialog';
 import WithdrawApplicationDialog from './applications/WithdrawApplicationDialog';
 import { useApplications } from './applications/useApplications';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 
 interface ApplicationsTabProps {
   isLoading: boolean;
   applications: Application[];
-  professionalId: string;
+  userId: string;
 }
 
-const ApplicationsTab: React.FC<ApplicationsTabProps> = ({ isLoading, applications, professionalId }) => {
+const ApplicationsTab: React.FC<ApplicationsTabProps> = ({ isLoading, applications, userId }) => {
   const { toast } = useToast();
   const [selectedApplication, setSelectedApplication] = useState<Application | null>(null);
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
@@ -51,7 +49,7 @@ const ApplicationsTab: React.FC<ApplicationsTabProps> = ({ isLoading, applicatio
         .from('applications')
         .update({ status: 'withdrawn' })
         .eq('id', selectedApplication.id)
-        .eq('professional_id', professionalId);
+        .eq('professional_id', userId);
       
       if (error) throw error;
       
@@ -85,57 +83,28 @@ const ApplicationsTab: React.FC<ApplicationsTabProps> = ({ isLoading, applicatio
     }
   };
   
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center p-8">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>Your Applications</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {applications.length === 0 ? (
-            <p className="text-muted-foreground">No applications found.</p>
-          ) : (
-            <div className="space-y-4">
-              {applications.map((application) => (
-                <div key={application.id} className="border rounded-lg p-4">
-                  <h3 className="font-semibold">{application.project.title}</h3>
-                  <p className="text-sm text-muted-foreground">{application.project.description}</p>
-                  <div className="mt-4 flex justify-between items-center">
-                    <div>
-                      <p className="text-sm">
-                        Status:{' '}
-                        <span className="font-medium capitalize">{application.status}</span>
-                      </p>
-                      <p className="text-sm">
-                        Applied:{' '}
-                        <span className="font-medium">
-                          {new Date(application.created_at).toLocaleDateString()}
-                        </span>
-                      </p>
-                    </div>
-                    {application.status === 'pending' && (
-                      <Button
-                        variant="destructive"
-                        onClick={() => handleWithdrawApplication()}
-                      >
-                        Withdraw Application
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+    <>
+      <h2 className="text-2xl font-bold mb-4">Your Applications</h2>
+      
+      {error && (
+        <div className="bg-red-50 text-red-800 p-4 rounded-md mb-4">
+          {error}
+        </div>
+      )}
+      
+      {localIsLoading ? (
+        <div className="flex justify-center items-center py-8">
+          <Loader2 className="h-8 w-8 animate-spin text-ttc-blue-700 mr-2" />
+          <span>Loading your applications...</span>
+        </div>
+      ) : (
+        <ApplicationsTable 
+          applications={localApplications}
+          onViewApplication={handleViewApplication}
+          onWithdrawInitiate={handleWithdrawInitiate}
+        />
+      )}
       
       {/* Dialogs */}
       <ViewApplicationDialog 
@@ -151,7 +120,7 @@ const ApplicationsTab: React.FC<ApplicationsTabProps> = ({ isLoading, applicatio
         isProcessing={isProcessing}
         onConfirm={handleWithdrawApplication}
       />
-    </div>
+    </>
   );
 };
 

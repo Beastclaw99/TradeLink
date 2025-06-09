@@ -27,11 +27,6 @@ interface Review {
   quality_rating?: number;
   timeliness_rating?: number;
   professionalism_rating?: number;
-  moderated_at?: string;
-  moderated_by?: string;
-  moderation_notes?: string;
-  is_verified?: boolean;
-  verification_method?: string;
 }
 
 const ReviewModeration: React.FC = () => {
@@ -51,33 +46,12 @@ const ReviewModeration: React.FC = () => {
       setLoading(true);
       const { data, error } = await supabase
         .from('reviews')
-        .select(`
-          id,
-          rating,
-          comment,
-          status,
-          reported_at,
-          reported_by,
-          report_reason,
-          created_at,
-          client_id,
-          professional_id,
-          project_id,
-          communication_rating,
-          quality_rating,
-          timeliness_rating,
-          professionalism_rating,
-          moderated_at,
-          moderated_by,
-          moderation_notes,
-          is_verified,
-          verification_method
-        `)
+        .select('*')
         .eq('status', activeTab)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setReviews(data as Review[]);
+      setReviews(data || []);
     } catch (error: any) {
       console.error('Error fetching reviews:', error);
       toast({

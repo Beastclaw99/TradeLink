@@ -1,11 +1,18 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { Star, MessageSquare } from 'lucide-react';
-import EnhancedReviewForm from '@/components/reviews/EnhancedReviewForm';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { StarRating } from '@/components/ui/star-rating';
+import { Database } from '@/integrations/supabase/types';
+
+// Define the review types
+type Review = Database['public']['Tables']['reviews']['Row'];
+type ReviewInsert = Database['public']['Tables']['reviews']['Insert'];
 
 interface ReviewFormProps {
   projectId: string;
@@ -24,12 +31,15 @@ export default function ReviewForm({
 }: ReviewFormProps) {
   const { user } = useAuth();
   const { toast } = useToast();
+  const [rating, setRating] = useState<number>(0);
+  const [comment, setComment] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [hasSubmittedReview, setHasSubmittedReview] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   // Check if form should be visible
-  const isVisible = projectStatus === 'completed';
+  const isVisible = projectStatus === 'paid';
 
   // Fetch existing review on mount
   useEffect(() => {
@@ -63,17 +73,52 @@ export default function ReviewForm({
     }
   }, [projectId, user, isVisible, isClient]);
 
-  const handleReviewSubmit = async (reviewData: any) => {
+  // Handle review submission
+  const handleReviewSubmit = async () => {
+    if (!user?.id) return;
+
     try {
+      setIsSubmitting(true);
+
+      // Get project details to determine recipient
+      const { data: projectData, error: projectError } = await supabase
+        .from('projects')
+        .select('client_id, professional_id')
+        .eq('id', projectId)
+        .single();
+
+      if (projectError) throw projectError;
+
+      // Submit review
+      const reviewData: ReviewInsert = {
+        project_id: projectId,
+        client_id: isClient ? user.id : projectData.client_id,
+        professional_id: isClient ? projectData.professional_id : user.id,
+        rating,
+        comment: comment || null,
+        created_at: new Date().toISOString()
+      };
+
+      const { error: reviewError } = await supabase
+        .from('reviews')
+        .insert(reviewData);
+
+      if (reviewError) throw reviewError;
+
       // Create project update
       await supabase.from('project_updates').insert({
         project_id: projectId,
         update_type: 'review',
         message: `${isClient ? 'Client' : 'Professional'} has submitted a review`,
-        professional_id: user?.id,
+        professional_id: user.id,
         metadata: {
           review_submitted: true
         }
+      });
+
+      toast({
+        title: "Review Submitted",
+        description: "Thank you for your feedback!"
       });
 
       setShowReviewModal(false);
@@ -86,6 +131,8 @@ export default function ReviewForm({
         description: "Failed to submit review. Please try again.",
         variant: "destructive"
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -94,38 +141,76 @@ export default function ReviewForm({
   }
 
   return (
-    <Card>
+    <Card className="mt-6">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Star className="h-5 w-5 text-yellow-500" />
-          Submit Review
-        </CardTitle>
-        <p className="text-sm text-gray-600">
-          Share your experience working on this project. Your feedback helps build trust in the community.
-        </p>
+        <CardTitle>Leave a Review</CardTitle>
       </CardHeader>
       <CardContent>
-        <Button
-          onClick={() => setShowReviewModal(true)}
-          className="w-full"
-        >
-          <MessageSquare className="h-4 w-4 mr-2" />
-          Write a Review
-        </Button>
+        <div className="space-y-4">
+          <p className="text-sm text-gray-500">
+            Share your experience working with the {isClient ? 'professional' : 'client'} on this project.
+          </p>
+          <Button
+            className="w-full"
+            onClick={() => setShowReviewModal(true)}
+          >
+            Write a Review
+          </Button>
+        </div>
+      </CardContent>
 
-        {showReviewModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-              <EnhancedReviewForm
-                projectId={projectId}
-                revieweeId={user?.id || ''}
-                revieweeType={isClient ? 'professional' : 'client'}
-                onSubmit={handleReviewSubmit}
-              />
+      {/* Review Modal */}
+      <Dialog open={showReviewModal} onOpenChange={setShowReviewModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Write a Review</DialogTitle>
+            <DialogDescription>
+              Rate your experience and share your feedback.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <div className="space-y-6">
+              {/* Star Rating */}
+              <div>
+                <Label>Rating</Label>
+                <StarRating
+                  value={rating}
+                  onChange={setRating}
+                  size="large"
+                  className="mt-2"
+                />
+              </div>
+
+              {/* Review Comment */}
+              <div>
+                <Label htmlFor="comment">Comment (Optional)</Label>
+                <Textarea
+                  id="comment"
+                  value={comment}
+                  onChange={(e) => setComment(e.target.value)}
+                  placeholder="Share your experience working on this project..."
+                  className="min-h-[100px] mt-2"
+                />
+              </div>
             </div>
           </div>
-        )}
-      </CardContent>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowReviewModal(false)}
+              disabled={isSubmitting}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleReviewSubmit}
+              disabled={isSubmitting || rating === 0}
+            >
+              {isSubmitting ? "Submitting..." : "Submit Review"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 } 

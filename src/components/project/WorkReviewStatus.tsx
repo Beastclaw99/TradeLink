@@ -1,34 +1,22 @@
-import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
+import { CheckCircle, RefreshCw, Clock, AlertCircle, FileText } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { FileText, RefreshCw, CheckCircle, Clock, AlertCircle } from 'lucide-react';
+import { Separator } from '@/components/ui/separator';
 import { formatDistanceToNow } from 'date-fns';
-import { ProjectStatus } from '@/types/projectUpdates';
-
-interface ProjectUpdate {
-  id: string;
-  created_at: string;
-  message?: string;
-  metadata?: {
-    revision_notes?: string;
-    approval_notes?: string;
-  };
-}
 
 interface WorkReviewStatusProps {
-  projectStatus: ProjectStatus;
-  lastUpdate?: ProjectUpdate;
+  projectStatus: string;
+  lastUpdate: {
+    created_at: string;
+    message: string;
+    metadata?: {
+      revision_notes?: string;
+      approval_notes?: string;
+    };
+  } | null;
   isClient: boolean;
   isProfessional: boolean;
-}
-
-interface StatusInfo {
-  icon: React.ReactNode;
-  color: string;
-  title: string;
-  description: string;
 }
 
 const WorkReviewStatus: React.FC<WorkReviewStatusProps> = ({
@@ -38,7 +26,7 @@ const WorkReviewStatus: React.FC<WorkReviewStatusProps> = ({
   isProfessional
 }) => {
   // Determine status icon and color
-  const getStatusInfo = (): StatusInfo => {
+  const getStatusInfo = () => {
     switch (projectStatus) {
       case 'work_submitted':
         return {
@@ -74,7 +62,7 @@ const WorkReviewStatus: React.FC<WorkReviewStatusProps> = ({
   const statusInfo = getStatusInfo();
 
   // Get appropriate message based on role and status
-  const getStatusMessage = (): string | null => {
+  const getStatusMessage = () => {
     if (!lastUpdate) return null;
 
     if (projectStatus === 'work_revision_requested') {
@@ -98,8 +86,6 @@ const WorkReviewStatus: React.FC<WorkReviewStatusProps> = ({
     return null;
   };
 
-  const statusMessage = getStatusMessage();
-
   return (
     <Card>
       <CardHeader>
@@ -114,20 +100,13 @@ const WorkReviewStatus: React.FC<WorkReviewStatusProps> = ({
           <Badge variant="secondary" className={statusInfo.color}>
             {statusInfo.title}
           </Badge>
-          {lastUpdate && (
-            <span className="text-sm text-gray-500">
-              {formatDistanceToNow(new Date(lastUpdate.created_at), { addSuffix: true })}
-            </span>
-          )}
+          <span className="text-sm text-gray-500">
+            {lastUpdate && formatDistanceToNow(new Date(lastUpdate.created_at), { addSuffix: true })}
+          </span>
         </div>
 
         {/* Status Description */}
         <p className="text-sm text-gray-600">{statusInfo.description}</p>
-
-        {/* Status Message */}
-        {statusMessage && (
-          <p className="text-sm text-gray-600">{statusMessage}</p>
-        )}
 
         {/* Last Update Message */}
         {lastUpdate && (
@@ -135,9 +114,7 @@ const WorkReviewStatus: React.FC<WorkReviewStatusProps> = ({
             <Separator />
             <div className="space-y-2">
               <p className="text-sm font-medium text-gray-900">Last Update</p>
-              {lastUpdate.message && (
-                <p className="text-sm text-gray-600">{lastUpdate.message}</p>
-              )}
+              <p className="text-sm text-gray-600">{lastUpdate.message}</p>
               
               {/* Revision Notes */}
               {projectStatus === 'work_revision_requested' && lastUpdate.metadata?.revision_notes && (
@@ -160,6 +137,14 @@ const WorkReviewStatus: React.FC<WorkReviewStatusProps> = ({
               )}
             </div>
           </>
+        )}
+
+        {/* Status Message */}
+        {getStatusMessage() && (
+          <Alert>
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>{getStatusMessage()}</AlertDescription>
+          </Alert>
         )}
       </CardContent>
     </Card>

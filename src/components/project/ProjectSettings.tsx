@@ -24,69 +24,43 @@ import { useProjectStatus } from '@/hooks/useProjectStatus';
 import { ProjectStatus } from '@/types/projectUpdates';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 
-interface ProjectPermissions {
-  allowMemberInvites: boolean;
-  allowFileUploads: boolean;
-  allowComments: boolean;
-  allowTaskCreation: boolean;
-}
-
-interface ProjectNotifications {
-  email: boolean;
-  inApp: boolean;
-  mentions: boolean;
-  updates: boolean;
-}
-
-interface Project {
-  id: string;
-  title: string;
-  description?: string;
-  status: ProjectStatus;
-  client_id: string;
-  professional_id?: string;
-  created_at: string;
-  updated_at: string;
+interface ProjectSettings {
+  name: string;
+  description: string;
+  status: 'open' | 'assigned' | 'in_progress' | 'work_submitted' | 'work_revision_requested' | 'work_approved' | 'completed' | 'archived' | 'cancelled' | 'disputed';
   visibility: 'public' | 'private' | 'team';
-  notifications?: ProjectNotifications;
-  permissions?: ProjectPermissions;
-  timezone?: string;
-  date_format?: string;
-  default_language?: string;
-  tags?: string[];
-  milestones?: Array<{
-    id: string;
-    title: string;
-    status: string;
-    due_date: string;
-  }>;
+  notifications: {
+    email: boolean;
+    inApp: boolean;
+    mentions: boolean;
+    updates: boolean;
+  };
+  permissions: {
+    allowMemberInvites: boolean;
+    allowFileUploads: boolean;
+    allowComments: boolean;
+    allowTaskCreation: boolean;
+  };
+  timezone: string;
+  dateFormat: string;
+  defaultLanguage: string;
+  tags: string[];
 }
 
 interface ProjectSettingsProps {
-  project: Project;
+  project: any;
   onUpdate: () => void;
-}
-
-interface EditedSettings {
-  name: string;
-  status: ProjectStatus;
-}
-
-interface StatusMetadata {
-  cancellation_reason: string;
-  dispute_reason: string;
-  revision_notes: string;
 }
 
 const ProjectSettings: React.FC<ProjectSettingsProps> = ({ project, onUpdate }) => {
   const { toast } = useToast();
   const [isSaving, setIsSaving] = useState(false);
-  const [editedSettings, setEditedSettings] = useState<EditedSettings>({
+  const [editedSettings, setEditedSettings] = useState({
     name: project.title || '',
     status: project.status || 'open'
   });
   const [showStatusDialog, setShowStatusDialog] = useState(false);
-  const [statusMetadata, setStatusMetadata] = useState<StatusMetadata>({
+  const [statusMetadata, setStatusMetadata] = useState({
     cancellation_reason: '',
     dispute_reason: '',
     revision_notes: ''
@@ -97,102 +71,7 @@ const ProjectSettings: React.FC<ProjectSettingsProps> = ({ project, onUpdate }) 
     project.client_id
   );
 
-  const validateStatusMetadata = (status: ProjectStatus): boolean => {
-    switch (status) {
-      case 'cancelled':
-        if (!statusMetadata.cancellation_reason.trim()) {
-          toast({
-            title: "Missing Information",
-            description: "Please provide a reason for cancellation.",
-            variant: "destructive"
-          });
-          return false;
-        }
-        break;
-      case 'disputed':
-        if (!statusMetadata.dispute_reason.trim()) {
-          toast({
-            title: "Missing Information",
-            description: "Please provide a reason for the dispute.",
-            variant: "destructive"
-          });
-          return false;
-        }
-        break;
-      case 'work_revision_requested':
-        if (!statusMetadata.revision_notes.trim()) {
-          toast({
-            title: "Missing Information",
-            description: "Please provide revision notes.",
-            variant: "destructive"
-          });
-          return false;
-        }
-        break;
-    }
-    return true;
-  };
-
-  const handleStatusChange = async (newStatus: ProjectStatus) => {
-    // Validate if the transition is allowed
-    if (!canTransitionTo(project.status, newStatus, project)) {
-      toast({
-        title: "Invalid Status Change",
-        description: "This status change is not allowed at this time.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    // Check if we need additional metadata
-    if (['cancelled', 'disputed', 'work_revision_requested'].includes(newStatus)) {
-      setEditedSettings(prev => ({ ...prev, status: newStatus }));
-      setShowStatusDialog(true);
-      return;
-    }
-
-    // Proceed with status update
-    const result = await updateProjectStatus(newStatus);
-    if (result.success) {
-      setEditedSettings(prev => ({ ...prev, status: newStatus }));
-      onUpdate();
-    }
-  };
-
-  const handleStatusDialogConfirm = async () => {
-    // Validate required metadata
-    if (!validateStatusMetadata(editedSettings.status)) {
-      return;
-    }
-
-    const metadata = {
-      ...(editedSettings.status === 'cancelled' && { cancellation_reason: statusMetadata.cancellation_reason }),
-      ...(editedSettings.status === 'disputed' && { dispute_reason: statusMetadata.dispute_reason }),
-      ...(editedSettings.status === 'work_revision_requested' && { revision_notes: statusMetadata.revision_notes })
-    };
-
-    const result = await updateProjectStatus(editedSettings.status, metadata);
-    if (result.success) {
-      setShowStatusDialog(false);
-      setStatusMetadata({
-        cancellation_reason: '',
-        dispute_reason: '',
-        revision_notes: ''
-      });
-      onUpdate();
-    }
-  };
-
   const handleSave = async () => {
-    if (!editedSettings.name.trim()) {
-      toast({
-        title: "Missing Information",
-        description: "Project name cannot be empty.",
-        variant: "destructive"
-      });
-      return;
-    }
-
     try {
       setIsSaving(true);
 
@@ -221,6 +100,40 @@ const ProjectSettings: React.FC<ProjectSettingsProps> = ({ project, onUpdate }) 
       });
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleStatusChange = async (newStatus: ProjectStatus) => {
+    // Check if we need additional metadata
+    if (['cancelled', 'disputed', 'work_revision_requested'].includes(newStatus)) {
+      setShowStatusDialog(true);
+      return;
+    }
+
+    // Proceed with status update
+    const result = await updateProjectStatus(newStatus);
+    if (result.success) {
+      setEditedSettings(prev => ({ ...prev, status: newStatus }));
+      onUpdate();
+    }
+  };
+
+  const handleStatusDialogConfirm = async () => {
+    const metadata = {
+      ...(editedSettings.status === 'cancelled' && { cancellation_reason: statusMetadata.cancellation_reason }),
+      ...(editedSettings.status === 'disputed' && { dispute_reason: statusMetadata.dispute_reason }),
+      ...(editedSettings.status === 'work_revision_requested' && { revision_notes: statusMetadata.revision_notes })
+    };
+
+    const result = await updateProjectStatus(editedSettings.status as ProjectStatus, metadata);
+    if (result.success) {
+      setShowStatusDialog(false);
+      setStatusMetadata({
+        cancellation_reason: '',
+        dispute_reason: '',
+        revision_notes: ''
+      });
+      onUpdate();
     }
   };
 
@@ -277,7 +190,7 @@ const ProjectSettings: React.FC<ProjectSettingsProps> = ({ project, onUpdate }) 
                   value={editedSettings.status}
                   onValueChange={(value) => {
                     if (canTransitionTo(project.status, value as ProjectStatus, project)) {
-                      setEditedSettings(prev => ({ ...prev, status: value as ProjectStatus }));
+                      setEditedSettings(prev => ({ ...prev, status: value }));
                       handleStatusChange(value as ProjectStatus);
                     } else {
                       toast({
@@ -479,7 +392,7 @@ const ProjectSettings: React.FC<ProjectSettingsProps> = ({ project, onUpdate }) 
               <div className="space-y-2">
                 <Label htmlFor="dateFormat">Date Format</Label>
                 <Select
-                  value={project.date_format}
+                  value={project.dateFormat}
                   onValueChange={(value) => {
                     // Handle date format update
                   }}
@@ -497,7 +410,7 @@ const ProjectSettings: React.FC<ProjectSettingsProps> = ({ project, onUpdate }) 
               <div className="space-y-2">
                 <Label htmlFor="language">Default Language</Label>
                 <Select
-                  value={project.default_language}
+                  value={project.defaultLanguage}
                   onValueChange={(value) => {
                     // Handle default language update
                   }}

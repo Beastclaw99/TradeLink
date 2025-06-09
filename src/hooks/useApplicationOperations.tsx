@@ -1,73 +1,77 @@
+
 import { useState } from 'react';
-import { useToast } from '@/components/ui/use-toast';
-import { supabase } from '@/integrations/supabase/client';
-import { Application } from '@/components/dashboard/types';
+import { useToast } from "@/components/ui/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
-export const useApplicationOperations = (clientId: string, onUpdate: () => void) => {
+export const useApplicationOperations = (userId: string, onUpdate: () => void) => {
   const { toast } = useToast();
-  const [isLoading, setIsLoading] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
 
-  const handleApplicationReview = async (applicationId: string, status: 'accepted' | 'rejected', feedback?: string) => {
+  const handleApplicationUpdate = async (
+    applicationId: string, 
+    newStatus: string, 
+    projectId: string, 
+    professionalId: string
+  ) => {
     try {
-      setIsLoading(true);
-      const { error } = await supabase
+      setIsProcessing(true);
+      
+      // Start a transaction
+      if (newStatus === 'accepted') {
+        // If accepting, update project to assigned
+        const { error: projectError } = await supabase
+          .from('projects')
+          .update({
+            status: 'assigned',
+            assigned_to: professionalId
+          })
+          .eq('id', projectId)
+          .eq('client_id', userId);
+        
+        if (projectError) throw projectError;
+        
+        // Reject all other applications for this project
+        const { error: rejectError } = await supabase
+          .from('applications')
+          .update({ status: 'rejected' })
+          .eq('project_id', projectId)
+          .neq('id', applicationId);
+        
+        if (rejectError) throw rejectError;
+      }
+      
+      // Update the specific application status
+      const { error: appError } = await supabase
         .from('applications')
-        .update({
-          status,
-          feedback,
-          reviewed_at: new Date().toISOString(),
-          client_id: clientId
-        })
-        .eq('id', applicationId)
-        .eq('client_id', clientId);
-
-      if (error) throw error;
-
+        .update({ status: newStatus })
+        .eq('id', applicationId);
+      
+      if (appError) throw appError;
+      
       toast({
-        title: 'Application Updated',
-        description: `Application has been ${status}.`
+        title: `Application ${newStatus === 'accepted' ? 'Accepted' : 'Rejected'}`,
+        description: newStatus === 'accepted' 
+          ? "The professional has been assigned to your project."
+          : "The application has been rejected."
       });
-
+      
+      // Refresh data
       onUpdate();
-    } catch (error) {
+      
+    } catch (error: any) {
       console.error('Error updating application:', error);
       toast({
-        title: 'Error',
-        description: 'Failed to update application status.',
-        variant: 'destructive'
+        title: "Error",
+        description: "Failed to update application. Please try again.",
+        variant: "destructive"
       });
     } finally {
-      setIsLoading(false);
+      setIsProcessing(false);
     }
   };
-
-  const fetchApplications = async () => {
-    try {
-      setIsLoading(true);
-      const { data, error } = await supabase
-        .from('applications')
-        .select('*')
-        .eq('client_id', clientId)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      return data;
-    } catch (error) {
-      console.error('Error fetching applications:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to load applications.',
-        variant: 'destructive'
-      });
-      return [];
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
+  
   return {
-    isLoading,
-    handleApplicationReview,
-    fetchApplications
+    isProcessing,
+    handleApplicationUpdate
   };
 };

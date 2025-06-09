@@ -7,8 +7,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { CheckCircle, Download, AlertCircle, CreditCard } from 'lucide-react';
-import { PaymentService } from '@/services/paymentService';
+import { CheckCircle, Download, AlertCircle } from 'lucide-react';
 
 interface InvoiceSectionProps {
   projectId: string;
@@ -98,38 +97,66 @@ export default function InvoiceSection({
     }
   }, [projectId, projectStatus, toast]);
 
-  // Handle payment initiation
-  const handlePaymentInitiation = async () => {
+  // Handle payment confirmation
+  const handlePaymentConfirmation = async () => {
     try {
       setIsSubmitting(true);
 
-      // Get project details
-      const { data: projectData, error: projectError } = await supabase
+      // Update invoice status
+      const { error: invoiceError } = await supabase
+        .from('invoices')
+        .update({ 
+          status: 'paid',
+          payment_note: paymentNote,
+          paid_at: new Date().toISOString()
+        })
+        .eq('id', invoice.id);
+
+      if (invoiceError) throw invoiceError;
+
+      // Update project status
+      const { error: projectError } = await supabase
         .from('projects')
-        .select('title, client:profiles!projects_client_id_fkey(email, first_name, last_name)')
-        .eq('id', projectId)
-        .single();
+        .update({ status: 'paid' })
+        .eq('id', projectId);
 
       if (projectError) throw projectError;
 
-      // Initiate test payment
-      const { paymentUrl } = await PaymentService.initiatePayment({
-        projectId,
-        clientId: user?.id || '',
-        professionalId: invoice.professional_id,
-        amount: invoice.amount,
-        description: `Payment for project: ${projectData.title}`,
-        customerEmail: projectData.client.email,
-        customerName: `${projectData.client.first_name} ${projectData.client.last_name}`
+      // Create project update
+      await supabase.from('project_updates').insert([{
+        project_id: projectId,
+        update_type: 'status_update',
+        message: 'Payment has been processed',
+        professional_id: user?.id,
+        metadata: {
+          status_change: 'paid'
+        }
+      }]);
+
+      // Send message to project chat
+      await supabase.from('project_messages').insert([{
+        project_id: projectId,
+        sender_id: user?.id,
+        content: 'Payment has been processed successfully.',
+        sent_at: new Date().toISOString(),
+        metadata: {
+          type: 'payment_processed',
+          title: 'Payment Processed'
+        }
+      }]);
+
+      toast({
+        title: "Payment Processed",
+        description: "The payment has been processed successfully."
       });
 
-      // Redirect to success page (simulating payment completion)
-      window.location.href = paymentUrl;
-    } catch (error) {
-      console.error('Error initiating payment:', error);
+      setShowPaymentModal(false);
+      onPaymentProcessed();
+    } catch (error: any) {
+      console.error('Error processing payment:', error);
       toast({
         title: "Error",
-        description: "Failed to initiate payment. Please try again.",
+        description: "Failed to process payment. Please try again.",
         variant: "destructive"
       });
     } finally {
@@ -150,14 +177,14 @@ export default function InvoiceSection({
         {invoice ? (
           <div className="space-y-6">
             {/* Invoice Status Banner */}
-            {(invoice.status === 'paid' || projectStatus === 'paid') ? (
+            {invoice.status === 'paid' ? (
               <div className="bg-green-50 p-4 rounded-lg text-green-800 border border-green-200">
                 <div className="flex items-center">
                   <CheckCircle className="mr-2" size={20} />
                   <h3 className="font-medium">Payment Processed</h3>
                 </div>
                 <p className="text-sm mt-1">
-                  Payment was processed on {invoice.paid_at ? new Date(invoice.paid_at).toLocaleDateString() : 'N/A'}
+                  Payment was processed on {new Date(invoice.paid_at).toLocaleDateString()}
                 </p>
               </div>
             ) : (
@@ -176,7 +203,7 @@ export default function InvoiceSection({
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <p className="text-sm text-gray-500">Amount</p>
-                <p className="font-medium">TTD {invoice.amount.toLocaleString()}</p>
+                <p className="font-medium">${invoice.amount}</p>
               </div>
               <div>
                 <p className="text-sm text-gray-500">Status</p>
@@ -191,15 +218,14 @@ export default function InvoiceSection({
             </div>
 
             {/* Action Buttons */}
-            {isClient && invoice.status === 'pending' && projectStatus !== 'paid' && (
+            {isClient && invoice.status === 'pending' && (
               <div className="flex gap-4">
                 <Button
                   className="flex-1"
-                  onClick={handlePaymentInitiation}
+                  onClick={() => setShowPaymentModal(true)}
                   disabled={isSubmitting}
                 >
-                  <CreditCard className="w-4 h-4 mr-2" />
-                  Process Payment (Test Mode)
+                  Mark as Paid
                 </Button>
                 <Button
                   variant="outline"
@@ -216,6 +242,47 @@ export default function InvoiceSection({
           <p className="text-gray-500">No invoice found.</p>
         )}
       </CardContent>
+
+      {/* Payment Confirmation Modal */}
+      <Dialog open={showPaymentModal} onOpenChange={setShowPaymentModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirm Payment</DialogTitle>
+            <DialogDescription>
+              Please confirm that you have processed the payment of ${invoice?.amount} for this project.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="paymentNote">Payment Note (Optional)</Label>
+                <Textarea
+                  id="paymentNote"
+                  value={paymentNote}
+                  onChange={(e) => setPaymentNote(e.target.value)}
+                  placeholder="Add any notes about the payment..."
+                  className="min-h-[100px]"
+                />
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowPaymentModal(false)}
+              disabled={isSubmitting}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handlePaymentConfirmation}
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? "Processing..." : "Confirm Payment"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 } 

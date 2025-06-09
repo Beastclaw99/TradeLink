@@ -301,7 +301,7 @@ const Profile: React.FC = () => {
                     )}
 
                     {profile?.account_type === 'professional' && isOwnProfile && (
-                      <PortfolioUpload profileId={profile.id} />
+                      <PortfolioUpload userId={profile.id} />
                     )}
 
                     {profile?.portfolio_images && profile.portfolio_images.length > 0 && (

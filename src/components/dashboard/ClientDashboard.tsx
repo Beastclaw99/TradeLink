@@ -9,20 +9,15 @@ import { useClientDashboard } from '@/hooks/useClientDashboard';
 import { useProjectOperations } from '@/hooks/useProjectOperations';
 import { useReviewOperations } from '@/hooks/useReviewOperations';
 import { useApplicationOperations } from '@/hooks/useApplicationOperations';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ProjectList } from '@/components/project/ProjectList';
-import { ApplicationList } from '@/components/application/ApplicationList';
-import { DashboardStats } from '@/components/dashboard/DashboardStats';
-import { RecentActivity } from '@/components/dashboard/RecentActivity';
-import { LoadingSpinner } from '@/components/ui/loading-spinner';
 
 interface ClientDashboardProps {
-  clientId: string;
+  userId: string;
+  initialTab?: string;
 }
 
-export const ClientDashboard: React.FC<ClientDashboardProps> = ({ clientId }) => {
+const ClientDashboard: React.FC<ClientDashboardProps> = ({ userId, initialTab = 'projects' }) => {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('projects');
+  const [activeTab, setActiveTab] = useState(initialTab);
 
   // Use custom hooks for data fetching and operations
   const { 
@@ -32,12 +27,8 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ clientId }) =>
     reviews, 
     profileData, 
     isLoading, 
-    fetchDashboardData, 
-    error,
-    stats,
-    recentActivity,
-    refreshData
-  } = useClientDashboard(clientId);
+    fetchDashboardData 
+  } = useClientDashboard(userId);
   
   const { 
     editProject, 
@@ -54,7 +45,7 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ clientId }) =>
     handleDeleteInitiate, 
     handleDeleteCancel, 
     handleDeleteProject 
-  } = useProjectOperations(clientId, fetchDashboardData);
+  } = useProjectOperations(userId, fetchDashboardData);
   
   const { 
     projectToReview, 
@@ -64,19 +55,19 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ clientId }) =>
     handleReviewInitiate, 
     handleReviewCancel, 
     handleReviewSubmit 
-  } = useReviewOperations(clientId, applications, fetchDashboardData);
+  } = useReviewOperations(userId, applications, fetchDashboardData);
   
   const { 
     isProcessing, 
     handleApplicationUpdate 
-  } = useApplicationOperations(clientId, fetchDashboardData);
+  } = useApplicationOperations(userId, fetchDashboardData);
   
   // Set the active tab based on initialTab prop
   useEffect(() => {
-    if (activeTab && ['projects', 'applications', 'create', 'payments'].includes(activeTab)) {
-      setActiveTab(activeTab);
+    if (initialTab && ['projects', 'applications', 'create', 'payments'].includes(initialTab)) {
+      setActiveTab(initialTab);
     }
-  }, [activeTab]);
+  }, [initialTab]);
   
   // Props to pass to tab components
   const projectsTabProps = {
@@ -117,114 +108,31 @@ export const ClientDashboard: React.FC<ClientDashboardProps> = ({ clientId }) =>
     setReviewData
   };
   
-  if (isLoading) {
-    return (
-      <div className="flex h-[calc(100vh-4rem)] items-center justify-center">
-        <LoadingSpinner size="lg" />
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="flex h-[calc(100vh-4rem)] items-center justify-center">
-        <Card className="w-full max-w-md">
-          <CardContent className="pt-6">
-            <div className="text-center">
-              <h3 className="text-lg font-semibold text-destructive">Error Loading Dashboard</h3>
-              <p className="mt-2 text-sm text-muted-foreground">{error}</p>
-              <button
-                onClick={refreshData}
-                className="mt-4 text-sm text-primary hover:underline"
-              >
-                Try Again
-              </button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
   return (
-    <div className="container mx-auto p-6">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold">Client Dashboard</h1>
-        <p className="mt-2 text-muted-foreground">
-          Manage your projects and applications
-        </p>
-      </div>
-
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-        <DashboardStats stats={stats} />
-      </div>
-
-      <div className="mt-8 grid gap-6 md:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Recent Activity</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <RecentActivity activities={recentActivity} />
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Quick Actions</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-4">
-              <button
-                onClick={() => window.location.href = '/projects/new'}
-                className="flex items-center justify-center rounded-lg border p-4 hover:bg-accent"
-              >
-                Create New Project
-              </button>
-              <button
-                onClick={() => window.location.href = '/applications'}
-                className="flex items-center justify-center rounded-lg border p-4 hover:bg-accent"
-              >
-                View Applications
-              </button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="mt-8">
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="mb-6">
-            <TabsTrigger value="projects" data-value="projects">Your Projects</TabsTrigger>
-            <TabsTrigger value="applications" data-value="applications">Applications</TabsTrigger>
-            <TabsTrigger value="create" data-value="create">Post New Project</TabsTrigger>
-            <TabsTrigger value="payments" data-value="payments">Payments</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="projects">
-            <ProjectList
-              projects={projects}
-              onProjectUpdate={refreshData}
-            />
-          </TabsContent>
-          
-          <TabsContent value="applications">
-            <ApplicationList
-              applications={applications}
-              onApplicationUpdate={refreshData}
-            />
-          </TabsContent>
-          
-          <TabsContent value="create">
-            <CreateProjectTab />
-          </TabsContent>
-          
-          <TabsContent value="payments">
-            <PaymentsTab {...paymentsTabProps} />
-          </TabsContent>
-        </Tabs>
-      </div>
-    </div>
+    <Tabs value={activeTab} onValueChange={setActiveTab}>
+      <TabsList className="mb-6">
+        <TabsTrigger value="projects" data-value="projects">Your Projects</TabsTrigger>
+        <TabsTrigger value="applications" data-value="applications">Applications</TabsTrigger>
+        <TabsTrigger value="create" data-value="create">Post New Project</TabsTrigger>
+        <TabsTrigger value="payments" data-value="payments">Payments</TabsTrigger>
+      </TabsList>
+      
+      <TabsContent value="projects">
+        <ProjectsTab {...projectsTabProps} />
+      </TabsContent>
+      
+      <TabsContent value="applications">
+        <ApplicationsTab {...applicationsTabProps} />
+      </TabsContent>
+      
+      <TabsContent value="create">
+        <CreateProjectTab />
+      </TabsContent>
+      
+      <TabsContent value="payments">
+        <PaymentsTab {...paymentsTabProps} />
+      </TabsContent>
+    </Tabs>
   );
 };
 

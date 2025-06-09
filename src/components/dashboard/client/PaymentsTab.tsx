@@ -62,12 +62,9 @@ const PaymentsTab: React.FC<PaymentsTabProps> = ({
                     <CardDescription className="flex items-center justify-between">
                       <span>Completed</span>
                       <span className={`px-2 py-1 text-xs rounded-full ${
-                        project.status === 'archived' ? 'bg-purple-100 text-purple-800' : 
-                        project.status === 'paid' || project.status === 'completed' ? 'bg-green-100 text-green-800' :
-                        project.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                        'bg-gray-100 text-gray-800'
+                        project.status === 'archived' ? 'bg-purple-100 text-purple-800' : 'bg-green-100 text-green-800'
                       }`}>
-                        {project.status === 'archived' ? 'Reviewed' : project.status === 'paid' ? 'Paid' : project.status === 'completed' ? 'Completed' : 'Pending'}
+                        {project.status === 'archived' ? 'Reviewed' : 'Completed'}
                       </span>
                     </CardDescription>
                   </CardHeader>
