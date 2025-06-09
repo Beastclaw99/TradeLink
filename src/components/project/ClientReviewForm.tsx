@@ -9,6 +9,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { CheckCircle, RefreshCw, FileText, Paperclip, Info, AlertTriangle, MessageSquare } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
+import { useProjectStatus } from '@/hooks/useProjectStatus';
 
 interface WorkReviewFormProps {
   projectId: string;
@@ -28,8 +29,9 @@ const WorkReviewForm: React.FC<WorkReviewFormProps> = ({
   const [message, setMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [deliverables, setDeliverables] = useState<any[]>([]);
+  const { updateProjectStatus } = useProjectStatus(projectId, user?.id || '');
 
-  const isVisible = isClient && projectStatus === 'submitted';
+  const isVisible = isClient && projectStatus === 'work_submitted';
 
   useEffect(() => {
     const fetchDeliverables = async () => {
@@ -59,21 +61,21 @@ const WorkReviewForm: React.FC<WorkReviewFormProps> = ({
       setIsSubmitting(true);
 
       // Update project status
-      const { error: statusError } = await supabase
-        .from('projects')
-        .update({ status: 'completed' })
-        .eq('id', projectId);
+      const result = await updateProjectStatus('work_approved', {
+        approval_notes: message || 'Work approved'
+      });
 
-      if (statusError) throw statusError;
+      if (!result.success) throw new Error(result.message);
 
       // Create project update
       await supabase.from('project_updates').insert([{
         project_id: projectId,
-        update_type: 'status_update',
+        update_type: 'status_change',
         message: message || 'Work approved',
         professional_id: user?.id,
         metadata: {
-          status_change: 'completed'
+          status_change: 'work_approved',
+          approval_notes: message
         }
       }]);
 
@@ -99,7 +101,7 @@ const WorkReviewForm: React.FC<WorkReviewFormProps> = ({
       console.error('Error approving work:', error);
       toast({
         title: "Error",
-        description: "Failed to approve work. Please try again.",
+        description: error.message || "Failed to approve work. Please try again.",
         variant: "destructive"
       });
     } finally {
@@ -109,25 +111,34 @@ const WorkReviewForm: React.FC<WorkReviewFormProps> = ({
 
   // Handle revision request
   const handleRequestRevision = async () => {
+    if (!message.trim()) {
+      toast({
+        title: "Feedback Required",
+        description: "Please provide feedback explaining what needs to be revised.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     try {
       setIsSubmitting(true);
 
       // Update project status
-      const { error: statusError } = await supabase
-        .from('projects')
-        .update({ status: 'revision' })
-        .eq('id', projectId);
+      const result = await updateProjectStatus('work_revision_requested', {
+        revision_notes: message
+      });
 
-      if (statusError) throw statusError;
+      if (!result.success) throw new Error(result.message);
 
       // Create project update
       await supabase.from('project_updates').insert([{
         project_id: projectId,
-        update_type: 'status_update',
-        message: message || 'Revision requested',
+        update_type: 'status_change',
+        message: message,
         professional_id: user?.id,
         metadata: {
-          status_change: 'revision'
+          status_change: 'work_revision_requested',
+          revision_notes: message
         }
       }]);
 
@@ -135,7 +146,7 @@ const WorkReviewForm: React.FC<WorkReviewFormProps> = ({
       await supabase.from('project_messages').insert([{
         project_id: projectId,
         sender_id: user?.id,
-        content: message || 'Revision has been requested.',
+        content: message,
         sent_at: new Date().toISOString(),
         metadata: {
           type: 'revision_requested',
@@ -153,7 +164,7 @@ const WorkReviewForm: React.FC<WorkReviewFormProps> = ({
       console.error('Error requesting revision:', error);
       toast({
         title: "Error",
-        description: "Failed to request revision. Please try again.",
+        description: error.message || "Failed to request revision. Please try again.",
         variant: "destructive"
       });
     } finally {
@@ -238,7 +249,7 @@ const WorkReviewForm: React.FC<WorkReviewFormProps> = ({
           <div className="space-y-2">
             <Label htmlFor="message" className="flex items-center gap-2">
               <MessageSquare className="h-4 w-4" />
-              Feedback Message (Optional)
+              Feedback Message
             </Label>
             <Textarea
               id="message"
@@ -253,55 +264,47 @@ const WorkReviewForm: React.FC<WorkReviewFormProps> = ({
           </div>
 
           {/* Decision Buttons */}
-          <div className="space-y-4">
-            <div className="grid md:grid-cols-2 gap-4">
-              <Button
-                type="button"
-                variant="outline"
-                className="w-full h-auto p-4 border-orange-200 hover:bg-orange-50"
-                onClick={handleRequestRevision}
-                disabled={isSubmitting}
-              >
-                <div className="flex flex-col items-center gap-2">
-                  <RefreshCw className="h-5 w-5 text-orange-600" />
-                  <div className="text-center">
-                    <div className="font-medium text-orange-700">Request Revision</div>
-                    <div className="text-sm text-orange-600">Work needs changes</div>
-                  </div>
-                </div>
-              </Button>
-              
-              <Button
-                type="button"
-                className="w-full h-auto p-4 bg-green-600 hover:bg-green-700"
-                onClick={handleApprove}
-                disabled={isSubmitting}
-              >
-                <div className="flex flex-col items-center gap-2">
-                  <CheckCircle className="h-5 w-5" />
-                  <div className="text-center">
-                    <div className="font-medium">Approve Work</div>
-                    <div className="text-sm opacity-90">Mark as complete</div>
-                  </div>
-                </div>
-              </Button>
-            </div>
-
-            {/* Action Guidance */}
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-              <div className="flex items-start gap-2">
-                <AlertTriangle className="h-4 w-4 text-yellow-600 mt-0.5" />
-                <div className="text-sm">
-                  <p className="font-medium text-yellow-800">Before you decide:</p>
-                  <ul className="text-yellow-700 mt-1 space-y-1">
-                    <li>• Check that all project requirements have been met</li>
-                    <li>• Verify deliverable quality matches your expectations</li>
-                    <li>• Consider if any clarifications are needed</li>
-                  </ul>
+          <div className="grid md:grid-cols-2 gap-4">
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full h-auto p-4 border-orange-200 hover:bg-orange-50"
+              onClick={handleRequestRevision}
+              disabled={isSubmitting}
+            >
+              <div className="flex flex-col items-center gap-2">
+                <RefreshCw className="h-5 w-5 text-orange-600" />
+                <div className="text-center">
+                  <div className="font-medium text-orange-700">Request Revision</div>
+                  <div className="text-sm text-orange-600">Work needs changes</div>
                 </div>
               </div>
-            </div>
+            </Button>
+            
+            <Button
+              type="button"
+              className="w-full h-auto p-4 bg-green-600 hover:bg-green-700"
+              onClick={handleApprove}
+              disabled={isSubmitting}
+            >
+              <div className="flex flex-col items-center gap-2">
+                <CheckCircle className="h-5 w-5" />
+                <div className="text-center">
+                  <div className="font-medium">Approve Work</div>
+                  <div className="text-sm opacity-90">Mark as complete</div>
+                </div>
+              </div>
+            </Button>
           </div>
+
+          {/* Action Guidance */}
+          <Alert>
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>
+              <strong>Important:</strong> Once you approve the work, the project will move to the completion phase. 
+              Make sure all requirements are met before approving.
+            </AlertDescription>
+          </Alert>
         </div>
       </CardContent>
     </Card>
