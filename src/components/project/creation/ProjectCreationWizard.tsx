@@ -31,8 +31,15 @@ const ProjectCreationWizard: React.FC = () => {
     timeline: '',
     urgency: '',
     milestones: [],
-    deliverables: [],
-    service_contract: ''
+    service_contract: '',
+    requirements: [],
+    scope: '',
+    industry_specific_fields: null,
+    location_coordinates: null,
+    deadline: '',
+    project_start_time: '',
+    rich_description: '',
+    sla_terms: null
   });
 
   const steps = [
@@ -133,71 +140,87 @@ const ProjectCreationWizard: React.FC = () => {
   };
 
   const handleSubmit = async () => {
-    if (!user) {
-      toast({
-        title: "Authentication required",
-        description: "Please log in to create a project",
-        variant: "destructive"
-      });
-      return;
-    }
-
     try {
-      // Create the project first
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      // Create project
       const { data: project, error: projectError } = await supabase
         .from('projects')
-        .insert([
-          {
-            title: projectData.title,
-            description: projectData.description,
-            category: projectData.category,
-            location: projectData.location,
-            requirements: [], // Empty array for now
-            required_skills: projectData.recommendedSkills.join(','),
-            budget: projectData.budget,
-            expected_timeline: projectData.timeline,
-            urgency: projectData.urgency,
-            client_id: user.id,
-            status: 'open',
-            service_contract: projectData.service_contract
-          }
-        ])
+        .insert([{
+          title: projectData.title,
+          description: projectData.description,
+          category: projectData.category,
+          location: projectData.location,
+          budget: projectData.budget,
+          timeline: projectData.timeline,
+          urgency: projectData.urgency,
+          status: 'open',
+          created_by: user.id,
+          requirements: projectData.requirements || [],
+          scope: projectData.scope,
+          industry_specific_fields: projectData.industry_specific_fields,
+          location_coordinates: projectData.location_coordinates,
+          deadline: projectData.deadline,
+          project_start_time: projectData.project_start_time,
+          rich_description: projectData.rich_description,
+          sla_terms: projectData.sla_terms
+        }])
         .select()
         .single();
 
       if (projectError) throw projectError;
 
       // Create milestones
-      if (projectData.milestones.length > 0) {
+      if (projectData.milestones && projectData.milestones.length > 0) {
         const { error: milestonesError } = await supabase
           .from('project_milestones')
           .insert(
             projectData.milestones.map(milestone => ({
-              ...milestone,
+              title: milestone.title,
+              description: milestone.description,
+              due_date: milestone.dueDate,
+              status: milestone.status,
+              is_complete: milestone.progress === 100,
               project_id: project.id,
               created_by: user.id,
-              status: 'not_started',
-              is_complete: false
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
             }))
           );
 
         if (milestonesError) throw milestonesError;
-      }
 
-      // Create deliverables
-      if (projectData.deliverables.length > 0) {
-        const { error: deliverablesError } = await supabase
-          .from('project_deliverables')
-          .insert(
-            projectData.deliverables.map(deliverable => ({
-              ...deliverable,
-              project_id: project.id,
-              uploaded_by: user.id,
-              file_url: deliverable.deliverable_type === 'file' ? deliverable.content || '' : ''
-            }))
-          );
+        // Get the created milestones to get their IDs
+        const { data: createdMilestones, error: fetchError } = await supabase
+          .from('project_milestones')
+          .select('id, title')
+          .eq('project_id', project.id);
 
-        if (deliverablesError) throw deliverablesError;
+        if (fetchError) throw fetchError;
+
+        // Create deliverables for each milestone
+        for (const milestone of projectData.milestones) {
+          const createdMilestone = createdMilestones.find(m => m.title === milestone.title);
+          if (createdMilestone && milestone.deliverables && milestone.deliverables.length > 0) {
+            const { error: deliverablesError } = await supabase
+              .from('project_deliverables')
+              .insert(
+                milestone.deliverables.map(deliverable => ({
+                  description: deliverable.description,
+                  deliverable_type: deliverable.deliverable_type,
+                  content: deliverable.content || null,
+                  file_url: deliverable.deliverable_type === 'file' ? deliverable.content || '' : '',
+                  milestone_id: createdMilestone.id,
+                  project_id: project.id,
+                  uploaded_by: user.id,
+                  created_at: new Date().toISOString()
+                }))
+              );
+
+            if (deliverablesError) throw deliverablesError;
+          }
+        }
       }
 
       toast({

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Badge } from "@/components/ui/badge";
 import { 
@@ -22,6 +22,9 @@ import ProjectUpdateTimeline from '../project/ProjectUpdateTimeline';
 import ProjectMilestones from '../project/ProjectMilestones';
 import ProjectDeliverables from '../project/ProjectDeliverables';
 import { ProgressIndicator } from "@/components/ui/progress-indicator";
+import { supabase } from '@/integrations/supabase/client';
+import { Milestone, convertDBMilestoneToMilestone } from '@/components/project/creation/types';
+import { useToast } from "@/components/ui/use-toast";
 
 interface UnifiedProjectCardProps {
   project: Project;
@@ -112,15 +115,44 @@ export default function UnifiedProjectCard({
   onClick,
   actionLabel
 }: UnifiedProjectCardProps) {
+  const { toast } = useToast();
   const [showChat, setShowChat] = useState(false);
   const [activeTab, setActiveTab] = useState('timeline');
   const [expanded, setExpanded] = useState(false);
+  const [milestones, setMilestones] = useState<Milestone[]>([]);
 
   const canShowChat = project.status !== 'open' && 
     project.status !== 'cancelled' && 
     project.status !== 'archived' &&
     project.client_id && 
     project.professional_id;
+
+  useEffect(() => {
+    if (expanded && project.status !== 'open') {
+      fetchMilestones();
+    }
+  }, [expanded, project.id]);
+
+  const fetchMilestones = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('project_milestones')
+        .select('*')
+        .eq('project_id', project.id)
+        .order('due_date', { ascending: true });
+
+      if (error) throw error;
+
+      setMilestones((data || []).map(convertDBMilestoneToMilestone));
+    } catch (error) {
+      console.error('Error fetching milestones:', error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch project milestones.",
+        variant: "destructive"
+      });
+    }
+  };
 
   const renderStatusBadge = () => (
     <Badge 
@@ -179,6 +211,7 @@ export default function UnifiedProjectCard({
             </div>
           </CardContent>
         </Card>
+        
         {showChat && canShowChat && (
           <div className="mt-4">
             <ProjectChat
@@ -331,7 +364,7 @@ export default function UnifiedProjectCard({
 
                 <TabsContent value="milestones" className="mt-4">
                   <ProjectMilestones 
-                    milestones={[]}
+                    milestones={milestones}
                     isClient={!isProfessional}
                     onAddMilestone={async () => {}}
                     onEditMilestone={async () => {}}
@@ -341,7 +374,10 @@ export default function UnifiedProjectCard({
                 </TabsContent>
 
                 <TabsContent value="deliverables" className="mt-4">
-                  <ProjectDeliverables projectId={project.id} />
+                  <ProjectDeliverables 
+                    projectId={project.id}
+                    canUpload={isProfessional}
+                  />
                 </TabsContent>
 
                 <TabsContent value="details" className="mt-4">

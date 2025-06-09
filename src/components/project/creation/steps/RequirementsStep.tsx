@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -14,28 +13,104 @@ interface RequirementsStepProps {
   onUpdate: (data: Partial<ProjectData>) => void;
 }
 
-const SUGGESTED_SKILLS = [
-  'Plumbing',
-  'Electrical Work',
-  'Carpentry',
-  'Painting',
-  'Tiling',
-  'Roofing',
-  'Landscaping',
-  'Masonry',
-  'HVAC',
-  'Flooring Installation',
-  'Kitchen Installation',
-  'Bathroom Renovation',
-  'Drywall',
-  'Insulation',
-  'Concrete Work',
-  'Fence Installation',
-  'Pool Maintenance',
-  'Appliance Installation',
-  'Home Security',
-  'Solar Installation'
-];
+const CATEGORY_SKILLS: Record<string, string[]> = {
+  plumbing: [
+    'Pipe Installation',
+    'Leak Repair',
+    'Fixture Installation',
+    'Drain Cleaning',
+    'Water Heater Installation',
+    'Bathroom Plumbing',
+    'Kitchen Plumbing',
+    'Emergency Plumbing',
+    'Pipe Fitting',
+    'Water Pressure Testing'
+  ],
+  electrical: [
+    'Wiring Installation',
+    'Circuit Repair',
+    'Lighting Installation',
+    'Electrical Panel Upgrade',
+    'Outlet Installation',
+    'Switch Installation',
+    'Emergency Electrical',
+    'Electrical Safety Inspection',
+    'Generator Installation',
+    'Smart Home Wiring'
+  ],
+  carpentry: [
+    'Cabinet Installation',
+    'Door Installation',
+    'Window Installation',
+    'Furniture Assembly',
+    'Wood Framing',
+    'Trim Work',
+    'Custom Shelving',
+    'Deck Building',
+    'Stair Installation',
+    'Wood Repair'
+  ],
+  painting: [
+    'Interior Painting',
+    'Exterior Painting',
+    'Wall Preparation',
+    'Color Consultation',
+    'Cabinet Painting',
+    'Deck Staining',
+    'Wallpaper Installation',
+    'Texture Application',
+    'Mural Painting',
+    'Paint Removal'
+  ],
+  masonry: [
+    'Brick Laying',
+    'Concrete Work',
+    'Stone Installation',
+    'Patio Construction',
+    'Retaining Wall',
+    'Chimney Repair',
+    'Foundation Work',
+    'Stucco Application',
+    'Tile Setting',
+    'Masonry Repair'
+  ],
+  roofing: [
+    'Roof Installation',
+    'Roof Repair',
+    'Gutter Installation',
+    'Skylight Installation',
+    'Roof Inspection',
+    'Shingle Replacement',
+    'Metal Roofing',
+    'Roof Coating',
+    'Roof Ventilation',
+    'Emergency Roof Repair'
+  ],
+  landscaping: [
+    'Garden Design',
+    'Lawn Maintenance',
+    'Tree Planting',
+    'Irrigation Installation',
+    'Patio Design',
+    'Outdoor Lighting',
+    'Fence Installation',
+    'Garden Maintenance',
+    'Landscape Design',
+    'Plant Care'
+  ],
+  other: [
+    'General Handyman',
+    'Home Maintenance',
+    'Appliance Installation',
+    'Furniture Assembly',
+    'Moving Assistance',
+    'Cleaning Services',
+    'Home Organization',
+    'Window Installation',
+    'Door Installation',
+    'General Repairs'
+  ]
+};
 
 const RequirementsStep: React.FC<RequirementsStepProps> = ({ data, onUpdate }) => {
   const [newSkill, setNewSkill] = useState('');
@@ -62,6 +137,9 @@ const RequirementsStep: React.FC<RequirementsStepProps> = ({ data, onUpdate }) =
     }
   };
 
+  // Get suggested skills based on the selected category
+  const suggestedSkills = data.category ? CATEGORY_SKILLS[data.category] || CATEGORY_SKILLS.other : CATEGORY_SKILLS.other;
+
   return (
     <div className="space-y-6">
       <Card>
@@ -80,9 +158,9 @@ const RequirementsStep: React.FC<RequirementsStepProps> = ({ data, onUpdate }) =
 
           <div className="space-y-4">
             <div>
-              <Label>Quick Add - Common Skills</Label>
+              <Label>Quick Add - {data.category ? `${data.category.charAt(0).toUpperCase() + data.category.slice(1)} Skills` : 'Common Skills'}</Label>
               <div className="flex flex-wrap gap-2 mt-2">
-                {SUGGESTED_SKILLS.map((skill) => (
+                {suggestedSkills.map((skill) => (
                   <Button
                     key={skill}
                     type="button"
@@ -99,7 +177,7 @@ const RequirementsStep: React.FC<RequirementsStepProps> = ({ data, onUpdate }) =
               </div>
             </div>
 
-            <div className="space-y-2">
+            <div>
               <Label htmlFor="custom-skill">Add Custom Skill</Label>
               <div className="flex gap-2">
                 <Input

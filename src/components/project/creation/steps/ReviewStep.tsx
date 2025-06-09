@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -120,15 +119,52 @@ const ReviewStep: React.FC<ReviewStepProps> = ({ data }) => {
                     <p className="text-gray-600 mt-2">{milestone.description}</p>
                   )}
                   <div className="flex gap-2 mt-2">
-                    {milestone.requires_deliverable && (
-                      <Badge variant="outline" className="border-blue-200 bg-blue-50 text-blue-700">
-                        Requires Deliverable
-                      </Badge>
-                    )}
                     <Badge variant="outline" className="border-gray-200 bg-gray-50 text-gray-700">
                       {milestone.status}
                     </Badge>
                   </div>
+                  
+                  {/* Tasks */}
+                  {milestone.tasks.length > 0 && (
+                    <div className="mt-4">
+                      <h5 className="text-sm font-medium text-gray-700">Tasks</h5>
+                      <ul className="mt-2 space-y-1">
+                        {milestone.tasks.map((task, taskIndex) => (
+                          <li key={taskIndex} className="flex items-center gap-2 text-sm">
+                            <input
+                              type="checkbox"
+                              checked={task.completed}
+                              readOnly
+                              className="h-4 w-4"
+                            />
+                            <span className={task.completed ? 'line-through text-gray-500' : ''}>
+                              {task.title}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* Deliverables */}
+                  {milestone.deliverables.length > 0 && (
+                    <div className="mt-4">
+                      <h5 className="text-sm font-medium text-gray-700">Deliverables</h5>
+                      <div className="mt-2 space-y-2">
+                        {milestone.deliverables.map((deliverable, deliverableIndex) => (
+                          <div key={deliverableIndex} className="bg-gray-50 p-2 rounded">
+                            <p className="text-sm font-medium">{deliverable.description}</p>
+                            <p className="text-xs text-gray-500 mt-1">
+                              Type: {deliverable.deliverable_type}
+                            </p>
+                            {deliverable.content && (
+                              <p className="text-sm mt-1">{deliverable.content}</p>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

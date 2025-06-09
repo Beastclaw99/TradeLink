@@ -84,12 +84,12 @@ const ProjectsTab: React.FC<ProjectsTabProps> = ({
       ) : assignedProjects.length === 0 ? (
         <EmptyProjectState message="You don't have any assigned projects." />
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-6">
           {assignedProjects.map(project => (
             <UnifiedProjectCard
               key={project.id}
               project={project}
-              variant="list"
+              variant="card"
               isProfessional={false}
               actionLabel="View Details"
             />

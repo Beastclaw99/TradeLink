@@ -1,7 +1,6 @@
-
 import React from 'react';
 import { Badge } from '@/components/ui/badge';
-import { Clock, CheckCircle, AlertCircle, Users, Play, Pause } from 'lucide-react';
+import { Clock, CheckCircle, AlertCircle, Users, Play, Pause, FileText, RefreshCw, CreditCard, Archive, AlertTriangle } from 'lucide-react';
 
 interface ProjectStatusBadgeProps {
   status: string;
@@ -41,20 +40,47 @@ const ProjectStatusBadge: React.FC<ProjectStatusBadgeProps> = ({
           icon: Play,
           label: 'In Progress'
         };
-      case 'on_hold':
-      case 'on hold':
+      case 'work_submitted':
         return {
-          variant: 'outline' as const,
-          className: 'border-orange-500 text-orange-700 bg-orange-50',
-          icon: Pause,
-          label: 'On Hold'
+          variant: 'default' as const,
+          className: 'bg-indigo-500 text-white',
+          icon: FileText,
+          label: 'Work Submitted'
         };
-      case 'completed':
+      case 'work_revision_requested':
+        return {
+          variant: 'default' as const,
+          className: 'bg-orange-500 text-white',
+          icon: RefreshCw,
+          label: 'Revision Requested'
+        };
+      case 'work_approved':
         return {
           variant: 'default' as const,
           className: 'bg-green-500 text-white',
           icon: CheckCircle,
+          label: 'Work Approved'
+        };
+      case 'completed':
+        return {
+          variant: 'default' as const,
+          className: 'bg-emerald-500 text-white',
+          icon: CheckCircle,
           label: 'Completed'
+        };
+      case 'paid':
+        return {
+          variant: 'default' as const,
+          className: 'bg-green-600 text-white',
+          icon: CreditCard,
+          label: 'Paid'
+        };
+      case 'archived':
+        return {
+          variant: 'outline' as const,
+          className: 'border-gray-500 text-gray-700 bg-gray-50',
+          icon: Archive,
+          label: 'Archived'
         };
       case 'cancelled':
         return {
@@ -62,6 +88,13 @@ const ProjectStatusBadge: React.FC<ProjectStatusBadgeProps> = ({
           className: 'border-red-500 text-red-700 bg-red-50',
           icon: AlertCircle,
           label: 'Cancelled'
+        };
+      case 'disputed':
+        return {
+          variant: 'outline' as const,
+          className: 'border-rose-500 text-rose-700 bg-rose-50',
+          icon: AlertTriangle,
+          label: 'Disputed'
         };
       default:
         return {

@@ -28,41 +28,8 @@ import { ProgressIndicator } from "@/components/ui/progress-indicator";
 import AddProjectUpdate from "@/components/project/updates/AddProjectUpdate";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from '@/integrations/supabase/client';
-
-// Database schema interface
-interface DBMilestone {
-  id: string;
-  title: string;
-  description: string;
-  due_date: string;
-  status: string;
-  is_complete: boolean;
-  project_id: string;
-  requires_deliverable: boolean;
-  created_at: string;
-  created_by: string;
-  updated_at: string;
-}
-
-// Component interface
-interface Milestone {
-  id: string;
-  title: string;
-  description: string;
-  dueDate: string;
-  status: 'not_started' | 'in_progress' | 'completed' | 'overdue';
-  progress: number;
-  tasks: {
-    id: string;
-    title: string;
-    completed: boolean;
-  }[];
-  assignedTo?: {
-    id: string;
-    name: string;
-    avatar?: string;
-  };
-}
+import { Milestone, DBMilestone, convertDBMilestoneToMilestone, convertMilestoneToDBMilestone } from '@/components/project/creation/types';
+import { ProjectStatus } from '@/types/projectUpdates';
 
 interface ActiveProjectsTabProps {
   isLoading: boolean;
@@ -82,33 +49,6 @@ const ActiveProjectsTab: React.FC<ActiveProjectsTabProps> = ({
   const [activeTab, setActiveTab] = useState<Record<string, string>>({});
   const [showUpdateForm, setShowUpdateForm] = useState<Record<string, boolean>>({});
   const [projectMilestones, setProjectMilestones] = useState<Record<string, Milestone[]>>({});
-
-  // Convert DB milestone to component milestone
-  const convertDBMilestoneToMilestone = (dbMilestone: DBMilestone): Milestone => {
-    return {
-      id: dbMilestone.id,
-      title: dbMilestone.title,
-      description: dbMilestone.description,
-      dueDate: dbMilestone.due_date,
-      status: dbMilestone.status as Milestone['status'],
-      progress: dbMilestone.is_complete ? 100 : 0,
-      tasks: [],
-      assignedTo: undefined
-    };
-  };
-
-  // Convert component milestone to DB milestone
-  const convertMilestoneToDBMilestone = (milestone: Omit<Milestone, 'id'>): Omit<DBMilestone, 'id' | 'created_at' | 'updated_at' | 'created_by'> => {
-    return {
-      title: milestone.title,
-      description: milestone.description,
-      due_date: milestone.dueDate,
-      status: milestone.status,
-      is_complete: milestone.progress === 100,
-      project_id: '', // Will be set when adding
-      requires_deliverable: false
-    };
-  };
 
   // Fetch milestones for a project
   const fetchMilestones = async (projectId: string) => {
@@ -137,20 +77,32 @@ const ActiveProjectsTab: React.FC<ActiveProjectsTabProps> = ({
 
   const handleAddMilestone = async (projectId: string, milestone: Omit<Milestone, 'id'>) => {
     try {
-      const dbMilestone = convertMilestoneToDBMilestone(milestone);
       const { data, error } = await supabase
         .from('project_milestones')
-        .insert([{ 
-          ...dbMilestone, 
-          project_id: projectId,
-          created_by: userId,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        }])
+        .insert([convertMilestoneToDBMilestone(milestone, projectId)])
         .select()
         .single();
 
       if (error) throw error;
+
+      // Create deliverables for the milestone
+      if (milestone.deliverables.length > 0) {
+        const { error: deliverablesError } = await supabase
+          .from('project_deliverables')
+          .insert(
+            milestone.deliverables.map(deliverable => ({
+              description: deliverable.description,
+              deliverable_type: deliverable.deliverable_type,
+              content: deliverable.content || null,
+              file_url: deliverable.deliverable_type === 'file' ? deliverable.content || '' : '',
+              milestone_id: data.id,
+              project_id: projectId,
+              uploaded_by: userId
+            }))
+          );
+
+        if (deliverablesError) throw deliverablesError;
+      }
 
       setProjectMilestones(prev => ({
         ...prev,
@@ -173,25 +125,46 @@ const ActiveProjectsTab: React.FC<ActiveProjectsTabProps> = ({
 
   const handleEditMilestone = async (projectId: string, milestoneId: string, updates: Partial<Milestone>) => {
     try {
-      const dbUpdates = {
-        ...(updates.title && { title: updates.title }),
-        ...(updates.description && { description: updates.description }),
-        ...(updates.dueDate && { due_date: updates.dueDate }),
-        ...(updates.status && { status: updates.status }),
-        ...(updates.progress !== undefined && { is_complete: updates.progress === 100 }),
-        updated_at: new Date().toISOString()
-      };
-
       const { error } = await supabase
         .from('project_milestones')
-        .update(dbUpdates)
+        .update(convertMilestoneToDBMilestone(updates as Milestone, projectId))
         .eq('id', milestoneId);
 
       if (error) throw error;
 
+      // Update deliverables if they were changed
+      if (updates.deliverables) {
+        // First delete existing deliverables
+        const { error: deleteError } = await supabase
+          .from('project_deliverables')
+          .delete()
+          .eq('milestone_id', milestoneId);
+
+        if (deleteError) throw deleteError;
+
+        // Then insert new deliverables
+        if (updates.deliverables.length > 0) {
+          const { error: deliverablesError } = await supabase
+            .from('project_deliverables')
+            .insert(
+              updates.deliverables.map(deliverable => ({
+                description: deliverable.description,
+                deliverable_type: deliverable.deliverable_type,
+                content: deliverable.content || null,
+                file_url: deliverable.deliverable_type === 'file' ? deliverable.content || '' : '',
+                milestone_id: milestoneId,
+                project_id: projectId,
+                uploaded_by: userId
+              }))
+            );
+
+          if (deliverablesError) throw deliverablesError;
+        }
+      }
+
       setProjectMilestones(prev => ({
         ...prev,
-        [projectId]: prev[projectId].map(m => 
+        [projectId]: prev[projectId].map(m =>
           m.id === milestoneId ? { ...m, ...updates } : m
         )
       }));
@@ -514,14 +487,18 @@ const ActiveProjectsTab: React.FC<ActiveProjectsTabProps> = ({
                             onAddMilestone={(milestone) => handleAddMilestone(project.id, milestone)}
                             onEditMilestone={(milestoneId, updates) => handleEditMilestone(project.id, milestoneId, updates)}
                             onDeleteMilestone={(milestoneId) => handleDeleteMilestone(project.id, milestoneId)}
-                            onUpdateTaskStatus={async () => {
-                              // Task status updates are not supported in the current schema
-                              toast({
-                                title: "Not Supported",
-                                description: "Task status updates are not supported in the current version.",
-                                variant: "destructive"
-                              });
+                            onUpdateTaskStatus={async (milestoneId, taskId, completed) => {
+                              // Update task status in the milestone
+                              const milestone = projectMilestones[project.id]?.find(m => m.id === milestoneId);
+                              if (milestone) {
+                                const updatedTasks = milestone.tasks.map(task =>
+                                  task.id === taskId ? { ...task, completed } : task
+                                );
+                                await handleEditMilestone(project.id, milestoneId, { tasks: updatedTasks });
+                              }
                             }}
+                            projectId={project.id}
+                            projectStatus={(project.status || 'open') as ProjectStatus}
                           />
                         </TabsContent>
 
