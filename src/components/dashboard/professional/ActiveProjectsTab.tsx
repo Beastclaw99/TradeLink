@@ -29,6 +29,7 @@ import AddProjectUpdate from "@/components/project/updates/AddProjectUpdate";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from '@/integrations/supabase/client';
 import { Milestone, DBMilestone, convertDBMilestoneToMilestone, convertMilestoneToDBMilestone } from '@/components/project/creation/types';
+import { ProjectStatus } from '@/types/projectUpdates';
 
 interface ActiveProjectsTabProps {
   isLoading: boolean;
@@ -486,15 +487,18 @@ const ActiveProjectsTab: React.FC<ActiveProjectsTabProps> = ({
                             onAddMilestone={(milestone) => handleAddMilestone(project.id, milestone)}
                             onEditMilestone={(milestoneId, updates) => handleEditMilestone(project.id, milestoneId, updates)}
                             onDeleteMilestone={(milestoneId) => handleDeleteMilestone(project.id, milestoneId)}
-                            onUpdateTaskStatus={async () => {
-                              // Task status updates are not supported in the current schema
-                              toast({
-                                title: "Not Supported",
-                                description: "Task status updates are not supported in the current version.",
-                                variant: "destructive"
-                              });
+                            onUpdateTaskStatus={async (milestoneId, taskId, completed) => {
+                              // Update task status in the milestone
+                              const milestone = projectMilestones[project.id]?.find(m => m.id === milestoneId);
+                              if (milestone) {
+                                const updatedTasks = milestone.tasks.map(task =>
+                                  task.id === taskId ? { ...task, completed } : task
+                                );
+                                await handleEditMilestone(project.id, milestoneId, { tasks: updatedTasks });
+                              }
                             }}
                             projectId={project.id}
+                            projectStatus={(project.status || 'open') as ProjectStatus}
                           />
                         </TabsContent>
 
