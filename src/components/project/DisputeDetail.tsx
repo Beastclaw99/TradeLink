@@ -12,10 +12,11 @@ import FileUpload from './FileUpload';
 
 interface DisputeDetailProps {
   disputeId: string;
+  projectId?: string;
   onStatusChange?: () => void;
 }
 
-const DisputeDetail: React.FC<DisputeDetailProps> = ({ disputeId, onStatusChange }) => {
+const DisputeDetail: React.FC<DisputeDetailProps> = ({ disputeId, projectId, onStatusChange }) => {
   const [dispute, setDispute] = useState<Dispute | null>(null);
   const [messages, setMessages] = useState<DisputeMessage[]>([]);
   const [newMessage, setNewMessage] = useState('');

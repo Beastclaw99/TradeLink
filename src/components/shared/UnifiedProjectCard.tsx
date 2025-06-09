@@ -1,428 +1,235 @@
-import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { Badge } from "@/components/ui/badge";
-import { 
-  Card, 
-  CardContent, 
-  CardDescription, 
-  CardFooter, 
-  CardHeader, 
-  CardTitle 
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { DollarSign, MapPin, Clock, Tag, MessageSquare, ChevronDown, ChevronUp } from 'lucide-react';
-import { Project } from '@/components/dashboard/types';
-import ProjectChat from '../project/ProjectChat';
-import { ChatBubbleLeftIcon, ClockIcon, ExclamationCircleIcon, DocumentIcon, CurrencyDollarIcon, CalendarIcon, CheckCircleIcon, PaperClipIcon, MapPinIcon, TruckIcon, BanknotesIcon, ListBulletIcon, PencilSquareIcon, TagIcon, EyeIcon } from '@heroicons/react/24/outline';
+
+import React, { useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { MapPin, Calendar, DollarSign, User, Clock, Star } from 'lucide-react';
 import { format } from 'date-fns';
-import { Progress } from "@/components/ui/progress";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Separator } from "@/components/ui/separator";
-import ProjectUpdateTimeline from '../project/ProjectUpdateTimeline';
-import ProjectMilestones from '../project/ProjectMilestones';
-import ProjectDeliverables from '../project/ProjectDeliverables';
-import { ProgressIndicator } from "@/components/ui/progress-indicator";
-import { supabase } from '@/integrations/supabase/client';
-import { Milestone, convertDBMilestoneToMilestone } from '@/components/project/creation/types';
-import { useToast } from "@/components/ui/use-toast";
+import { useNavigate } from 'react-router-dom';
+import ProjectMilestones from '@/components/project/ProjectMilestones';
+import { Project } from '@/components/dashboard/types';
 
 interface UnifiedProjectCardProps {
   project: Project;
-  variant?: 'list' | 'card';
-  onStatusChange?: (newStatus: string) => void;
-  isProfessional?: boolean;
-  onClick?: () => void;
-  actionLabel?: string;
+  variant: 'card' | 'list';
+  isProfessional: boolean;
+  actionLabel: string;
+  onAction?: (projectId: string) => void;
+  showMilestones?: boolean;
 }
 
-const statusColors = {
-  open: { bg: 'bg-blue-100', text: 'text-blue-800' },
-  assigned: { bg: 'bg-green-100', text: 'text-green-800' },
-  in_progress: { bg: 'bg-yellow-100', text: 'text-yellow-800' },
-  work_submitted: { bg: 'bg-purple-100', text: 'text-purple-800' },
-  work_revision_requested: { bg: 'bg-orange-100', text: 'text-orange-800' },
-  work_approved: { bg: 'bg-green-100', text: 'text-green-800' },
-  completed: { bg: 'bg-green-100', text: 'text-green-800' },
-  archived: { bg: 'bg-gray-100', text: 'text-gray-800' },
-  cancelled: { bg: 'bg-red-100', text: 'text-red-800' },
-  disputed: { bg: 'bg-red-100', text: 'text-red-800' },
-};
+const UnifiedProjectCard: React.FC<UnifiedProjectCardProps> = ({
+  project,
+  variant,
+  isProfessional,
+  actionLabel,
+  onAction,
+  showMilestones = false
+}) => {
+  const navigate = useNavigate();
+  const [showFullDescription, setShowFullDescription] = useState(false);
 
-const formatDate = (date: string | null) => {
-  if (!date) return 'N/A';
-  return format(new Date(date), 'MMM d, yyyy');
-};
-
-const formatCurrency = (amount: number | null) => {
-  if (!amount) return 'N/A';
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-  }).format(amount);
-};
-
-const getStatusIcon = (status: string) => {
-  switch (status) {
-    case 'completed':
-      return <CheckCircleIcon className="h-4 w-4 text-green-600" />;
-    case 'assigned':
-      return <TagIcon className="h-4 w-4 text-blue-600" />;
-    case 'open':
-      return <ClockIcon className="h-4 w-4 text-gray-600" />;
-    default:
-      return <ExclamationCircleIcon className="h-4 w-4 text-yellow-600" />;
-  }
-};
-
-const getProjectSteps = (project: Project) => {
-  return [
-    {
-      id: 'assigned',
-      title: 'Assigned',
-      status: project.status === 'assigned' ? 'current' : 'completed' as 'completed' | 'current' | 'pending'
-    },
-    {
-      id: 'in_progress',
-      title: 'In Progress',
-      status: project.status === 'in_progress' ? 'current' : 
-             ['assigned'].includes(project.status) ? 'pending' : 'completed' as 'completed' | 'current' | 'pending'
-    },
-    {
-      id: 'review',
-      title: 'Review',
-      status: project.status === 'review' ? 'current' : 
-             ['assigned', 'in_progress'].includes(project.status) ? 'pending' : 'completed' as 'completed' | 'current' | 'pending'
-    },
-    {
-      id: 'completed',
-      title: 'Completed',
-      status: project.status === 'completed' ? 'completed' : 'pending' as 'completed' | 'current' | 'pending'
-    }
-  ];
-};
-
-const getProjectProgress = (project: Project) => {
-  const steps = getProjectSteps(project);
-  const completedSteps = steps.filter(step => step.status === 'completed').length;
-  return Math.round((completedSteps / steps.length) * 100);
-};
-
-export default function UnifiedProjectCard({ 
-  project, 
-  variant = 'card',
-  onStatusChange,
-  isProfessional = false,
-  onClick,
-  actionLabel
-}: UnifiedProjectCardProps) {
-  const { toast } = useToast();
-  const [showChat, setShowChat] = useState(false);
-  const [activeTab, setActiveTab] = useState('timeline');
-  const [expanded, setExpanded] = useState(false);
-  const [milestones, setMilestones] = useState<Milestone[]>([]);
-
-  const canShowChat = project.status !== 'open' && 
-    project.status !== 'cancelled' && 
-    project.status !== 'archived' &&
-    project.client_id && 
-    project.professional_id;
-
-  useEffect(() => {
-    if (expanded && project.status !== 'open') {
-      fetchMilestones();
-    }
-  }, [expanded, project.id]);
-
-  const fetchMilestones = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('project_milestones')
-        .select('*')
-        .eq('project_id', project.id)
-        .order('due_date', { ascending: true });
-
-      if (error) throw error;
-
-      setMilestones((data || []).map(convertDBMilestoneToMilestone));
-    } catch (error) {
-      console.error('Error fetching milestones:', error);
-      toast({
-        title: "Error",
-        description: "Failed to fetch project milestones.",
-        variant: "destructive"
-      });
+  const handleAction = () => {
+    if (onAction) {
+      onAction(project.id);
+    } else {
+      navigate(`/projects/${project.id}`);
     }
   };
 
-  const renderStatusBadge = () => (
-    <Badge 
-      variant="secondary" 
-      className={`${statusColors[project.status as keyof typeof statusColors]?.bg || 'bg-gray-100'} ${statusColors[project.status as keyof typeof statusColors]?.text || 'text-gray-800'}`}
-    >
-      {project.status?.replace(/_/g, ' ') || 'Open'}
-    </Badge>
-  );
+  const getStatusColor = (status: string) => {
+    switch (status?.toLowerCase()) {
+      case 'open': return 'bg-green-100 text-green-800';
+      case 'assigned': return 'bg-blue-100 text-blue-800';
+      case 'in_progress': return 'bg-purple-100 text-purple-800';
+      case 'completed': return 'bg-gray-100 text-gray-800';
+      case 'paid': return 'bg-green-100 text-green-800';
+      case 'cancelled': return 'bg-red-100 text-red-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getUrgencyColor = (urgency: string) => {
+    switch (urgency?.toLowerCase()) {
+      case 'urgent': return 'bg-red-100 text-red-800';
+      case 'high': return 'bg-orange-100 text-orange-800';
+      case 'medium': return 'bg-yellow-100 text-yellow-800';
+      case 'low': return 'bg-green-100 text-green-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const truncatedDescription = project.description?.length > 200 
+    ? project.description.substring(0, 200) + '...'
+    : project.description;
 
   if (variant === 'list') {
     return (
-      <div className="relative">
-        <Card className="mb-4" onClick={onClick}>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div className="flex-1">
-                <div className="flex items-center space-x-4">
-                  <h3 className="text-lg font-semibold">{project.title}</h3>
-                  {renderStatusBadge()}
-                </div>
-                <p className="text-sm text-gray-600 mt-1">{project.description}</p>
-                <div className="flex items-center space-x-4 mt-2 text-sm text-gray-500">
-                  <span>Budget: {formatCurrency(project.budget)}</span>
-                  <span>Created: {formatDate(project.created_at)}</span>
-                  <span>Deadline: {formatDate(project.deadline)}</span>
-                </div>
+      <Card className="hover:shadow-md transition-shadow">
+        <CardContent className="p-6">
+          <div className="flex justify-between items-start">
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-2">
+                <h3 className="text-lg font-semibold">{project.title}</h3>
+                <Badge className={getStatusColor(project.status)}>
+                  {project.status}
+                </Badge>
+                {project.urgency && (
+                  <Badge className={getUrgencyColor(project.urgency)}>
+                    {project.urgency}
+                  </Badge>
+                )}
               </div>
-              {canShowChat && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setShowChat(!showChat);
-                  }}
-                  className="ml-4"
-                >
-                  <ChatBubbleLeftIcon className="h-4 w-4 mr-2" />
-                  {showChat ? 'Hide Chat' : 'Show Chat'}
-                </Button>
-              )}
-              {actionLabel && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onClick?.();
-                  }}
-                  className="ml-4"
-                >
-                  {actionLabel}
-                </Button>
-              )}
+              
+              <p className="text-gray-600 mb-3">
+                {showFullDescription ? project.description : truncatedDescription}
+                {project.description && project.description.length > 200 && (
+                  <button
+                    onClick={() => setShowFullDescription(!showFullDescription)}
+                    className="text-blue-600 hover:text-blue-800 ml-2"
+                  >
+                    {showFullDescription ? 'Show less' : 'Show more'}
+                  </button>
+                )}
+              </p>
+
+              <div className="flex items-center gap-4 text-sm text-gray-500">
+                {project.location && (
+                  <div className="flex items-center">
+                    <MapPin className="w-4 h-4 mr-1" />
+                    {project.location}
+                  </div>
+                )}
+                <div className="flex items-center">
+                  <Calendar className="w-4 h-4 mr-1" />
+                  {format(new Date(project.created_at), 'MMM d, yyyy')}
+                </div>
+                {project.deadline && (
+                  <div className="flex items-center">
+                    <Clock className="w-4 h-4 mr-1" />
+                    Due: {format(new Date(project.deadline), 'MMM d, yyyy')}
+                  </div>
+                )}
+              </div>
             </div>
-          </CardContent>
-        </Card>
-        
-        {showChat && canShowChat && (
-          <div className="mt-4">
-            <ProjectChat
-              projectId={project.id}
-              clientId={project.client_id || ''}
-              professionalId={project.professional_id || ''}
-              projectStatus={project.status || 'open'}
-            />
+
+            <div className="text-right ml-4">
+              <div className="text-xl font-bold text-green-600 mb-2">
+                ${project.budget?.toLocaleString()}
+              </div>
+              <Button onClick={handleAction} size="sm">
+                {actionLabel}
+              </Button>
+            </div>
           </div>
-        )}
-      </div>
+        </CardContent>
+      </Card>
     );
   }
 
   return (
-    <div className="relative">
-      <Card className="mb-4" onClick={onClick}>
-        <CardHeader className="pb-4">
-          <div className="flex items-start justify-between">
-            <div className="flex-1">
-              <div className="flex items-center gap-3 mb-2">
-                <CardTitle className="text-xl">{project.title}</CardTitle>
-                <div className="flex items-center gap-2">
-                  {getStatusIcon(project.status)}
-                  {renderStatusBadge()}
-                  {project.urgency && (
-                    <Badge className="bg-yellow-100 text-yellow-800">
-                      {project.urgency} Priority
-                    </Badge>
-                  )}
-                </div>
-              </div>
-              <CardDescription className="flex items-center gap-2">
-                <CalendarIcon className="h-4 w-4" />
-                Created {formatDate(project.created_at)}
-              </CardDescription>
+    <Card className="hover:shadow-lg transition-shadow">
+      <CardHeader>
+        <div className="flex justify-between items-start">
+          <div>
+            <CardTitle className="text-xl mb-2">{project.title}</CardTitle>
+            <div className="flex items-center gap-2">
+              <Badge className={getStatusColor(project.status)}>
+                {project.status}
+              </Badge>
+              {project.urgency && (
+                <Badge className={getUrgencyColor(project.urgency)}>
+                  {project.urgency}
+                </Badge>
+              )}
             </div>
-            {canShowChat && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setShowChat(!showChat);
-                }}
-              >
-                <ChatBubbleLeftIcon className="h-4 w-4 mr-2" />
-                {showChat ? 'Hide Chat' : 'Show Chat'}
-              </Button>
-            )}
-            {actionLabel && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onClick?.();
-                }}
-                className="ml-4"
-              >
-                {actionLabel}
-              </Button>
-            )}
           </div>
-        </CardHeader>
-
-        <CardContent className="space-y-4">
-          {/* Project Progress */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between text-sm">
-              <span className="font-medium">Project Progress</span>
-              <span className="text-gray-600">{getProjectProgress(project)}%</span>
+          <div className="text-right">
+            <div className="text-2xl font-bold text-green-600">
+              ${project.budget?.toLocaleString()}
             </div>
-            <Progress value={getProjectProgress(project)} className="h-2" />
-            <ProgressIndicator 
-              steps={getProjectSteps(project)}
-              orientation="horizontal"
+            <div className="text-sm text-gray-500">Budget</div>
+          </div>
+        </div>
+      </CardHeader>
+
+      <CardContent className="space-y-4">
+        <div>
+          <p className="text-gray-700">
+            {showFullDescription ? project.description : truncatedDescription}
+          </p>
+          {project.description && project.description.length > 200 && (
+            <button
+              onClick={() => setShowFullDescription(!showFullDescription)}
+              className="text-blue-600 hover:text-blue-800 text-sm mt-1"
+            >
+              {showFullDescription ? 'Show less' : 'Show more'}
+            </button>
+          )}
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          {project.location && (
+            <div className="flex items-center text-sm text-gray-600">
+              <MapPin className="w-4 h-4 mr-2" />
+              {project.location}
+            </div>
+          )}
+          <div className="flex items-center text-sm text-gray-600">
+            <Calendar className="w-4 h-4 mr-2" />
+            {format(new Date(project.created_at), 'MMM d, yyyy')}
+          </div>
+          {project.deadline && (
+            <div className="flex items-center text-sm text-gray-600">
+              <Clock className="w-4 h-4 mr-2" />
+              Due: {format(new Date(project.deadline), 'MMM d, yyyy')}
+            </div>
+          )}
+          {project.category && (
+            <div className="flex items-center text-sm text-gray-600">
+              <User className="w-4 h-4 mr-2" />
+              {project.category}
+            </div>
+          )}
+        </div>
+
+        {project.requirements && project.requirements.length > 0 && (
+          <div>
+            <h4 className="font-medium text-sm text-gray-700 mb-2">Requirements:</h4>
+            <ul className="list-disc list-inside text-sm text-gray-600 space-y-1">
+              {project.requirements.slice(0, 3).map((req, index) => (
+                <li key={index}>{req}</li>
+              ))}
+              {project.requirements.length > 3 && (
+                <li className="text-blue-600">+ {project.requirements.length - 3} more</li>
+              )}
+            </ul>
+          </div>
+        )}
+
+        {showMilestones && (
+          <div className="border-t pt-4">
+            <ProjectMilestones
+              projectId={project.id}
+              projectStatus={project.status}
+              milestones={[]}
+              isClient={!isProfessional}
+              onAddMilestone={async () => {}}
+              onEditMilestone={async () => {}}
+              onDeleteMilestone={async () => {}}
+              onUpdateTaskStatus={async () => {}}
             />
           </div>
+        )}
 
-          <Separator />
-
-          {/* Project Details */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-            <div>
-              <span className="font-medium text-gray-700">Budget:</span>
-              <p>{formatCurrency(project.budget)}</p>
-            </div>
-            <div>
-              <span className="font-medium text-gray-700">Deadline:</span>
-              <p>{formatDate(project.deadline)}</p>
-            </div>
-            {project.category && (
-              <div>
-                <span className="font-medium text-gray-700">Category:</span>
-                <p className="capitalize">{project.category}</p>
-              </div>
-            )}
-          </div>
-
-          {project.description && (
-            <div>
-              <span className="font-medium text-gray-700">Description:</span>
-              <p className="text-gray-600 mt-1">{project.description}</p>
-            </div>
-          )}
-
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setExpanded(!expanded)}
-            className="w-full"
-          >
-            {expanded ? 'Show Less' : 'Show More'}
+        <div className="pt-4 border-t">
+          <Button onClick={handleAction} className="w-full">
+            {actionLabel}
           </Button>
-
-          {expanded && (
-            <div className="mt-6 border-t pt-6">
-              <Tabs 
-                value={activeTab} 
-                onValueChange={setActiveTab}
-                className="w-full"
-              >
-                <TabsList className="grid w-full grid-cols-4">
-                  <TabsTrigger value="timeline" className="flex items-center gap-2">
-                    <ClockIcon className="h-4 w-4" />
-                    Timeline
-                  </TabsTrigger>
-                  <TabsTrigger value="milestones" className="flex items-center gap-2">
-                    <TagIcon className="h-4 w-4" />
-                    Milestones
-                  </TabsTrigger>
-                  <TabsTrigger value="deliverables" className="flex items-center gap-2">
-                    <DocumentIcon className="h-4 w-4" />
-                    Deliverables
-                  </TabsTrigger>
-                  <TabsTrigger value="details" className="flex items-center gap-2">
-                    <EyeIcon className="h-4 w-4" />
-                    Details
-                  </TabsTrigger>
-                </TabsList>
-
-                <TabsContent value="timeline" className="mt-4">
-                  <ProjectUpdateTimeline 
-                    projectId={project.id} 
-                    projectStatus={project.status || ''}
-                    isProfessional={isProfessional}
-                  />
-                </TabsContent>
-
-                <TabsContent value="milestones" className="mt-4">
-                  <ProjectMilestones 
-                    milestones={milestones}
-                    isClient={!isProfessional}
-                    onAddMilestone={async () => {}}
-                    onEditMilestone={async () => {}}
-                    onDeleteMilestone={async () => {}}
-                    onUpdateTaskStatus={async () => {}}
-                  />
-                </TabsContent>
-
-                <TabsContent value="deliverables" className="mt-4">
-                  <ProjectDeliverables 
-                    projectId={project.id}
-                    canUpload={isProfessional}
-                  />
-                </TabsContent>
-
-                <TabsContent value="details" className="mt-4">
-                  <div className="space-y-4">
-                    <div>
-                      <h4 className="font-medium mb-2">Project Details</h4>
-                      <div className="grid grid-cols-2 gap-4 text-sm">
-                        <div>
-                          <span className="text-gray-600">Location:</span>
-                          <p>{project.location || 'Not specified'}</p>
-                        </div>
-                        <div>
-                          <span className="text-gray-600">Timeline:</span>
-                          <p>{project.expected_timeline || 'Not specified'}</p>
-                        </div>
-                        {project.requirements && (
-                          <div className="col-span-2">
-                            <span className="text-gray-600">Requirements:</span>
-                            <ul className="list-disc list-inside mt-1">
-                              {project.requirements.map((req, index) => (
-                                <li key={index}>{req}</li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </TabsContent>
-              </Tabs>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {showChat && canShowChat && (
-        <div className="mt-4">
-          <ProjectChat
-            projectId={project.id}
-            clientId={project.client_id || ''}
-            professionalId={project.professional_id || ''}
-            projectStatus={project.status || 'open'}
-          />
         </div>
-      )}
-    </div>
+      </CardContent>
+    </Card>
   );
-}
+};
+
+export default UnifiedProjectCard;
