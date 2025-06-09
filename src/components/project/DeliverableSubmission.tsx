@@ -8,19 +8,27 @@ import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Upload, FileText, Link } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { notificationService } from '@/services/notificationService';
 
 interface DeliverableSubmissionProps {
-  milestoneId: string;
   projectId: string;
-  onDeliverableSubmitted: () => void;
+  projectTitle: string;
+  milestoneId: string;
+  milestoneTitle: string;
+  clientId: string;
+  professionalId: string;
+  onSubmissionComplete: () => void;
 }
 
-export default function DeliverableSubmission({
-  milestoneId,
+const DeliverableSubmission: React.FC<DeliverableSubmissionProps> = ({
   projectId,
-  onDeliverableSubmitted
-}: DeliverableSubmissionProps) {
-  const { toast } = useToast();
+  projectTitle,
+  milestoneId,
+  milestoneTitle,
+  clientId,
+  professionalId,
+  onSubmissionComplete
+}) => {
   const [isOpen, setIsOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [deliverable, setDeliverable] = useState({
@@ -29,6 +37,7 @@ export default function DeliverableSubmission({
     content: '',
     file: null as File | null
   });
+  const { toast } = useToast();
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -41,9 +50,8 @@ export default function DeliverableSubmission({
   };
 
   const handleSubmit = async () => {
+    setIsSubmitting(true);
     try {
-      setIsSubmitting(true);
-
       let fileUrl = '';
       if (deliverable.deliverable_type === 'file' && deliverable.file) {
         const fileExt = deliverable.file.name.split('.').pop();
@@ -94,9 +102,19 @@ export default function DeliverableSubmission({
 
       if (updateError) throw updateError;
 
+      // Create deliverable notification
+      await notificationService.createDeliverableNotification(
+        projectId,
+        projectTitle,
+        milestoneTitle,
+        clientId,
+        professionalId,
+        true // isSubmission
+      );
+
       toast({
-        title: "Success",
-        description: "Deliverable submitted successfully"
+        title: 'Deliverable Submitted',
+        description: 'Your deliverable has been submitted successfully.'
       });
 
       setIsOpen(false);
@@ -106,13 +124,13 @@ export default function DeliverableSubmission({
         content: '',
         file: null
       });
-      onDeliverableSubmitted();
+      onSubmissionComplete();
     } catch (error) {
       console.error('Error submitting deliverable:', error);
       toast({
-        title: "Error",
-        description: "Failed to submit deliverable",
-        variant: "destructive"
+        title: 'Error',
+        description: 'Failed to submit deliverable.',
+        variant: 'destructive'
       });
     } finally {
       setIsSubmitting(false);
@@ -213,4 +231,6 @@ export default function DeliverableSubmission({
       </DialogContent>
     </Dialog>
   );
-} 
+};
+
+export default DeliverableSubmission; 
