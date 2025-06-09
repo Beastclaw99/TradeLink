@@ -1,20 +1,17 @@
 
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
 import { Badge } from "@/components/ui/badge";
 import { 
   Card, 
   CardContent, 
   CardDescription, 
-  CardFooter, 
   CardHeader, 
   CardTitle 
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { DollarSign, MapPin, Clock, Tag, MessageSquare, ChevronDown, ChevronUp } from 'lucide-react';
 import { Project, Milestone } from '@/types/project';
 import ProjectChat from '../project/ProjectChat';
-import { ChatBubbleLeftIcon, ClockIcon, ExclamationCircleIcon, DocumentIcon, CurrencyDollarIcon, CalendarIcon, CheckCircleIcon, PaperClipIcon, MapPinIcon, TruckIcon, BanknotesIcon, ListBulletIcon, PencilSquareIcon, TagIcon, EyeIcon } from '@heroicons/react/24/outline';
+import { ChatBubbleLeftIcon, ClockIcon, ExclamationCircleIcon, DocumentIcon, CalendarIcon, CheckCircleIcon, TagIcon, EyeIcon } from '@heroicons/react/24/outline';
 import { format } from 'date-fns';
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
