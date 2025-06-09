@@ -24,14 +24,14 @@ interface StatusUpdate extends Omit<ProjectUpdate, 'profiles'> {
 interface DatabaseUpdate {
   id: string;
   project_id: string;
-  update_type: string;
+  update_type: UpdateType;
   message: string | null;
-  status_update: string | null;
+  status_update: ProjectStatus | null;
   file_url: string | null;
   file_name: string | null;
   created_at: string;
   professional_id: string;
-  metadata: any;
+  metadata: StatusMetadata;
   profiles?: {
     first_name: string | null;
     last_name: string | null;
@@ -39,7 +39,15 @@ interface DatabaseUpdate {
   };
 }
 
-const statusColors: Record<string, string> = {
+interface StatusMetadata {
+  previous_status?: ProjectStatus;
+  cancellation_reason?: string;
+  dispute_reason?: string;
+  revision_notes?: string;
+  [key: string]: any;
+}
+
+const statusColors: Record<ProjectStatus, string> = {
   open: 'bg-blue-100 text-blue-800',
   assigned: 'bg-purple-100 text-purple-800',
   in_progress: 'bg-yellow-100 text-yellow-800',
@@ -50,10 +58,7 @@ const statusColors: Record<string, string> = {
   paid: 'bg-green-600 text-white',
   archived: 'bg-gray-100 text-gray-800',
   cancelled: 'bg-red-100 text-red-800',
-  disputed: 'bg-rose-100 text-rose-800',
-  payment_processed: 'bg-green-100 text-green-800',
-  payment_failed: 'bg-red-100 text-red-800',
-  payment_refunded: 'bg-blue-100 text-blue-800'
+  disputed: 'bg-rose-100 text-rose-800'
 };
 
 export function StatusHistory({ projectId }: StatusHistoryProps) {
@@ -109,7 +114,7 @@ export function StatusHistory({ projectId }: StatusHistoryProps) {
     );
   }
 
-  if (!statusUpdates?.length) {
+  if (!statusUpdates || statusUpdates.length === 0) {
     return (
       <Card>
         <CardHeader className="border-b">
@@ -148,7 +153,7 @@ export function StatusHistory({ projectId }: StatusHistoryProps) {
                         ? `${update.profiles.first_name} ${update.profiles.last_name}`
                         : 'Unknown User'}
                     </span>
-                    <Badge variant="secondary" className={statusColors[update.status_update || '']}>
+                    <Badge variant="secondary" className={statusColors[update.status_update as ProjectStatus]}>
                       {update.status_update?.replace('_', ' ')}
                     </Badge>
                   </div>

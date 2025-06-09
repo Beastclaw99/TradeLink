@@ -3,7 +3,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Project, Application } from '@/components/dashboard/types';
 
-export const useReviewOperations = (userId: string, applications: Application[], onUpdate: () => void) => {
+export const useReviewOperations = (professionalId: string, applications: Application[], onUpdate: () => void) => {
   const { toast } = useToast();
   const [projectToReview, setProjectToReview] = useState<Project | null>(null);
   const [reviewData, setReviewData] = useState({
@@ -76,7 +76,7 @@ export const useReviewOperations = (userId: string, applications: Application[],
         project_id: projectId,
         update_type: 'review',
         message: `${revieweeType === 'client' ? 'Client' : 'Professional'} has submitted a review`,
-        professional_id: userId,
+        professional_id: professionalId,
         metadata: {
           review_submitted: true
         }
@@ -103,6 +103,36 @@ export const useReviewOperations = (userId: string, applications: Application[],
     }
   };
 
+  const handleApplicationReview = async (applicationId: string, status: 'accepted' | 'rejected', feedback?: string) => {
+    try {
+      const { error } = await supabase
+        .from('applications')
+        .update({
+          status,
+          feedback,
+          reviewed_at: new Date().toISOString(),
+          professional_id: professionalId
+        })
+        .eq('id', applicationId);
+
+      if (error) throw error;
+
+      toast({
+        title: 'Application Updated',
+        description: `Application has been ${status}.`
+      });
+
+      onUpdate();
+    } catch (error) {
+      console.error('Error updating application:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to update application status.',
+        variant: 'destructive'
+      });
+    }
+  };
+
   return {
     projectToReview,
     reviewData,
@@ -110,6 +140,7 @@ export const useReviewOperations = (userId: string, applications: Application[],
     isSubmitting,
     handleReviewInitiate,
     handleReviewCancel,
-    handleReviewSubmit
+    handleReviewSubmit,
+    handleApplicationReview
   };
 };

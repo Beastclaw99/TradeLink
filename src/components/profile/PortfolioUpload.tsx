@@ -8,11 +8,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { Upload, X, Image as ImageIcon } from 'lucide-react';
 
 interface PortfolioUploadProps {
-  userId: string;
+  profileId: string;
   onUploadComplete?: () => void;
 }
 
-const PortfolioUpload: React.FC<PortfolioUploadProps> = ({ userId, onUploadComplete }) => {
+const PortfolioUpload: React.FC<PortfolioUploadProps> = ({ profileId, onUploadComplete }) => {
   const { toast } = useToast();
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [previews, setPreviews] = useState<{ [key: string]: string }>({});
@@ -56,16 +56,16 @@ const PortfolioUpload: React.FC<PortfolioUploadProps> = ({ userId, onUploadCompl
       // Upload files to Supabase Storage
       const uploadPromises = selectedFiles.map(async (file) => {
         const fileExt = file.name.split('.').pop();
-        const fileName = `${userId}/portfolio/${Date.now()}-${file.name}`;
+        const fileName = `${profileId}/portfolio/${Date.now()}-${file.name}`;
         
         const { error: uploadError } = await supabase.storage
-          .from('portfolio-images')
+          .from('portfolio')
           .upload(fileName, file);
 
         if (uploadError) throw uploadError;
 
         const { data: { publicUrl } } = supabase.storage
-          .from('portfolio-images')
+          .from('portfolio')
           .getPublicUrl(fileName);
 
         return publicUrl;
@@ -77,7 +77,7 @@ const PortfolioUpload: React.FC<PortfolioUploadProps> = ({ userId, onUploadCompl
       const { data: profile } = await supabase
         .from('profiles')
         .select('portfolio_images')
-        .eq('id', userId)
+        .eq('id', profileId)
         .single();
 
       const existingImages = profile?.portfolio_images || [];
@@ -86,7 +86,7 @@ const PortfolioUpload: React.FC<PortfolioUploadProps> = ({ userId, onUploadCompl
       const { error: updateError } = await supabase
         .from('profiles')
         .update({ portfolio_images: newImages })
-        .eq('id', userId);
+        .eq('id', profileId);
 
       if (updateError) throw updateError;
 

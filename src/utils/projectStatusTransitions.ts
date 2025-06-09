@@ -2,6 +2,49 @@ import { ProjectStatus } from '@/types/projectUpdates';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
 
+interface Milestone {
+  id: string;
+  title: string;
+  status: string;
+  deliverables?: Array<{
+    id: string;
+    title: string;
+    status: string;
+  }>;
+}
+
+interface Project {
+  id: string;
+  title: string;
+  description?: string;
+  status: ProjectStatus;
+  budget?: number;
+  assigned_to?: string;
+  professional_id?: string;
+  project_start_time?: string;
+  revision_notes?: string;
+  payment_id?: string;
+  payment_status?: string;
+  cancellation_reason?: string;
+  dispute_reason?: string;
+  milestones?: Milestone[];
+  [key: string]: any; // For other potential fields
+}
+
+interface StatusMetadata {
+  previous_status?: ProjectStatus;
+  cancellation_reason?: string;
+  dispute_reason?: string;
+  revision_notes?: string;
+  payment_id?: string;
+  [key: string]: any;
+}
+
+interface TransitionRequirements {
+  requiredFields: (keyof Project)[];
+  requiredConditions: (project: Project) => boolean;
+}
+
 // Define valid status transitions
 const VALID_TRANSITIONS: Record<ProjectStatus, ProjectStatus[]> = {
   open: ['assigned', 'cancelled'],
@@ -18,10 +61,7 @@ const VALID_TRANSITIONS: Record<ProjectStatus, ProjectStatus[]> = {
 };
 
 // Define required conditions for each status transition
-const TRANSITION_REQUIREMENTS: Record<ProjectStatus, {
-  requiredFields: string[];
-  requiredConditions: (project: any) => boolean;
-}> = {
+const TRANSITION_REQUIREMENTS: Record<ProjectStatus, TransitionRequirements> = {
   open: {
     requiredFields: ['title', 'description', 'budget'],
     requiredConditions: (project) => true
@@ -37,8 +77,7 @@ const TRANSITION_REQUIREMENTS: Record<ProjectStatus, {
   work_submitted: {
     requiredFields: [],
     requiredConditions: (project) => {
-      // Check if all milestones have deliverables
-      return project.milestones?.every((milestone: any) => 
+      return project.milestones?.every((milestone) => 
         milestone.deliverables?.length > 0
       ) ?? false;
     }
@@ -54,8 +93,7 @@ const TRANSITION_REQUIREMENTS: Record<ProjectStatus, {
   completed: {
     requiredFields: [],
     requiredConditions: (project) => {
-      // Check if all milestones are completed
-      return project.milestones?.every((milestone: any) => 
+      return project.milestones?.every((milestone) => 
         milestone.status === 'completed'
       ) ?? false;
     }
@@ -63,7 +101,6 @@ const TRANSITION_REQUIREMENTS: Record<ProjectStatus, {
   paid: {
     requiredFields: ['payment_id'],
     requiredConditions: (project) => {
-      // Check if payment exists and is completed
       return !!project.payment_id && project.payment_status === 'completed';
     }
   },
@@ -85,7 +122,7 @@ const TRANSITION_REQUIREMENTS: Record<ProjectStatus, {
 export const validateStatusTransition = (
   currentStatus: ProjectStatus,
   newStatus: ProjectStatus,
-  project: any
+  project: Project
 ): { isValid: boolean; message?: string } => {
   // Check if transition is in valid transitions
   if (!VALID_TRANSITIONS[currentStatus]?.includes(newStatus)) {
@@ -127,8 +164,8 @@ export const validateStatusTransition = (
 export const handleStatusTransition = async (
   projectId: string,
   newStatus: ProjectStatus,
-  userId: string,
-  metadata?: any
+  professionalId: string,
+  metadata?: StatusMetadata
 ): Promise<{ success: boolean; message?: string }> => {
   try {
     // Get current project data
@@ -144,7 +181,7 @@ export const handleStatusTransition = async (
     const validation = validateStatusTransition(
       project.status as ProjectStatus,
       newStatus,
-      project
+      project as Project
     );
 
     if (!validation.isValid) {
@@ -173,7 +210,7 @@ export const handleStatusTransition = async (
         project_id: projectId,
         update_type: 'status_change',
         status_update: newStatus,
-        professional_id: userId,
+        professional_id: professionalId,
         metadata: {
           previous_status: project.status,
           ...metadata
@@ -187,11 +224,11 @@ export const handleStatusTransition = async (
       message: `Project status updated to ${newStatus}`
     };
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error updating project status:', error);
     return {
       success: false,
-      message: error.message || 'Failed to update project status'
+      message: error instanceof Error ? error.message : 'Failed to update project status'
     };
   }
 }; 

@@ -1,10 +1,9 @@
-
 import { useState, useEffect } from 'react';
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Project, Application, Payment, Review, ApplicationProject } from '@/components/dashboard/types';
 
-export const useClientDashboard = (userId: string) => {
+export const useClientDashboard = (clientId: string) => {
   const { toast } = useToast();
   const [projects, setProjects] = useState<Project[]>([]);
   const [applications, setApplications] = useState<Application[]>([]);
@@ -21,7 +20,7 @@ export const useClientDashboard = (userId: string) => {
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('*')
-        .eq('id', userId)
+        .eq('id', clientId)
         .single();
       
       if (profileError) throw profileError;
@@ -31,7 +30,7 @@ export const useClientDashboard = (userId: string) => {
       const { data: projectsData, error: projectsError } = await supabase
         .from('projects')
         .select('*')
-        .eq('client_id', userId)
+        .eq('client_id', clientId)
         .order('created_at', { ascending: false });
       
       if (projectsError) throw projectsError;
@@ -111,7 +110,7 @@ export const useClientDashboard = (userId: string) => {
           project:projects(title),
           professional:profiles!payments_professional_id_fkey(first_name, last_name)
         `)
-        .eq('client_id', userId);
+        .eq('client_id', clientId);
       
       if (paymentsError) throw paymentsError;
       
@@ -137,7 +136,7 @@ export const useClientDashboard = (userId: string) => {
       const { data: reviewsData, error: reviewsError } = await supabase
         .from('reviews')
         .select('*')
-        .eq('client_id', userId);
+        .eq('client_id', clientId);
       
       if (reviewsError) throw reviewsError;
       
@@ -169,7 +168,7 @@ export const useClientDashboard = (userId: string) => {
 
   useEffect(() => {
     fetchDashboardData();
-  }, [userId]);
+  }, [clientId]);
 
   return {
     projects,

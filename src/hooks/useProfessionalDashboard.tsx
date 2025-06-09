@@ -1,39 +1,58 @@
-
-import { useEffect } from 'react';
+import { useState, useEffect } from 'react';
+import { useToast } from '@/components/ui/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { Project, Application } from '@/components/dashboard/types';
 import { useProfessionalDataFetcher } from './dashboard/useProfessionalDataFetcher';
 import { useProfessionalActions } from './dashboard/useProfessionalActions';
 import { calculateAverageRating, calculatePaymentTotals } from './dashboard/calculationUtils';
 
-export const useProfessionalDashboard = (userId: string) => {
+export const useProfessionalDashboard = (professionalId: string) => {
+  const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(true);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [applications, setApplications] = useState<Application[]>([]);
+  const [profile, setProfile] = useState<any>(null);
+
   const {
-    projects,
-    applications,
-    payments,
-    reviews,
-    skills,
-    profile,
-    isLoading,
-    error,
-    fetchDashboardData
-  } = useProfessionalDataFetcher(userId);
+    fetchProfessionalData,
+    fetchProjects,
+    fetchApplications
+  } = useProfessionalDataFetcher(professionalId);
 
-  const { markProjectComplete } = useProfessionalActions(userId, fetchDashboardData);
+  const { markProjectComplete } = useProfessionalActions(professionalId, () => {
+    fetchDashboardData();
+  });
 
-  // Initial data fetch
+  const fetchDashboardData = async () => {
+    try {
+      setIsLoading(true);
+      await fetchProfessionalData();
+      await fetchProjects();
+      await fetchApplications();
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to load dashboard data.',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchDashboardData();
-  }, [userId]);
+  }, [professionalId]);
 
   return {
+    isLoading,
     projects,
     applications,
-    payments,
-    reviews,
-    skills,
     profile,
-    isLoading,
-    error,
     fetchDashboardData,
+    fetchProjects,
+    fetchApplications,
     markProjectComplete,
     calculateAverageRating: () => calculateAverageRating(reviews),
     calculatePaymentTotals: () => calculatePaymentTotals(payments),

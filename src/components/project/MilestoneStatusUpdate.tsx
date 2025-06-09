@@ -42,25 +42,37 @@ const MilestoneStatusUpdate: React.FC<MilestoneStatusUpdateProps> = ({
 
     // If trying to mark as completed, validate all tasks are completed
     if (newStatus === 'completed') {
-      const { data: milestone, error } = await supabase
-        .from('project_milestones')
-        .select('tasks')
-        .eq('id', milestoneId)
-        .single();
-      if (error) {
+      try {
+        const { data: milestone, error } = await supabase
+          .from('project_milestones')
+          .select('tasks')
+          .eq('id', milestoneId)
+          .single();
+
+        if (error) {
+          toast({
+            title: 'Error',
+            description: 'Could not fetch milestone tasks.',
+            variant: 'destructive'
+          });
+          return;
+        }
+
+        const tasks = (milestone?.tasks as { id: string; title: string; completed: boolean }[]) || [];
+        const incompleteTasks = tasks.filter(task => !task.completed);
+        if (tasks.length > 0 && incompleteTasks.length > 0) {
+          toast({
+            title: 'Cannot Complete Milestone',
+            description: 'All tasks must be completed before marking this milestone as completed.',
+            variant: 'destructive'
+          });
+          return;
+        }
+      } catch (error) {
+        console.error('Error checking milestone tasks:', error);
         toast({
           title: 'Error',
-          description: 'Could not fetch milestone tasks.',
-          variant: 'destructive'
-        });
-        return;
-      }
-      const tasks = (milestone?.tasks as { id: string; title: string; completed: boolean }[]) || [];
-      const incompleteTasks = tasks.filter(task => !task.completed);
-      if (tasks.length > 0 && incompleteTasks.length > 0) {
-        toast({
-          title: 'Cannot Complete Milestone',
-          description: 'All tasks must be completed before marking this milestone as completed.',
+          description: 'Failed to check milestone tasks.',
           variant: 'destructive'
         });
         return;
@@ -77,14 +89,24 @@ const MilestoneStatusUpdate: React.FC<MilestoneStatusUpdateProps> = ({
       if (error) throw error;
 
       // Create milestone notification
-      await notificationService.createMilestoneNotification(
-        projectId,
-        projectTitle,
-        milestoneTitle,
-        newStatus,
-        clientId,
-        professionalId
-      );
+      try {
+        await notificationService.createMilestoneNotification(
+          projectId,
+          projectTitle,
+          milestoneTitle,
+          newStatus,
+          clientId,
+          professionalId
+        );
+      } catch (notificationError) {
+        console.error('Error creating milestone notification:', notificationError);
+        // Don't throw here, as the status was updated successfully
+        toast({
+          title: 'Warning',
+          description: 'Status updated but failed to send notification.',
+          variant: 'default'
+        });
+      }
 
       onStatusUpdate(newStatus);
       toast({
@@ -107,28 +129,46 @@ const MilestoneStatusUpdate: React.FC<MilestoneStatusUpdateProps> = ({
   useEffect(() => {
     const checkOverdue = async () => {
       if (currentStatus === 'in_progress') {
-        const { data: milestone } = await supabase
-          .from('project_milestones')
-          .select('due_date')
-          .eq('id', milestoneId)
-          .single();
+        try {
+          const { data: milestone, error } = await supabase
+            .from('project_milestones')
+            .select('due_date')
+            .eq('id', milestoneId)
+            .single();
 
-        if (milestone && new Date(milestone.due_date) < new Date()) {
-          // Create overdue notification
-          await notificationService.createMilestoneNotification(
-            projectId,
-            projectTitle,
-            milestoneTitle,
-            'overdue',
-            clientId,
-            professionalId
-          );
+          if (error) {
+            console.error('Error fetching milestone due date:', error);
+            return;
+          }
+
+          if (milestone && new Date(milestone.due_date) < new Date()) {
+            try {
+              // Create overdue notification
+              await notificationService.createMilestoneNotification(
+                projectId,
+                projectTitle,
+                milestoneTitle,
+                'overdue',
+                clientId,
+                professionalId
+              );
+            } catch (notificationError) {
+              console.error('Error creating overdue notification:', notificationError);
+              toast({
+                title: 'Warning',
+                description: 'Failed to send overdue notification.',
+                variant: 'default'
+              });
+            }
+          }
+        } catch (error) {
+          console.error('Error checking milestone due date:', error);
         }
       }
     };
 
     checkOverdue();
-  }, [currentStatus, milestoneId, projectId, projectTitle, milestoneTitle, clientId, professionalId]);
+  }, [currentStatus, milestoneId, projectId, projectTitle, milestoneTitle, clientId, professionalId, toast]);
 
   const nextStatus = getNextStatus(currentStatus);
   if (!nextStatus) return null;

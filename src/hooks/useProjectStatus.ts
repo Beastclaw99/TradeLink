@@ -3,7 +3,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { ProjectStatus } from '@/types/projectUpdates';
 import { validateStatusTransition, handleStatusTransition } from '@/utils/projectStatusTransitions';
 
-export const useProjectStatus = (projectId: string, userId: string) => {
+export const useProjectStatus = (projectId: string, professionalId: string) => {
   const { toast } = useToast();
   const [isUpdating, setIsUpdating] = useState(false);
 
@@ -17,7 +17,7 @@ export const useProjectStatus = (projectId: string, userId: string) => {
       const result = await handleStatusTransition(
         projectId,
         newStatus,
-        userId,
+        professionalId,
         metadata
       );
 
