@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -15,7 +16,7 @@ interface HistoryItem {
     first_name: string;
     last_name: string;
     profile_image: string;
-  };
+  } | null;
 }
 
 interface ProjectHistoryProps {
@@ -47,7 +48,23 @@ const ProjectHistory: React.FC<ProjectHistoryProps> = ({ projectId }) => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setHistory(data || []);
+      
+      // Transform the data to handle potential null created_by
+      const transformedHistory: HistoryItem[] = (data || []).map(item => ({
+        id: item.id,
+        history_type: item.history_type,
+        history_data: item.history_data,
+        created_at: item.created_at,
+        created_by: item.created_by && typeof item.created_by === 'object' && 'first_name' in item.created_by 
+          ? {
+              first_name: item.created_by.first_name || 'Unknown',
+              last_name: item.created_by.last_name || 'User',
+              profile_image: item.created_by.profile_image || ''
+            }
+          : null
+      }));
+      
+      setHistory(transformedHistory);
     } catch (error: any) {
       console.error('Error loading project history:', error);
       toast({
@@ -150,7 +167,7 @@ const ProjectHistory: React.FC<ProjectHistoryProps> = ({ projectId }) => {
                       />
                     )}
                     <span className="text-xs text-gray-500">
-                      By {item.created_by?.first_name} {item.created_by?.last_name}
+                      By {item.created_by?.first_name || 'Unknown'} {item.created_by?.last_name || 'User'}
                     </span>
                   </div>
                 </div>
@@ -163,4 +180,4 @@ const ProjectHistory: React.FC<ProjectHistoryProps> = ({ projectId }) => {
   );
 };
 
-export default ProjectHistory; 
+export default ProjectHistory;

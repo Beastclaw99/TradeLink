@@ -61,7 +61,7 @@ const ProjectMarketplace: React.FC = () => {
       
       console.log('Fetched projects:', data);
       
-      // Ensure the data is properly typed as Project[]
+      // Ensure the data is properly typed as Project[] with correct required_skills handling
       const typedProjects: Project[] = data?.map(project => ({
         id: project.id,
         title: project.title,
@@ -72,7 +72,11 @@ const ProjectMarketplace: React.FC = () => {
         location: project.location || null,
         urgency: project.urgency || null,
         requirements: project.requirements || null,
-        required_skills: project.recommended_skills || null, // Map recommended_skills to required_skills
+        required_skills: Array.isArray(project.recommended_skills) 
+          ? project.recommended_skills 
+          : (typeof project.recommended_skills === 'string' 
+             ? project.recommended_skills.split(',').map((skill: string) => skill.trim())
+             : []),
         status: project.status || null,
         created_at: project.created_at || null,
         updated_at: project.updated_at || null,
@@ -154,23 +158,23 @@ const ProjectMarketplace: React.FC = () => {
             setLocationFilter={setLocationFilter}
             budgetFilter={budgetFilter}
             setBudgetFilter={setBudgetFilter}
-            onFilterApply={fetchProjects}
           />
           
-          <ViewModeToggle 
-            viewMode={viewMode} 
-            setViewMode={setViewMode} 
-            projectCount={filteredProjects.length} 
-          />
+          <div className="flex justify-between items-center mb-6 mt-6">
+            <h2 className="text-xl font-semibold">
+              {filteredProjects.length} Project{filteredProjects.length !== 1 ? 's' : ''} Found
+            </h2>
+            <ViewModeToggle viewMode={viewMode} setViewMode={setViewMode} />
+          </div>
           
           <ProjectsDisplay 
-            projects={filteredProjects} 
-            loading={loading} 
-            viewMode={viewMode} 
+            projects={filteredProjects}
+            viewMode={viewMode}
+            loading={loading}
           />
         </div>
       </section>
-
+      
       <CTASection onPostProject={handlePostProject} />
     </Layout>
   );

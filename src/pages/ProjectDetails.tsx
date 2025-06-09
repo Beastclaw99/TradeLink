@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
@@ -35,8 +36,8 @@ const ProjectDetails: React.FC = () => {
         .from('projects')
         .select(`
           *,
-          client:profiles!projects_client_id_fkey(first_name, last_name),
-          professional:profiles!projects_professional_id_fkey(first_name, last_name)
+          client:profiles!projects_client_id_fkey(id, first_name, last_name, email),
+          professional:profiles!projects_professional_id_fkey(id, first_name, last_name, email)
         `)
         .eq('id', projectId)
         .single();
@@ -54,7 +55,11 @@ const ProjectDetails: React.FC = () => {
         location: data.location,
         urgency: data.urgency,
         requirements: data.requirements,
-        required_skills: data.recommended_skills || null,
+        required_skills: Array.isArray(data.recommended_skills) 
+          ? data.recommended_skills 
+          : (typeof data.recommended_skills === 'string' 
+             ? data.recommended_skills.split(',').map((skill: string) => skill.trim())
+             : []),
         status: data.status,
         created_at: data.created_at,
         updated_at: data.updated_at,
@@ -70,8 +75,18 @@ const ProjectDetails: React.FC = () => {
         scope: data.scope,
         service_contract: data.service_contract,
         sla_terms: data.sla_terms,
-        client: data.client,
-        professional: data.professional
+        client: data.client ? {
+          id: data.client.id || data.client_id,
+          first_name: data.client.first_name || 'Unknown',
+          last_name: data.client.last_name || 'User',
+          email: data.client.email
+        } : undefined,
+        professional: data.professional ? {
+          id: data.professional.id || data.professional_id,
+          first_name: data.professional.first_name || 'Unknown',
+          last_name: data.professional.last_name || 'User', 
+          email: data.professional.email
+        } : undefined
       };
       
       setProject(transformedProject);
@@ -169,8 +184,8 @@ const ProjectDetails: React.FC = () => {
     );
   }
 
-  const requiredSkills = project.required_skills && typeof project.required_skills === 'string' 
-    ? project.required_skills.split(',').map(skill => skill.trim())
+  const requiredSkills = Array.isArray(project.required_skills) 
+    ? project.required_skills 
     : [];
 
   return (

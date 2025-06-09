@@ -1,8 +1,11 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { notificationService } from './notificationService';
 import { Milestone } from '@/components/project/creation/types';
 
+// Make Task interface compatible with Json
 interface Task {
+  [key: string]: any;
   id: string;
   title: string;
   completed: boolean;
@@ -34,7 +37,7 @@ export const taskService = {
     dependencies: string[] = [],
     priority: Task['priority'] = 'medium'
   ): Promise<Task> {
-    const newTask = {
+    const newTask: Task = {
       id: crypto.randomUUID(),
       title,
       completed: false,
@@ -60,7 +63,7 @@ export const taskService = {
     const { error: updateError } = await supabase
       .from('project_milestones')
       .update({
-        tasks: [...tasks, newTask],
+        tasks: [...tasks, newTask] as any,
         updated_at: new Date().toISOString()
       })
       .eq('id', milestoneId);
@@ -125,7 +128,7 @@ export const taskService = {
     const { error: updateError } = await supabase
       .from('project_milestones')
       .update({
-        tasks: updatedTasks,
+        tasks: updatedTasks as any,
         progress,
         status: progress === 100 ? 'completed' : 'in_progress',
         updated_at: new Date().toISOString()
@@ -198,7 +201,7 @@ export const taskService = {
     const tasks = milestoneWithTasks.tasks || [];
 
     // Add new task
-    const newTask = {
+    const newTask: Task = {
       id: crypto.randomUUID(),
       title,
       completed: false,
@@ -214,7 +217,7 @@ export const taskService = {
     const { error: updateError } = await supabase
       .from('project_milestones')
       .update({
-        tasks: updatedTasks,
+        tasks: updatedTasks as any,
         updated_at: new Date().toISOString()
       })
       .eq('id', milestoneId);
@@ -284,7 +287,7 @@ export const taskService = {
     const { error: updateError } = await supabase
       .from('project_milestones')
       .update({
-        tasks: updatedTasks,
+        tasks: updatedTasks as any,
         progress,
         status: progress === 100 ? 'completed' : 'in_progress',
         updated_at: new Date().toISOString()
@@ -318,7 +321,7 @@ export const taskService = {
     const { error: updateError } = await supabase
       .from('project_milestones')
       .update({
-        tasks: updatedTasks,
+        tasks: updatedTasks as any,
         updated_at: new Date().toISOString()
       })
       .eq('id', milestoneId);
@@ -373,7 +376,7 @@ export const taskService = {
     const { error: updateError } = await supabase
       .from('project_milestones')
       .update({
-        tasks: updatedTasks,
+        tasks: updatedTasks as any,
         updated_at: new Date().toISOString()
       })
       .eq('id', milestoneId);
@@ -410,7 +413,7 @@ export const taskService = {
     const { error: updateError } = await supabase
       .from('project_milestones')
       .update({
-        tasks: updatedTasks,
+        tasks: updatedTasks as any,
         updated_at: new Date().toISOString()
       })
       .eq('id', milestoneId);
@@ -427,7 +430,7 @@ export const taskService = {
       .single();
 
     if (error) throw error;
-    return (milestone?.tasks as Task[]) || [];
+    return (milestone?.tasks as unknown as Task[]) || [];
   },
 
   // Check for overdue tasks
@@ -441,4 +444,4 @@ export const taskService = {
       new Date(task.deadline) < now
     );
   }
-}; 
+};
