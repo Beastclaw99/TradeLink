@@ -36,7 +36,7 @@ export const useClientDashboard = (userId: string) => {
       
       if (projectsError) throw projectsError;
       
-      // Transform projects to match Project interface
+      // Transform projects to match Project interface with proper required_skills handling
       const transformedProjects: Project[] = (projectsData || []).map(project => ({
         id: project.id,
         title: project.title,
@@ -47,7 +47,11 @@ export const useClientDashboard = (userId: string) => {
         location: project.location,
         urgency: project.urgency,
         requirements: project.requirements,
-        required_skills: project.recommended_skills || null, // Map recommended_skills to required_skills
+        required_skills: Array.isArray(project.recommended_skills) 
+          ? project.recommended_skills 
+          : project.recommended_skills 
+            ? [project.recommended_skills] 
+            : [],
         status: project.status,
         created_at: project.created_at,
         updated_at: project.updated_at,
@@ -141,16 +145,29 @@ export const useClientDashboard = (userId: string) => {
       
       if (reviewsError) throw reviewsError;
       
-      // Transform reviews to match the Review type
+      // Transform reviews to match the Review type with required properties
       const transformedReviews: Review[] = (reviewsData || []).map(review => ({
         id: review.id,
         rating: review.rating,
-        comment: review.comment,
+        comment: review.comment || '',
         client_id: review.client_id,
         professional_id: review.professional_id,
         project_id: review.project_id,
         created_at: review.created_at,
-        updated_at: review['updated at'] || review.created_at // Handle the space in column name
+        updated_at: review.updated_at || review.created_at,
+        status: (review.status as 'pending' | 'approved' | 'rejected' | 'reported') || 'pending',
+        is_verified: review.is_verified || false,
+        communication_rating: review.communication_rating,
+        quality_rating: review.quality_rating,
+        timeliness_rating: review.timeliness_rating,
+        professionalism_rating: review.professionalism_rating,
+        verification_method: review.verification_method,
+        reported_at: review.reported_at,
+        reported_by: review.reported_by,
+        report_reason: review.report_reason,
+        moderated_at: review.moderated_at,
+        moderated_by: review.moderated_by,
+        moderation_notes: review.moderation_notes
       }));
       
       setReviews(transformedReviews);

@@ -12,6 +12,32 @@ export interface FileVersion {
   uploaded_at: string;
 }
 
+export interface FileReview {
+  id: string;
+  file_id: string;
+  reviewer_id: string;
+  status: 'pending' | 'approved' | 'rejected';
+  feedback?: string;
+  created_at: string;
+  reviewed_at?: string;
+}
+
+export interface FileComment {
+  id: string;
+  file_id: string;
+  content: string;
+  created_at: string;
+}
+
+export interface FileStatusRestriction {
+  id: string;
+  project_id: string;
+  status: string;
+  allowed_file_types: string[];
+  max_file_size?: number;
+  max_files_per_submission?: number;
+}
+
 export const fileService = {
   // Upload a file
   async uploadFile(file: File, projectId: string): Promise<string> {
@@ -109,5 +135,66 @@ export const fileService = {
       console.error('Error deleting file:', error);
       throw new Error('Failed to delete file');
     }
+  },
+
+  // Placeholder methods for file reviews and comments
+  async getFileReviews(fileId: string): Promise<FileReview[]> {
+    console.log('getFileReviews placeholder for fileId:', fileId);
+    return [];
+  },
+
+  async getFileComments(fileId: string): Promise<FileComment[]> {
+    console.log('getFileComments placeholder for fileId:', fileId);
+    return [];
+  },
+
+  async createFileReview(fileId: string, status: FileReview['status'], feedback?: string): Promise<FileReview> {
+    console.log('createFileReview placeholder:', { fileId, status, feedback });
+    return {
+      id: 'placeholder',
+      file_id: fileId,
+      reviewer_id: 'placeholder',
+      status,
+      feedback,
+      created_at: new Date().toISOString()
+    };
+  },
+
+  async createFileComment(fileId: string, content: string): Promise<FileComment> {
+    console.log('createFileComment placeholder:', { fileId, content });
+    return {
+      id: 'placeholder',
+      file_id: fileId,
+      content,
+      created_at: new Date().toISOString()
+    };
+  },
+
+  // Placeholder methods for file status restrictions
+  async getFileStatusRestrictions(projectId: string): Promise<FileStatusRestriction[]> {
+    console.log('getFileStatusRestrictions placeholder for projectId:', projectId);
+    return [];
+  },
+
+  async createFileStatusRestriction(
+    projectId: string,
+    status: string,
+    allowedFileTypes: string[],
+    maxFileSize?: number,
+    maxFiles?: number
+  ): Promise<FileStatusRestriction> {
+    console.log('createFileStatusRestriction placeholder:', { projectId, status, allowedFileTypes, maxFileSize, maxFiles });
+    return {
+      id: 'placeholder',
+      project_id: projectId,
+      status,
+      allowed_file_types: allowedFileTypes,
+      max_file_size: maxFileSize,
+      max_files_per_submission: maxFiles
+    };
+  },
+
+  async deleteFileStatusRestriction(id: string): Promise<void> {
+    console.log('deleteFileStatusRestriction placeholder for id:', id);
   }
 };

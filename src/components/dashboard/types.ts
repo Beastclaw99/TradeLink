@@ -14,7 +14,7 @@ export interface Project {
   assigned_to?: string;
   deadline?: string;
   requirements?: string[];
-  recommended_skills?: string;
+  required_skills?: string[];
   urgency?: string;
   scope?: string;
   rich_description?: string;
@@ -35,7 +35,6 @@ export interface Project {
     last_name: string;
     email?: string;
   };
-  required_skills?: string[];
 }
 
 export interface Application {
@@ -128,7 +127,7 @@ export interface ProjectMember {
   created_at: string;
 }
 
-// Common interface for tab components
+// Updated PaymentsTabProps interface
 export interface PaymentsTabProps {
   isLoading: boolean;
   projects: Project[];
@@ -146,7 +145,7 @@ export interface PaymentsTabProps {
   isSubmitting: boolean;
   handleReviewInitiate: (project: Project) => void;
   handleReviewCancel: () => void;
-  handleReviewSubmit: () => Promise<void>;
+  handleReviewSubmit: (projectId: string, revieweeId: string, revieweeType: "client" | "professional") => Promise<void>;
   setReviewData: React.Dispatch<React.SetStateAction<{
     rating: number;
     communication_rating: number;
