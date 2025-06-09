@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -12,12 +11,11 @@ interface HistoryItem {
   history_type: string;
   history_data: any;
   created_at: string;
-  created_by: string | null;
-  profiles?: {
-    first_name: string | null;
-    last_name: string | null;
-    profile_image: string | null;
-  } | null;
+  created_by: {
+    first_name: string;
+    last_name: string;
+    profile_image: string;
+  };
 }
 
 interface ProjectHistoryProps {
@@ -39,7 +37,7 @@ const ProjectHistory: React.FC<ProjectHistoryProps> = ({ projectId }) => {
         .from('project_history')
         .select(`
           *,
-          profiles!project_history_created_by_fkey (
+          created_by:profiles!project_history_created_by_fkey (
             first_name,
             last_name,
             profile_image
@@ -80,9 +78,9 @@ const ProjectHistory: React.FC<ProjectHistoryProps> = ({ projectId }) => {
   const getHistoryTitle = (type: string, data: any) => {
     switch (type) {
       case 'status_change':
-        return `Status changed to ${data.new_status || 'updated'}`;
+        return `Status changed to ${data.new_status}`;
       case 'milestone':
-        return `Milestone "${data.milestone_title || 'milestone'}" ${data.action || 'updated'}`;
+        return `Milestone "${data.milestone_title}" ${data.action}`;
       case 'message':
         return 'New message added';
       case 'archive':
@@ -99,19 +97,12 @@ const ProjectHistory: React.FC<ProjectHistoryProps> = ({ projectId }) => {
       case 'milestone':
         return data.description || 'Milestone updated';
       case 'message':
-        return data.message || 'Message added';
+        return data.message;
       case 'archive':
         return data.reason || 'Project archived';
       default:
         return JSON.stringify(data);
     }
-  };
-
-  const getUserName = (item: HistoryItem) => {
-    if (item.profiles?.first_name && item.profiles?.last_name) {
-      return `${item.profiles.first_name} ${item.profiles.last_name}`;
-    }
-    return 'Unknown User';
   };
 
   if (loading) {
@@ -151,15 +142,15 @@ const ProjectHistory: React.FC<ProjectHistoryProps> = ({ projectId }) => {
                     {getHistoryDescription(item.history_type, item.history_data)}
                   </p>
                   <div className="flex items-center mt-2">
-                    {item.profiles?.profile_image && (
+                    {item.created_by?.profile_image && (
                       <img
-                        src={item.profiles.profile_image}
+                        src={item.created_by.profile_image}
                         alt=""
                         className="h-6 w-6 rounded-full mr-2"
                       />
                     )}
                     <span className="text-xs text-gray-500">
-                      By {getUserName(item)}
+                      By {item.created_by?.first_name} {item.created_by?.last_name}
                     </span>
                   </div>
                 </div>
@@ -172,4 +163,4 @@ const ProjectHistory: React.FC<ProjectHistoryProps> = ({ projectId }) => {
   );
 };
 
-export default ProjectHistory;
+export default ProjectHistory; 

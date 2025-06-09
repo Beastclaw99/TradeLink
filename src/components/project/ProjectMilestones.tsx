@@ -22,7 +22,7 @@ import {
   FileText
 } from 'lucide-react';
 import { format, isPast, isToday, isFuture, differenceInDays } from 'date-fns';
-import { Milestone } from '@/types/project';
+import { Milestone } from './creation/types';
 import MilestoneStatusUpdate from './MilestoneStatusUpdate';
 import DeliverableSubmission from './DeliverableSubmission';
 import DeliverableReview from './DeliverableReview';
@@ -57,15 +57,11 @@ const ProjectMilestones: React.FC<ProjectMilestonesProps> = ({
   const [newMilestone, setNewMilestone] = useState<Omit<Milestone, 'id'>>({
     title: '',
     description: '',
-    due_date: '',
+    dueDate: '',
     status: 'not_started',
-    is_complete: false,
+    progress: 0,
     tasks: [],
-    deliverables: [],
-    project_id: projectId,
-    created_at: new Date().toISOString(),
-    created_by: '',
-    updated_at: new Date().toISOString()
+    deliverables: []
   });
   const [newTask, setNewTask] = useState('');
   const [deliverables, setDeliverables] = useState<Record<string, any[]>>({});
@@ -95,7 +91,7 @@ const ProjectMilestones: React.FC<ProjectMilestonesProps> = ({
   }, [milestones]);
 
   const handleAddMilestone = async () => {
-    if (!newMilestone.title.trim() || !newMilestone.due_date) return;
+    if (!newMilestone.title.trim() || !newMilestone.dueDate) return;
     try {
       await onAddMilestone({
         ...newMilestone,
@@ -107,15 +103,11 @@ const ProjectMilestones: React.FC<ProjectMilestonesProps> = ({
       setNewMilestone({
         title: '',
         description: '',
-        due_date: '',
+        dueDate: '',
         status: 'not_started',
-        is_complete: false,
+        progress: 0,
         tasks: [],
-        deliverables: [],
-        project_id: projectId,
-        created_at: new Date().toISOString(),
-        created_by: '',
-        updated_at: new Date().toISOString()
+        deliverables: []
       });
       setIsAddingMilestone(false);
       toast({
@@ -181,18 +173,7 @@ const ProjectMilestones: React.FC<ProjectMilestonesProps> = ({
 
     setNewMilestone(prev => ({
       ...prev,
-      tasks: [...prev.tasks, { 
-        id: crypto.randomUUID(), 
-        title: newTask.trim(), 
-        completed: false,
-        milestone_id: projectId,
-        deadline: null,
-        dependencies: [],
-        status: 'todo',
-        priority: 'medium',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      }]
+      tasks: [...prev.tasks, { id: crypto.randomUUID(), title: newTask.trim(), completed: false }]
     }));
     setNewTask('');
   };
@@ -252,12 +233,9 @@ const ProjectMilestones: React.FC<ProjectMilestonesProps> = ({
     });
   };
 
-  const handleStatusUpdate = (newStatus: string) => {
+  const handleStatusUpdate = (newStatus: Milestone['status']) => {
     if (editingMilestone && onEditMilestone) {
-      onEditMilestone(editingMilestone, { 
-        status: newStatus as Milestone['status'],
-        is_complete: newStatus === 'completed'
-      });
+      onEditMilestone(editingMilestone, { status: newStatus });
     }
   };
 
@@ -359,8 +337,8 @@ const ProjectMilestones: React.FC<ProjectMilestonesProps> = ({
                     <Input
                       id="dueDate"
                       type="date"
-                      value={newMilestone.due_date}
-                      onChange={(e) => setNewMilestone(prev => ({ ...prev, due_date: e.target.value }))}
+                      value={newMilestone.dueDate}
+                      onChange={(e) => setNewMilestone(prev => ({ ...prev, dueDate: e.target.value }))}
                     />
                   </div>
                   <div className="space-y-2">
@@ -400,7 +378,7 @@ const ProjectMilestones: React.FC<ProjectMilestonesProps> = ({
                     </Button>
                     <Button
                       onClick={handleAddMilestone}
-                      disabled={!newMilestone.title.trim() || !newMilestone.due_date}
+                      disabled={!newMilestone.title.trim() || !newMilestone.dueDate}
                     >
                       Add Milestone
                     </Button>
@@ -420,7 +398,7 @@ const ProjectMilestones: React.FC<ProjectMilestonesProps> = ({
         ) : (
           <div className="space-y-4">
             {milestones.map((milestone) => {
-              const deadlineStatus = getDeadlineStatus(milestone.due_date);
+              const deadlineStatus = getDeadlineStatus(milestone.dueDate);
               const milestoneDeliverables = deliverables[milestone.id!] || [];
 
               return (
@@ -441,7 +419,7 @@ const ProjectMilestones: React.FC<ProjectMilestonesProps> = ({
                           projectTitle={milestone.title}
                           milestoneTitle={milestone.title}
                           currentStatus={milestone.status}
-                          clientId={milestone.assigned_to?.id || ''}
+                          clientId={milestone.assignedTo?.id || ''}
                           professionalId={milestone.created_by || ''}
                           onStatusUpdate={handleStatusUpdate}
                         />
@@ -491,7 +469,7 @@ const ProjectMilestones: React.FC<ProjectMilestonesProps> = ({
                             projectId={projectId}
                             projectTitle={milestone.title}
                             milestoneTitle={milestone.title}
-                            clientId={milestone.assigned_to?.id || ''}
+                            clientId={milestone.assignedTo?.id || ''}
                             professionalId={milestone.created_by || ''}
                             onSubmissionComplete={handleDeliverableSubmitted}
                           />
