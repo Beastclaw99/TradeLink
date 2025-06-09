@@ -6,34 +6,17 @@ import { Label } from '@/components/ui/label';
 import { StarRating } from '@/components/ui/star-rating';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Info, Star, MessageSquare, CheckCircle, XCircle, Flag } from 'lucide-react';
-import { useToast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-
-interface Review {
-  id: string;
-  rating: number;
-  comment: string;
-  status: 'pending' | 'approved' | 'rejected' | 'reported';
-  reported_at?: string;
-  reported_by?: string;
-  report_reason?: string;
-  created_at: string;
-  client_id: string;
-  professional_id: string;
-  project_id: string;
-  communication_rating?: number;
-  quality_rating?: number;
-  timeliness_rating?: number;
-  professionalism_rating?: number;
-}
+import { AdminReview } from './types';
 
 const ReviewModeration: React.FC = () => {
   const { toast } = useToast();
-  const [reviews, setReviews] = useState<Review[]>([]);
+  const [reviews, setReviews] = useState<AdminReview[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedReview, setSelectedReview] = useState<Review | null>(null);
+  const [selectedReview, setSelectedReview] = useState<AdminReview | null>(null);
   const [moderationNotes, setModerationNotes] = useState('');
   const [activeTab, setActiveTab] = useState('pending');
 
@@ -51,7 +34,27 @@ const ReviewModeration: React.FC = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setReviews(data || []);
+      
+      // Transform data to match AdminReview interface
+      const transformedReviews: AdminReview[] = (data || []).map(review => ({
+        id: review.id,
+        rating: review.rating || 0,
+        comment: review.comment || '',
+        status: (review.status as AdminReview['status']) || 'pending',
+        reported_at: review.reported_at,
+        reported_by: review.reported_by,
+        report_reason: review.report_reason,
+        created_at: review.created_at,
+        client_id: review.client_id,
+        professional_id: review.professional_id,
+        project_id: review.project_id,
+        communication_rating: review.communication_rating,
+        quality_rating: review.quality_rating,
+        timeliness_rating: review.timeliness_rating,
+        professionalism_rating: review.professionalism_rating
+      }));
+      
+      setReviews(transformedReviews);
     } catch (error: any) {
       console.error('Error fetching reviews:', error);
       toast({
@@ -95,7 +98,7 @@ const ReviewModeration: React.FC = () => {
     }
   };
 
-  const getStatusBadge = (status: Review['status']) => {
+  const getStatusBadge = (status: AdminReview['status']) => {
     const statusConfig = {
       pending: { color: 'bg-yellow-100 text-yellow-800', text: 'Pending' },
       approved: { color: 'bg-green-100 text-green-800', text: 'Approved' },
@@ -251,4 +254,4 @@ const ReviewModeration: React.FC = () => {
   );
 };
 
-export default ReviewModeration; 
+export default ReviewModeration;

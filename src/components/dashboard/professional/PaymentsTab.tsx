@@ -61,7 +61,9 @@ const PaymentsTab: React.FC<PaymentsTabProps> = ({
               <TableBody>
                 {payments.map(payment => (
                   <TableRow key={payment.id}>
-                    <TableCell className="font-medium">{payment.project?.title || 'Unknown Project'}</TableCell>
+                    <TableCell className="font-medium">
+                      {payment.project?.title || 'Unknown Project'}
+                    </TableCell>
                     <TableCell>${payment.amount}</TableCell>
                     <TableCell>{new Date(payment.created_at).toLocaleDateString()}</TableCell>
                     <TableCell>

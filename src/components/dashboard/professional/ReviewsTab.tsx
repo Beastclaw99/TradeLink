@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StarRating } from "@/components/ui/star-rating";
@@ -61,7 +62,12 @@ const ReviewsTab: React.FC<ReviewsTabProps> = ({
           {reviews.map(review => (
             <EnhancedReviewDisplay
               key={review.id}
-              review={review}
+              review={{
+                ...review,
+                comment: review.comment || '',
+                status: review.status,
+                is_verified: review.is_verified
+              }}
               onReport={handleReviewReport}
             />
           ))}

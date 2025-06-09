@@ -58,10 +58,27 @@ const ProjectApplicationForm: React.FC<ProjectApplicationFormProps> = ({
   if (!selectedProject) return null;
   
   const project = projects.find(p => p.id === selectedProject);
-  const requiredSkills = Array.isArray(project?.required_skills) ? project.required_skills : [];
-  const matchingSkills = userSkills.filter(skill => requiredSkills.includes(skill));
-  const missingSkills = requiredSkills.filter(skill => !userSkills.includes(skill));
-  const skillMatchPercentage = requiredSkills.length > 0 ? Math.round((matchingSkills.length / requiredSkills.length) * 100) : 100;
+  const projectSkills = Array.isArray(project?.recommended_skills) 
+    ? project.recommended_skills 
+    : (project?.recommended_skills?.split(',').map(skill => skill.trim()) || []);
+    
+  const matchingSkills = userSkills.filter(skill => 
+    projectSkills.some(projectSkill => 
+      projectSkill.toLowerCase().includes(skill.toLowerCase()) ||
+      skill.toLowerCase().includes(projectSkill.toLowerCase())
+    )
+  );
+  
+  const missingSkills = projectSkills.filter(skill => 
+    !userSkills.some(userSkill => 
+      userSkill.toLowerCase().includes(skill.toLowerCase()) ||
+      skill.toLowerCase().includes(userSkill.toLowerCase())
+    )
+  );
+  
+  const skillMatchPercentage = projectSkills.length > 0 
+    ? Math.round((matchingSkills.length / projectSkills.length) * 100) 
+    : 100;
 
   const getBudgetGuidance = () => {
     const clientBudget = project?.budget;

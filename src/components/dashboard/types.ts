@@ -28,6 +28,14 @@ export interface Project {
   payment_required?: boolean;
   payment_due_date?: string;
   contract_template_id?: string;
+  // Add missing properties that components expect
+  client?: {
+    id: string;
+    first_name: string;
+    last_name: string;
+    email?: string;
+  };
+  required_skills?: string[];
 }
 
 export interface Application {
@@ -56,7 +64,15 @@ export interface Application {
     location?: string;
     verification_status?: string;
   };
-  project?: Project;
+  project?: ApplicationProject;
+}
+
+export interface ApplicationProject {
+  id: string;
+  title: string;
+  status: string;
+  budget: number;
+  created_at: string;
 }
 
 export interface Review {
@@ -97,6 +113,11 @@ export interface Payment {
   transaction_id?: string;
   payment_url?: string;
   metadata?: any;
+  project?: {
+    id: string;
+    title: string;
+    status: string;
+  };
 }
 
 export interface ProjectMember {
@@ -122,9 +143,10 @@ export interface PaymentsTabProps {
     professionalism_rating: number;
     comment: string;
   };
-  reviewDialogOpen: boolean;
-  setReviewDialogOpen: (open: boolean) => void;
-  setProjectToReview: (project: Project | null) => void;
+  isSubmitting: boolean;
+  handleReviewInitiate: (project: Project) => void;
+  handleReviewCancel: () => void;
+  handleReviewSubmit: () => Promise<void>;
   setReviewData: React.Dispatch<React.SetStateAction<{
     rating: number;
     communication_rating: number;
@@ -133,5 +155,4 @@ export interface PaymentsTabProps {
     professionalism_rating: number;
     comment: string;
   }>>;
-  handleReviewSubmit: () => Promise<void>;
 }

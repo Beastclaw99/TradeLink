@@ -24,7 +24,7 @@ const ProjectListItem: React.FC<ProjectListItemProps> = ({ project, onClick }) =
     <UnifiedProjectCard 
       project={project}
       variant="list"
-      onClick={handleClick}
+      onAction={handleClick}
       actionLabel="View Details"
     />
   );
