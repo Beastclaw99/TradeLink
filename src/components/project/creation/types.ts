@@ -1,13 +1,14 @@
-import { Milestone, Deliverable } from '../../../types/project';
+
+import { Milestone, ProjectDeliverable } from '../../../types/project';
 
 export interface ProjectData {
   title: string;
   description: string;
   category: string;
   location: string;
-  recommendedSkills: string[];
+  recommended_skills: string[];
   budget: number;
-  timeline: string;
+  expected_timeline: string;
   urgency: string;
   milestones: Milestone[];
   service_contract: string;
@@ -25,41 +26,33 @@ export interface ProjectData {
 export const convertDBMilestoneToMilestone = (dbMilestone: any): Milestone => {
   return {
     id: dbMilestone.id,
+    project_id: dbMilestone.project_id,
     title: dbMilestone.title,
     description: dbMilestone.description,
     due_date: dbMilestone.due_date,
     status: dbMilestone.status as Milestone['status'],
     is_complete: dbMilestone.is_complete,
-    tasks: dbMilestone.tasks || [],
-    deliverables: dbMilestone.deliverables || [],
-    project_id: dbMilestone.project_id,
-    created_at: dbMilestone.created_at,
+    tasks: dbMilestone.tasks || null,
+    requires_deliverable: dbMilestone.requires_deliverable,
     created_by: dbMilestone.created_by,
-    updated_at: dbMilestone.updated_at,
-    assigned_to: dbMilestone.assigned_to ? {
-      id: dbMilestone.assigned_to.id,
-      name: dbMilestone.assigned_to.name,
-      avatar: dbMilestone.assigned_to.avatar
-    } : undefined
+    created_at: dbMilestone.created_at,
+    updated_at: dbMilestone.updated_at
   };
 };
 
 export const convertMilestoneToDBMilestone = (milestone: Milestone, projectId: string): any => {
   return {
     id: milestone.id || crypto.randomUUID(),
+    project_id: projectId,
     title: milestone.title,
     description: milestone.description,
     due_date: milestone.due_date,
     status: milestone.status,
     is_complete: milestone.is_complete,
-    project_id: projectId,
+    tasks: milestone.tasks,
+    requires_deliverable: milestone.requires_deliverable,
     created_by: milestone.created_by,
     created_at: milestone.created_at || new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-    assigned_to: milestone.assigned_to ? {
-      id: milestone.assigned_to.id,
-      name: milestone.assigned_to.name,
-      avatar: milestone.assigned_to.avatar
-    } : null
+    updated_at: new Date().toISOString()
   };
-}; 
+};

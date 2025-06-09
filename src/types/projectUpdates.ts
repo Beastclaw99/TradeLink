@@ -1,4 +1,16 @@
-export type ProjectStatus = 'draft' | 'open' | 'in_progress' | 'completed' | 'cancelled';
+
+export type ProjectStatus = 
+  | 'open' 
+  | 'assigned' 
+  | 'in_progress' 
+  | 'work_submitted' 
+  | 'work_revision_requested'
+  | 'work_approved' 
+  | 'completed' 
+  | 'paid'
+  | 'archived'
+  | 'cancelled'
+  | 'disputed';
 
 export type PaymentStatus =
   | 'pending'     // Payment is pending
@@ -37,14 +49,14 @@ export interface StatusMetadata {
 
 export interface ProjectUpdate {
   id: string;
-  project_id: string;
-  title: string;
-  description: string;
-  status: ProjectStatus;
+  project_id: string | null;
+  professional_id: string | null;
+  update_type: string | null;
+  message: string | null;
+  status_update: string | null;
+  file_url: string | null;
+  metadata: any | null;
   created_at: string;
-  updated_at: string;
-  created_by: string;
-  attachments: string[];
 }
 
 export interface ProjectUpdateComment {
