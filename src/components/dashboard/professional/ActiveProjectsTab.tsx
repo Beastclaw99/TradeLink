@@ -20,16 +20,16 @@ import {
   Edit,
   Eye
 } from "lucide-react";
-import { Project } from '../types';
+import { Project, Milestone } from '@/types/project';
 import { ProjectStatus, PaymentStatus } from '@/types/projectUpdates';
-import ProjectUpdateTimeline from "@/components/project/ProjectUpdateTimeline";
-import ProjectMilestones from "@/components/project/ProjectMilestones";
-import ProjectDeliverables from "@/components/project/ProjectDeliverables";
+import ProjectUpdateTimeline from '@/components/project/ProjectUpdateTimeline';
+import ProjectMilestones from '@/components/project/ProjectMilestones';
+import ProjectDeliverables from '@/components/project/ProjectDeliverables';
 import { ProgressIndicator } from "@/components/ui/progress-indicator";
 import AddProjectUpdate from "@/components/project/updates/AddProjectUpdate";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from '@/integrations/supabase/client';
-import { Milestone, DBMilestone, convertDBMilestoneToMilestone, convertMilestoneToDBMilestone } from '@/components/project/creation/types';
+import { convertDBMilestoneToMilestone, convertMilestoneToDBMilestone } from '@/components/project/creation/types';
 import { ProjectUpdateTimeline as ProjectUpdateTimelineType } from "@/components/project/ProjectUpdateTimeline";
 import { ProjectMilestones as ProjectMilestonesType } from "@/components/project/ProjectMilestones";
 import { ProjectDeliverables as ProjectDeliverablesType } from "@/components/project/ProjectDeliverables";
@@ -39,6 +39,9 @@ interface ActiveProjectsTabProps {
   projects: Project[];
   userId: string;
   markProjectComplete: (projectId: string) => Promise<void>;
+  onMilestoneUpdate: (milestoneId: string, updates: Partial<Milestone>) => Promise<void>;
+  onMilestoneDelete: (milestoneId: string) => Promise<void>;
+  onTaskStatusUpdate: (milestoneId: string, taskId: string, completed: boolean) => Promise<void>;
 }
 
 type ProjectStepStatus = 'completed' | 'current' | 'pending';
@@ -53,7 +56,10 @@ const ActiveProjectsTab: React.FC<ActiveProjectsTabProps> = ({
   isLoading, 
   projects, 
   userId, 
-  markProjectComplete 
+  markProjectComplete,
+  onMilestoneUpdate,
+  onMilestoneDelete,
+  onTaskStatusUpdate
 }) => {
   const { toast } = useToast();
   const [expandedProjects, setExpandedProjects] = useState<Record<string, boolean>>({});

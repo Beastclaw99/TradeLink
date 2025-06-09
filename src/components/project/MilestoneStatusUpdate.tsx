@@ -3,16 +3,17 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { notificationService } from '@/services/notificationService';
+import { Milestone } from '@/types/project';
 
 interface MilestoneStatusUpdateProps {
   projectId: string;
   projectTitle: string;
   milestoneId: string;
   milestoneTitle: string;
-  currentStatus: string;
+  currentStatus: Milestone['status'];
   clientId: string;
   professionalId: string;
-  onStatusUpdate: (newStatus: string) => void;
+  onStatusUpdate: (newStatus: Milestone['status']) => void;
 }
 
 const MilestoneStatusUpdate: React.FC<MilestoneStatusUpdateProps> = ({
@@ -28,10 +29,12 @@ const MilestoneStatusUpdate: React.FC<MilestoneStatusUpdateProps> = ({
   const [isUpdating, setIsUpdating] = useState(false);
   const { toast } = useToast();
 
-  const getNextStatus = (currentStatus: string) => {
-    const statusFlow: Record<string, string> = {
+  const getNextStatus = (currentStatus: Milestone['status']): Milestone['status'] | undefined => {
+    const statusFlow: Record<Milestone['status'], Milestone['status']> = {
       not_started: 'in_progress',
-      in_progress: 'completed'
+      in_progress: 'completed',
+      completed: 'completed',
+      overdue: 'in_progress'
     };
     return statusFlow[currentStatus];
   };
@@ -71,7 +74,10 @@ const MilestoneStatusUpdate: React.FC<MilestoneStatusUpdateProps> = ({
     try {
       const { error } = await supabase
         .from('project_milestones')
-        .update({ status: newStatus })
+        .update({ 
+          status: newStatus,
+          is_complete: newStatus === 'completed'
+        })
         .eq('id', milestoneId);
 
       if (error) throw error;
@@ -113,7 +119,7 @@ const MilestoneStatusUpdate: React.FC<MilestoneStatusUpdateProps> = ({
           .eq('id', milestoneId)
           .single();
 
-        if (milestone && new Date(milestone.due_date) < new Date()) {
+        if (milestone?.due_date && new Date(milestone.due_date) < new Date()) {
           // Create overdue notification
           await notificationService.createMilestoneNotification(
             projectId,

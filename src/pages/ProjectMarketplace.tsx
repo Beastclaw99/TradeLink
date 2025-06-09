@@ -1,11 +1,10 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Project } from '@/components/dashboard/types';
+import { Project } from '@/types/project';
 
 // Import the refactored components
 import HeroSection from '@/components/marketplace/HeroSection';
@@ -49,7 +48,7 @@ const ProjectMarketplace: React.FC = () => {
         .from('projects')
         .select(`
           *,
-          client:profiles!projects_client_id_fkey(first_name, last_name)
+          client:profiles!projects_client_id_fkey(first_name, last_name, profile_image)
         `)
         .eq('status', 'open')
         .order('created_at', { ascending: false });
@@ -64,32 +63,27 @@ const ProjectMarketplace: React.FC = () => {
       // Ensure the data is properly typed as Project[]
       const typedProjects: Project[] = data?.map(project => ({
         id: project.id,
+        client_id: project.client_id,
         title: project.title,
-        description: project.description || null,
-        category: project.category || null,
-        budget: project.budget || null,
-        expected_timeline: project.expected_timeline || null,
-        location: project.location || null,
-        urgency: project.urgency || null,
-        requirements: project.requirements || null,
-        required_skills: project.recommended_skills || null, // Map recommended_skills to required_skills
-        status: project.status || null,
-        created_at: project.created_at || null,
-        updated_at: project.updated_at || null,
-        client_id: project.client_id || null,
-        assigned_to: project.assigned_to || null,
-        professional_id: project.professional_id || null,
-        contract_template_id: project.contract_template_id || null,
-        deadline: project.deadline || null,
-        industry_specific_fields: project.industry_specific_fields || null,
-        location_coordinates: project.location_coordinates || null,
-        project_start_time: project.project_start_time || null,
-        rich_description: project.rich_description || null,
-        scope: project.scope || null,
-        service_contract: project.service_contract || null,
-        sla_terms: project.sla_terms || null,
-        client: project.client || undefined
-      })) || [];
+        description: project.description,
+        category: project.category,
+        location: project.location,
+        budget: project.budget,
+        timeline: project.timeline,
+        urgency: project.urgency,
+        requirements: project.requirements,
+        skills_needed: project.skills_needed,
+        status: project.status,
+        assigned_to: project.assigned_to,
+        professional_id: project.professional_id,
+        payment_id: project.payment_id,
+        payment_status: project.payment_status,
+        payment_required: project.payment_required,
+        payment_due_date: project.payment_due_date,
+        created_at: project.created_at,
+        updated_at: project.updated_at,
+        client: project.client
+      }));
       
       setProjects(typedProjects);
       console.log('Projects state updated with:', typedProjects.length, 'projects');

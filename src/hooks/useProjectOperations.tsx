@@ -1,8 +1,7 @@
-
 import { useState } from 'react';
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Project } from '@/components/dashboard/types';
+import { Project } from '@/types/project';
 
 export const useProjectOperations = (userId: string, onUpdate: () => void) => {
   const { toast } = useToast();
@@ -33,7 +32,9 @@ export const useProjectOperations = (userId: string, onUpdate: () => void) => {
             description: newProject.description,
             budget: parseFloat(newProject.budget),
             client_id: userId,
-            status: 'open'
+            status: 'open',
+            payment_required: true,
+            payment_status: 'pending'
           }
         ])
         .select();
@@ -66,26 +67,11 @@ export const useProjectOperations = (userId: string, onUpdate: () => void) => {
       setIsSubmitting(false);
     }
   };
-  
-  const handleEditInitiate = (project: Project) => {
-    setEditProject(project);
-    setEditedProject({
-      title: project.title,
-      description: project.description || '',
-      budget: project.budget?.toString() || ''
-    });
-  };
-  
-  const handleEditCancel = () => {
-    setEditProject(null);
-    setEditedProject({
-      title: '',
-      description: '',
-      budget: ''
-    });
-  };
-  
-  const handleUpdateProject = async (project: Project) => {
+
+  const handleEditProject = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editProject) return;
+
     try {
       setIsSubmitting(true);
       
@@ -95,9 +81,9 @@ export const useProjectOperations = (userId: string, onUpdate: () => void) => {
           title: editedProject.title,
           description: editedProject.description,
           budget: parseFloat(editedProject.budget),
+          updated_at: new Date().toISOString()
         })
-        .eq('id', project.id)
-        .eq('client_id', userId);
+        .eq('id', editProject.id);
       
       if (error) throw error;
       
@@ -106,16 +92,16 @@ export const useProjectOperations = (userId: string, onUpdate: () => void) => {
         description: "Your project has been updated successfully!"
       });
       
-      // Refresh projects data
-      onUpdate();
-      
-      // Reset edit state
-      setEditProject(null);
+      // Reset form and state
       setEditedProject({
         title: '',
         description: '',
         budget: ''
       });
+      setEditProject(null);
+      
+      // Refresh projects data
+      onUpdate();
       
     } catch (error: any) {
       console.error('Error updating project:', error);
@@ -128,62 +114,39 @@ export const useProjectOperations = (userId: string, onUpdate: () => void) => {
       setIsSubmitting(false);
     }
   };
-  
-  const handleDeleteInitiate = (projectId: string) => {
-    setProjectToDelete(projectId);
-  };
-  
-  const handleDeleteCancel = () => {
-    setProjectToDelete(null);
-  };
-  
-  const handleDeleteProject = async (projectId: string) => {
+
+  const handleDeleteProject = async () => {
+    if (!projectToDelete) return;
+
     try {
       setIsSubmitting(true);
       
-      // First check if the project has any applications
-      const { data: apps, error: appsError } = await supabase
-        .from('applications')
-        .select('id')
-        .eq('project_id', projectId);
-      
-      if (appsError) throw appsError;
-      
-      // If there are applications, delete them first
-      if (apps && apps.length > 0) {
-        const { error: deleteAppsError } = await supabase
-          .from('applications')
-          .delete()
-          .eq('project_id', projectId);
-        
-        if (deleteAppsError) throw deleteAppsError;
-      }
-      
-      // Now delete the project
       const { error } = await supabase
         .from('projects')
-        .delete()
-        .eq('id', projectId)
-        .eq('client_id', userId);
+        .update({
+          status: 'cancelled',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', projectToDelete);
       
       if (error) throw error;
       
       toast({
-        title: "Project Deleted",
-        description: "Your project has been deleted successfully!"
+        title: "Project Cancelled",
+        description: "Your project has been cancelled successfully!"
       });
+      
+      // Reset state
+      setProjectToDelete(null);
       
       // Refresh projects data
       onUpdate();
       
-      // Reset delete state
-      setProjectToDelete(null);
-      
     } catch (error: any) {
-      console.error('Error deleting project:', error);
+      console.error('Error cancelling project:', error);
       toast({
         title: "Error",
-        description: "Failed to delete project. Please try again.",
+        description: "Failed to cancel project. Please try again.",
         variant: "destructive"
       });
     } finally {
@@ -193,18 +156,16 @@ export const useProjectOperations = (userId: string, onUpdate: () => void) => {
 
   return {
     editProject,
+    setEditProject,
     projectToDelete,
+    setProjectToDelete,
     editedProject,
-    newProject,
-    isSubmitting,
     setEditedProject,
+    newProject,
     setNewProject,
+    isSubmitting,
     handleCreateProject,
-    handleEditInitiate,
-    handleEditCancel,
-    handleUpdateProject,
-    handleDeleteInitiate,
-    handleDeleteCancel,
+    handleEditProject,
     handleDeleteProject
   };
 };

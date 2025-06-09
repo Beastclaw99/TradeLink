@@ -1,40 +1,8 @@
+import { Project } from '@/types/project';
 import { ProjectStatus } from '@/types/projectUpdates';
 
-export interface Project {
-  id: string;
-  title: string;
-  description: string | null;
-  category: string | null;
-  budget: number | null;
-  expected_timeline: string | null;
-  location: string | null;
-  urgency: string | null;
-  requirements: string[] | null;
-  required_skills: string | null;
-  status: ProjectStatus | null;
-  created_at: string | null;
-  updated_at: string | null;
-  client_id: string | null;
-  assigned_to: string | null;
-  professional_id: string | null;
-  contract_template_id: string | null;
-  deadline: string | null;
-  industry_specific_fields: any | null;
-  location_coordinates: unknown | null;
-  project_start_time: string | null;
-  rich_description: string | null;
-  scope: string | null;
-  service_contract: string | null;
-  sla_terms: any | null;
-  client?: {
-    first_name?: string;
-    last_name?: string;
-  };
-  professional?: {
-    first_name?: string;
-    last_name?: string;
-  };
-}
+// Re-export the Project type for backward compatibility
+export type { Project };
 
 // Simplified project interface for applications
 export interface ApplicationProject {

@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { DollarSign, MapPin, Clock, Tag, MessageSquare, ChevronDown, ChevronUp } from 'lucide-react';
-import { Project } from '@/components/dashboard/types';
+import { Project, Milestone } from '@/types/project';
 import ProjectChat from '../project/ProjectChat';
 import { ChatBubbleLeftIcon, ClockIcon, ExclamationCircleIcon, DocumentIcon, CurrencyDollarIcon, CalendarIcon, CheckCircleIcon, PaperClipIcon, MapPinIcon, TruckIcon, BanknotesIcon, ListBulletIcon, PencilSquareIcon, TagIcon, EyeIcon } from '@heroicons/react/24/outline';
 import { format } from 'date-fns';
@@ -23,16 +23,21 @@ import ProjectMilestones from '../project/ProjectMilestones';
 import ProjectDeliverables from '../project/ProjectDeliverables';
 import { ProgressIndicator } from "@/components/ui/progress-indicator";
 import { supabase } from '@/integrations/supabase/client';
-import { Milestone, convertDBMilestoneToMilestone } from '@/components/project/creation/types';
+import { convertDBMilestoneToMilestone } from '@/components/project/creation/types';
 import { useToast } from "@/components/ui/use-toast";
+import { ProjectStatus } from '@/types/projectUpdates';
 
 interface UnifiedProjectCardProps {
   project: Project;
   variant?: 'list' | 'card';
-  onStatusChange?: (newStatus: string) => void;
+  onStatusChange?: (newStatus: ProjectStatus) => void;
   isProfessional?: boolean;
   onClick?: () => void;
   actionLabel?: string;
+  isClient: boolean;
+  onMilestoneUpdate?: (milestoneId: string, updates: Partial<Milestone>) => Promise<void>;
+  onMilestoneDelete?: (milestoneId: string) => Promise<void>;
+  onTaskStatusUpdate?: (milestoneId: string, taskId: string, completed: boolean) => Promise<void>;
 }
 
 const statusColors = {
@@ -107,14 +112,18 @@ const getProjectProgress = (project: Project) => {
   return Math.round((completedSteps / steps.length) * 100);
 };
 
-export default function UnifiedProjectCard({ 
-  project, 
+const UnifiedProjectCard: React.FC<UnifiedProjectCardProps> = ({
+  project,
   variant = 'card',
   onStatusChange,
   isProfessional = false,
   onClick,
-  actionLabel
-}: UnifiedProjectCardProps) {
+  actionLabel,
+  isClient,
+  onMilestoneUpdate,
+  onMilestoneDelete,
+  onTaskStatusUpdate
+}) => {
   const { toast } = useToast();
   const [showChat, setShowChat] = useState(false);
   const [activeTab, setActiveTab] = useState('timeline');
@@ -365,11 +374,13 @@ export default function UnifiedProjectCard({
                 <TabsContent value="milestones" className="mt-4">
                   <ProjectMilestones 
                     milestones={milestones}
-                    isClient={!isProfessional}
+                    isClient={isClient}
                     onAddMilestone={async () => {}}
-                    onEditMilestone={async () => {}}
-                    onDeleteMilestone={async () => {}}
-                    onUpdateTaskStatus={async () => {}}
+                    onEditMilestone={onMilestoneUpdate || async () => {}}
+                    onDeleteMilestone={onMilestoneDelete || async () => {}}
+                    onUpdateTaskStatus={onTaskStatusUpdate || async () => {}}
+                    projectId={project.id}
+                    projectStatus={project.status}
                   />
                 </TabsContent>
 
@@ -425,4 +436,6 @@ export default function UnifiedProjectCard({
       )}
     </div>
   );
-}
+};
+
+export default UnifiedProjectCard;

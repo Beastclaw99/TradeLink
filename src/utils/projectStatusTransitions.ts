@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
 
 // Define valid status transitions
-const VALID_TRANSITIONS: Record<ProjectStatus, ProjectStatus[]> = {
+export const VALID_TRANSITIONS: Record<ProjectStatus, ProjectStatus[]> = {
   open: ['assigned', 'cancelled'],
   assigned: ['in_progress', 'cancelled'],
   in_progress: ['work_submitted', 'cancelled'],

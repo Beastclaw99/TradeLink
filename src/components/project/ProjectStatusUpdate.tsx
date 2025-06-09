@@ -4,7 +4,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { notificationService } from '@/services/notificationService';
 import { ProjectStatus } from '@/types/projectUpdates';
-import { VALID_TRANSITIONS } from '@/utils/projectStatusTransitions';
+import { handleStatusTransition } from '@/utils/projectStatusTransitions';
 
 interface ProjectStatusUpdateProps {
   projectId: string;
@@ -27,11 +27,27 @@ const ProjectStatusUpdate: React.FC<ProjectStatusUpdateProps> = ({
   const { toast } = useToast();
 
   const getNextStatus = (currentStatus: ProjectStatus): ProjectStatus | null => {
-    const validTransitions = VALID_TRANSITIONS[currentStatus];
-    if (!validTransitions || validTransitions.length === 0) return null;
-    
-    // Get the first valid transition that's not 'cancelled'
-    return validTransitions.find(status => status !== 'cancelled') || null;
+    // Get the next valid status based on current status
+    switch (currentStatus) {
+      case 'open':
+        return 'assigned';
+      case 'assigned':
+        return 'in_progress';
+      case 'in_progress':
+        return 'work_submitted';
+      case 'work_submitted':
+        return 'work_approved';
+      case 'work_revision_requested':
+        return 'work_submitted';
+      case 'work_approved':
+        return 'completed';
+      case 'completed':
+        return 'paid';
+      case 'paid':
+        return 'archived';
+      default:
+        return null;
+    }
   };
 
   const updateStatus = async () => {
@@ -47,28 +63,35 @@ const ProjectStatusUpdate: React.FC<ProjectStatusUpdateProps> = ({
 
     setIsUpdating(true);
     try {
-      const { error } = await supabase
-        .from('projects')
-        .update({ status: newStatus })
-        .eq('id', projectId);
-
-      if (error) throw error;
-
-      // Create status change notification
-      await notificationService.createStatusChangeNotification(
+      const result = await handleStatusTransition(
         projectId,
-        projectTitle,
-        currentStatus,
         newStatus,
-        clientId,
         professionalId
       );
 
-      onStatusUpdate(newStatus);
-      toast({
-        title: 'Status Updated',
-        description: `Project status has been updated to ${newStatus.replace('_', ' ')}.`
-      });
+      if (result.success) {
+        // Create status change notification
+        await notificationService.createStatusChangeNotification(
+          projectId,
+          projectTitle,
+          currentStatus,
+          newStatus,
+          clientId,
+          professionalId
+        );
+
+        onStatusUpdate(newStatus);
+        toast({
+          title: 'Status Updated',
+          description: result.message
+        });
+      } else {
+        toast({
+          title: 'Error',
+          description: result.message || 'Failed to update project status',
+          variant: 'destructive'
+        });
+      }
     } catch (error) {
       console.error('Error updating status:', error);
       toast({

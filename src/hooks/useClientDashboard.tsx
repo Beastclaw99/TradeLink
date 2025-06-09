@@ -1,21 +1,21 @@
-
 import { useState, useEffect } from 'react';
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Project, Application, Payment, Review, ApplicationProject } from '@/components/dashboard/types';
+import { Project as NewProjectType } from '@/types/project';
 
 export const useClientDashboard = (userId: string) => {
   const { toast } = useToast();
-  const [projects, setProjects] = useState<Project[]>([]);
+  const [projects, setProjects] = useState<NewProjectType[]>([]);
   const [applications, setApplications] = useState<Application[]>([]);
   const [payments, setPayments] = useState<Payment[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [profileData, setProfileData] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
 
   const fetchDashboardData = async () => {
     try {
-      setIsLoading(true);
+      setLoading(true);
       
       // Fetch client's profile
       const { data: profileData, error: profileError } = await supabase
@@ -30,39 +30,40 @@ export const useClientDashboard = (userId: string) => {
       // Fetch client's projects
       const { data: projectsData, error: projectsError } = await supabase
         .from('projects')
-        .select('*')
+        .select(`
+          *,
+          client:profiles!projects_client_id_fkey(first_name, last_name, profile_image),
+          professional:profiles!projects_professional_id_fkey(first_name, last_name, profile_image)
+        `)
         .eq('client_id', userId)
         .order('created_at', { ascending: false });
       
       if (projectsError) throw projectsError;
       
       // Transform projects to match Project interface
-      const transformedProjects: Project[] = (projectsData || []).map(project => ({
+      const transformedProjects: NewProjectType[] = (projectsData || []).map(project => ({
         id: project.id,
+        client_id: project.client_id,
         title: project.title,
         description: project.description,
         category: project.category,
-        budget: project.budget,
-        expected_timeline: project.expected_timeline,
         location: project.location,
+        budget: project.budget,
+        timeline: project.timeline,
         urgency: project.urgency,
         requirements: project.requirements,
-        required_skills: project.recommended_skills || null, // Map recommended_skills to required_skills
+        skills_needed: project.skills_needed,
         status: project.status,
-        created_at: project.created_at,
-        updated_at: project.updated_at,
-        client_id: project.client_id,
         assigned_to: project.assigned_to,
         professional_id: project.professional_id,
-        contract_template_id: project.contract_template_id,
-        deadline: project.deadline,
-        industry_specific_fields: project.industry_specific_fields,
-        location_coordinates: project.location_coordinates,
-        project_start_time: project.project_start_time,
-        rich_description: project.rich_description,
-        scope: project.scope,
-        service_contract: project.service_contract,
-        sla_terms: project.sla_terms
+        payment_id: project.payment_id,
+        payment_status: project.payment_status,
+        payment_required: project.payment_required,
+        payment_due_date: project.payment_due_date,
+        created_at: project.created_at,
+        updated_at: project.updated_at,
+        client: project.client,
+        professional: project.professional
       }));
       
       setProjects(transformedProjects);
@@ -163,7 +164,7 @@ export const useClientDashboard = (userId: string) => {
         variant: "destructive"
       });
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
@@ -177,7 +178,7 @@ export const useClientDashboard = (userId: string) => {
     payments,
     reviews,
     profileData,
-    isLoading,
-    fetchDashboardData
+    loading,
+    refreshData: fetchDashboardData
   };
 };
