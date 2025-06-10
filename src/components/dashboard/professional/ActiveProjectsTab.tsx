@@ -32,6 +32,7 @@ import { Milestone, convertDBMilestoneToMilestone, convertMilestoneToDBMilestone
 import { ProjectStatus } from '@/types/projectUpdates';
 import { useProjectStatus } from '@/hooks/useProjectStatus';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import ProjectProgressOverview from '@/components/project/ProjectProgressOverview';
 
 interface ActiveProjectsTabProps {
   isLoading: boolean;
@@ -511,6 +512,19 @@ const ActiveProjectsTab: React.FC<ActiveProjectsTabProps> = ({
                       orientation="horizontal"
                     />
                   </div>
+
+                  <Separator />
+
+                  {/* Project Progress Overview */}
+                  <ProjectProgressOverview
+                    milestones={selectedProject?.milestones || []}
+                    projectStatus={project.status as ProjectStatus}
+                    startDate={project.project_start_time}
+                    endDate={project.deadline}
+                    budget={project.budget}
+                    spent={project.spent}
+                    created_at={project.created_at}
+                  />
 
                   <Separator />
 
