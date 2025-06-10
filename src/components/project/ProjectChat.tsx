@@ -1,9 +1,9 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { MessageSquare, Send } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -20,9 +20,9 @@ interface Message {
   sender_id: string;
   sent_at: string;
   sender?: {
-    first_name: string;
-    last_name: string;
-  };
+    first_name: string | null;
+    last_name: string | null;
+  } | null;
 }
 
 const ProjectChat: React.FC<ProjectChatProps> = ({ projectId, currentUserId }) => {
@@ -31,9 +31,45 @@ const ProjectChat: React.FC<ProjectChatProps> = ({ projectId, currentUserId }) =
   const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
   const { toast } = useToast();
+  const channelRef = useRef<any>(null);
 
   useEffect(() => {
     fetchMessages();
+    
+    // Set up realtime subscription
+    const setupRealtimeSubscription = () => {
+      // Clean up existing channel if it exists
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+      }
+
+      // Create new channel
+      channelRef.current = supabase
+        .channel(`project_messages_${projectId}`)
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'project_messages',
+            filter: `project_id=eq.${projectId}`
+          },
+          () => {
+            fetchMessages();
+          }
+        )
+        .subscribe();
+    };
+
+    setupRealtimeSubscription();
+
+    // Cleanup function
+    return () => {
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
+    };
   }, [projectId]);
 
   const fetchMessages = async () => {
@@ -48,7 +84,17 @@ const ProjectChat: React.FC<ProjectChatProps> = ({ projectId, currentUserId }) =
         .order('sent_at', { ascending: true });
 
       if (error) throw error;
-      setMessages(data || []);
+      
+      // Transform the data to match our Message interface
+      const transformedMessages: Message[] = (data || []).map(msg => ({
+        id: msg.id,
+        content: msg.content,
+        sender_id: msg.sender_id || '',
+        sent_at: msg.sent_at || new Date().toISOString(),
+        sender: msg.sender
+      }));
+      
+      setMessages(transformedMessages);
     } catch (error) {
       console.error('Error fetching messages:', error);
       toast({
@@ -77,7 +123,7 @@ const ProjectChat: React.FC<ProjectChatProps> = ({ projectId, currentUserId }) =
       if (error) throw error;
 
       setNewMessage('');
-      fetchMessages();
+      // Don't fetch messages here as realtime will handle it
     } catch (error) {
       console.error('Error sending message:', error);
       toast({
@@ -90,8 +136,10 @@ const ProjectChat: React.FC<ProjectChatProps> = ({ projectId, currentUserId }) =
     }
   };
 
-  const getInitials = (firstName: string = '', lastName: string = '') => {
-    return `${firstName[0] || ''}${lastName[0] || ''}`.toUpperCase();
+  const getInitials = (firstName: string | null = '', lastName: string | null = '') => {
+    const first = firstName || '';
+    const last = lastName || '';
+    return `${first[0] || ''}${last[0] || ''}`.toUpperCase();
   };
 
   if (isLoading) {

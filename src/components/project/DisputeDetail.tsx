@@ -41,7 +41,7 @@ interface DisputeDetailProps {
   projectId: string;
 }
 
-const DisputeDetail: React.FC<DisputeDetailProps> = ({ disputeId, projectId }) => {
+const DisputeDetail: React.FC<DisputeDetailProps> = ({ disputeId }) => {
   const navigate = useNavigate();
   const { toast } = useToast();
   
@@ -121,14 +121,14 @@ const DisputeDetail: React.FC<DisputeDetailProps> = ({ disputeId, projectId }) =
 
       const { data: { user } } = await supabase.auth.getUser();
 
-      const { error } = await supabase.from('dispute_messages').insert([
-        {
-          dispute_id: disputeId,
-          content: newMessage,
-          sender_id: user?.id,
-          is_internal: false,
-        },
-      ]);
+      if (!user?.id) throw new Error("User not authenticated");
+
+      const { error } = await supabase.from('dispute_messages').insert({
+        dispute_id: disputeId,
+        content: newMessage,
+        sender_id: user.id,
+        is_internal: false,
+      });
 
       if (error) throw error;
 

@@ -15,7 +15,6 @@ import {
 } from '@/components/ui/table';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/components/ui/use-toast';
-import { supabase } from '@/integrations/supabase/client';
 import { DollarSign, Plus, TrendingUp, TrendingDown } from 'lucide-react';
 
 interface ProjectBudgetProps {
