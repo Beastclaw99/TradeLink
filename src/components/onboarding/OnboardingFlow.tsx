@@ -17,8 +17,9 @@ interface OnboardingStep {
   fields: {
     name: string;
     label: string;
-    type: 'text' | 'textarea' | 'number' | 'tel' | 'email';
+    type: 'text' | 'textarea' | 'number' | 'tel' | 'email' | 'file';
     required: boolean;
+    multiple?: boolean;
   }[];
 }
 
@@ -63,11 +64,18 @@ const professionalSteps: OnboardingStep[] = [
     ]
   },
   {
-    title: "Skills & Expertise",
-    description: "What are your areas of expertise?",
+    title: "Skills & Certifications",
+    description: "What are your areas of expertise and qualifications?",
     fields: [
       { name: 'skills', label: 'Skills (comma-separated)', type: 'text', required: true },
       { name: 'certifications', label: 'Certifications (comma-separated)', type: 'text', required: false },
+    ]
+  },
+  {
+    title: "Portfolio (Optional)",
+    description: "Showcase your best work - you can add this later",
+    fields: [
+      { name: 'portfolio_images', label: 'Portfolio Images', type: 'file', required: false, multiple: true },
     ]
   }
 ];

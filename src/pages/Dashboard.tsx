@@ -73,8 +73,19 @@ const Dashboard: React.FC = () => {
           
           // For professionals, check additional required fields
           if (profileData.account_type === 'professional') {
-            const professionalFields = ['years_experience', 'hourly_rate', 'skills'] as const;
-            isComplete = isComplete && professionalFields.every(field => profileData[field as keyof typeof profileData]);
+            const professionalFields = [
+              'years_experience',
+              'hourly_rate',
+              'skills'
+            ] as const;
+            isComplete = isComplete && professionalFields.every(field => {
+              const value = profileData[field as keyof typeof profileData];
+              // For array fields, check if they have at least one item
+              if (Array.isArray(value)) {
+                return value.length > 0;
+              }
+              return !!value;
+            });
           }
           
           setIsProfileComplete(isComplete);
