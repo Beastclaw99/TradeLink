@@ -59,7 +59,7 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ userId, initialTab = 
   const { fetchProjectDetails } = useProjectOperations(userId, fetchDashboardData);
 
   // Task handling functions using the correct table structure
-  const handleAddMilestone = async (projectId: string, milestone: any) => {
+  const handleAddMilestone = async (projectId: string, milestone: any): Promise<void> => {
     try {
       const { data, error } = await supabase
         .from('project_milestones')
@@ -86,14 +86,13 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ userId, initialTab = 
         }]);
 
       await fetchDashboardData();
-      return data;
     } catch (error) {
       console.error('Error adding milestone:', error);
       throw error;
     }
   };
 
-  const handleEditMilestone = async (projectId: string, milestoneId: string, updates: any) => {
+  const handleEditMilestone = async (projectId: string, milestoneId: string, updates: any): Promise<void> => {
     try {
       const { data, error } = await supabase
         .from('project_milestones')
@@ -120,14 +119,13 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ userId, initialTab = 
         }]);
 
       await fetchDashboardData();
-      return data;
     } catch (error) {
       console.error('Error editing milestone:', error);
       throw error;
     }
   };
 
-  const handleDeleteMilestone = async (projectId: string, milestoneId: string) => {
+  const handleDeleteMilestone = async (projectId: string, milestoneId: string): Promise<void> => {
     try {
       const { error } = await supabase
         .from('project_milestones')
@@ -151,26 +149,6 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ userId, initialTab = 
       console.error('Error deleting milestone:', error);
       throw error;
     }
-  };
-
-  // Note: Since project_tasks table doesn't exist, we'll create placeholder functions
-  // These would need to be implemented when the tasks functionality is added
-  const handleAddTask = async (milestoneId: string, task: any) => {
-    console.log('Add task functionality not implemented - project_tasks table does not exist');
-    // This would be implemented when project_tasks table is created
-    return Promise.resolve();
-  };
-
-  const handleUpdateTask = async (taskId: string, updates: any) => {
-    console.log('Update task functionality not implemented - project_tasks table does not exist');
-    // This would be implemented when project_tasks table is created
-    return Promise.resolve();
-  };
-
-  const handleDeleteTask = async (taskId: string) => {
-    console.log('Delete task functionality not implemented - project_tasks table does not exist');
-    // This would be implemented when project_tasks table is created
-    return Promise.resolve();
   };
 
   // Set the active tab based on initialTab prop
@@ -214,15 +192,11 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ userId, initialTab = 
     handleAddMilestone,
     handleEditMilestone,
     handleDeleteMilestone,
-    handleAddTask,
-    handleUpdateTask,
-    handleDeleteTask,
     // Use robust fetchProjectDetails
     fetchProjectDetails,
     error,
     onEditProject: handleEditInitiate,
-    onDeleteProject: handleDeleteInitiate,
-    profile
+    onDeleteProject: handleDeleteInitiate
   };
   
   const applicationsTabProps = {

@@ -1,20 +1,17 @@
-import React from 'react';
+
+'use client';
+
+import { useParams } from 'next/navigation';
 import DisputeDetail from '@/components/project/DisputeDetail';
 
-interface DisputeDetailPageProps {
-  params: {
-    projectId: string;
-    disputeId: string;
-  };
-}
+export default function DisputeDetailPage() {
+  const params = useParams();
+  const disputeId = params.disputeId as string;
+  const projectId = params.projectId as string;
 
-export default function DisputeDetailPage({ params }: DisputeDetailPageProps) {
   return (
-    <div className="container mx-auto py-8">
-      <DisputeDetail
-        projectId={params.projectId}
-        disputeId={params.disputeId}
-      />
+    <div className="container mx-auto px-4 py-8">
+      <DisputeDetail disputeId={disputeId} projectId={projectId} />
     </div>
   );
-} 
+}
