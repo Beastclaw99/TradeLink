@@ -1,85 +1,129 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { useToast } from '@/components/ui/use-toast';
 import {
-  Users,
-  Mail,
-  Phone,
-  Crown,
-  Shield,
-  User
+  Users
 } from 'lucide-react';
 
+interface TeamMember {
+  id: string;
+  name: string;
+  email: string;
+  role: 'owner' | 'admin' | 'member' | 'viewer';
+  avatar?: string;
+  status: 'active' | 'away' | 'offline';
+  joinedAt: string;
+  lastActive: string;
+  skills: string[];
+}
+
 interface ProjectTeamProps {
-  projectId: string;
-  members: any[];
-  currentUser: any;
-  onAddMember: (member: any) => Promise<void>;
-  onRemoveMember: (memberId: string) => Promise<void>;
-  onUpdateRole: (memberId: string, role: string) => Promise<void>;
-  canManageTeam: boolean;
+  members: TeamMember[];
 }
 
 const ProjectTeam: React.FC<ProjectTeamProps> = ({
-  projectId,
-  members,
-  currentUser,
-  onAddMember,
-  onRemoveMember,
-  onUpdateRole,
-  canManageTeam
+  members
 }) => {
-  const { toast } = useToast();
-  const [showAddDialog, setShowAddDialog] = useState(false);
-  const [newMemberEmail, setNewMemberEmail] = useState('');
+  const getRoleColor = (role: TeamMember['role']) => {
+    switch (role) {
+      case 'owner':
+        return 'bg-purple-100 text-purple-800';
+      case 'admin':
+        return 'bg-blue-100 text-blue-800';
+      case 'member':
+        return 'bg-green-100 text-green-800';
+      case 'viewer':
+        return 'bg-gray-100 text-gray-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
 
-  
+  const getStatusColor = (status: TeamMember['status']) => {
+    switch (status) {
+      case 'active':
+        return 'bg-green-500';
+      case 'away':
+        return 'bg-yellow-500';
+      case 'offline':
+        return 'bg-gray-400';
+      default:
+        return 'bg-gray-400';
+    }
+  };
+
   return (
     <Card>
-      <CardHeader className="border-b">
-        <div className="flex justify-between items-center">
-          <CardTitle className="flex items-center gap-2">
-            <Users className="h-5 w-5" />
-            Team Members
-          </CardTitle>
-        </div>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Users className="h-5 w-5" />
+          Team Members ({members.length})
+        </CardTitle>
       </CardHeader>
-      <CardContent className="p-6">
-        <div className="space-y-4">
-          {members.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
-              <Users className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-              <p>No team members yet.</p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {members.map((member) => (
-                <div key={member.id} className="flex items-center justify-between p-4 border rounded-lg">
-                  <div className="flex items-center gap-4">
-                    <Avatar>
-                      <AvatarImage src={member.avatar} />
-                      <AvatarFallback>
-                        <User className="h-4 w-4" />
-                      </AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <h4 className="font-medium">{member.name}</h4>
-                      <p className="text-sm text-gray-500">{member.email}</p>
-                    </div>
-                  </div>
+      <CardContent>
+        {members.length === 0 ? (
+          <div className="text-center py-8 text-gray-500">
+            <Users className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+            <p>No team members found.</p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {members.map((member) => (
+              <div
+                key={member.id}
+                className="flex items-center gap-3 p-3 border rounded-lg hover:bg-gray-50"
+              >
+                <div className="relative">
+                  <Avatar>
+                    <AvatarImage src={member.avatar} alt={member.name} />
+                    <AvatarFallback>
+                      {member.name.split(' ').map(n => n[0]).join('')}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div
+                    className={`absolute -bottom-1 -right-1 w-3 h-3 rounded-full border-2 border-white ${getStatusColor(member.status)}`}
+                  />
+                </div>
+                
+                <div className="flex-1">
                   <div className="flex items-center gap-2">
-                    <Badge variant="outline">{member.role}</Badge>
+                    <p className="font-medium">{member.name}</p>
+                    <Badge className={getRoleColor(member.role)}>
+                      {member.role}
+                    </Badge>
+                    <Badge variant="outline" className="text-xs">
+                      {member.status}
+                    </Badge>
+                  </div>
+                  <p className="text-sm text-gray-600">{member.email}</p>
+                  <div className="flex gap-1 mt-1">
+                    {member.skills.slice(0, 3).map((skill) => (
+                      <Badge key={skill} variant="secondary" className="text-xs">
+                        {skill}
+                      </Badge>
+                    ))}
+                    {member.skills.length > 3 && (
+                      <Badge variant="secondary" className="text-xs">
+                        +{member.skills.length - 3} more
+                      </Badge>
+                    )}
                   </div>
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
+                
+                <div className="text-right">
+                  <p className="text-xs text-gray-500">
+                    Joined {new Date(member.joinedAt).toLocaleDateString()}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    Last active {new Date(member.lastActive).toLocaleDateString()}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </CardContent>
     </Card>
   );

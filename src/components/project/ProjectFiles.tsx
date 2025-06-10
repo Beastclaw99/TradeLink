@@ -1,107 +1,62 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { useToast } from '@/components/ui/use-toast';
 import {
-  Upload,
-  Download,
-  Eye,
-  Plus,
-  Search,
-  Filter,
+  Folder,
+  FileText,
+  Image,
+  Archive,
   MoreHorizontal,
-  Trash2
+  Download,
+  Star,
+  Share2,
+  Trash2,
+  Search
 } from 'lucide-react';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger
-} from '@/components/ui/dropdown-menu';
 
 interface ProjectFile {
   id: string;
-  filename: string;
-  fileSize: number;
-  uploadedAt: string;
+  name: string;
+  type: 'document' | 'image' | 'archive' | 'other';
+  size: number;
   uploadedBy: string;
-  fileType: string;
+  uploadedAt: string;
+  isStarred: boolean;
   tags: string[];
-  url: string;
+  version: number;
 }
 
 interface ProjectFilesProps {
-  projectId: string;
   files: ProjectFile[];
-  onUploadFile: (file: File, tags: string[]) => Promise<void>;
-  onDeleteFile: (fileId: string) => Promise<void>;
-  canUpload: boolean;
-  canDelete: boolean;
+  onUploadFile: (file: File) => void;
+  onDeleteFile: (fileId: string) => void;
+  onStarFile: (fileId: string) => void;
+  onUpdateFileTags?: (fileId: string, tags: string[]) => void;
 }
 
 const ProjectFiles: React.FC<ProjectFilesProps> = ({
-  projectId,
   files,
   onUploadFile,
   onDeleteFile,
-  canUpload,
-  canDelete
+  onStarFile
 }) => {
-  const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterType, setFilterType] = useState('all');
-  const [isUploading, setIsUploading] = useState(false);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [fileTags, setFileTags] = useState<string[]>([]);
-  const [showUploadDialog, setShowUploadDialog] = useState(false);
+  const [sortBy, setSortBy] = useState<'name' | 'date' | 'type'>('date');
 
-  const filteredFiles = files.filter(file => {
-    const matchesSearch = file.filename.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesType = filterType === 'all' || file.fileType === filterType;
-    return matchesSearch && matchesType;
-  });
-
-  const handleFileUpload = async () => {
-    if (!selectedFile) return;
-
-    setIsUploading(true);
-    try {
-      await onUploadFile(selectedFile, fileTags);
-      setSelectedFile(null);
-      setFileTags([]);
-      setShowUploadDialog(false);
-      toast({
-        title: "Success",
-        description: "File uploaded successfully."
-      });
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to upload file. Please try again.",
-        variant: "destructive"
-      });
-    } finally {
-      setIsUploading(false);
-    }
-  };
-
-  const handleFileDelete = async (fileId: string) => {
-    try {
-      await onDeleteFile(fileId);
-      toast({
-        title: "Success",
-        description: "File deleted successfully."
-      });
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to delete file. Please try again.",
-        variant: "destructive"
-      });
+  const getFileIcon = (type: ProjectFile['type']) => {
+    switch (type) {
+      case 'document':
+        return <FileText className="h-5 w-5" />;
+      case 'image':
+        return <Image className="h-5 w-5" />;
+      case 'archive':
+        return <Archive className="h-5 w-5" />;
+      default:
+        return <FileText className="h-5 w-5" />;
     }
   };
 
@@ -113,127 +68,124 @@ const ProjectFiles: React.FC<ProjectFilesProps> = ({
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
+  const filteredFiles = files.filter(file =>
+    file.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    file.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()))
+  );
+
+  const sortedFiles = [...filteredFiles].sort((a, b) => {
+    switch (sortBy) {
+      case 'name':
+        return a.name.localeCompare(b.name);
+      case 'type':
+        return a.type.localeCompare(b.type);
+      case 'date':
+      default:
+        return new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime();
+    }
+  });
+
   return (
     <Card>
-      <CardHeader className="border-b">
-        <div className="flex justify-between items-center">
-          <CardTitle>Project Files</CardTitle>
-          {canUpload && (
-            <Dialog open={showUploadDialog} onOpenChange={setShowUploadDialog}>
-              <DialogTrigger asChild>
-                <Button>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Upload File
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Upload New File</DialogTitle>
-                </DialogHeader>
-                <div className="space-y-4 py-4">
-                  <div>
-                    <Input
-                      type="file"
-                      onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
-                    />
-                  </div>
-                  <div className="flex justify-end gap-2">
-                    <Button
-                      variant="outline"
-                      onClick={() => setShowUploadDialog(false)}
-                    >
-                      Cancel
-                    </Button>
-                    <Button
-                      onClick={handleFileUpload}
-                      disabled={!selectedFile || isUploading}
-                    >
-                      {isUploading ? 'Uploading...' : 'Upload'}
-                    </Button>
-                  </div>
-                </div>
-              </DialogContent>
-            </Dialog>
-          )}
-        </div>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Folder className="h-5 w-5" />
+          Project Files
+        </CardTitle>
       </CardHeader>
-      <CardContent className="p-6">
-        <div className="space-y-4">
-          <div className="flex gap-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+      <CardContent className="space-y-4">
+        <div className="flex items-center gap-4">
+          <div className="flex-1">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
               <Input
                 placeholder="Search files..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
+                className="pl-9"
               />
             </div>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline">
-                  <Filter className="h-4 w-4 mr-2" />
-                  Filter
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent>
-                <DropdownMenuItem onClick={() => setFilterType('all')}>
-                  All Files
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setFilterType('image')}>
-                  Images
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setFilterType('document')}>
-                  Documents
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
           </div>
+          <div className="flex items-center gap-2">
+            <Label htmlFor="sort">Sort by:</Label>
+            <select
+              id="sort"
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as 'name' | 'date' | 'type')}
+              className="border rounded px-2 py-1"
+            >
+              <option value="date">Date</option>
+              <option value="name">Name</option>
+              <option value="type">Type</option>
+            </select>
+          </div>
+        </div>
 
-          {filteredFiles.length === 0 ? (
+        <div className="grid gap-2">
+          {sortedFiles.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
-              <Upload className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+              <Folder className="h-12 w-12 mx-auto mb-4 text-gray-400" />
               <p>No files found.</p>
             </div>
           ) : (
-            <div className="space-y-2">
-              {filteredFiles.map((file) => (
-                <div key={file.id} className="flex items-center justify-between p-4 border rounded-lg">
-                  <div className="flex items-center gap-4">
-                    <div>
-                      <h4 className="font-medium">{file.filename}</h4>
-                      <p className="text-sm text-gray-500">
-                        {formatFileSize(file.fileSize)} • Uploaded {new Date(file.uploadedAt).toLocaleDateString()}
-                      </p>
-                    </div>
-                  </div>
+            sortedFiles.map((file) => (
+              <div
+                key={file.id}
+                className="flex items-center gap-3 p-3 border rounded-lg hover:bg-gray-50"
+              >
+                <div className="flex-shrink-0">
+                  {getFileIcon(file.type)}
+                </div>
+                <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <Badge variant="outline">{file.fileType}</Badge>
-                    <Button variant="ghost" size="sm" onClick={() => window.open(file.url, '_blank')}>
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="sm" onClick={() => window.open(file.url, '_blank')}>
-                      <Download className="h-4 w-4" />
-                    </Button>
-                    {canDelete && (
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent>
-                          <DropdownMenuItem onClick={() => handleFileDelete(file.id)}>
-                            <Trash2 className="h-4 w-4 mr-2" />
-                            Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                    <p className="text-sm font-medium truncate">{file.name}</p>
+                    {file.isStarred && (
+                      <Star className="h-4 w-4 text-yellow-500 fill-current" />
                     )}
+                    <Badge variant="outline" className="text-xs">
+                      v{file.version}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center gap-4 text-xs text-gray-500">
+                    <span>{formatFileSize(file.size)}</span>
+                    <span>Uploaded by {file.uploadedBy}</span>
+                    <span>{new Date(file.uploadedAt).toLocaleDateString()}</span>
+                  </div>
+                  <div className="flex gap-1 mt-1">
+                    {file.tags.map((tag) => (
+                      <Badge key={tag} variant="secondary" className="text-xs">
+                        {tag}
+                      </Badge>
+                    ))}
                   </div>
                 </div>
-              ))}
-            </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => onStarFile(file.id)}
+                  >
+                    <Star className={`h-4 w-4 ${file.isStarred ? 'text-yellow-500 fill-current' : ''}`} />
+                  </Button>
+                  <Button variant="ghost" size="sm">
+                    <Download className="h-4 w-4" />
+                  </Button>
+                  <Button variant="ghost" size="sm">
+                    <Share2 className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => onDeleteFile(file.id)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                  <Button variant="ghost" size="sm">
+                    <MoreHorizontal className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            ))
           )}
         </div>
       </CardContent>

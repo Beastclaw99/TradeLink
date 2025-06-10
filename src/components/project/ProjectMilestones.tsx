@@ -16,7 +16,7 @@ import {
   Plus,
   Target
 } from 'lucide-react';
-import { isPast, isToday, isFuture, differenceInDays } from 'date-fns';
+import { isPast, isToday, differenceInDays } from 'date-fns';
 import { Milestone } from './creation/types';
 import MilestoneStatusUpdate from './MilestoneStatusUpdate';
 import DeliverableSubmission from './DeliverableSubmission';
@@ -29,9 +29,6 @@ interface ProjectMilestonesProps {
   milestones: Milestone[];
   isClient: boolean;
   onAddMilestone: (milestone: Omit<Milestone, 'id'>) => Promise<void>;
-  onEditMilestone: (milestoneId: string, milestone: Partial<Milestone>) => Promise<void>;
-  onDeleteMilestone: (milestoneId: string) => Promise<void>;
-  onUpdateTaskStatus: (milestoneId: string, taskId: string, completed: boolean) => Promise<void>;
   projectId: string;
   projectStatus: ProjectStatus;
 }
@@ -40,9 +37,6 @@ const ProjectMilestones: React.FC<ProjectMilestonesProps> = ({
   milestones,
   isClient,
   onAddMilestone,
-  onEditMilestone,
-  onDeleteMilestone,
-  onUpdateTaskStatus,
   projectId,
   projectStatus
 }) => {
@@ -160,7 +154,7 @@ const ProjectMilestones: React.FC<ProjectMilestonesProps> = ({
     );
   };
 
-  const handleStatusUpdate = (newStatus: Milestone['status']) => {
+  const handleStatusUpdate = (_newStatus: string) => {
     // Implementation for status update
   };
 
@@ -368,6 +362,7 @@ const ProjectMilestones: React.FC<ProjectMilestonesProps> = ({
                       <MilestoneTasks
                         milestoneId={milestone.id!}
                         projectId={projectId}
+                        projectTitle={milestone.title}
                         milestoneTitle={milestone.title}
                         clientId={milestone.created_by || ''}
                         professionalId={milestone.created_by || ''}

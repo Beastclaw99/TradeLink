@@ -352,7 +352,7 @@ const ActiveProjectsTab: React.FC<ActiveProjectsTabProps> = ({
                       milestones={(selectedProject.milestones || []).map(m => ({
                         id: m.id,
                         title: m.title,
-                        description: m.description || undefined,
+                        description: m.description || '',
                         dueDate: m.due_date || '',
                         status: (m.status as any) || 'not_started',
                         deliverables: [],

@@ -1,9 +1,9 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { useToast } from '@/components/ui/use-toast';
 import { Star } from 'lucide-react';
 
 interface ReviewFormProps {
@@ -17,10 +17,9 @@ const ReviewForm: React.FC<ReviewFormProps> = ({
   recipientId,
   onSubmitReview
 }) => {
-  const { toast } = useToast();
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSubmitting] = useState(false);
 
   
   return (

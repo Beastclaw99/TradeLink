@@ -44,7 +44,10 @@ const StatusHistory: React.FC<StatusHistoryProps> = ({ projectId }) => {
         ...item,
         message: item.message || undefined,
         file_url: item.file_url || undefined,
-        file_name: item.file_name || undefined
+        file_name: item.file_name || undefined,
+        project_id: item.project_id || '',
+        professional_id: item.professional_id || '',
+        created_at: item.created_at || new Date().toISOString()
       }));
     }
   });

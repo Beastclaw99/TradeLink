@@ -1,98 +1,109 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { useToast } from '@/components/ui/use-toast';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
-  Plus,
-  Mail,
-  Phone,
-  User,
-  Crown,
-  Shield,
-  MoreHorizontal
-} from 'lucide-react';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import { User } from 'lucide-react';
 
-interface ProjectTeamProps {
-  projectId: string;
-  members: any[];
-  currentUser: any;
-  onAddMember: (member: any) => Promise<void>;
-  onRemoveMember: (memberId: string) => Promise<void>;
-  onUpdateRole: (memberId: string, role: string) => Promise<void>;
-  canManageTeam: boolean;
+interface ProjectMember {
+  id: string;
+  name: string;
+  email: string;
+  role: 'owner' | 'admin' | 'member' | 'viewer';
+  avatar?: string;
+  joinedAt: string;
+  lastActive: string;
 }
 
-const ProjectTeam: React.FC<ProjectTeamProps> = ({
-  projectId,
+interface ProjectMembersProps {
+  members: ProjectMember[];
+  canManageMembers: boolean;
+  onAddMember: (email: string, role: string) => void;
+}
+
+const ProjectMembers: React.FC<ProjectMembersProps> = ({
   members,
-  currentUser,
-  onAddMember,
-  onRemoveMember,
-  onUpdateRole,
-  canManageTeam
+  canManageMembers,
+  onAddMember
 }) => {
-  const { toast } = useToast();
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [newMemberEmail, setNewMemberEmail] = useState('');
+  const [newMemberRole, setNewMemberRole] = useState<string>('member');
 
-  const handleAddMember = async () => {
-    if (!newMemberEmail.trim()) return;
-
-    try {
-      await onAddMember({ email: newMemberEmail.trim() });
-      setNewMemberEmail('');
-      setShowAddDialog(false);
-      toast({
-        title: "Success",
-        description: "Member added successfully."
-      });
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to add member. Please try again.",
-        variant: "destructive"
-      });
+  const getRoleColor = (role: string) => {
+    switch (role) {
+      case 'owner':
+        return 'bg-purple-100 text-purple-800';
+      case 'admin':
+        return 'bg-blue-100 text-blue-800';
+      case 'member':
+        return 'bg-green-100 text-green-800';
+      case 'viewer':
+        return 'bg-gray-100 text-gray-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
     }
   };
-  
+
+  const handleAddMember = () => {
+    if (newMemberEmail.trim()) {
+      onAddMember(newMemberEmail, newMemberRole);
+      setNewMemberEmail('');
+      setNewMemberRole('member');
+      setShowAddDialog(false);
+    }
+  };
+
   return (
     <Card>
-      <CardHeader className="border-b">
-        <div className="flex justify-between items-center">
+      <CardHeader>
+        <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2">
-            <Users className="h-5 w-5" />
-            Team Members
+            <User className="h-5 w-5" />
+            Project Members
           </CardTitle>
-          {canManageTeam && (
+          {canManageMembers && (
             <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
               <DialogTrigger asChild>
-                <Button>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Member
-                </Button>
+                <Button>Add Member</Button>
               </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
-                  <DialogTitle>Add New Member</DialogTitle>
+                  <DialogTitle>Add Project Member</DialogTitle>
                 </DialogHeader>
-                <div className="space-y-4 py-4">
-                  <div>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email Address</Label>
                     <Input
+                      id="email"
                       type="email"
-                      placeholder="Enter member email"
                       value={newMemberEmail}
                       onChange={(e) => setNewMemberEmail(e.target.value)}
+                      placeholder="Enter email address"
                     />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="role">Role</Label>
+                    <select
+                      id="role"
+                      value={newMemberRole}
+                      onChange={(e) => setNewMemberRole(e.target.value)}
+                      className="w-full border rounded px-3 py-2"
+                    >
+                      <option value="viewer">Viewer</option>
+                      <option value="member">Member</option>
+                      <option value="admin">Admin</option>
+                    </select>
                   </div>
                   <div className="flex justify-end gap-2">
                     <Button
@@ -101,12 +112,7 @@ const ProjectTeam: React.FC<ProjectTeamProps> = ({
                     >
                       Cancel
                     </Button>
-                    <Button
-                      onClick={handleAddMember}
-                      disabled={!newMemberEmail.trim()}
-                    >
-                      Add Member
-                    </Button>
+                    <Button onClick={handleAddMember}>Add Member</Button>
                   </div>
                 </div>
               </DialogContent>
@@ -114,35 +120,39 @@ const ProjectTeam: React.FC<ProjectTeamProps> = ({
           )}
         </div>
       </CardHeader>
-      <CardContent className="p-6">
+      <CardContent>
         <div className="space-y-4">
           {members.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
-              <Users className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-              <p>No team members yet.</p>
+              <User className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+              <p>No team members found.</p>
             </div>
           ) : (
-            <div className="space-y-4">
-              {members.map((member) => (
-                <div key={member.id} className="flex items-center justify-between p-4 border rounded-lg">
-                  <div className="flex items-center gap-4">
-                    <Avatar>
-                      <AvatarImage src={member.avatar} />
-                      <AvatarFallback>
-                        <User className="h-4 w-4" />
-                      </AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <h4 className="font-medium">{member.name}</h4>
-                      <p className="text-sm text-gray-500">{member.email}</p>
-                    </div>
-                  </div>
+            members.map((member) => (
+              <div
+                key={member.id}
+                className="flex items-center gap-3 p-3 border rounded-lg"
+              >
+                <Avatar>
+                  <AvatarImage src={member.avatar} alt={member.name} />
+                  <AvatarFallback>
+                    {member.name.split(' ').map(n => n[0]).join('')}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1">
                   <div className="flex items-center gap-2">
-                    <Badge variant="outline">{member.role}</Badge>
+                    <p className="font-medium">{member.name}</p>
+                    <Badge className={getRoleColor(member.role)}>
+                      {member.role}
+                    </Badge>
                   </div>
+                  <p className="text-sm text-gray-600">{member.email}</p>
+                  <p className="text-xs text-gray-500">
+                    Joined {new Date(member.joinedAt).toLocaleDateString()}
+                  </p>
                 </div>
-              ))}
-            </div>
+              </div>
+            ))
           )}
         </div>
       </CardContent>
@@ -150,4 +160,4 @@ const ProjectTeam: React.FC<ProjectTeamProps> = ({
   );
 };
 
-export default ProjectTeam;
+export default ProjectMembers;

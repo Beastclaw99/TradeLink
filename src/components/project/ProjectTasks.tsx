@@ -1,83 +1,169 @@
-import React, { useState, useEffect } from 'react';
+
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { useToast } from '@/components/ui/use-toast';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
-  Plus,
-  Calendar,
-  Clock,
-  User,
   CheckCircle2,
-  Circle,
-  AlertTriangle
 } from 'lucide-react';
 
+interface ProjectTask {
+  id: string;
+  title: string;
+  description?: string;
+  status: 'todo' | 'in_progress' | 'completed';
+  priority: 'low' | 'medium' | 'high';
+  assignee?: {
+    id: string;
+    name: string;
+    avatar?: string;
+  };
+  dueDate?: string;
+  tags: string[];
+  completed: boolean;
+}
+
 interface ProjectTasksProps {
-  projectId: string;
-  tasks: any[];
-  onCreateTask: (task: any) => Promise<void>;
-  onUpdateTask: (taskId: string, updates: any) => Promise<void>;
-  onDeleteTask: (taskId: string) => Promise<void>;
-  canEdit: boolean;
+  tasks: ProjectTask[];
 }
 
 const ProjectTasks: React.FC<ProjectTasksProps> = ({
-  projectId,
-  tasks,
-  onCreateTask,
-  onUpdateTask,
-  onDeleteTask,
-  canEdit
+  tasks
 }) => {
-  const { toast } = useToast();
-  const [filterStatus, setFilterStatus] = useState('all');
-  const [sortBy] = useState('due_date');
-  const [searchTerm, setSearchTerm] = useState('');
-  
+  const [sortBy] = useState<'status' | 'priority' | 'dueDate'>('status');
+
+  const getPriorityColor = (priority: ProjectTask['priority']) => {
+    switch (priority) {
+      case 'high':
+        return 'bg-red-100 text-red-800';
+      case 'medium':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'low':
+        return 'bg-green-100 text-green-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getStatusColor = (status: ProjectTask['status']) => {
+    switch (status) {
+      case 'completed':
+        return 'bg-green-100 text-green-800';
+      case 'in_progress':
+        return 'bg-blue-100 text-blue-800';
+      case 'todo':
+        return 'bg-gray-100 text-gray-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const sortedTasks = [...tasks].sort((a, b) => {
+    switch (sortBy) {
+      case 'priority':
+        const priorityOrder = { high: 3, medium: 2, low: 1 };
+        return priorityOrder[b.priority] - priorityOrder[a.priority];
+      case 'dueDate':
+        if (!a.dueDate && !b.dueDate) return 0;
+        if (!a.dueDate) return 1;
+        if (!b.dueDate) return -1;
+        return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+      case 'status':
+      default:
+        const statusOrder = { todo: 1, in_progress: 2, completed: 3 };
+        return statusOrder[a.status] - statusOrder[b.status];
+    }
+  });
+
   return (
     <Card>
-      <CardHeader className="border-b">
-        <CardTitle>Project Tasks</CardTitle>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <CheckCircle2 className="h-5 w-5" />
+          Tasks ({tasks.length})
+        </CardTitle>
       </CardHeader>
-      <CardContent className="p-6">
-        <div className="space-y-4">
-          <div className="flex gap-4">
-            <Input
-              placeholder="Search tasks..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="flex-1"
-            />
+      <CardContent>
+        {sortedTasks.length === 0 ? (
+          <div className="text-center py-8 text-gray-500">
+            <CheckCircle2 className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+            <p>No tasks found.</p>
           </div>
-          
-          {tasks.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
-              <CheckCircle2 className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-              <p>No tasks found.</p>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {tasks.map((task) => (
-                <div key={task.id} className="flex items-center gap-4 p-4 border rounded-lg">
+        ) : (
+          <div className="space-y-3">
+            {sortedTasks.map((task) => (
+              <div
+                key={task.id}
+                className={`p-4 border rounded-lg ${
+                  task.completed ? 'bg-gray-50 opacity-75' : 'bg-white'
+                }`}
+              >
+                <div className="flex items-start gap-3">
                   <Checkbox
                     checked={task.completed}
-                    onCheckedChange={(checked) => onUpdateTask(task.id, { completed: checked })}
+                    className="mt-1"
                   />
-                  <div className="flex-1">
-                    <h4 className="font-medium">{task.title}</h4>
-                    <p className="text-sm text-gray-500">{task.description}</p>
+                  <div className="flex-1 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <h4
+                        className={`font-medium ${
+                          task.completed ? 'line-through text-gray-500' : ''
+                        }`}
+                      >
+                        {task.title}
+                      </h4>
+                      <div className="flex items-center gap-2">
+                        <Badge className={getPriorityColor(task.priority)}>
+                          {task.priority}
+                        </Badge>
+                        <Badge className={getStatusColor(task.status)}>
+                          {task.status.replace('_', ' ')}
+                        </Badge>
+                      </div>
+                    </div>
+                    
+                    {task.description && (
+                      <p className="text-sm text-gray-600">{task.description}</p>
+                    )}
+                    
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-4">
+                        {task.assignee && (
+                          <div className="flex items-center gap-2">
+                            <Avatar className="h-6 w-6">
+                              <AvatarImage src={task.assignee.avatar} />
+                              <AvatarFallback className="text-xs">
+                                {task.assignee.name.split(' ').map(n => n[0]).join('')}
+                              </AvatarFallback>
+                            </Avatar>
+                            <span className="text-sm text-gray-600">
+                              {task.assignee.name}
+                            </span>
+                          </div>
+                        )}
+                        
+                        {task.dueDate && (
+                          <div className="text-sm text-gray-500">
+                            Due: {new Date(task.dueDate).toLocaleDateString()}
+                          </div>
+                        )}
+                      </div>
+                      
+                      <div className="flex gap-1">
+                        {task.tags.map((tag) => (
+                          <Badge key={tag} variant="outline" className="text-xs">
+                            {tag}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
                   </div>
-                  <Badge variant="outline">{task.status}</Badge>
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
+              </div>
+            ))}
+          </div>
+        )}
       </CardContent>
     </Card>
   );
