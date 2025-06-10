@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Progress } from '@/components/ui/progress';
 import { ProfileData } from '@/components/profile/types';
+import { Switch } from '@/components/ui/switch';
 
 interface OnboardingStep {
   title: string;
@@ -17,7 +18,7 @@ interface OnboardingStep {
   fields: {
     name: string;
     label: string;
-    type: 'text' | 'textarea' | 'number' | 'tel' | 'email' | 'file';
+    type: 'text' | 'textarea' | 'number' | 'tel' | 'email' | 'file' | 'boolean';
     required: boolean;
     multiple?: boolean;
   }[];
@@ -45,8 +46,8 @@ const clientSteps: OnboardingStep[] = [
 
 const professionalSteps: OnboardingStep[] = [
   {
-    title: "Personal Information",
-    description: "Let's start with your basic information",
+    title: "Welcome to TradeLink",
+    description: "Let's set up your professional profile to start connecting with clients",
     fields: [
       { name: 'first_name', label: 'First Name', type: 'text', required: true },
       { name: 'last_name', label: 'Last Name', type: 'text', required: true },
@@ -56,16 +57,16 @@ const professionalSteps: OnboardingStep[] = [
   },
   {
     title: "Professional Details",
-    description: "Tell us about your professional background",
+    description: "Tell us about your professional background and experience",
     fields: [
-      { name: 'bio', label: 'Bio', type: 'textarea', required: true },
+      { name: 'bio', label: 'Professional Bio', type: 'textarea', required: true },
       { name: 'years_experience', label: 'Years of Experience', type: 'number', required: true },
       { name: 'hourly_rate', label: 'Hourly Rate (TTD)', type: 'number', required: true },
     ]
   },
   {
-    title: "Skills & Certifications",
-    description: "What are your areas of expertise and qualifications?",
+    title: "Skills & Expertise",
+    description: "What are your areas of expertise? This helps clients find you",
     fields: [
       { name: 'skills', label: 'Skills (comma-separated)', type: 'text', required: true },
       { name: 'certifications', label: 'Certifications (comma-separated)', type: 'text', required: false },
@@ -77,6 +78,16 @@ const professionalSteps: OnboardingStep[] = [
     fields: [
       { name: 'portfolio_images', label: 'Portfolio Images', type: 'file', required: false, multiple: true },
     ]
+  },
+  {
+    title: "Profile Visibility",
+    description: "Control how clients can find and contact you",
+    fields: [
+      { name: 'profile_visibility', label: 'Make Profile Public', type: 'boolean', required: true },
+      { name: 'show_email', label: 'Show Email to Clients', type: 'boolean', required: true },
+      { name: 'show_phone', label: 'Show Phone to Clients', type: 'boolean', required: true },
+      { name: 'allow_messages', label: 'Allow Direct Messages', type: 'boolean', required: true },
+    ]
   }
 ];
 
@@ -87,6 +98,7 @@ const OnboardingFlow: React.FC = () => {
   const [currentStep, setCurrentStep] = useState(0);
   const [formData, setFormData] = useState<Record<string, any>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
 
   if (!user) {
     navigate('/login');
@@ -96,16 +108,47 @@ const OnboardingFlow: React.FC = () => {
   const steps = user.user_metadata?.account_type === 'professional' ? professionalSteps : clientSteps;
   const progress = ((currentStep + 1) / steps.length) * 100;
 
-  const handleInputChange = (name: string, value: string) => {
+  const validateStep = (stepIndex: number): boolean => {
+    const currentStepData = steps[stepIndex];
+    const errors: Record<string, string> = {};
+
+    currentStepData.fields.forEach(field => {
+      if (field.required) {
+        const value = formData[field.name];
+        if (!value) {
+          errors[field.name] = `${field.label} is required`;
+        } else if (field.type === 'number' && isNaN(Number(value))) {
+          errors[field.name] = `${field.label} must be a number`;
+        } else if (field.type === 'tel' && !/^\+?[\d\s-]{10,}$/.test(value)) {
+          errors[field.name] = 'Please enter a valid phone number';
+        }
+      }
+    });
+
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const handleInputChange = (name: string, value: string | boolean) => {
     setFormData(prev => ({
       ...prev,
       [name]: value
     }));
+    // Clear validation error when user starts typing
+    if (validationErrors[name]) {
+      setValidationErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[name];
+        return newErrors;
+      });
+    }
   };
 
   const handleNext = () => {
-    if (currentStep < steps.length - 1) {
-      setCurrentStep(prev => prev + 1);
+    if (validateStep(currentStep)) {
+      if (currentStep < steps.length - 1) {
+        setCurrentStep(prev => prev + 1);
+      }
     }
   };
 
@@ -116,7 +159,7 @@ const OnboardingFlow: React.FC = () => {
   };
 
   const handleSubmit = async () => {
-    if (!user) return;
+    if (!user || !validateStep(currentStep)) return;
 
     setIsSubmitting(true);
     try {
@@ -138,7 +181,7 @@ const OnboardingFlow: React.FC = () => {
 
       toast({
         title: "Profile Setup Complete",
-        description: "Your profile has been set up successfully!",
+        description: "Your profile has been set up successfully! You can now start connecting with clients.",
       });
 
       navigate('/dashboard');
@@ -162,7 +205,12 @@ const OnboardingFlow: React.FC = () => {
         <CardHeader>
           <CardTitle>{currentStepData.title}</CardTitle>
           <CardDescription>{currentStepData.description}</CardDescription>
-          <Progress value={progress} className="mt-4" />
+          <div className="mt-4">
+            <Progress value={progress} className="h-2" />
+            <p className="text-sm text-gray-500 mt-2">
+              Step {currentStep + 1} of {steps.length}
+            </p>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
@@ -178,7 +226,19 @@ const OnboardingFlow: React.FC = () => {
                     value={formData[field.name] || ''}
                     onChange={(e) => handleInputChange(field.name, e.target.value)}
                     required={field.required}
+                    className={validationErrors[field.name] ? 'border-red-500' : ''}
                   />
+                ) : field.type === 'boolean' ? (
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      id={field.name}
+                      checked={formData[field.name] ?? true}
+                      onCheckedChange={(checked) => handleInputChange(field.name, checked)}
+                    />
+                    <Label htmlFor={field.name} className="cursor-pointer">
+                      {field.label}
+                    </Label>
+                  </div>
                 ) : (
                   <Input
                     id={field.name}
@@ -186,13 +246,17 @@ const OnboardingFlow: React.FC = () => {
                     value={formData[field.name] || ''}
                     onChange={(e) => handleInputChange(field.name, e.target.value)}
                     required={field.required}
+                    className={validationErrors[field.name] ? 'border-red-500' : ''}
                   />
+                )}
+                {validationErrors[field.name] && (
+                  <p className="text-sm text-red-500">{validationErrors[field.name]}</p>
                 )}
               </div>
             ))}
           </div>
 
-          <div className="flex justify-between mt-8">
+          <div className="flex justify-between mt-6">
             <Button
               variant="outline"
               onClick={handleBack}
