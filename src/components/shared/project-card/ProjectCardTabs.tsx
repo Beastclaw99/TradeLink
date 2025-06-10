@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ClockIcon, TagIcon, DocumentIcon, EyeIcon } from '@heroicons/react/24/outline';
@@ -7,6 +6,7 @@ import { Milestone } from '@/components/project/creation/types';
 import ProjectUpdateTimeline from '../../project/ProjectUpdateTimeline';
 import ProjectMilestones from '../../project/ProjectMilestones';
 import ProjectDeliverables from '../../project/ProjectDeliverables';
+import { ProjectStatus } from '@/types/projectUpdates';
 
 interface ProjectCardTabsProps {
   project: Project;
@@ -31,6 +31,23 @@ export const ProjectCardTabs: React.FC<ProjectCardTabsProps> = ({
   onMilestoneDelete,
   onTaskStatusUpdate
 }) => {
+  const getValidProjectStatus = (status: string | null): ProjectStatus => {
+    if (!status) return 'open';
+    const validStatuses: ProjectStatus[] = [
+      'open',
+      'assigned',
+      'in_progress',
+      'work_submitted',
+      'work_revision_requested',
+      'work_approved',
+      'completed',
+      'archived',
+      'cancelled',
+      'disputed'
+    ];
+    return validStatuses.includes(status as ProjectStatus) ? status as ProjectStatus : 'open';
+  };
+
   return (
     <div className="mt-6 border-t pt-6">
       <Tabs 
@@ -60,7 +77,7 @@ export const ProjectCardTabs: React.FC<ProjectCardTabsProps> = ({
         <TabsContent value="timeline" className="mt-4">
           <ProjectUpdateTimeline 
             projectId={project.id} 
-            projectStatus={project.status || ''}
+            projectStatus={getValidProjectStatus(project.status)}
             isProfessional={isProfessional}
           />
         </TabsContent>
@@ -68,7 +85,7 @@ export const ProjectCardTabs: React.FC<ProjectCardTabsProps> = ({
         <TabsContent value="milestones" className="mt-4">
           <ProjectMilestones 
             projectId={project.id}
-            projectStatus={project.status || 'open'}
+            projectStatus={getValidProjectStatus(project.status)}
             milestones={milestones}
             isClient={isClient}
             onAddMilestone={async () => {}}
