@@ -1,4 +1,4 @@
-import { Project, Application, Payment, Review, Professional } from '@/components/dashboard/types';
+import { Project, Application, Payment, Review, Professional, Client } from '@/components/dashboard/types';
 
 export const transformProjects = (data: any[]): Project[] => {
   return (data || []).map(project => ({
@@ -145,4 +145,29 @@ export const transformProfessionals = (data: any[]): Professional[] => {
     created_at: prof.created_at,
     updated_at: prof.updated_at
   }));
+};
+
+export const transformClient = (data: any): Client => {
+  if (!data) {
+    throw new Error('No client data provided');
+  }
+
+  return {
+    id: data.id,
+    first_name: data.first_name || null,
+    last_name: data.last_name || null,
+    account_type: 'client',
+    bio: data.bio || null,
+    location: data.location || null,
+    phone: data.phone || null,
+    email: data.email || null,
+    profile_visibility: data.profile_visibility || null,
+    show_email: data.show_email || null,
+    show_phone: data.show_phone || null,
+    allow_messages: data.allow_messages || null,
+    profile_image: data.profile_image || null,
+    verification_status: data.verification_status || 'unverified',
+    created_at: data.created_at,
+    updated_at: data.updated_at || null
+  };
 };

@@ -28,6 +28,7 @@ import ProjectDeliverables from "@/components/project/ProjectDeliverables";
 import { ProgressIndicator } from "@/components/ui/progress-indicator";
 import ProjectProgressOverview from '@/components/project/ProjectProgressOverview';
 import { ProjectStatus } from '@/types/projectUpdates';
+import { useToast } from "@/components/ui/use-toast";
 
 interface ProjectsTabProps {
   isLoading: boolean;
@@ -78,6 +79,7 @@ const ProjectsTab: React.FC<ProjectsTabProps> = ({
   handleDeleteMilestone,
   fetchProjectDetails,
 }) => {
+  const { toast } = useToast();
   const [expandedProjects, setExpandedProjects] = useState<Record<string, boolean>>({});
   const [activeTab, setActiveTab] = useState<Record<string, string>>({});
 
@@ -135,10 +137,6 @@ const ProjectsTab: React.FC<ProjectsTabProps> = ({
   const handleProjectSelect = async (projectId: string) => {
     try {
       const projectDetails = await fetchProjectDetails(projectId);
-      if (!projectDetails) {
-        console.error('No project details returned for project:', projectId);
-        return;
-      }
       
       // Ensure the project has all required fields
       const enrichedProject = {
@@ -150,9 +148,18 @@ const ProjectsTab: React.FC<ProjectsTabProps> = ({
       
       setSelectedProject(enrichedProject);
       toggleProjectExpansion(projectId);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching project details:', error);
-      // Optionally show an error toast here
+      toast({
+        title: "Error",
+        description: error.message || 'Failed to load project details',
+        variant: "destructive"
+      });
+      // Don't expand the project if there was an error
+      setExpandedProjects(prev => ({
+        ...prev,
+        [projectId]: false
+      }));
     }
   };
 

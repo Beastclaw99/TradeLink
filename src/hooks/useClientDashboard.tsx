@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
-import { Project, Application, Payment, Review } from '@/components/dashboard/types';
+import { Project, Application, Payment, Review, Client } from '@/components/dashboard/types';
 import { 
   transformProjects, 
   transformApplications, 
   transformPayments, 
-  transformReviews 
+  transformReviews,
+  transformClient
 } from './dashboard/dataTransformers';
 
 export const useClientDashboard = (userId: string) => {
@@ -16,7 +17,7 @@ export const useClientDashboard = (userId: string) => {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [profile, setProfile] = useState<any>(null);
+  const [profile, setProfile] = useState<Client | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const fetchDashboardData = async () => {
@@ -61,7 +62,7 @@ export const useClientDashboard = (userId: string) => {
       }
       
       console.log('Profile data:', userProfileData);
-      setProfile(userProfileData);
+      setProfile(transformClient(userProfileData));
       
       // Fetch client's projects
       const { data: projectsData, error: projectsError } = await supabase
@@ -198,7 +199,7 @@ export const useClientDashboard = (userId: string) => {
       setError(error.message || 'Failed to load dashboard data');
       toast({
         title: "Error",
-        description: "Failed to load dashboard data. Please try again later.",
+        description: error.message || 'Failed to load dashboard data',
         variant: "destructive"
       });
     } finally {

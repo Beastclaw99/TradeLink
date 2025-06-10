@@ -3,6 +3,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Project } from '@/components/dashboard/types';
 import { Milestone, convertDBMilestoneToMilestone, convertMilestoneToDBMilestone } from '@/components/project/creation/types';
+import { transformProjects } from './dashboard/dataTransformers';
 
 export const useProjectOperations = (userId: string, onUpdate: () => void) => {
   const { toast } = useToast();
@@ -21,7 +22,7 @@ export const useProjectOperations = (userId: string, onUpdate: () => void) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
 
-  const fetchProjectDetails = async (projectId: string) => {
+  const fetchProjectDetails = async (projectId: string): Promise<Project> => {
     try {
       const { data, error } = await supabase
         .from('projects')
@@ -61,10 +62,29 @@ export const useProjectOperations = (userId: string, onUpdate: () => void) => {
         .eq('id', projectId)
         .single();
 
-      if (error) throw error;
-      return data;
-    } catch (error) {
-      console.error('Error fetching project details:', error);
+      if (error) {
+        console.error('Error fetching project details:', error);
+        throw new Error('Failed to fetch project details');
+      }
+
+      if (!data) {
+        throw new Error('Project not found');
+      }
+
+      // Transform the project data
+      const transformedProjects = transformProjects([data]);
+      if (!transformedProjects.length) {
+        throw new Error('Failed to transform project data');
+      }
+
+      return transformedProjects[0];
+    } catch (error: any) {
+      console.error('Error in fetchProjectDetails:', error);
+      toast({
+        title: "Error",
+        description: error.message || 'Failed to fetch project details',
+        variant: "destructive"
+      });
       throw error;
     }
   };

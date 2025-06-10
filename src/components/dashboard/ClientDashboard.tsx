@@ -96,14 +96,16 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ userId, initialTab = 
     handleAddMilestone,
     handleEditMilestone,
     handleDeleteMilestone,
-    fetchProjectDetails
+    fetchProjectDetails,
+    profile
   };
   
   const applicationsTabProps = {
     isLoading,
     projects,
     applications,
-    handleApplicationUpdate
+    handleApplicationUpdate,
+    profile
   };
   
   const paymentsTabProps = {
@@ -117,7 +119,8 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ userId, initialTab = 
     handleReviewInitiate,
     handleReviewCancel,
     handleReviewSubmit,
-    setReviewData
+    setReviewData,
+    profile
   };
   
   return (
@@ -138,7 +141,7 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ userId, initialTab = 
       </TabsContent>
       
       <TabsContent value="create">
-        <CreateProjectTab />
+        <CreateProjectTab profile={profile} />
       </TabsContent>
       
       <TabsContent value="payments">
