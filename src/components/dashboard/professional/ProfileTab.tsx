@@ -1,95 +1,176 @@
-import React from 'react';
+
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { StarRating } from "@/components/ui/star-rating";
-import { Review, Project } from '../types';
+import { Edit, Save, X } from "lucide-react";
 
 interface ProfileTabProps {
   profile: any;
-  skills: string[];
-  reviews: Review[];
-  projects: Project[];
-  userId: string;
-  calculateAverageRating: () => string | number;
+  isEditing: boolean;
+  setIsEditing: (value: boolean) => void;
+  updateProfile: (data: any) => void;
+  isSubmitting: boolean;
+  calculateAverageRating: () => number;
 }
 
-const ProfileTab: React.FC<ProfileTabProps> = ({ 
-  profile, 
-  skills, 
-  reviews, 
-  projects, 
-  userId, 
-  calculateAverageRating 
+const ProfileTab: React.FC<ProfileTabProps> = ({
+  profile,
+  isEditing,
+  setIsEditing,
+  updateProfile,
+  isSubmitting,
+  calculateAverageRating
 }) => {
+  const [editedProfile, setEditedProfile] = useState({
+    first_name: profile?.first_name || '',
+    last_name: profile?.last_name || '',
+    bio: profile?.bio || '',
+    location: profile?.location || '',
+    hourly_rate: profile?.hourly_rate || '',
+  });
+
+  const handleSave = () => {
+    updateProfile(editedProfile);
+  };
+
+  const handleCancel = () => {
+    setEditedProfile({
+      first_name: profile?.first_name || '',
+      last_name: profile?.last_name || '',
+      bio: profile?.bio || '',
+      location: profile?.location || '',
+      hourly_rate: profile?.hourly_rate || '',
+    });
+    setIsEditing(false);
+  };
+
   return (
-    <>
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold">Your Profile</h2>
-        <Button 
-          onClick={() => {
-            window.location.href = '/profile';
-          }}
-          className="bg-ttc-blue-700 hover:bg-ttc-blue-800"
-        >
-          View Full Profile
-        </Button>
-      </div>
-      
-      <div className="grid gap-6 md:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Profile Information</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div>
-                <h3 className="text-sm font-medium text-gray-500">Name</h3>
-                <p>{profile?.first_name} {profile?.last_name}</p>
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle>Professional Profile</CardTitle>
+            {!isEditing ? (
+              <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
+                <Edit className="h-4 w-4 mr-2" />
+                Edit Profile
+              </Button>
+            ) : (
+              <div className="flex gap-2">
+                <Button size="sm" onClick={handleSave} disabled={isSubmitting}>
+                  <Save className="h-4 w-4 mr-2" />
+                  Save
+                </Button>
+                <Button variant="outline" size="sm" onClick={handleCancel}>
+                  <X className="h-4 w-4 mr-2" />
+                  Cancel
+                </Button>
               </div>
-              <div>
-                <h3 className="text-sm font-medium text-gray-500">Skills</h3>
-                <div className="flex flex-wrap gap-2 mt-1">
-                  {profile?.skills && profile.skills.length > 0 ? (
-                    profile.skills.map((skill: string, index: number) => (
-                      <Badge key={index} variant="secondary">{skill}</Badge>
-                    ))
-                  ) : (
-                    <p className="text-sm text-gray-500">No skills listed</p>
-                  )}
-                </div>
-              </div>
-              <div>
-                <h3 className="text-sm font-medium text-gray-500">Member Since</h3>
-                <p>{profile?.created_at ? new Date(profile.created_at).toLocaleDateString() : 'N/A'}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader>
-            <CardTitle>Rating & Reviews</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center mb-4">
-              <StarRating
-                value={Number(calculateAverageRating())}
-                onChange={() => {}}
-                className="mt-2"
-              />
-              <span className="ml-2 text-lg font-bold">{calculateAverageRating()}</span>
-              <span className="ml-2 text-gray-500">({reviews.length} reviews)</span>
-            </div>
-            
+            )}
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
             <div>
-              <h3 className="text-sm font-medium text-gray-500">Projects Completed</h3>
-              <p>{projects.filter(p => p.status === 'completed' && p.assigned_to === userId).length}</p>
+              <Label htmlFor="first_name">First Name</Label>
+              {isEditing ? (
+                <Input
+                  id="first_name"
+                  value={editedProfile.first_name}
+                  onChange={(e) => setEditedProfile({ ...editedProfile, first_name: e.target.value })}
+                />
+              ) : (
+                <p className="mt-1">{profile?.first_name || 'Not provided'}</p>
+              )}
             </div>
-          </CardContent>
-        </Card>
-      </div>
-    </>
+            <div>
+              <Label htmlFor="last_name">Last Name</Label>
+              {isEditing ? (
+                <Input
+                  id="last_name"
+                  value={editedProfile.last_name}
+                  onChange={(e) => setEditedProfile({ ...editedProfile, last_name: e.target.value })}
+                />
+              ) : (
+                <p className="mt-1">{profile?.last_name || 'Not provided'}</p>
+              )}
+            </div>
+          </div>
+
+          <div>
+            <Label htmlFor="bio">Bio</Label>
+            {isEditing ? (
+              <Textarea
+                id="bio"
+                value={editedProfile.bio}
+                onChange={(e) => setEditedProfile({ ...editedProfile, bio: e.target.value })}
+                rows={3}
+              />
+            ) : (
+              <p className="mt-1">{profile?.bio || 'No bio provided'}</p>
+            )}
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="location">Location</Label>
+              {isEditing ? (
+                <Input
+                  id="location"
+                  value={editedProfile.location}
+                  onChange={(e) => setEditedProfile({ ...editedProfile, location: e.target.value })}
+                />
+              ) : (
+                <p className="mt-1">{profile?.location || 'Not provided'}</p>
+              )}
+            </div>
+            <div>
+              <Label htmlFor="hourly_rate">Hourly Rate ($)</Label>
+              {isEditing ? (
+                <Input
+                  id="hourly_rate"
+                  type="number"
+                  value={editedProfile.hourly_rate}
+                  onChange={(e) => setEditedProfile({ ...editedProfile, hourly_rate: e.target.value })}
+                />
+              ) : (
+                <p className="mt-1">${profile?.hourly_rate || 'Not set'}</p>
+              )}
+            </div>
+          </div>
+
+          <div>
+            <Label>Skills</Label>
+            <div className="flex flex-wrap gap-2 mt-1">
+              {profile?.skills?.map((skill: string, index: number) => (
+                <Badge key={index} variant="secondary">
+                  {skill}
+                </Badge>
+              )) || <p className="text-muted-foreground">No skills listed</p>}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-3 gap-4">
+            <div>
+              <Label>Rating</Label>
+              <p className="mt-1">{calculateAverageRating().toFixed(1)} ⭐</p>
+            </div>
+            <div>
+              <Label>Completed Projects</Label>
+              <p className="mt-1">{profile?.completed_projects || 0}</p>
+            </div>
+            <div>
+              <Label>Response Rate</Label>
+              <p className="mt-1">{profile?.response_rate || 0}%</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   );
 };
 

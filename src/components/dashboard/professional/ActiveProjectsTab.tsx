@@ -36,7 +36,7 @@ interface DatabaseMilestone {
   requires_deliverable: boolean | null;
 }
 
-interface ProjectWithMilestones extends Omit<Project, 'milestones'> {
+interface ProjectWithMilestones extends Project {
   milestones?: DatabaseMilestone[];
 }
 
@@ -85,7 +85,25 @@ const ActiveProjectsTab: React.FC<ActiveProjectsTabProps> = ({
       if (projectError) throw projectError;
 
       if (project) {
-        setSelectedProject(project as ProjectWithMilestones);
+        // Transform the data to match our interface
+        const transformedProject: ProjectWithMilestones = {
+          ...project,
+          required_skills: project.required_skills || null,
+          milestones: project.milestones?.map((m: any) => ({
+            id: m.id,
+            title: m.title,
+            description: m.description,
+            due_date: m.due_date,
+            status: m.status,
+            is_complete: m.is_complete,
+            project_id: m.project_id,
+            created_at: m.created_at,
+            updated_at: m.updated_at,
+            created_by: m.created_by,
+            requires_deliverable: m.requires_deliverable
+          })) || []
+        };
+        setSelectedProject(transformedProject);
       }
     } catch (error) {
       console.error('Error fetching project details:', error);
@@ -113,12 +131,15 @@ const ActiveProjectsTab: React.FC<ActiveProjectsTabProps> = ({
 
       if (error) throw error;
 
-      setSelectedProject(prev => prev ? {
-        ...prev,
-        milestones: prev.milestones?.map(m => 
-          m.id === milestoneId ? { ...m, ...updates } : m
-        ) || []
-      } : null);
+      setSelectedProject(prev => {
+        if (!prev) return null;
+        return {
+          ...prev,
+          milestones: prev.milestones?.map(m => 
+            m.id === milestoneId ? { ...m, ...updates } : m
+          ) || []
+        };
+      });
 
       toast({
         title: "Success",
@@ -145,10 +166,13 @@ const ActiveProjectsTab: React.FC<ActiveProjectsTabProps> = ({
 
       if (error) throw error;
 
-      setSelectedProject(prev => prev ? {
-        ...prev,
-        milestones: prev.milestones?.filter(m => m.id !== milestoneId) || []
-      } : null);
+      setSelectedProject(prev => {
+        if (!prev) return null;
+        return {
+          ...prev,
+          milestones: prev.milestones?.filter(m => m.id !== milestoneId) || []
+        };
+      });
 
       toast({
         title: "Success",
@@ -164,7 +188,7 @@ const ActiveProjectsTab: React.FC<ActiveProjectsTabProps> = ({
     }
   };
 
-  const handleTaskStatusUpdate = async (milestoneId: string, taskId: string, completed: boolean) => {
+  const handleTaskStatusUpdate = async (taskId: string, completed: boolean) => {
     try {
       const { error } = await supabase
         .from('project_tasks')
