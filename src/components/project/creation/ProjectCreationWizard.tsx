@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -178,8 +179,8 @@ const ProjectCreationWizard: React.FC = () => {
     if (!step) return null;
     const Component = step.component;
     
-    // Special handling for ReviewStep which only needs data prop
-    if (step.id === 6) {
+    // ReviewStep only needs data prop, all other steps need both data and onUpdate
+    if (currentStep === 6) {
       return <Component data={projectData} />;
     }
     
