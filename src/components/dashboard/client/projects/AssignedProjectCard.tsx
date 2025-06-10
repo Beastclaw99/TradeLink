@@ -7,12 +7,10 @@ import { Project, Application } from '../../types';
 interface AssignedProjectCardProps {
   project: Project;
   applications: Application[];
-  onViewDetails: (project: Project) => void;
 }
 
 const AssignedProjectCard: React.FC<AssignedProjectCardProps> = ({
-  project,
-  onViewDetails
+  project
 }) => {
   return (
     <Card>

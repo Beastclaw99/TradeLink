@@ -1,23 +1,18 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { 
   CheckCircle, 
   Clock, 
   DollarSign, 
-  MapPin, 
-  AlertTriangle,
+  MapPin,
   ChevronDown,
   ChevronUp,
-  Calendar,
   Target,
-  FileText,
-  MessageSquare,
-  Users
+  FileText
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
@@ -25,21 +20,33 @@ import ProjectUpdateTimeline from "@/components/project/ProjectUpdateTimeline";
 import ProjectMilestones from "@/components/project/ProjectMilestones";
 import ProjectDeliverables from "@/components/project/ProjectDeliverables";
 import { Project } from '../types';
-import { Milestone } from '@/components/project/creation/types';
+import { ProjectStatus } from '@/types/projectUpdates';
 
-interface ProjectWithMilestones extends Project {
-  milestones?: Milestone[];
+interface DatabaseMilestone {
+  id: string;
+  title: string;
+  description: string | null;
+  due_date: string | null;
+  status: string | null;
+  is_complete: boolean | null;
+  project_id: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+  created_by: string | null;
+  requires_deliverable: boolean | null;
+}
+
+interface ProjectWithMilestones extends Omit<Project, 'milestones'> {
+  milestones?: DatabaseMilestone[];
 }
 
 interface ActiveProjectsTabProps {
-  userId: string;
   projects: Project[];
   isLoading: boolean;
   markProjectComplete: (projectId: string) => void;
 }
 
 const ActiveProjectsTab: React.FC<ActiveProjectsTabProps> = ({
-  userId,
   projects: allProjects,
   isLoading,
   markProjectComplete
@@ -53,6 +60,16 @@ const ActiveProjectsTab: React.FC<ActiveProjectsTabProps> = ({
   const activeProjects = allProjects.filter(project => 
     ['assigned', 'in_progress'].includes(project.status || '')
   );
+
+  const getValidProjectStatus = (status: string | null): ProjectStatus => {
+    if (!status) return 'open';
+    const validStatuses: ProjectStatus[] = [
+      'open', 'assigned', 'in_progress', 'work_submitted', 
+      'work_revision_requested', 'work_approved', 'completed', 
+      'archived', 'cancelled', 'disputed'
+    ];
+    return validStatuses.includes(status as ProjectStatus) ? status as ProjectStatus : 'open';
+  };
 
   const fetchProjectDetails = async (projectId: string) => {
     try {
@@ -68,10 +85,7 @@ const ActiveProjectsTab: React.FC<ActiveProjectsTabProps> = ({
       if (projectError) throw projectError;
 
       if (project) {
-        setSelectedProject(prev => prev?.id === projectId ? { 
-          ...prev, 
-          milestones: project.milestones || []
-        } : project as ProjectWithMilestones);
+        setSelectedProject(project as ProjectWithMilestones);
       }
     } catch (error) {
       console.error('Error fetching project details:', error);
@@ -83,7 +97,7 @@ const ActiveProjectsTab: React.FC<ActiveProjectsTabProps> = ({
     }
   };
 
-  const handleMilestoneUpdate = async (milestoneId: string, updates: Partial<Milestone>) => {
+  const handleMilestoneUpdate = async (milestoneId: string, updates: any) => {
     if (!selectedProject) return;
 
     try {
@@ -158,18 +172,6 @@ const ActiveProjectsTab: React.FC<ActiveProjectsTabProps> = ({
         .eq('id', taskId);
 
       if (error) throw error;
-
-      setSelectedProject(prev => prev ? {
-        ...prev,
-        milestones: prev.milestones?.map(m => 
-          m.id === milestoneId ? {
-            ...m,
-            tasks: m.tasks?.map(t => 
-              t.id === taskId ? { ...t, completed } : t
-            ) || []
-          } : m
-        ) || []
-      } : null);
 
       toast({
         title: "Success",
@@ -305,7 +307,7 @@ const ActiveProjectsTab: React.FC<ActiveProjectsTabProps> = ({
                   <TabsContent value="timeline">
                     <ProjectUpdateTimeline 
                       projectId={selectedProject.id} 
-                      projectStatus={selectedProject.status || 'open'}
+                      projectStatus={getValidProjectStatus(selectedProject.status)}
                       isProfessional={true}
                     />
                   </TabsContent>
@@ -313,8 +315,16 @@ const ActiveProjectsTab: React.FC<ActiveProjectsTabProps> = ({
                   <TabsContent value="milestones">
                     <ProjectMilestones 
                       projectId={selectedProject.id}
-                      projectStatus={selectedProject.status || 'open'}
-                      milestones={selectedProject.milestones || []}
+                      projectStatus={getValidProjectStatus(selectedProject.status)}
+                      milestones={(selectedProject.milestones || []).map(m => ({
+                        id: m.id,
+                        title: m.title,
+                        description: m.description || undefined,
+                        dueDate: m.due_date || '',
+                        status: (m.status as any) || 'not_started',
+                        deliverables: [],
+                        tasks: []
+                      }))}
                       isClient={false}
                       onAddMilestone={async () => {}}
                       onEditMilestone={handleMilestoneUpdate}

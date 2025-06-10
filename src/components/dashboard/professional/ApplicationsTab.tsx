@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,15 +8,35 @@ import { supabase } from "@/integrations/supabase/client";
 import { Application } from '../types';
 
 interface ApplicationsTabProps {
+  applications: any[];
   isLoading: boolean;
-  applications: Application[];
-  userId: string;
+  selectedProject: any | null;
+  setSelectedProject: (project: any | null) => void;
+  coverLetter: string;
+  setCoverLetter: (value: string) => void;
+  bidAmount: number | null;
+  setBidAmount: (value: number | null) => void;
+  availability: string;
+  setAvailability: (value: string) => void;
+  isApplying: boolean;
+  handleApplyToProject: () => Promise<void>;
+  onCancelApplication: () => void;
 }
 
 export const ApplicationsTab: React.FC<ApplicationsTabProps> = ({
-  isLoading,
   applications,
-  userId
+  isLoading,
+  selectedProject,
+  setSelectedProject,
+  coverLetter,
+  setCoverLetter,
+  bidAmount,
+  setBidAmount,
+  availability,
+  setAvailability,
+  isApplying,
+  handleApplyToProject,
+  onCancelApplication
 }) => {
   const [selectedApplication, setSelectedApplication] = useState<Application | null>(null);
   const [isWithdrawDialogOpen, setIsWithdrawDialogOpen] = useState(false);

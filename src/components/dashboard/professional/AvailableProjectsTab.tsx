@@ -14,14 +14,9 @@ interface AvailableProjectsTabProps {
   setBidAmount: (amount: number) => void;
 }
 
-export const AvailableProjectsTab: React.FC<AvailableProjectsTabProps> = ({
-  isLoading,
-  projects,
-  applications,
-  skills,
-  setSelectedProject,
-  setBidAmount
-}) => {
+const AvailableProjectsTab: React.FC<any> = (props) => {
+  const { isLoading, projects, applications, skills, setSelectedProject, setBidAmount } = props;
+
   const filteredProjects = projects.filter(project => {
     // Filter out projects that are not open
     if (project.status !== 'open') return false;
@@ -122,3 +117,5 @@ export const AvailableProjectsTab: React.FC<AvailableProjectsTabProps> = ({
     </div>
   );
 };
+
+export default AvailableProjectsTab;

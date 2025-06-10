@@ -1,6 +1,5 @@
 
 import React, { useState } from 'react';
-import { Project } from '../types';
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AlertTriangle } from "lucide-react";
@@ -12,11 +11,12 @@ import ProjectProgressOverview from '@/components/project/ProjectProgressOvervie
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { ProjectStatus } from '@/types/projectUpdates';
 
 interface Milestone {
   id: string;
   title: string;
-  description: string;
+  description?: string;
   dueDate: string;
   status: 'not_started' | 'in_progress' | 'completed' | 'on_hold';
   deliverables: any[];
@@ -25,9 +25,9 @@ interface Milestone {
 
 interface ProjectsTabProps {
   isLoading: boolean;
-  projects: Project[];
+  projects: any[];
   applications: any[];
-  editProject: Project | null;
+  editProject: any | null;
   projectToDelete: string | null;
   editedProject: {
     title: string;
@@ -36,20 +36,20 @@ interface ProjectsTabProps {
   };
   isSubmitting: boolean;
   setEditedProject: (project: { title: string; description: string; budget: string }) => void;
-  handleEditInitiate: (project: Project) => void;
+  handleEditInitiate: (project: any) => void;
   handleEditCancel: () => void;
-  handleUpdateProject: (project: Project) => void;
+  handleUpdateProject: (project: any) => void;
   handleDeleteInitiate: (projectId: string) => void;
   handleDeleteCancel: () => void;
   handleDeleteProject: (projectId: string) => void;
-  selectedProject: Project | null;
-  setSelectedProject: (project: Project | null) => void;
+  selectedProject: any | null;
+  setSelectedProject: (project: any | null) => void;
   handleAddMilestone: (projectId: string, milestone: Omit<Milestone, 'id'>) => Promise<void>;
   handleEditMilestone: (projectId: string, milestoneId: string, updates: Partial<Milestone>) => Promise<void>;
   handleDeleteMilestone: (projectId: string, milestoneId: string) => Promise<void>;
   fetchProjectDetails: (projectId: string) => Promise<any>;
   error: string | null;
-  onEditProject: (project: Project) => void;
+  onEditProject: (project: any) => void;
   onDeleteProject: (projectId: string) => void;
 }
 
@@ -62,6 +62,16 @@ const getStatusVariant = (status: string) => {
     case 'cancelled': return 'destructive';
     default: return 'default';
   }
+};
+
+const getValidProjectStatus = (status: string | null): ProjectStatus => {
+  if (!status) return 'open';
+  const validStatuses: ProjectStatus[] = [
+    'open', 'assigned', 'in_progress', 'work_submitted', 
+    'work_revision_requested', 'work_approved', 'completed', 
+    'archived', 'cancelled', 'disputed'
+  ];
+  return validStatuses.includes(status as ProjectStatus) ? status as ProjectStatus : 'open';
 };
 
 export const ProjectsTab: React.FC<ProjectsTabProps> = ({
@@ -115,7 +125,7 @@ export const ProjectsTab: React.FC<ProjectsTabProps> = ({
         </Alert>
       )}
       {(!projects || projects.length === 0) ? (
-        <EmptyProjectState />
+        <EmptyProjectState message="No projects found" />
       ) : (
         projects.map((project) => {
           const isExpanded = expandedProjectId === project.id;
@@ -160,17 +170,20 @@ export const ProjectsTab: React.FC<ProjectsTabProps> = ({
                     <TabsContent value="timeline">
                       <ProjectUpdateTimeline 
                         projectId={selectedProject.id} 
-                        projectStatus={selectedProject.status || 'open'}
+                        projectStatus={getValidProjectStatus(selectedProject.status)}
                         isProfessional={false}
                       />
                     </TabsContent>
                     <TabsContent value="milestones">
                       <ProjectMilestones 
                         projectId={selectedProject.id}
-                        projectStatus={selectedProject.status || 'open'}
-                        milestones={(selectedProject.milestones || []).map(m => ({
+                        projectStatus={getValidProjectStatus(selectedProject.status)}
+                        milestones={(selectedProject.milestones || []).map((m: any) => ({
                           ...m,
-                          deliverables: []
+                          description: m.description || undefined,
+                          dueDate: m.due_date || '',
+                          deliverables: [],
+                          tasks: m.tasks || []
                         }))}
                         isClient={true}
                         onAddMilestone={async () => {}}
