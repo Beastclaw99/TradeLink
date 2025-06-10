@@ -129,8 +129,6 @@ const OnboardingFlow: React.FC = () => {
           errors[field.name] = `${field.label} is required`;
         } else if (field.type === 'number' && isNaN(Number(value))) {
           errors[field.name] = `${field.label} must be a number`;
-        } else if (field.type === 'tel' && !/^\+?[\d\s-]{10,}$/.test(value)) {
-          errors[field.name] = 'Please enter a valid phone number';
         }
       }
     });
