@@ -15,7 +15,8 @@ import { ProgressIndicator } from "@/components/ui/progress-indicator";
 import { CalendarIcon, ChatBubbleLeftIcon } from '@heroicons/react/24/outline';
 import { Project } from '@/components/dashboard/types';
 import { ProjectStatusBadge } from './ProjectStatusBadge';
-import { formatCurrency, formatDate, getStatusIcon, getProjectSteps, getProjectProgress } from './utils';
+import { StatusIcon } from './StatusIcon';
+import { formatCurrency, formatDate, getProjectSteps, getProjectProgress } from './utils';
 
 interface ProjectCardDetailsProps {
   project: Project;
@@ -48,7 +49,7 @@ export const ProjectCardDetails: React.FC<ProjectCardDetailsProps> = ({
             <div className="flex items-center gap-3 mb-2">
               <CardTitle className="text-xl">{project.title}</CardTitle>
               <div className="flex items-center gap-2">
-                {getStatusIcon(project.status)}
+                <StatusIcon status={project.status} />
                 <ProjectStatusBadge status={project.status} />
                 {project.urgency && (
                   <Badge className="bg-yellow-100 text-yellow-800">
