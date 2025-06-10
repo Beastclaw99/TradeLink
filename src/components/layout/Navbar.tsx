@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   NavigationMenu,
   NavigationMenuList,
@@ -13,9 +13,32 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { LogOut } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import NotificationBell from '@/components/shared/NotificationBell';
+import { supabase } from '@/integrations/supabase/client';
 
 const Navbar: React.FC = () => {
   const { user, logout } = useAuth();
+  const [accountType, setAccountType] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchAccountType = async () => {
+      if (!user) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('account_type')
+          .eq('id', user.id)
+          .single();
+        
+        if (error) throw error;
+        setAccountType(data.account_type);
+      } catch (error) {
+        console.error('Error fetching account type:', error);
+      }
+    };
+
+    fetchAccountType();
+  }, [user]);
 
   const handleLogout = async () => {
     try {
@@ -27,7 +50,7 @@ const Navbar: React.FC = () => {
 
   return (
     <div className="border-b">
-      <div className="container-custom flex h-16 items-center justify-between">
+      <div className="container-custom h-16 flex items-center justify-between">
         <Link to="/" className="mr-4 flex items-center space-x-2">
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -59,13 +82,15 @@ const Navbar: React.FC = () => {
                 </Link>
               </NavigationMenuLink>
             </NavigationMenuItem>
-            <NavigationMenuItem>
-              <NavigationMenuLink>
-                <Link to="/about" className="text-sm font-medium leading-none text-ttc-blue-700 hover:text-ttc-blue-800 focus:text-ttc-blue-800 transition-colors">
-                  About
-                </Link>
-              </NavigationMenuLink>
-            </NavigationMenuItem>
+            {user && (
+              <NavigationMenuItem>
+                <NavigationMenuLink>
+                  <Link to="/dashboard" className="text-sm font-medium leading-none text-ttc-blue-700 hover:text-ttc-blue-800 focus:text-ttc-blue-800 transition-colors">
+                    {accountType === 'professional' ? 'Professional Dashboard' : 'Client Dashboard'}
+                  </Link>
+                </NavigationMenuLink>
+              </NavigationMenuItem>
+            )}
             <NavigationMenuItem>
               <NavigationMenuLink>
                 <Link to="/resources" className="text-sm font-medium leading-none text-ttc-blue-700 hover:text-ttc-blue-800 focus:text-ttc-blue-800 transition-colors">
