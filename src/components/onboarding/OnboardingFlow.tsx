@@ -46,10 +46,10 @@ const clientSteps: OnboardingStep[] = [
     title: "Profile Visibility",
     description: "Control how professionals can find and contact you",
     fields: [
-      { name: 'profile_visibility', label: 'Make Profile Public', type: 'boolean', required: true },
-      { name: 'show_email', label: 'Show Email to Professionals', type: 'boolean', required: true },
-      { name: 'show_phone', label: 'Show Phone to Professionals', type: 'boolean', required: true },
-      { name: 'allow_messages', label: 'Allow Direct Messages', type: 'boolean', required: true },
+      { name: 'profile_visibility', label: 'Make Profile Public', type: 'boolean', required: false },
+      { name: 'show_email', label: 'Show Email to Professionals', type: 'boolean', required: false },
+      { name: 'show_phone', label: 'Show Phone to Professionals', type: 'boolean', required: false },
+      { name: 'allow_messages', label: 'Allow Direct Messages', type: 'boolean', required: false },
     ]
   }
 ];
@@ -93,10 +93,10 @@ const professionalSteps: OnboardingStep[] = [
     title: "Profile Visibility",
     description: "Control how clients can find and contact you",
     fields: [
-      { name: 'profile_visibility', label: 'Make Profile Public', type: 'boolean', required: true },
-      { name: 'show_email', label: 'Show Email to Clients', type: 'boolean', required: true },
-      { name: 'show_phone', label: 'Show Phone to Clients', type: 'boolean', required: true },
-      { name: 'allow_messages', label: 'Allow Direct Messages', type: 'boolean', required: true },
+      { name: 'profile_visibility', label: 'Make Profile Public', type: 'boolean', required: false },
+      { name: 'show_email', label: 'Show Email to Clients', type: 'boolean', required: false },
+      { name: 'show_phone', label: 'Show Phone to Clients', type: 'boolean', required: false },
+      { name: 'allow_messages', label: 'Allow Direct Messages', type: 'boolean', required: false },
     ]
   }
 ];
