@@ -1,20 +1,23 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Upload, X, Image as ImageIcon } from 'lucide-react';
-import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { Upload, User } from 'lucide-react';
 
 interface ProfileImageUploadProps {
   userId: string;
-  currentImage: string | null;
-  onUploadComplete?: () => void;
+  currentImage?: string | null;
+  onUploadComplete?: (imageUrl: string) => void;
 }
 
-const ProfileImageUpload: React.FC<ProfileImageUploadProps> = ({ userId, currentImage, onUploadComplete }) => {
+const ProfileImageUpload: React.FC<ProfileImageUploadProps> = ({ 
+  userId, 
+  currentImage, 
+  onUploadComplete 
+}) => {
   const { toast } = useToast();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
@@ -39,19 +42,7 @@ const ProfileImageUpload: React.FC<ProfileImageUploadProps> = ({ userId, current
 
     setIsUploading(true);
     try {
-      // Delete old image if it exists
-      if (currentImage) {
-        const oldImagePath = currentImage.split('/').pop();
-        if (oldImagePath) {
-          await supabase.storage
-            .from('profile-images')
-            .remove([`${userId}/${oldImagePath}`]);
-        }
-      }
-
-      // Upload new image
-      const fileExt = selectedFile.name.split('.').pop();
-      const fileName = `${userId}/${Date.now()}.${fileExt}`;
+      const fileName = `${userId}/profile/${Date.now()}-${selectedFile.name}`;
       
       const { error: uploadError } = await supabase.storage
         .from('profile-images')
@@ -73,12 +64,12 @@ const ProfileImageUpload: React.FC<ProfileImageUploadProps> = ({ userId, current
 
       toast({
         title: "Success",
-        description: "Profile image updated successfully."
+        description: "Profile image uploaded successfully."
       });
 
+      onUploadComplete?.(publicUrl);
       setSelectedFile(null);
       setPreview(null);
-      onUploadComplete?.();
     } catch (error) {
       console.error('Error uploading profile image:', error);
       toast({
@@ -98,56 +89,41 @@ const ProfileImageUpload: React.FC<ProfileImageUploadProps> = ({ userId, current
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
-          <div className="flex flex-col items-center gap-4">
-            <Avatar className="h-32 w-32">
-              <AvatarImage src={preview || currentImage || undefined} />
-              <AvatarFallback>
-                <ImageIcon className="h-8 w-8 text-gray-400" />
-              </AvatarFallback>
-            </Avatar>
-
-            <div className="flex flex-col items-center gap-2">
-              <label className="cursor-pointer">
-                <div className="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900">
-                  <Upload className="h-4 w-4" />
-                  <span>Choose new image</span>
-                </div>
-                <Input
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={handleFileSelect}
+          <div className="flex items-center space-x-4">
+            <div className="w-20 h-20 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center">
+              {preview || currentImage ? (
+                <img
+                  src={preview || currentImage || ''}
+                  alt="Profile"
+                  className="w-full h-full object-cover"
                 />
-              </label>
+              ) : (
+                <User className="w-10 h-10 text-gray-400" />
+              )}
+            </div>
+            <div className="flex-1">
+              <Input
+                type="file"
+                accept="image/*"
+                onChange={handleFileSelect}
+                className="mb-2"
+              />
               {selectedFile && (
                 <Button
-                  variant="destructive"
-                  size="sm"
-                  onClick={() => {
-                    setSelectedFile(null);
-                    setPreview(null);
-                  }}
+                  onClick={handleUpload}
+                  disabled={isUploading}
+                  className="w-full"
                 >
-                  <X className="h-4 w-4 mr-2" />
-                  Remove
+                  <Upload className="w-4 h-4 mr-2" />
+                  {isUploading ? 'Uploading...' : 'Upload Image'}
                 </Button>
               )}
             </div>
           </div>
-
-          {selectedFile && (
-            <Button
-              onClick={handleUpload}
-              disabled={isUploading}
-              className="w-full"
-            >
-              {isUploading ? 'Uploading...' : 'Update Profile Image'}
-            </Button>
-          )}
         </div>
       </CardContent>
     </Card>
   );
 };
 
-export default ProfileImageUpload; 
+export default ProfileImageUpload;

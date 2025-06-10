@@ -1,8 +1,8 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Upload, X, Image as ImageIcon } from 'lucide-react';
@@ -55,7 +55,6 @@ const PortfolioUpload: React.FC<PortfolioUploadProps> = ({ userId, onUploadCompl
     try {
       // Upload files to Supabase Storage
       const uploadPromises = selectedFiles.map(async (file) => {
-        const fileExt = file.name.split('.').pop();
         const fileName = `${userId}/portfolio/${Date.now()}-${file.name}`;
         
         const { error: uploadError } = await supabase.storage
@@ -171,4 +170,4 @@ const PortfolioUpload: React.FC<PortfolioUploadProps> = ({ userId, onUploadCompl
   );
 };
 
-export default PortfolioUpload; 
+export default PortfolioUpload;

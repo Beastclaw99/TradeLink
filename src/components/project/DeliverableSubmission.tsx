@@ -1,66 +1,58 @@
+
 import React, { useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { Upload, FileText, Link } from 'lucide-react';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { notificationService } from '@/services/notificationService';
+import { Upload } from 'lucide-react';
 
 interface DeliverableSubmissionProps {
   projectId: string;
-  projectTitle: string;
-  milestoneId: string;
-  milestoneTitle: string;
-  clientId: string;
-  professionalId: string;
-  onSubmissionComplete: () => void;
+  milestoneId?: string;
+  onSubmissionComplete?: () => void;
 }
 
 const DeliverableSubmission: React.FC<DeliverableSubmissionProps> = ({
   projectId,
-  projectTitle,
   milestoneId,
-  milestoneTitle,
-  clientId,
-  professionalId,
   onSubmissionComplete
 }) => {
-  const [isOpen, setIsOpen] = useState(false);
+  const [description, setDescription] = useState('');
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [deliverable, setDeliverable] = useState({
-    description: '',
-    deliverable_type: 'note',
-    content: '',
-    file: null as File | null
-  });
   const { toast } = useToast();
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      setDeliverable(prev => ({
-        ...prev,
-        file: e.target.files![0],
-        content: e.target.files![0].name
-      }));
+      setSelectedFile(e.target.files[0]);
     }
   };
 
   const handleSubmit = async () => {
+    if (!description.trim()) {
+      toast({
+        title: "Error",
+        description: "Please provide a description for the deliverable.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       let fileUrl = '';
-      if (deliverable.deliverable_type === 'file' && deliverable.file) {
-        const fileExt = deliverable.file.name.split('.').pop();
-        const fileName = `${crypto.randomUUID()}.${fileExt}`;
-        const filePath = `deliverables/${projectId}/${fileName}`;
+      let fileName = '';
+
+      if (selectedFile) {
+        const fileExt = selectedFile.name.split('.').pop();
+        fileName = `${Date.now()}.${fileExt}`;
+        const filePath = `deliverables/${fileName}`;
 
         const { error: uploadError } = await supabase.storage
           .from('project-files')
-          .upload(filePath, deliverable.file);
+          .upload(filePath, selectedFile);
 
         if (uploadError) throw uploadError;
 
@@ -69,68 +61,36 @@ const DeliverableSubmission: React.FC<DeliverableSubmissionProps> = ({
           .getPublicUrl(filePath);
 
         fileUrl = publicUrl;
+        fileName = selectedFile.name;
       }
 
-      const { error: deliverableError } = await supabase
+      const { error } = await supabase
         .from('project_deliverables')
         .insert({
-          description: deliverable.description,
-          deliverable_type: deliverable.deliverable_type,
-          content: deliverable.deliverable_type === 'file' ? null : deliverable.content,
-          file_url: fileUrl,
+          project_id: projectId,
           milestone_id: milestoneId,
-          project_id: projectId,
-          uploaded_by: (await supabase.auth.getUser()).data.user?.id,
-          created_at: new Date().toISOString()
+          description,
+          file_url: fileUrl || null,
+          deliverable_type: selectedFile ? 'file' : 'note',
+          status: 'pending'
         });
 
-      if (deliverableError) throw deliverableError;
-
-      // Create a status update
-      const { error: updateError } = await supabase
-        .from('project_updates')
-        .insert({
-          project_id: projectId,
-          update_type: 'status_change',
-          status_update: 'work_submitted',
-          message: `New deliverable submitted: ${deliverable.description}`,
-          metadata: {
-            milestone_id: milestoneId,
-            deliverable_type: deliverable.deliverable_type
-          }
-        });
-
-      if (updateError) throw updateError;
-
-      // Create deliverable notification
-      await notificationService.createDeliverableNotification(
-        projectId,
-        projectTitle,
-        milestoneTitle,
-        clientId,
-        professionalId,
-        true // isSubmission
-      );
+      if (error) throw error;
 
       toast({
-        title: 'Deliverable Submitted',
-        description: 'Your deliverable has been submitted successfully.'
+        title: "Success",
+        description: "Deliverable submitted successfully."
       });
 
-      setIsOpen(false);
-      setDeliverable({
-        description: '',
-        deliverable_type: 'note',
-        content: '',
-        file: null
-      });
-      onSubmissionComplete();
+      setDescription('');
+      setSelectedFile(null);
+      onSubmissionComplete?.();
     } catch (error) {
       console.error('Error submitting deliverable:', error);
       toast({
-        title: 'Error',
-        description: 'Failed to submit deliverable.',
-        variant: 'destructive'
+        title: "Error",
+        description: "Failed to submit deliverable. Please try again.",
+        variant: "destructive"
       });
     } finally {
       setIsSubmitting(false);
@@ -138,99 +98,46 @@ const DeliverableSubmission: React.FC<DeliverableSubmissionProps> = ({
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild>
-        <Button variant="outline" size="sm">
-          <Upload className="h-4 w-4 mr-2" />
-          Submit Deliverable
-        </Button>
-      </DialogTrigger>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Submit Deliverable</DialogTitle>
-        </DialogHeader>
-        <div className="space-y-4">
-          <div>
-            <Label htmlFor="description">Description</Label>
-            <Input
-              id="description"
-              value={deliverable.description}
-              onChange={(e) => setDeliverable(prev => ({ ...prev, description: e.target.value }))}
-              placeholder="Describe your deliverable..."
-            />
-          </div>
-
-          <div>
-            <Label htmlFor="type">Type</Label>
-            <Select
-              value={deliverable.deliverable_type}
-              onValueChange={(value) => setDeliverable(prev => ({ ...prev, deliverable_type: value }))}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="note">Note</SelectItem>
-                <SelectItem value="file">File</SelectItem>
-                <SelectItem value="link">Link</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {deliverable.deliverable_type === 'file' ? (
-            <div>
-              <Label htmlFor="file">File</Label>
-              <Input
-                id="file"
-                type="file"
-                onChange={handleFileChange}
-                accept="*/*"
-              />
-            </div>
-          ) : deliverable.deliverable_type === 'link' ? (
-            <div>
-              <Label htmlFor="content">URL</Label>
-              <Input
-                id="content"
-                type="url"
-                value={deliverable.content}
-                onChange={(e) => setDeliverable(prev => ({ ...prev, content: e.target.value }))}
-                placeholder="https://..."
-              />
-            </div>
-          ) : (
-            <div>
-              <Label htmlFor="content">Content</Label>
-              <Textarea
-                id="content"
-                value={deliverable.content}
-                onChange={(e) => setDeliverable(prev => ({ ...prev, content: e.target.value }))}
-                placeholder="Enter your note..."
-              />
-            </div>
-          )}
-
-          <div className="flex justify-end gap-2">
-            <Button
-              variant="outline"
-              onClick={() => setIsOpen(false)}
-              disabled={isSubmitting}
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={handleSubmit}
-              disabled={isSubmitting || !deliverable.description || 
-                (deliverable.deliverable_type === 'file' && !deliverable.file) ||
-                (deliverable.deliverable_type !== 'file' && !deliverable.content)}
-            >
-              {isSubmitting ? 'Submitting...' : 'Submit'}
-            </Button>
-          </div>
+    <Card>
+      <CardHeader>
+        <CardTitle>Submit Deliverable</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium mb-2">Description</label>
+          <Textarea
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="Describe what you're delivering..."
+            rows={3}
+          />
         </div>
-      </DialogContent>
-    </Dialog>
+
+        <div>
+          <label className="block text-sm font-medium mb-2">File (Optional)</label>
+          <Input
+            type="file"
+            onChange={handleFileChange}
+            accept=".pdf,.doc,.docx,.txt,.zip,.jpg,.png"
+          />
+          {selectedFile && (
+            <p className="text-sm text-gray-600 mt-1">
+              Selected: {selectedFile.name}
+            </p>
+          )}
+        </div>
+
+        <Button
+          onClick={handleSubmit}
+          disabled={isSubmitting || !description.trim()}
+          className="w-full"
+        >
+          <Upload className="h-4 w-4 mr-2" />
+          {isSubmitting ? 'Submitting...' : 'Submit Deliverable'}
+        </Button>
+      </CardContent>
+    </Card>
   );
 };
 
-export default DeliverableSubmission; 
+export default DeliverableSubmission;

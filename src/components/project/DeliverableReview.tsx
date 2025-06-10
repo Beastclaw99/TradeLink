@@ -1,84 +1,61 @@
-import React, { useState } from 'react';
+
+import { useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { CheckCircle, XCircle, MessageSquare } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
-import { DBDeliverable } from './creation/types';
+import { CheckCircle, XCircle, Download, FileText } from 'lucide-react';
 
 interface DeliverableReviewProps {
-  deliverable: DBDeliverable;
-  onReviewSubmitted: () => void;
+  deliverable: {
+    id: string;
+    description: string;
+    file_url?: string;
+    file_name?: string;
+    status: 'pending' | 'approved' | 'rejected';
+    feedback?: string;
+    created_at: string;
+  };
+  projectId: string;
+  onReviewComplete?: () => void;
 }
 
-export default function DeliverableReview({
+const DeliverableReview: React.FC<DeliverableReviewProps> = ({
   deliverable,
-  onReviewSubmitted
-}: DeliverableReviewProps) {
-  const { toast } = useToast();
-  const [isOpen, setIsOpen] = useState(false);
+  projectId,
+  onReviewComplete
+}) => {
+  const [feedback, setFeedback] = useState(deliverable.feedback || '');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [feedback, setFeedback] = useState('');
-  const [isApproved, setIsApproved] = useState<boolean | null>(null);
+  const { toast } = useToast();
 
-  const handleReview = async () => {
-    if (isApproved === null) {
-      toast({
-        title: "Error",
-        description: "Please select whether to approve or reject the deliverable",
-        variant: "destructive"
-      });
-      return;
-    }
-
+  const handleReview = async (status: 'approved' | 'rejected') => {
     setIsSubmitting(true);
     try {
-      // Update deliverable status
-      const { error: deliverableError } = await supabase
+      const { error } = await supabase
         .from('project_deliverables')
         .update({
-          status: isApproved ? 'approved' : 'rejected',
-          feedback: feedback,
+          status,
+          feedback: feedback || null,
           reviewed_at: new Date().toISOString()
         })
         .eq('id', deliverable.id);
 
-      if (deliverableError) throw deliverableError;
-
-      // Create a status update
-      const { error: updateError } = await supabase
-        .from('project_updates')
-        .insert({
-          project_id: deliverable.project_id,
-          update_type: 'deliverable_review',
-          status_update: isApproved ? 'work_approved' : 'work_rejected',
-          message: `Deliverable "${deliverable.description}" ${isApproved ? 'approved' : 'rejected'}`,
-          metadata: {
-            milestone_id: deliverable.milestone_id,
-            deliverable_id: deliverable.id,
-            feedback: feedback
-          }
-        });
-
-      if (updateError) throw updateError;
+      if (error) throw error;
 
       toast({
-        title: "Success",
-        description: `Deliverable ${isApproved ? 'approved' : 'rejected'} successfully`
+        title: "Review Submitted",
+        description: `Deliverable ${status} successfully.`
       });
 
-      setIsOpen(false);
-      setFeedback('');
-      setIsApproved(null);
-      onReviewSubmitted();
+      onReviewComplete?.();
     } catch (error) {
       console.error('Error reviewing deliverable:', error);
       toast({
         title: "Error",
-        description: "Failed to submit review",
+        description: "Failed to submit review. Please try again.",
         variant: "destructive"
       });
     } finally {
@@ -86,83 +63,88 @@ export default function DeliverableReview({
     }
   };
 
+  const handleDownload = () => {
+    if (deliverable.file_url) {
+      window.open(deliverable.file_url, '_blank');
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'approved': return 'bg-green-100 text-green-800';
+      case 'rejected': return 'bg-red-100 text-red-800';
+      default: return 'bg-yellow-100 text-yellow-800';
+    }
+  };
+
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild>
-        <Button variant="outline" size="sm">
-          <MessageSquare className="h-4 w-4 mr-2" />
-          Review
-        </Button>
-      </DialogTrigger>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Review Deliverable</DialogTitle>
-        </DialogHeader>
-        <div className="space-y-4">
+    <Card>
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-lg">Deliverable Review</CardTitle>
+          <Badge className={getStatusColor(deliverable.status)}>
+            {deliverable.status}
+          </Badge>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div>
+          <h4 className="font-medium mb-2">Description</h4>
+          <p className="text-sm text-gray-600">{deliverable.description}</p>
+        </div>
+
+        {deliverable.file_url && (
           <div>
-            <h4 className="font-medium">{deliverable.description}</h4>
-            <Badge variant="outline" className="mt-1">
-              {deliverable.deliverable_type}
-            </Badge>
-          </div>
-
-          {deliverable.content && (
-            <div className="bg-gray-50 p-3 rounded">
-              <p className="text-sm">{deliverable.content}</p>
-            </div>
-          )}
-
-          {deliverable.file_url && (
-            <div className="bg-gray-50 p-3 rounded">
-              <a 
-                href={deliverable.file_url} 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="text-sm text-blue-600 hover:underline"
+            <h4 className="font-medium mb-2">File</h4>
+            <div className="flex items-center gap-2">
+              <FileText className="h-4 w-4" />
+              <span className="text-sm">{deliverable.file_name || 'Download File'}</span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleDownload}
               >
-                View File
-              </a>
+                <Download className="h-4 w-4 mr-1" />
+                Download
+              </Button>
             </div>
-          )}
-
-          <div className="space-y-2">
-            <Label>Feedback</Label>
-            <Textarea
-              value={feedback}
-              onChange={(e) => setFeedback(e.target.value)}
-              placeholder="Provide feedback on the deliverable..."
-              rows={4}
-            />
           </div>
+        )}
 
-          <div className="flex items-center gap-4">
+        <div>
+          <h4 className="font-medium mb-2">Feedback</h4>
+          <Textarea
+            value={feedback}
+            onChange={(e) => setFeedback(e.target.value)}
+            placeholder="Provide feedback on this deliverable..."
+            disabled={deliverable.status !== 'pending'}
+          />
+        </div>
+
+        {deliverable.status === 'pending' && (
+          <div className="flex gap-2">
             <Button
-              variant={isApproved === true ? "default" : "outline"}
-              onClick={() => setIsApproved(true)}
+              onClick={() => handleReview('approved')}
+              disabled={isSubmitting}
               className="flex-1"
             >
               <CheckCircle className="h-4 w-4 mr-2" />
               Approve
             </Button>
             <Button
-              variant={isApproved === false ? "destructive" : "outline"}
-              onClick={() => setIsApproved(false)}
+              onClick={() => handleReview('rejected')}
+              disabled={isSubmitting}
+              variant="destructive"
               className="flex-1"
             >
               <XCircle className="h-4 w-4 mr-2" />
-              Reject
+              Request Changes
             </Button>
           </div>
-
-          <Button
-            onClick={handleReview}
-            disabled={isSubmitting || isApproved === null}
-            className="w-full"
-          >
-            {isSubmitting ? "Submitting..." : "Submit Review"}
-          </Button>
-        </div>
-      </DialogContent>
-    </Dialog>
+        )}
+      </CardContent>
+    </Card>
   );
-} 
+};
+
+export default DeliverableReview;

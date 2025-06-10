@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -45,7 +44,6 @@ interface DatabaseMilestone {
 
 interface ProjectWithMilestones extends Omit<Project, 'milestones'> {
   milestones?: DatabaseMilestone[];
-  required_skills?: string | null;
 }
 
 interface ActiveProjectsTabProps {
@@ -96,7 +94,6 @@ const ActiveProjectsTab: React.FC<ActiveProjectsTabProps> = ({
         // Transform the data to match our interface
         const transformedProject: ProjectWithMilestones = {
           ...project,
-          required_skills: project.recommended_skills || null,
           milestones: project.milestones?.map((m: any) => ({
             id: m.id,
             title: m.title,
