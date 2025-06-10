@@ -26,8 +26,8 @@ interface OnboardingStep {
 
 const clientSteps: OnboardingStep[] = [
   {
-    title: "Personal Information",
-    description: "Let's start with your basic information",
+    title: "Welcome to TradeLink",
+    description: "Let's set up your client profile to start finding professionals for your projects",
     fields: [
       { name: 'first_name', label: 'First Name', type: 'text', required: true },
       { name: 'last_name', label: 'Last Name', type: 'text', required: true },
@@ -37,9 +37,19 @@ const clientSteps: OnboardingStep[] = [
   },
   {
     title: "About You",
-    description: "Tell us a bit about yourself",
+    description: "Tell us about yourself and what you're looking for",
     fields: [
       { name: 'bio', label: 'Bio', type: 'textarea', required: true },
+    ]
+  },
+  {
+    title: "Profile Visibility",
+    description: "Control how professionals can find and contact you",
+    fields: [
+      { name: 'profile_visibility', label: 'Make Profile Public', type: 'boolean', required: true },
+      { name: 'show_email', label: 'Show Email to Professionals', type: 'boolean', required: true },
+      { name: 'show_phone', label: 'Show Phone to Professionals', type: 'boolean', required: true },
+      { name: 'allow_messages', label: 'Allow Direct Messages', type: 'boolean', required: true },
     ]
   }
 ];
@@ -181,7 +191,9 @@ const OnboardingFlow: React.FC = () => {
 
       toast({
         title: "Profile Setup Complete",
-        description: "Your profile has been set up successfully! You can now start connecting with clients.",
+        description: user.user_metadata?.account_type === 'professional' 
+          ? "Your profile has been set up successfully! You can now start connecting with clients."
+          : "Your profile has been set up successfully! You can now start posting projects and finding professionals.",
       });
 
       navigate('/dashboard');
