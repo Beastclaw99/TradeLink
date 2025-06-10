@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardFooter } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -49,58 +48,6 @@ const UnifiedProjectCard: React.FC<UnifiedProjectCardProps> = ({
   onClick
 }) => {
   const navigate = useNavigate();
-
-  // Convert database milestones to Milestone type
-  const milestones: Milestone[] = project.project_milestones?.map((dbMilestone: any) => {
-    // Safe conversion of tasks from Json to Task[]
-    let tasks: Task[] = [];
-    if (Array.isArray(dbMilestone.tasks)) {
-      tasks = dbMilestone.tasks.map((task: any) => {
-        if (typeof task === 'object' && task !== null) {
-          return {
-            id: String(task.id || crypto.randomUUID()),
-            title: String(task.title || ''),
-            description: String(task.description || ''),
-            completed: Boolean(task.completed),
-            created_at: String(task.created_at || new Date().toISOString()),
-            updated_at: String(task.updated_at || new Date().toISOString()),
-            status: task.status || 'todo',
-            priority: task.priority || 'medium',
-            deadline: task.deadline,
-            dependencies: Array.isArray(task.dependencies) ? task.dependencies : []
-          };
-        }
-        return {
-          id: crypto.randomUUID(),
-          title: String(task),
-          description: '',
-          completed: false,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          status: 'todo' as const,
-          priority: 'medium' as const,
-          dependencies: []
-        };
-      });
-    }
-
-    return {
-      id: dbMilestone.id,
-      title: dbMilestone.title,
-      description: dbMilestone.description || '',
-      dueDate: dbMilestone.due_date,
-      status: dbMilestone.status as Milestone['status'],
-      requires_deliverable: Boolean(dbMilestone.requires_deliverable),
-      tasks,
-      deliverables: [],
-      project_id: dbMilestone.project_id,
-      created_by: dbMilestone.created_by,
-      created_at: dbMilestone.created_at,
-      updated_at: dbMilestone.updated_at,
-      is_complete: Boolean(dbMilestone.is_complete),
-      due_date: dbMilestone.due_date
-    };
-  }) || [];
 
   const statusConfig = getStatusConfig(project.status);
 
@@ -156,12 +103,6 @@ const UnifiedProjectCard: React.FC<UnifiedProjectCardProps> = ({
             <Link2 className="w-4 h-4 mr-2" />
             <span>{project.location}</span>
           </div>
-          {milestones.length > 0 && (
-            <div className="flex items-center text-gray-600 text-sm">
-              <ListChecks className="w-4 h-4 mr-2" />
-              <span>{milestones.length} Milestone(s)</span>
-            </div>
-          )}
           {project.comments && project.comments.length > 0 && (
             <div className="flex items-center text-gray-600 text-sm">
               <MessageSquare className="w-4 h-4 mr-2" />

@@ -246,7 +246,6 @@ const ProjectCreationWizard: React.FC = () => {
           due_date: milestone.dueDate,
           status: milestone.status,
           requires_deliverable: milestone.requires_deliverable || false,
-          tasks: milestone.tasks || [],
           project_id: projectId,
           created_by: user.id,
           is_complete: false

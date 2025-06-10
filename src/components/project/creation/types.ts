@@ -1,4 +1,3 @@
-
 export interface Task {
   id: string;
   title: string;
@@ -32,7 +31,6 @@ export interface Milestone {
   status: 'not_started' | 'in_progress' | 'completed' | 'on_hold';
   requires_deliverable?: boolean;
   progress?: number;
-  tasks: Task[];
   deliverables: Deliverable[];
   project_id?: string;
   created_by?: string;
@@ -85,7 +83,6 @@ export interface DBMilestone {
   due_date?: string;
   status: string;
   requires_deliverable?: boolean;
-  tasks: any; // JSON type for database
   project_id?: string;
   created_by?: string;
   created_at?: string;
@@ -119,7 +116,6 @@ export const convertDBMilestoneToMilestone = (dbMilestone: any): Milestone => {
     status: dbMilestone.status || 'not_started',
     requires_deliverable: dbMilestone.requires_deliverable || false,
     progress: dbMilestone.progress || 0,
-    tasks: Array.isArray(dbMilestone.tasks) ? dbMilestone.tasks : [],
     deliverables: [],
     project_id: dbMilestone.project_id,
     created_by: dbMilestone.created_by,
@@ -138,7 +134,6 @@ export const convertMilestoneToDBMilestone = (milestone: Milestone, projectId?: 
     due_date: milestone.dueDate || milestone.due_date,
     status: milestone.status,
     requires_deliverable: milestone.requires_deliverable || false,
-    tasks: milestone.tasks || [],
     project_id: projectId || milestone.project_id,
     created_by: milestone.created_by,
     is_complete: milestone.is_complete || false

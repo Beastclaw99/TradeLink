@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -112,16 +111,6 @@ const ReviewStep: React.FC<ReviewStepProps> = ({ data }) => {
                   )}
                   {milestone.dueDate && (
                     <p className="text-sm text-gray-500">Due: {milestone.dueDate}</p>
-                  )}
-                  {milestone.tasks && milestone.tasks.length > 0 && (
-                    <div className="mt-2">
-                      <p className="text-sm font-medium">Tasks:</p>
-                      <ul className="list-disc list-inside text-sm text-gray-600">
-                        {milestone.tasks.map((task, taskIndex) => (
-                          <li key={taskIndex}>{task.title}</li>
-                        ))}
-                      </ul>
-                    </div>
                   )}
                 </div>
               ))}

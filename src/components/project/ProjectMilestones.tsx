@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -29,6 +28,7 @@ import DeliverableSubmission from './DeliverableSubmission';
 import DeliverableReview from './DeliverableReview';
 import { ProjectStatus } from '@/types/projectUpdates';
 import { supabase } from '@/integrations/supabase/client';
+import MilestoneTasks from './MilestoneTasks';
 
 interface ProjectMilestonesProps {
   milestones: Milestone[];
@@ -60,7 +60,6 @@ const ProjectMilestones: React.FC<ProjectMilestonesProps> = ({
     description: '',
     dueDate: '',
     status: 'not_started',
-    tasks: [],
     deliverables: []
   });
   const [newTask, setNewTask] = useState('');
@@ -94,18 +93,13 @@ const ProjectMilestones: React.FC<ProjectMilestonesProps> = ({
     if (!newMilestone.title.trim() || !newMilestone.dueDate) return;
     try {
       await onAddMilestone({
-        ...newMilestone,
-        tasks: newMilestone.tasks.map(task => ({
-          ...task,
-          id: crypto.randomUUID()
-        }))
+        ...newMilestone
       });
       setNewMilestone({
         title: '',
         description: '',
         dueDate: '',
         status: 'not_started',
-        tasks: [],
         deliverables: []
       });
       setIsAddingMilestone(false);
@@ -445,26 +439,18 @@ const ProjectMilestones: React.FC<ProjectMilestonesProps> = ({
                     )}
 
                     {/* Tasks Section */}
-                    {milestone.tasks && milestone.tasks.length > 0 && (
-                      <div className="space-y-2">
-                        <h4 className="font-medium">Tasks</h4>
-                        <div className="space-y-2">
-                          {milestone.tasks.map((task) => (
-                            <div key={task.id} className="flex items-center gap-2">
-                              <input
-                                type="checkbox"
-                                checked={task.completed}
-                                onChange={(e) => handleUpdateTaskStatus(milestone.id!, task.id, e.target.checked)}
-                                className="h-4 w-4 rounded border-gray-300"
-                              />
-                              <span className={task.completed ? 'line-through text-gray-500' : ''}>
-                                {task.title}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
+                    <div className="space-y-2">
+                      <h4 className="font-medium">Tasks</h4>
+                      <MilestoneTasks
+                        milestoneId={milestone.id!}
+                        projectId={projectId}
+                        projectTitle={milestone.title}
+                        milestoneTitle={milestone.title}
+                        clientId={milestone.created_by || ''}
+                        professionalId={milestone.created_by || ''}
+                        onTaskStatusUpdate={handleUpdateTaskStatus}
+                      />
+                    </div>
 
                     {/* Deliverables Section */}
                     <div className="space-y-2">

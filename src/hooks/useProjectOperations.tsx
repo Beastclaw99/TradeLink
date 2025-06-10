@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Project } from '@/components/dashboard/types';
-import { Milestone, convertDBMilestoneToMilestone, convertMilestoneToDBMilestone } from '@/components/project/creation/types';
+import { Milestone, convertMilestoneToDBMilestone } from '@/components/project/creation/types';
 import { transformProjects } from './dashboard/dataTransformers';
 
 export const useProjectOperations = (userId: string, onUpdate: () => void) => {
@@ -247,7 +247,7 @@ export const useProjectOperations = (userId: string, onUpdate: () => void) => {
     try {
       setIsSubmitting(true);
       
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('projects')
         .insert([
           {

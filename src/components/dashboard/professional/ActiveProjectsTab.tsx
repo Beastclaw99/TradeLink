@@ -597,16 +597,6 @@ const ActiveProjectsTab: React.FC<ActiveProjectsTabProps> = ({
                             onAddMilestone={(milestone) => handleAddMilestone(project.id, milestone)}
                             onEditMilestone={(milestoneId, updates) => handleEditMilestone(project.id, milestoneId, updates)}
                             onDeleteMilestone={(milestoneId) => handleDeleteMilestone(project.id, milestoneId)}
-                            onUpdateTaskStatus={async (milestoneId, taskId, completed) => {
-                              // Update task status in the milestone
-                              const milestone = selectedProject?.milestones?.find(m => m.id === milestoneId);
-                              if (milestone) {
-                                const updatedTasks = milestone.tasks.map(task =>
-                                  task.id === taskId ? { ...task, completed } : task
-                                );
-                                await handleEditMilestone(project.id, milestoneId, { tasks: updatedTasks });
-                              }
-                            }}
                             projectId={project.id}
                             projectStatus={(project.status || 'open') as ProjectStatus}
                           />
