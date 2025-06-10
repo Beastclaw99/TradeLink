@@ -1,96 +1,81 @@
 
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Star } from "lucide-react";
+import { StarRating } from "@/components/ui/star-rating";
 import { Review } from '../types';
+import EnhancedReviewDisplay from '@/components/reviews/EnhancedReviewDisplay';
+import { useEnhancedReviewOperations } from '@/hooks/useEnhancedReviewOperations';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface ReviewsTabProps {
-  reviews: Review[];
   isLoading: boolean;
-  calculateAverageRating: () => number;
+  reviews: Review[];
+  calculateAverageRating: () => string | number;
 }
 
-const ReviewsTab: React.FC<ReviewsTabProps> = ({
-  reviews,
-  isLoading,
-  calculateAverageRating
+const ReviewsTab: React.FC<ReviewsTabProps> = ({ 
+  isLoading, 
+  reviews, 
+  calculateAverageRating 
 }) => {
-  if (isLoading) {
-    return (
-      <div className="flex justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
+  const { user } = useAuth();
+  const { handleReviewReport } = useEnhancedReviewOperations({ 
+    userId: user?.id || '',
+    onUpdate: () => {} // Add refresh logic if needed
+  });
+
+  // Convert reviews to enhanced format with required properties
+  const enhancedReviews = reviews.map(review => ({
+    ...review,
+    status: review.status || 'approved' as const,
+    is_verified: review.is_verified || false
+  }));
 
   return (
-    <div className="space-y-6">
-      {/* Rating Summary */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Rating Overview</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center gap-4">
-            <div className="text-3xl font-bold">{calculateAverageRating().toFixed(1)}</div>
-            <div className="flex items-center">
-              {[1, 2, 3, 4, 5].map((star) => (
-                <Star
-                  key={star}
-                  className={`h-5 w-5 ${
-                    star <= calculateAverageRating()
-                      ? 'text-yellow-400 fill-current'
-                      : 'text-gray-300'
-                  }`}
-                />
-              ))}
-            </div>
-            <div className="text-sm text-muted-foreground">
-              Based on {reviews.length} review{reviews.length !== 1 ? 's' : ''}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Reviews List */}
-      <div className="space-y-4">
-        {reviews.length === 0 ? (
-          <Card>
-            <CardContent className="text-center py-8">
-              <p className="text-muted-foreground">No reviews yet</p>
-            </CardContent>
-          </Card>
-        ) : (
-          reviews.map((review) => (
-            <Card key={review.id}>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <Star
-                        key={star}
-                        className={`h-4 w-4 ${
-                          star <= (review.rating || 0)
-                            ? 'text-yellow-400 fill-current'
-                            : 'text-gray-300'
-                        }`}
-                      />
-                    ))}
-                  </div>
-                  <Badge variant="secondary">
-                    {new Date(review.created_at || '').toLocaleDateString()}
-                  </Badge>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm">{review.comment || 'No comment provided'}</p>
-              </CardContent>
-            </Card>
-          ))
-        )}
+    <>
+      <div className="flex items-center mb-8">
+        <div className="flex-1">
+          <h2 className="text-2xl font-bold">Your Reviews</h2>
+          <p className="text-ttc-neutral-600">See what clients are saying about your work</p>
+        </div>
+        
+        <div className="flex items-center gap-2">
+          <StarRating
+            value={Number(calculateAverageRating())}
+            onChange={() => {}}
+            className="mt-2"
+          />
+          <span className="text-lg font-bold">{calculateAverageRating()}</span>
+          <span className="text-ttc-neutral-500">({reviews.length} reviews)</span>
+        </div>
       </div>
-    </div>
+      
+      {isLoading ? (
+        <p>Loading reviews...</p>
+      ) : reviews.length === 0 ? (
+        <div className="text-center py-8">
+          <StarRating
+            value={0}
+            onChange={() => {}}
+            className="w-12 h-12 mx-auto text-ttc-neutral-400"
+          />
+          <p className="mt-4 text-ttc-neutral-600">No reviews yet.</p>
+          <p className="mt-2 text-sm text-ttc-neutral-500">
+            Complete projects to start receiving reviews from clients.
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-6">
+          {enhancedReviews.map(review => (
+            <EnhancedReviewDisplay
+              key={review.id}
+              review={review}
+              onReport={handleReviewReport}
+            />
+          ))}
+        </div>
+      )}
+    </>
   );
 };
 

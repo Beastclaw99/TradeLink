@@ -1,7 +1,8 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -11,6 +12,7 @@ import {
   Send,
   MoreVertical,
   Clock,
+  User,
   ThumbsUp,
   Reply,
   Flag,
@@ -25,7 +27,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { formatDistanceToNow } from 'date-fns';
+import { format, formatDistanceToNow } from 'date-fns';
 
 interface CommentUser {
   id: string;
@@ -392,4 +394,4 @@ const ProjectComments: React.FC<ProjectCommentsProps> = ({
   );
 };
 
-export default ProjectComments;
+export default ProjectComments; 

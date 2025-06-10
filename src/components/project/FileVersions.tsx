@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
@@ -28,6 +27,7 @@ interface FileVersionsProps {
 
 const FileVersions: React.FC<FileVersionsProps> = ({ versionId }) => {
   const [versions, setVersions] = useState<FileVersion[]>([]);
+  const [selectedVersion, setSelectedVersion] = useState<FileVersion | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
@@ -140,6 +140,7 @@ const FileVersions: React.FC<FileVersionsProps> = ({ versionId }) => {
                       <Button
                         variant="ghost"
                         size="sm"
+                        onClick={() => setSelectedVersion(version)}
                       >
                         <History className="h-4 w-4" />
                       </Button>
@@ -176,4 +177,4 @@ const FileVersions: React.FC<FileVersionsProps> = ({ versionId }) => {
   );
 };
 
-export default FileVersions;
+export default FileVersions; 

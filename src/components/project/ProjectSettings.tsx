@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -6,300 +5,537 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useToast } from "@/components/ui/use-toast";
 import {
   Settings,
+  Save,
+  AlertTriangle,
+  Lock,
+  Globe,
   Bell,
-  Archive,
-  Trash2,
+  Users,
+  FileText,
+  Calendar,
+  Tag
 } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { useProjectStatus } from '@/hooks/useProjectStatus';
+import { ProjectStatus } from '@/types/projectUpdates';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 
-interface ProjectSettingsProps {
-  projectId: string;
-  settings: ProjectSettingsData;
-  onUpdateSettings: (settings: Partial<ProjectSettingsData>) => void;
-  onArchiveProject: () => void;
-  onDeleteProject: () => void;
-  canManageProject: boolean;
-}
-
-interface ProjectSettingsData {
-  isPublic: boolean;
-  allowComments: boolean;
-  emailNotifications: boolean;
-  slackNotifications: boolean;
-  autoAssignTasks: boolean;
-  requireApproval: boolean;
-  trackTime: boolean;
-  timezone: string;
-  language: string;
-  currency: string;
-  budget: number;
+interface ProjectSettings {
+  name: string;
   description: string;
+  status: 'open' | 'assigned' | 'in_progress' | 'work_submitted' | 'work_revision_requested' | 'work_approved' | 'completed' | 'archived' | 'cancelled' | 'disputed';
+  visibility: 'public' | 'private' | 'team';
+  notifications: {
+    email: boolean;
+    inApp: boolean;
+    mentions: boolean;
+    updates: boolean;
+  };
+  permissions: {
+    allowMemberInvites: boolean;
+    allowFileUploads: boolean;
+    allowComments: boolean;
+    allowTaskCreation: boolean;
+  };
+  timezone: string;
+  dateFormat: string;
+  defaultLanguage: string;
   tags: string[];
 }
 
-const ProjectSettings: React.FC<ProjectSettingsProps> = ({
-  settings,
-  onUpdateSettings,
-  onArchiveProject,
-  onDeleteProject,
-  canManageProject
-}) => {
-  const [localSettings, setLocalSettings] = useState(settings);
-  const [hasChanges, setHasChanges] = useState(false);
+interface ProjectSettingsProps {
+  project: any;
+  onUpdate: () => void;
+}
 
-  const handleSettingChange = (key: keyof ProjectSettingsData, value: any) => {
-    setLocalSettings(prev => ({ ...prev, [key]: value }));
-    setHasChanges(true);
-  };
+const ProjectSettings: React.FC<ProjectSettingsProps> = ({ project, onUpdate }) => {
+  const { toast } = useToast();
+  const [isSaving, setIsSaving] = useState(false);
+  const [editedSettings, setEditedSettings] = useState({
+    name: project.title || '',
+    status: project.status || 'open'
+  });
+  const [showStatusDialog, setShowStatusDialog] = useState(false);
+  const [statusMetadata, setStatusMetadata] = useState({
+    cancellation_reason: '',
+    dispute_reason: '',
+    revision_notes: ''
+  });
 
-  const handleSaveSettings = () => {
-    onUpdateSettings(localSettings);
-    setHasChanges(false);
-  };
+  const { updateProjectStatus, canTransitionTo, isUpdating } = useProjectStatus(
+    project.id,
+    project.client_id
+  );
 
-  const handleArchive = () => {
-    if (window.confirm('Are you sure you want to archive this project?')) {
-      onArchiveProject();
+  const handleSave = async () => {
+    try {
+      setIsSaving(true);
+
+      const { error } = await supabase
+        .from('projects')
+        .update({
+          title: editedSettings.name,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', project.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Settings Updated",
+        description: "Project settings have been updated successfully."
+      });
+
+      onUpdate();
+    } catch (error: any) {
+      console.error('Error updating project settings:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update project settings. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSaving(false);
     }
   };
 
-  const handleDelete = () => {
-    if (window.confirm('Are you sure you want to delete this project? This action cannot be undone.')) {
-      onDeleteProject();
+  const handleStatusChange = async (newStatus: ProjectStatus) => {
+    // Check if we need additional metadata
+    if (['cancelled', 'disputed', 'work_revision_requested'].includes(newStatus)) {
+      setShowStatusDialog(true);
+      return;
+    }
+
+    // Proceed with status update
+    const result = await updateProjectStatus(newStatus);
+    if (result.success) {
+      setEditedSettings(prev => ({ ...prev, status: newStatus }));
+      onUpdate();
     }
   };
 
-  if (!canManageProject) {
+  const handleStatusDialogConfirm = async () => {
+    const metadata = {
+      ...(editedSettings.status === 'cancelled' && { cancellation_reason: statusMetadata.cancellation_reason }),
+      ...(editedSettings.status === 'disputed' && { dispute_reason: statusMetadata.dispute_reason }),
+      ...(editedSettings.status === 'work_revision_requested' && { revision_notes: statusMetadata.revision_notes })
+    };
+
+    const result = await updateProjectStatus(editedSettings.status as ProjectStatus, metadata);
+    if (result.success) {
+      setShowStatusDialog(false);
+      setStatusMetadata({
+        cancellation_reason: '',
+        dispute_reason: '',
+        revision_notes: ''
+      });
+      onUpdate();
+    }
+  };
+
+  if (!project) {
     return (
       <Card>
-        <CardContent className="p-6 text-center">
-          <p className="text-gray-500">You don't have permission to manage project settings.</p>
+        <CardHeader className="border-b">
+          <CardTitle>Project Settings</CardTitle>
+        </CardHeader>
+        <CardContent className="p-6">
+          <div className="text-center py-8 text-gray-500">
+            <Lock className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+            <p>You don't have permission to view or edit project settings.</p>
+          </div>
         </CardContent>
       </Card>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <>
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Settings className="h-5 w-5" />
-            General Settings
-          </CardTitle>
+        <CardHeader className="border-b">
+          <div className="flex justify-between items-center">
+            <CardTitle>Project Settings</CardTitle>
+            <Button
+              onClick={handleSave}
+              disabled={isSaving}
+            >
+              <Save className="h-4 w-4 mr-2" />
+              Save Changes
+            </Button>
+          </div>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="description">Project Description</Label>
-            <Textarea
-              id="description"
-              value={localSettings.description}
-              onChange={(e) => handleSettingChange('description', e.target.value)}
-              placeholder="Enter project description"
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="timezone">Timezone</Label>
-              <Select
-                value={localSettings.timezone}
-                onValueChange={(value) => handleSettingChange('timezone', value)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select timezone" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="UTC">UTC</SelectItem>
-                  <SelectItem value="EST">EST</SelectItem>
-                  <SelectItem value="PST">PST</SelectItem>
-                  <SelectItem value="GMT">GMT</SelectItem>
-                </SelectContent>
-              </Select>
+        <CardContent className="p-6 space-y-6">
+          {/* Basic Information */}
+          <div className="space-y-4">
+            <h3 className="font-medium flex items-center gap-2">
+              <Settings className="h-4 w-4" />
+              Basic Information
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="name">Project Name</Label>
+                <Input
+                  id="name"
+                  value={editedSettings.name}
+                  onChange={(e) => setEditedSettings(prev => ({ ...prev, name: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="status">Project Status</Label>
+                <Select
+                  value={editedSettings.status}
+                  onValueChange={(value) => {
+                    if (canTransitionTo(project.status, value as ProjectStatus, project)) {
+                      setEditedSettings(prev => ({ ...prev, status: value }));
+                      handleStatusChange(value as ProjectStatus);
+                    } else {
+                      toast({
+                        title: "Invalid Status Change",
+                        description: "This status change is not allowed at this time.",
+                        variant: "destructive"
+                      });
+                    }
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="open">Open</SelectItem>
+                    <SelectItem value="assigned">Assigned</SelectItem>
+                    <SelectItem value="in_progress">In Progress</SelectItem>
+                    <SelectItem value="work_submitted">Work Submitted</SelectItem>
+                    <SelectItem value="work_revision_requested">Revision Requested</SelectItem>
+                    <SelectItem value="work_approved">Work Approved</SelectItem>
+                    <SelectItem value="completed">Completed</SelectItem>
+                    <SelectItem value="archived">Archived</SelectItem>
+                    <SelectItem value="cancelled">Cancelled</SelectItem>
+                    <SelectItem value="disputed">Disputed</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
-
             <div className="space-y-2">
-              <Label htmlFor="language">Language</Label>
-              <Select
-                value={localSettings.language}
-                onValueChange={(value) => handleSettingChange('language', value)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select language" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="en">English</SelectItem>
-                  <SelectItem value="es">Spanish</SelectItem>
-                  <SelectItem value="fr">French</SelectItem>
-                  <SelectItem value="de">German</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="currency">Currency</Label>
-              <Select
-                value={localSettings.currency}
-                onValueChange={(value) => handleSettingChange('currency', value)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select currency" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="USD">USD</SelectItem>
-                  <SelectItem value="EUR">EUR</SelectItem>
-                  <SelectItem value="GBP">GBP</SelectItem>
-                  <SelectItem value="CAD">CAD</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="budget">Budget</Label>
-              <Input
-                id="budget"
-                type="number"
-                value={localSettings.budget}
-                onChange={(e) => handleSettingChange('budget', parseFloat(e.target.value) || 0)}
-                placeholder="Enter budget"
+              <Label htmlFor="description">Description</Label>
+              <Textarea
+                id="description"
+                value={project.description}
+                onChange={(e) => {
+                  // Handle description update
+                }}
+                rows={4}
               />
             </div>
           </div>
+
+          {/* Visibility and Access */}
+          <div className="space-y-4">
+            <h3 className="font-medium flex items-center gap-2">
+              <Globe className="h-4 w-4" />
+              Visibility and Access
+            </h3>
+            <div className="space-y-2">
+              <Label htmlFor="visibility">Project Visibility</Label>
+              <Select
+                value={project.visibility}
+                onValueChange={(value) => {
+                  // Handle visibility update
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select visibility" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="public">Public</SelectItem>
+                  <SelectItem value="private">Private</SelectItem>
+                  <SelectItem value="team">Team Only</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label>Allow Member Invites</Label>
+                  <p className="text-sm text-gray-500">Let team members invite new members to the project</p>
+                </div>
+                <Switch
+                  checked={project.permissions.allowMemberInvites}
+                  onCheckedChange={(checked) => {
+                    // Handle allowMemberInvites update
+                  }}
+                />
+              </div>
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label>Allow File Uploads</Label>
+                  <p className="text-sm text-gray-500">Let team members upload files to the project</p>
+                </div>
+                <Switch
+                  checked={project.permissions.allowFileUploads}
+                  onCheckedChange={(checked) => {
+                    // Handle allowFileUploads update
+                  }}
+                />
+              </div>
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label>Allow Comments</Label>
+                  <p className="text-sm text-gray-500">Let team members comment on project items</p>
+                </div>
+                <Switch
+                  checked={project.permissions.allowComments}
+                  onCheckedChange={(checked) => {
+                    // Handle allowComments update
+                  }}
+                />
+              </div>
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label>Allow Task Creation</Label>
+                  <p className="text-sm text-gray-500">Let team members create new tasks</p>
+                </div>
+                <Switch
+                  checked={project.permissions.allowTaskCreation}
+                  onCheckedChange={(checked) => {
+                    // Handle allowTaskCreation update
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Notifications */}
+          <div className="space-y-4">
+            <h3 className="font-medium flex items-center gap-2">
+              <Bell className="h-4 w-4" />
+              Notifications
+            </h3>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label>Email Notifications</Label>
+                  <p className="text-sm text-gray-500">Receive project updates via email</p>
+                </div>
+                <Switch
+                  checked={project.notifications.email}
+                  onCheckedChange={(checked) => {
+                    // Handle email notifications update
+                  }}
+                />
+              </div>
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label>In-App Notifications</Label>
+                  <p className="text-sm text-gray-500">Receive notifications within the application</p>
+                </div>
+                <Switch
+                  checked={project.notifications.inApp}
+                  onCheckedChange={(checked) => {
+                    // Handle in-app notifications update
+                  }}
+                />
+              </div>
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label>Mention Notifications</Label>
+                  <p className="text-sm text-gray-500">Get notified when someone mentions you</p>
+                </div>
+                <Switch
+                  checked={project.notifications.mentions}
+                  onCheckedChange={(checked) => {
+                    // Handle mention notifications update
+                  }}
+                />
+              </div>
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label>Project Updates</Label>
+                  <p className="text-sm text-gray-500">Receive notifications about project updates</p>
+                </div>
+                <Switch
+                  checked={project.notifications.updates}
+                  onCheckedChange={(checked) => {
+                    // Handle project updates update
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Localization */}
+          <div className="space-y-4">
+            <h3 className="font-medium flex items-center gap-2">
+              <Calendar className="h-4 w-4" />
+              Localization
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="timezone">Timezone</Label>
+                <Select
+                  value={project.timezone}
+                  onValueChange={(value) => {
+                    // Handle timezone update
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select timezone" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {/* Add timezone options here */}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="dateFormat">Date Format</Label>
+                <Select
+                  value={project.dateFormat}
+                  onValueChange={(value) => {
+                    // Handle date format update
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select date format" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="MM/DD/YYYY">MM/DD/YYYY</SelectItem>
+                    <SelectItem value="DD/MM/YYYY">DD/MM/YYYY</SelectItem>
+                    <SelectItem value="YYYY-MM-DD">YYYY-MM-DD</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="language">Default Language</Label>
+                <Select
+                  value={project.defaultLanguage}
+                  onValueChange={(value) => {
+                    // Handle default language update
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select language" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {/* Add language options here */}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+
+          {/* Tags */}
+          <div className="space-y-4">
+            <h3 className="font-medium flex items-center gap-2">
+              <Tag className="h-4 w-4" />
+              Project Tags
+            </h3>
+            <div className="space-y-2">
+              <div className="flex gap-2">
+                <Input
+                  value={project.tags.join(', ')}
+                  onChange={(e) => {
+                    // Handle tags update
+                  }}
+                  placeholder="Add a tag"
+                />
+                <Button>Add</Button>
+              </div>
+              <div className="flex flex-wrap gap-2 mt-2">
+                {project.tags.map((tag: string) => (
+                  <div
+                    key={tag}
+                    className="flex items-center gap-1 px-2 py-1 bg-gray-100 rounded-full text-sm"
+                  >
+                    <span>{tag}</span>
+                    <button
+                      className="text-gray-500 hover:text-gray-700"
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Bell className="h-5 w-5" />
-            Notifications
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <Label>Email Notifications</Label>
-              <p className="text-sm text-gray-500">Receive updates via email</p>
-            </div>
-            <Switch
-              checked={localSettings.emailNotifications}
-              onCheckedChange={(checked) => handleSettingChange('emailNotifications', checked)}
-            />
-          </div>
+      {/* Status Change Dialog */}
+      <Dialog open={showStatusDialog} onOpenChange={setShowStatusDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Status Change Details</DialogTitle>
+            <DialogDescription>
+              Please provide additional information required for this status change.
+            </DialogDescription>
+          </DialogHeader>
 
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <Label>Slack Notifications</Label>
-              <p className="text-sm text-gray-500">Send updates to Slack channel</p>
+          {editedSettings.status === 'cancelled' && (
+            <div className="space-y-4">
+              <Label htmlFor="cancellation_reason">Reason for Cancellation</Label>
+              <Textarea
+                id="cancellation_reason"
+                value={statusMetadata.cancellation_reason}
+                onChange={(e) => setStatusMetadata(prev => ({
+                  ...prev,
+                  cancellation_reason: e.target.value
+                }))}
+                placeholder="Please provide a reason for cancelling the project"
+              />
             </div>
-            <Switch
-              checked={localSettings.slackNotifications}
-              onCheckedChange={(checked) => handleSettingChange('slackNotifications', checked)}
-            />
-          </div>
-        </CardContent>
-      </Card>
+          )}
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Project Features</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <Label>Public Project</Label>
-              <p className="text-sm text-gray-500">Allow public viewing of project</p>
+          {editedSettings.status === 'disputed' && (
+            <div className="space-y-4">
+              <Label htmlFor="dispute_reason">Reason for Dispute</Label>
+              <Textarea
+                id="dispute_reason"
+                value={statusMetadata.dispute_reason}
+                onChange={(e) => setStatusMetadata(prev => ({
+                  ...prev,
+                  dispute_reason: e.target.value
+                }))}
+                placeholder="Please provide details about the dispute"
+              />
             </div>
-            <Switch
-              checked={localSettings.isPublic}
-              onCheckedChange={(checked) => handleSettingChange('isPublic', checked)}
-            />
-          </div>
+          )}
 
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <Label>Allow Comments</Label>
-              <p className="text-sm text-gray-500">Enable commenting on project items</p>
+          {editedSettings.status === 'work_revision_requested' && (
+            <div className="space-y-4">
+              <Label htmlFor="revision_notes">Revision Notes</Label>
+              <Textarea
+                id="revision_notes"
+                value={statusMetadata.revision_notes}
+                onChange={(e) => setStatusMetadata(prev => ({
+                  ...prev,
+                  revision_notes: e.target.value
+                }))}
+                placeholder="Please provide details about the required revisions"
+              />
             </div>
-            <Switch
-              checked={localSettings.allowComments}
-              onCheckedChange={(checked) => handleSettingChange('allowComments', checked)}
-            />
-          </div>
+          )}
 
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <Label>Auto-assign Tasks</Label>
-              <p className="text-sm text-gray-500">Automatically assign tasks to team members</p>
-            </div>
-            <Switch
-              checked={localSettings.autoAssignTasks}
-              onCheckedChange={(checked) => handleSettingChange('autoAssignTasks', checked)}
-            />
-          </div>
-
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <Label>Require Approval</Label>
-              <p className="text-sm text-gray-500">Require approval for task completion</p>
-            </div>
-            <Switch
-              checked={localSettings.requireApproval}
-              onCheckedChange={(checked) => handleSettingChange('requireApproval', checked)}
-            />
-          </div>
-
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <Label>Time Tracking</Label>
-              <p className="text-sm text-gray-500">Enable time tracking for tasks</p>
-            </div>
-            <Switch
-              checked={localSettings.trackTime}
-              onCheckedChange={(checked) => handleSettingChange('trackTime', checked)}
-            />
-          </div>
-        </CardContent>
-      </Card>
-
-      <div className="flex justify-between">
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            onClick={handleArchive}
-            className="flex items-center gap-2"
-          >
-            <Archive className="h-4 w-4" />
-            Archive Project
-          </Button>
-          <Button
-            variant="destructive"
-            onClick={handleDelete}
-            className="flex items-center gap-2"
-          >
-            <Trash2 className="h-4 w-4" />
-            Delete Project
-          </Button>
-        </div>
-        <Button
-          onClick={handleSaveSettings}
-          disabled={!hasChanges}
-        >
-          Save Changes
-        </Button>
-      </div>
-    </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowStatusDialog(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleStatusDialogConfirm}
+              disabled={isUpdating}
+            >
+              Confirm Status Change
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };
 
-export default ProjectSettings;
+export default ProjectSettings; 

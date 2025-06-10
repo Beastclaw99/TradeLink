@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -46,6 +45,7 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
 
       if (error) throw error;
       
+      // Map the database response to match our Notification interface
       const typedNotifications: Notification[] = (data || []).map(notification => ({
         id: notification.id,
         type: notification.type as 'info' | 'success' | 'warning' | 'error',
@@ -53,7 +53,7 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
         message: notification.message,
         read: notification.read ?? false,
         created_at: notification.created_at || new Date().toISOString(),
-        updated_at: notification.created_at || new Date().toISOString(),
+        updated_at: notification.created_at || new Date().toISOString(), // Use created_at as fallback for updated_at
       }));
       
       setNotifications(typedNotifications);
@@ -140,10 +140,9 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
     if (user) {
       fetchNotifications();
 
-      // Create unique channel name to avoid subscription conflicts
-      const channelName = `notifications_${user.id}_${Date.now()}`;
+      // Subscribe to real-time notifications
       const subscription = supabase
-        .channel(channelName)
+        .channel('notifications')
         .on(
           'postgres_changes',
           {
@@ -166,6 +165,7 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
             
             setNotifications(prev => [newNotification, ...prev]);
             
+            // Show toast for new notification
             toast({
               title: newNotification.title,
               description: newNotification.message,
@@ -179,7 +179,7 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
         subscription.unsubscribe();
       };
     }
-  }, [user?.id, toast]); // Only depend on user.id
+  }, [user, toast]);
 
   const unreadCount = notifications.filter(n => !n.read).length;
 

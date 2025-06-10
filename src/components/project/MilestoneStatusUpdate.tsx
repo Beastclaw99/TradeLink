@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
@@ -43,11 +42,11 @@ const MilestoneStatusUpdate: React.FC<MilestoneStatusUpdateProps> = ({
 
     // If trying to mark as completed, validate all tasks are completed
     if (newStatus === 'completed') {
-      const { data: tasks, error } = await supabase
-        .from('project_tasks')
-        .select('*')
-        .eq('milestone_id', milestoneId);
-      
+      const { data: milestone, error } = await supabase
+        .from('project_milestones')
+        .select('tasks')
+        .eq('id', milestoneId)
+        .single();
       if (error) {
         toast({
           title: 'Error',
@@ -56,9 +55,9 @@ const MilestoneStatusUpdate: React.FC<MilestoneStatusUpdateProps> = ({
         });
         return;
       }
-      
-      const incompleteTasks = tasks?.filter(task => !task.completed) || [];
-      if (tasks && tasks.length > 0 && incompleteTasks.length > 0) {
+      const tasks = (milestone?.tasks as { id: string; title: string; completed: boolean }[]) || [];
+      const incompleteTasks = tasks.filter(task => !task.completed);
+      if (tasks.length > 0 && incompleteTasks.length > 0) {
         toast({
           title: 'Cannot Complete Milestone',
           description: 'All tasks must be completed before marking this milestone as completed.',
@@ -114,7 +113,7 @@ const MilestoneStatusUpdate: React.FC<MilestoneStatusUpdateProps> = ({
           .eq('id', milestoneId)
           .single();
 
-        if (milestone?.due_date && new Date(milestone.due_date) < new Date()) {
+        if (milestone && new Date(milestone.due_date) < new Date()) {
           // Create overdue notification
           await notificationService.createMilestoneNotification(
             projectId,
@@ -145,4 +144,4 @@ const MilestoneStatusUpdate: React.FC<MilestoneStatusUpdateProps> = ({
   );
 };
 
-export default MilestoneStatusUpdate;
+export default MilestoneStatusUpdate; 

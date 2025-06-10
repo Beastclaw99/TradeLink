@@ -1,12 +1,12 @@
-
 import React, { useState, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/components/ui/use-toast';
 import { fileService, FileVersion } from '@/services/fileService';
-import { Upload, AlertCircle } from 'lucide-react';
+import { Upload, File, AlertCircle } from 'lucide-react';
 import { formatFileSize } from '@/lib/utils';
 
 interface FileUploadProps {
@@ -166,4 +166,4 @@ const FileUpload: React.FC<FileUploadProps> = ({
   );
 };
 
-export default FileUpload;
+export default FileUpload; 

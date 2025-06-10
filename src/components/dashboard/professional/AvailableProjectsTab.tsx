@@ -1,7 +1,7 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Briefcase } from "lucide-react";
 import { Project, Application } from '../types';
 import { Badge } from "@/components/ui/badge";
 
@@ -11,10 +11,10 @@ interface AvailableProjectsTabProps {
   applications: Application[];
   skills?: string[];
   setSelectedProject: (project: Project) => void;
-  setBidAmount: (amount: number | null) => void;
+  setBidAmount: (amount: number) => void;
 }
 
-const AvailableProjectsTab: React.FC<AvailableProjectsTabProps> = ({
+export const AvailableProjectsTab: React.FC<AvailableProjectsTabProps> = ({
   isLoading,
   projects,
   applications,
@@ -22,12 +22,12 @@ const AvailableProjectsTab: React.FC<AvailableProjectsTabProps> = ({
   setSelectedProject,
   setBidAmount
 }) => {
-  const filteredProjects = projects.filter((project: Project) => {
+  const filteredProjects = projects.filter(project => {
     // Filter out projects that are not open
     if (project.status !== 'open') return false;
     
     // Filter out projects that the user has already applied to
-    if (applications.some((app: Application) => app.project_id === project.id)) return false;
+    if (applications.some(app => app.project_id === project.id)) return false;
     
     // If user has skills, filter projects that match at least one required skill
     if (skills && skills.length > 0) {
@@ -63,7 +63,7 @@ const AvailableProjectsTab: React.FC<AvailableProjectsTabProps> = ({
         </div>
       ) : (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {filteredProjects.map((project: Project) => {
+          {filteredProjects.map((project) => {
             const projectSkills = project.required_skills ? JSON.parse(project.required_skills) as string[] : [];
             const matchingSkills = projectSkills.filter(skill => skills?.includes(skill));
             
@@ -122,5 +122,3 @@ const AvailableProjectsTab: React.FC<AvailableProjectsTabProps> = ({
     </div>
   );
 };
-
-export default AvailableProjectsTab;

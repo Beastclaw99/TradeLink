@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -6,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useToast } from "@/components/ui/use-toast";
 import {
@@ -14,9 +14,14 @@ import {
   Clock,
   AlertTriangle,
   Plus,
-  Target
+  Edit2,
+  Trash2,
+  ChevronDown,
+  ChevronUp,
+  Target,
+  FileText
 } from 'lucide-react';
-import { isPast, isToday, differenceInDays } from 'date-fns';
+import { format, isPast, isToday, isFuture, differenceInDays } from 'date-fns';
 import { Milestone } from './creation/types';
 import MilestoneStatusUpdate from './MilestoneStatusUpdate';
 import DeliverableSubmission from './DeliverableSubmission';
@@ -29,6 +34,9 @@ interface ProjectMilestonesProps {
   milestones: Milestone[];
   isClient: boolean;
   onAddMilestone: (milestone: Omit<Milestone, 'id'>) => Promise<void>;
+  onEditMilestone: (milestoneId: string, milestone: Partial<Milestone>) => Promise<void>;
+  onDeleteMilestone: (milestoneId: string) => Promise<void>;
+  onUpdateTaskStatus: (milestoneId: string, taskId: string, completed: boolean) => Promise<void>;
   projectId: string;
   projectStatus: ProjectStatus;
 }
@@ -37,18 +45,22 @@ const ProjectMilestones: React.FC<ProjectMilestonesProps> = ({
   milestones,
   isClient,
   onAddMilestone,
+  onEditMilestone,
+  onDeleteMilestone,
+  onUpdateTaskStatus,
   projectId,
   projectStatus
 }) => {
   const { toast } = useToast();
   const [isAddingMilestone, setIsAddingMilestone] = useState(false);
+  const [editingMilestone, setEditingMilestone] = useState<string | null>(null);
+  const [expandedMilestones, setExpandedMilestones] = useState<Set<string>>(new Set());
   const [newMilestone, setNewMilestone] = useState<Omit<Milestone, 'id'>>({
     title: '',
     description: '',
     dueDate: '',
     status: 'not_started',
-    deliverables: [],
-    tasks: []
+    deliverables: []
   });
   const [newTask, setNewTask] = useState('');
   const [deliverables, setDeliverables] = useState<Record<string, any[]>>({});
@@ -88,8 +100,7 @@ const ProjectMilestones: React.FC<ProjectMilestonesProps> = ({
         description: '',
         dueDate: '',
         status: 'not_started',
-        deliverables: [],
-        tasks: []
+        deliverables: []
       });
       setIsAddingMilestone(false);
       toast({
@@ -105,12 +116,57 @@ const ProjectMilestones: React.FC<ProjectMilestonesProps> = ({
     }
   };
 
+  const handleEditMilestone = async (milestoneId: string, updates: Partial<Milestone>) => {
+    try {
+      await onEditMilestone(milestoneId, updates);
+      setEditingMilestone(null);
+      toast({
+        title: "Success",
+        description: "Milestone updated successfully."
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update milestone. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleDeleteMilestone = async (milestoneId: string) => {
+    try {
+      await onDeleteMilestone(milestoneId);
+      toast({
+        title: "Success",
+        description: "Milestone deleted successfully."
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete milestone. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleUpdateTaskStatus = async (milestoneId: string, taskId: string, completed: boolean) => {
+    try {
+      await onUpdateTaskStatus(milestoneId, taskId, completed);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update task status. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
+
   const handleAddTask = () => {
     if (!newTask.trim()) return;
 
     setNewMilestone(prev => ({
       ...prev,
-      tasks: [...(prev.tasks || []), { id: crypto.randomUUID(), title: newTask.trim(), completed: false }]
+      tasks: [...prev.tasks, { id: crypto.randomUUID(), title: newTask.trim(), completed: false }]
     }));
     setNewTask('');
   };
@@ -154,8 +210,34 @@ const ProjectMilestones: React.FC<ProjectMilestonesProps> = ({
     );
   };
 
-  const handleStatusUpdate = (_newStatus: string) => {
-    // Implementation for status update
+  const getDueDateStatus = (dueDate: string) => {
+    const date = new Date(dueDate);
+    if (isPast(date) && !isToday(date)) {
+      return 'text-red-600';
+    } else if (isToday(date)) {
+      return 'text-yellow-600';
+    } else if (isFuture(date)) {
+      return 'text-green-600';
+    }
+    return 'text-gray-600';
+  };
+
+  const toggleMilestoneExpansion = (milestoneId: string) => {
+    setExpandedMilestones(prev => {
+      const next = new Set(prev);
+      if (next.has(milestoneId)) {
+        next.delete(milestoneId);
+      } else {
+        next.add(milestoneId);
+      }
+      return next;
+    });
+  };
+
+  const handleStatusUpdate = (newStatus: Milestone['status']) => {
+    if (editingMilestone && onEditMilestone) {
+      onEditMilestone(editingMilestone, { status: newStatus });
+    }
   };
 
   const handleDeliverableSubmitted = () => {
@@ -271,13 +353,13 @@ const ProjectMilestones: React.FC<ProjectMilestonesProps> = ({
                       <Button onClick={handleAddTask}>Add</Button>
                     </div>
                     <div className="space-y-2 mt-2">
-                      {(newMilestone.tasks || []).map((task) => (
+                      {newMilestone.tasks.map((task) => (
                         <div key={task.id} className="flex items-center gap-2">
                           <input
                             type="checkbox"
                             checked={task.completed}
                             onChange={(e) => {
-                              const updatedTasks = (newMilestone.tasks || []).map(t =>
+                              const updatedTasks = newMilestone.tasks.map(t =>
                                 t.id === task.id ? { ...t, completed: e.target.checked } : t
                               );
                               setNewMilestone(prev => ({ ...prev, tasks: updatedTasks }));
@@ -357,8 +439,8 @@ const ProjectMilestones: React.FC<ProjectMilestonesProps> = ({
                     )}
 
                     {/* Tasks Section */}
-                    <div className="space-y-2">
-                      <h4 className="font-medium">Tasks</h4>
+                      <div className="space-y-2">
+                        <h4 className="font-medium">Tasks</h4>
                       <MilestoneTasks
                         milestoneId={milestone.id!}
                         projectId={projectId}
@@ -366,8 +448,9 @@ const ProjectMilestones: React.FC<ProjectMilestonesProps> = ({
                         milestoneTitle={milestone.title}
                         clientId={milestone.created_by || ''}
                         professionalId={milestone.created_by || ''}
+                        onTaskStatusUpdate={handleUpdateTaskStatus}
                       />
-                    </div>
+                      </div>
 
                     {/* Deliverables Section */}
                     <div className="space-y-2">
@@ -377,6 +460,10 @@ const ProjectMilestones: React.FC<ProjectMilestonesProps> = ({
                           <DeliverableSubmission
                             milestoneId={milestone.id!}
                             projectId={projectId}
+                            projectTitle={milestone.title}
+                            milestoneTitle={milestone.title}
+                            clientId={milestone.created_by || ''}
+                            professionalId={milestone.created_by || ''}
                             onSubmissionComplete={handleDeliverableSubmitted}
                           />
                         )}
@@ -391,7 +478,7 @@ const ProjectMilestones: React.FC<ProjectMilestonesProps> = ({
                                   {isClient && projectStatus === 'work_submitted' && (
                                     <DeliverableReview
                                       deliverable={deliverable}
-                                      onReviewComplete={handleDeliverableSubmitted}
+                                      onReviewSubmitted={handleDeliverableSubmitted}
                                     />
                                   )}
                                 </div>
