@@ -98,6 +98,22 @@ const ProfessionalDashboard: React.FC<ProfessionalDashboardProps> = ({ userId })
     }
   };
 
+  // Fix the return type mismatch for calculateAverageRating
+  const wrappedCalculateAverageRating = (): number => {
+    const result = calculateAverageRating();
+    return typeof result === 'string' ? parseFloat(result) || 0 : result;
+  };
+
+  // Fix the return type mismatch for calculatePaymentTotals
+  const wrappedCalculatePaymentTotals = () => {
+    const totals = calculatePaymentTotals();
+    return {
+      total: totals.received + totals.pending,
+      pending: totals.pending,
+      completed: totals.received
+    };
+  };
+
   if (error) {
     return <DashboardError error={error} isLoading={isLoading} onRetry={fetchDashboardData} />;
   }
@@ -123,8 +139,8 @@ const ProfessionalDashboard: React.FC<ProfessionalDashboardProps> = ({ userId })
       isApplying={isApplying}
       handleApplyToProject={handleApplyToProject}
       markProjectComplete={markProjectComplete}
-      calculateAverageRating={calculateAverageRating}
-      calculatePaymentTotals={calculatePaymentTotals}
+      calculateAverageRating={wrappedCalculateAverageRating}
+      calculatePaymentTotals={wrappedCalculatePaymentTotals}
       updateProfile={updateProfile}
       isEditing={isEditing}
       setIsEditing={setIsEditing}
