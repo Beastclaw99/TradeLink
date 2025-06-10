@@ -69,31 +69,42 @@ export const useClientDataFetcher = (userId: string) => {
         .from('projects')
         .select(`
           *,
-          professional:profiles!projects_assigned_to_fkey(
-            id,
+          client:client_id (
+            first_name,
+            last_name
+          ),
+          professional:professional_id (
             first_name,
             last_name,
             rating,
             profile_image
           ),
-          milestones:project_milestones(
+          milestones:project_milestones (
             id,
             title,
             description,
             due_date,
-            status
-          ),
-          deliverables:project_deliverables(
-            id,
-            title,
-            description,
             status,
+            tasks:project_tasks (
+              id,
+              title,
+              description,
+              status,
+              completed
+            )
+          ),
+          deliverables:project_deliverables (
+            id,
+            description,
+            deliverable_type,
+            content,
             file_url,
+            status,
             submitted_at,
             approved_at
           )
         `)
-        .or(`client_id.eq.${userId},assigned_to.eq.${userId}`)
+        .eq('client_id', userId)
         .order('created_at', { ascending: false });
       
       if (projectsError) {
