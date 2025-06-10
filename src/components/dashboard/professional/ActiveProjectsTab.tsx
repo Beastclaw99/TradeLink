@@ -30,6 +30,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { supabase } from '@/integrations/supabase/client';
 import { Milestone, DBMilestone, convertDBMilestoneToMilestone, convertMilestoneToDBMilestone } from '@/components/project/creation/types';
 import { ProjectStatus } from '@/types/projectUpdates';
+import { useProjectStatus } from '@/hooks/useProjectStatus';
 
 interface ActiveProjectsTabProps {
   isLoading: boolean;
@@ -49,6 +50,12 @@ const ActiveProjectsTab: React.FC<ActiveProjectsTabProps> = ({
   const [activeTab, setActiveTab] = useState<Record<string, string>>({});
   const [showUpdateForm, setShowUpdateForm] = useState<Record<string, boolean>>({});
   const [projectMilestones, setProjectMilestones] = useState<Record<string, Milestone[]>>({});
+
+  // Get the useProjectStatus hook for each project
+  const projectStatusHooks = projects.reduce((acc, project) => {
+    acc[project.id] = useProjectStatus(project.id, userId);
+    return acc;
+  }, {} as Record<string, ReturnType<typeof useProjectStatus>>);
 
   // Fetch milestones for a project
   const fetchMilestones = async (projectId: string) => {
@@ -286,13 +293,13 @@ const ActiveProjectsTab: React.FC<ActiveProjectsTabProps> = ({
         id: 'in_progress',
         title: 'In Progress',
         status: project.status === 'in_progress' ? 'current' : 
-               ['assigned'].includes(project.status) ? 'pending' : 'completed' as 'completed' | 'current' | 'pending'
+               ['assigned'].includes(project.status || '') ? 'pending' : 'completed' as 'completed' | 'current' | 'pending'
       },
       {
-        id: 'review',
+        id: 'work_submitted',
         title: 'Review',
-        status: project.status === 'review' ? 'current' : 
-               ['assigned', 'in_progress'].includes(project.status) ? 'pending' : 'completed' as 'completed' | 'current' | 'pending'
+        status: project.status === 'work_submitted' ? 'current' : 
+               ['assigned', 'in_progress'].includes(project.status || '') ? 'pending' : 'completed' as 'completed' | 'current' | 'pending'
       },
       {
         id: 'completed',
@@ -302,8 +309,19 @@ const ActiveProjectsTab: React.FC<ActiveProjectsTabProps> = ({
     ];
   };
 
+  const handleStatusUpdate = async (projectId: string, newStatus: ProjectStatus) => {
+    const projectStatusHook = projectStatusHooks[projectId];
+    if (!projectStatusHook) return;
+
+    const result = await projectStatusHook.updateProjectStatus(newStatus);
+    if (result.success) {
+      // Refresh the project data
+      markProjectComplete(projectId);
+    }
+  };
+
   const activeProjects = projects.filter(p => 
-    ['assigned', 'in_progress', 'review'].includes(p.status) && p.assigned_to === userId
+    ['assigned', 'in_progress', 'review'].includes(p.status || '') && p.assigned_to === userId
   );
 
   const completedProjects = projects.filter(p => 
@@ -353,9 +371,9 @@ const ActiveProjectsTab: React.FC<ActiveProjectsTabProps> = ({
                       <div className="flex items-center gap-3 mb-2">
                         <CardTitle className="text-xl">{project.title}</CardTitle>
                         <div className="flex items-center gap-2">
-                          {getStatusIcon(project.status)}
+                          {getStatusIcon(project.status || '')}
                           <Badge variant="outline" className="capitalize">
-                            {project.status.replace('_', ' ')}
+                            {project.status?.replace('_', ' ')}
                           </Badge>
                           {project.urgency && (
                             <Badge className={`border ${getUrgencyColor(project.urgency)}`}>
@@ -376,10 +394,12 @@ const ActiveProjectsTab: React.FC<ActiveProjectsTabProps> = ({
                             {project.location}
                           </span>
                         )}
-                        <span className="flex items-center gap-1">
-                          <DollarSign className="h-4 w-4" />
-                          ${project.budget?.toLocaleString()}
-                        </span>
+                        {project.budget && (
+                          <span className="flex items-center gap-1">
+                            <DollarSign className="h-4 w-4" />
+                            ${project.budget.toLocaleString()}
+                          </span>
+                        )}
                       </CardDescription>
                     </div>
                     
@@ -543,13 +563,33 @@ const ActiveProjectsTab: React.FC<ActiveProjectsTabProps> = ({
 
                 <CardFooter className="bg-gray-50 border-t">
                   <div className="flex w-full gap-3">
-                    <Button 
-                      className="flex-1 bg-green-600 hover:bg-green-700"
-                      onClick={() => markProjectComplete(project.id)}
-                    >
-                      <CheckCircle className="h-4 w-4 mr-2" />
-                      Mark as Completed
-                    </Button>
+                    {project.status === 'assigned' && (
+                      <Button 
+                        className="flex-1"
+                        onClick={() => handleStatusUpdate(project.id, 'in_progress')}
+                      >
+                        <Target className="h-4 w-4 mr-2" />
+                        Start Project
+                      </Button>
+                    )}
+                    {project.status === 'in_progress' && (
+                      <Button 
+                        className="flex-1"
+                        onClick={() => handleStatusUpdate(project.id, 'work_submitted')}
+                      >
+                        <FileText className="h-4 w-4 mr-2" />
+                        Submit for Review
+                      </Button>
+                    )}
+                    {project.status === 'work_approved' && (
+                      <Button 
+                        className="flex-1 bg-green-600 hover:bg-green-700"
+                        onClick={() => handleStatusUpdate(project.id, 'completed')}
+                      >
+                        <CheckCircle className="h-4 w-4 mr-2" />
+                        Mark as Completed
+                      </Button>
+                    )}
                     <Button 
                       variant="outline" 
                       className="flex-1"

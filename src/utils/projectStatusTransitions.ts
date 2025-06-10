@@ -60,8 +60,23 @@ const TRANSITION_REQUIREMENTS: Record<ProjectStatus, {
     }
   },
   archived: {
-    requiredFields: [],
-    requiredConditions: (project) => project.status === 'completed'
+    requiredFields: ['reviews'],
+    requiredConditions: (project) => {
+      // Check if project is completed
+      if (project.status !== 'completed') return false;
+
+      // Check if both reviews exist in the project data
+      if (!project.reviews || !Array.isArray(project.reviews)) return false;
+
+      const hasClientReview = project.reviews.some((review: any) => 
+        review.client_id === project.client_id
+      );
+      const hasProfessionalReview = project.reviews.some((review: any) => 
+        review.professional_id === project.professional_id
+      );
+
+      return hasClientReview && hasProfessionalReview;
+    }
   },
   cancelled: {
     requiredFields: ['cancellation_reason'],
@@ -123,10 +138,14 @@ export const handleStatusTransition = async (
   metadata?: any
 ): Promise<{ success: boolean; message?: string }> => {
   try {
-    // Get current project data
+    // Get current project data with reviews
     const { data: project, error: fetchError } = await supabase
       .from('projects')
-      .select('*, milestones(*)')
+      .select(`
+        *,
+        milestones(*),
+        reviews(*)
+      `)
       .eq('id', projectId)
       .single();
 

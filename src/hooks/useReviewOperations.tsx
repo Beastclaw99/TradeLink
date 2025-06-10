@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -43,6 +42,9 @@ export const useReviewOperations = (userId: string, applications: Application[],
       if (!acceptedApp || !acceptedApp.professional_id) {
         throw new Error("Could not find professional for this project");
       }
+
+      // Check if this is a client or professional review
+      const isClientReview = userId === projectToReview.client_id;
       
       // Submit the review
       const { data, error } = await supabase
@@ -50,27 +52,45 @@ export const useReviewOperations = (userId: string, applications: Application[],
         .insert([
           {
             project_id: projectToReview.id,
-            client_id: userId,
-            professional_id: acceptedApp.professional_id,
+            client_id: isClientReview ? userId : projectToReview.client_id,
+            professional_id: isClientReview ? acceptedApp.professional_id : userId,
             rating: reviewData.rating,
             comment: reviewData.comment
           }
         ]);
       
       if (error) throw error;
-      
-      // Update project status to archived
-      const { error: updateError } = await supabase
-        .from('projects')
-        .update({ status: 'archived' })
-        .eq('id', projectToReview.id);
-      
-      if (updateError) throw updateError;
-      
-      toast({
-        title: "Review Submitted",
-        description: "Your review has been submitted successfully."
-      });
+
+      // Check if both reviews have been submitted
+      const { data: reviews, error: reviewsError } = await supabase
+        .from('reviews')
+        .select('*')
+        .eq('project_id', projectToReview.id);
+
+      if (reviewsError) throw reviewsError;
+
+      const hasClientReview = reviews.some(review => review.client_id === projectToReview.client_id);
+      const hasProfessionalReview = reviews.some(review => review.professional_id === acceptedApp.professional_id);
+
+      // Only archive if both reviews are submitted
+      if (hasClientReview && hasProfessionalReview) {
+        const { error: updateError } = await supabase
+          .from('projects')
+          .update({ status: 'archived' })
+          .eq('id', projectToReview.id);
+        
+        if (updateError) throw updateError;
+
+        toast({
+          title: "Project Archived",
+          description: "Both reviews have been submitted and the project has been archived."
+        });
+      } else {
+        toast({
+          title: "Review Submitted",
+          description: "Your review has been submitted. Waiting for the other party to submit their review."
+        });
+      }
       
       // Refresh data
       onUpdate();
