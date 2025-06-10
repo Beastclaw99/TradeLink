@@ -1,7 +1,7 @@
-
 import { useState } from 'react';
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { notificationService } from '@/services/notificationService';
 
 export const useApplicationOperations = (userId: string, onUpdate: () => void) => {
   const { toast } = useToast();
@@ -15,6 +15,15 @@ export const useApplicationOperations = (userId: string, onUpdate: () => void) =
   ) => {
     try {
       setIsProcessing(true);
+      
+      // Get project details for notification
+      const { data: projectData, error: projectError } = await supabase
+        .from('projects')
+        .select('title')
+        .eq('id', projectId)
+        .single();
+      
+      if (projectError) throw projectError;
       
       // Start a transaction
       if (newStatus === 'accepted') {
@@ -48,6 +57,32 @@ export const useApplicationOperations = (userId: string, onUpdate: () => void) =
       
       if (appError) throw appError;
       
+      // Create notifications for both parties
+      const notificationTitle = newStatus === 'accepted' ? 'Application Accepted' : 'Application Rejected';
+      const notificationMessage = newStatus === 'accepted'
+        ? `Your application for "${projectData.title}" has been accepted!`
+        : `Your application for "${projectData.title}" has been rejected.`;
+      
+      // Notify professional
+      await notificationService.createNotification({
+        user_id: professionalId,
+        type: newStatus === 'accepted' ? 'success' : 'info',
+        title: notificationTitle,
+        message: notificationMessage,
+        action_url: `/projects/${projectId}`,
+        action_label: 'View Project'
+      });
+      
+      // Notify client
+      await notificationService.createNotification({
+        user_id: userId,
+        type: 'info',
+        title: `Application ${newStatus === 'accepted' ? 'Accepted' : 'Rejected'}`,
+        message: `You have ${newStatus === 'accepted' ? 'accepted' : 'rejected'} an application for "${projectData.title}".`,
+        action_url: `/projects/${projectId}`,
+        action_label: 'View Project'
+      });
+      
       toast({
         title: `Application ${newStatus === 'accepted' ? 'Accepted' : 'Rejected'}`,
         description: newStatus === 'accepted' 
@@ -58,20 +93,20 @@ export const useApplicationOperations = (userId: string, onUpdate: () => void) =
       // Refresh data
       onUpdate();
       
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error updating application:', error);
       toast({
         title: "Error",
-        description: "Failed to update application. Please try again.",
+        description: "Failed to update application status. Please try again.",
         variant: "destructive"
       });
     } finally {
       setIsProcessing(false);
     }
   };
-  
+
   return {
-    isProcessing,
-    handleApplicationUpdate
+    handleApplicationUpdate,
+    isProcessing
   };
 };

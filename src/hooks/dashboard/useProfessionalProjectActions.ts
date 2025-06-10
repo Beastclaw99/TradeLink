@@ -1,7 +1,7 @@
-
 import { useState } from 'react';
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { notificationService } from '@/services/notificationService';
 
 export const useProfessionalProjectActions = (userId: string, fetchDashboardData: () => void) => {
   const { toast } = useToast();
@@ -27,7 +27,7 @@ export const useProfessionalProjectActions = (userId: string, fetchDashboardData
       // Check if project is still open before applying
       const { data: projectData, error: projectError } = await supabase
         .from('projects')
-        .select('status')
+        .select('status, title, client_id')
         .eq('id', selectedProject)
         .single();
         
@@ -62,6 +62,16 @@ export const useProfessionalProjectActions = (userId: string, fetchDashboardData
         .select();
       
       if (error) throw error;
+      
+      // Create notification for client
+      await notificationService.createNotification({
+        user_id: projectData.client_id,
+        type: 'info',
+        title: 'New Application Received',
+        message: `A new application has been submitted for your project "${projectData.title}".`,
+        action_url: `/projects/${selectedProject}`,
+        action_label: 'View Application'
+      });
       
       toast({
         title: "Application Submitted",
