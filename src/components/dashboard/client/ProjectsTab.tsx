@@ -30,6 +30,7 @@ import ProjectProgressOverview from '@/components/project/ProjectProgressOvervie
 import { ProjectStatus } from '@/types/projectUpdates';
 import { useToast } from "@/components/ui/use-toast";
 import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 interface ProjectsTabProps {
   isLoading: boolean;
@@ -116,7 +117,7 @@ export const ProjectsTab: React.FC<ProjectsTabProps> = ({
     const isExpanded = expandedProjectId === project.id;
     const isSelected = selectedProject?.id === project.id;
   
-  return (
+    return (
       <Card key={project.id} className="mb-4">
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -145,7 +146,7 @@ export const ProjectsTab: React.FC<ProjectsTabProps> = ({
         
         {isExpanded && isSelected && (
           <CardContent>
-        <div className="space-y-4">
+            <div className="space-y-4">
               <div>
                 <h4 className="font-medium mb-2">Description</h4>
                 <p className="text-sm text-muted-foreground">{project.description}</p>
@@ -171,7 +172,7 @@ export const ProjectsTab: React.FC<ProjectsTabProps> = ({
                     <span className="ml-2">{project.location}</span>
                   </div>
                 </div>
-        </div>
+              </div>
 
               {project.milestones && project.milestones.length > 0 && (
                 <div>
@@ -189,8 +190,8 @@ export const ProjectsTab: React.FC<ProjectsTabProps> = ({
                       </div>
                     ))}
                   </div>
-        </div>
-      )}
+                </div>
+              )}
       
               <div className="flex justify-end space-x-2">
                 <Button
@@ -198,13 +199,13 @@ export const ProjectsTab: React.FC<ProjectsTabProps> = ({
                   onClick={() => onEditProject(project)}
                 >
                   Edit Project
-            </Button>
-            <Button 
-              variant="destructive" 
+                </Button>
+                <Button 
+                  variant="destructive" 
                   onClick={() => onDeleteProject(project.id)}
-            >
+                >
                   Delete Project
-            </Button>
+                </Button>
               </div>
             </div>
           </CardContent>
@@ -214,20 +215,29 @@ export const ProjectsTab: React.FC<ProjectsTabProps> = ({
   };
 
   if (isLoading) {
-    return <div>Loading projects...</div>;
-  }
-
-  if (error) {
-    return <div>Error: {error}</div>;
-  }
-
-  if (!projects || projects.length === 0) {
-    return <div>No projects found.</div>;
+    return (
+      <div className="flex items-center justify-center min-h-[200px]">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        <span className="ml-2">Loading projects...</span>
+      </div>
+    );
   }
 
   return (
     <div className="space-y-4">
-      {projects.map(renderProjectCard)}
+      {error && (
+        <Alert variant="destructive" className="mb-4">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+      
+      {(!projects || projects.length === 0) ? (
+        <EmptyProjectState />
+      ) : (
+        projects.map(renderProjectCard)
+      )}
     </div>
   );
 };
