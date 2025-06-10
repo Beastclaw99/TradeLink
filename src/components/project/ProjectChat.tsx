@@ -36,15 +36,9 @@ const ProjectChat: React.FC<ProjectChatProps> = ({ projectId, currentUserId }) =
   useEffect(() => {
     fetchMessages();
     
-    // Set up realtime subscription
-    const setupRealtimeSubscription = () => {
-      // Clean up existing channel if it exists
-      if (channelRef.current) {
-        supabase.removeChannel(channelRef.current);
-      }
-
-      // Create new channel
-      channelRef.current = supabase
+    // Set up realtime subscription only if we don't have one already
+    if (!channelRef.current) {
+      const channel = supabase
         .channel(`project_messages_${projectId}`)
         .on(
           'postgres_changes',
@@ -59,9 +53,9 @@ const ProjectChat: React.FC<ProjectChatProps> = ({ projectId, currentUserId }) =
           }
         )
         .subscribe();
-    };
-
-    setupRealtimeSubscription();
+      
+      channelRef.current = channel;
+    }
 
     // Cleanup function
     return () => {
