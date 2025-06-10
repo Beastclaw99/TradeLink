@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,7 +9,6 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from '@/integrations/supabase/client';
 import { 
-  Upload, 
   FileText, 
   Download, 
   Eye,
@@ -66,7 +64,21 @@ const ProjectDeliverables: React.FC<ProjectDeliverablesProps> = ({
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setDeliverables(data || []);
+      
+      // Transform the data to match our interface
+      const transformedDeliverables: Deliverable[] = (data || []).map(item => ({
+        id: item.id,
+        file_url: item.file_url,
+        description: item.description || undefined,
+        deliverable_type: item.deliverable_type || 'file',
+        content: item.content || undefined,
+        created_at: item.created_at || new Date().toISOString(),
+        uploaded_by: item.uploaded_by || undefined,
+        milestone_id: item.milestone_id || undefined,
+        project_id: item.project_id || projectId
+      }));
+      
+      setDeliverables(transformedDeliverables);
     } catch (error) {
       console.error('Error fetching deliverables:', error);
       toast({

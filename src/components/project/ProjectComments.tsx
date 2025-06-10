@@ -1,8 +1,7 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -12,7 +11,6 @@ import {
   Send,
   MoreVertical,
   Clock,
-  User,
   ThumbsUp,
   Reply,
   Flag,
@@ -27,7 +25,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { format, formatDistanceToNow } from 'date-fns';
+import { formatDistanceToNow } from 'date-fns';
 
 interface CommentUser {
   id: string;
@@ -353,6 +351,105 @@ const ProjectComments: React.FC<ProjectCommentsProps> = ({
     );
   };
 
+  const handleCreateComment = async (parentId?: string) => {
+    if (!newComment.trim()) return;
+
+    setIsProcessing(true);
+    try {
+      await onCreateComment(newComment.trim(), parentId);
+      setNewComment('');
+      setReplyingTo(null);
+      toast({
+        title: "Success",
+        description: "Comment added successfully."
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to add comment. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleUpdateComment = async (commentId: string) => {
+    if (!editContent.trim()) return;
+
+    setIsProcessing(true);
+    try {
+      await onUpdateComment(commentId, editContent.trim());
+      setEditingComment(null);
+      setEditContent('');
+      toast({
+        title: "Success",
+        description: "Comment updated successfully."
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update comment. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleDeleteComment = async (commentId: string) => {
+    setIsProcessing(true);
+    try {
+      await onDeleteComment(commentId);
+      toast({
+        title: "Success",
+        description: "Comment deleted successfully."
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete comment. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleLikeComment = async (commentId: string) => {
+    setIsProcessing(true);
+    try {
+      await onLikeComment(commentId);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to like comment. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleReportComment = async (commentId: string) => {
+    setIsProcessing(true);
+    try {
+      await onReportComment(commentId);
+      toast({
+        title: "Success",
+        description: "Comment reported successfully."
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to report comment. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   return (
     <Card>
       <CardHeader className="border-b">
@@ -394,4 +491,4 @@ const ProjectComments: React.FC<ProjectCommentsProps> = ({
   );
 };
 
-export default ProjectComments; 
+export default ProjectComments;
