@@ -439,8 +439,8 @@ const ProjectMilestones: React.FC<ProjectMilestonesProps> = ({
                     )}
 
                     {/* Tasks Section */}
-                      <div className="space-y-2">
-                        <h4 className="font-medium">Tasks</h4>
+                    <div className="space-y-2">
+                      <h4 className="font-medium">Tasks</h4>
                       <MilestoneTasks
                         milestoneId={milestone.id!}
                         projectId={projectId}
@@ -450,7 +450,7 @@ const ProjectMilestones: React.FC<ProjectMilestonesProps> = ({
                         professionalId={milestone.created_by || ''}
                         onTaskStatusUpdate={handleUpdateTaskStatus}
                       />
-                      </div>
+                    </div>
 
                     {/* Deliverables Section */}
                     <div className="space-y-2">
