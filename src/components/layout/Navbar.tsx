@@ -1,133 +1,84 @@
-import React, { useState, useEffect } from 'react';
-import {
-  NavigationMenu,
-  NavigationMenuList,
-  NavigationMenuItem,
-  NavigationMenuContent,
-  NavigationMenuTrigger,
-  NavigationMenuLink,
-} from "@/components/ui/navigation-menu"
-import { Button } from "@/components/ui/button"
+
+import React from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
+import { NavigationMenu, NavigationMenuItem, NavigationMenuList } from '@/components/ui/navigation-menu';
+import { NotificationBell } from '@/components/shared/NotificationBell';
 import { useAuth } from '@/contexts/AuthContext';
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { LogOut } from 'lucide-react';
-import { Link } from 'react-router-dom';
-import NotificationBell from '@/components/shared/NotificationBell';
-import { supabase } from '@/integrations/supabase/client';
 
-const Navbar: React.FC = () => {
-  const { user, logout } = useAuth();
-  const [accountType, setAccountType] = useState<string | null>(null);
+const Navbar = () => {
+  const { user, signOut } = useAuth();
+  const navigate = useNavigate();
 
-  useEffect(() => {
-    const fetchAccountType = async () => {
-      if (!user) return;
-      
-      try {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('account_type')
-          .eq('id', user.id)
-          .single();
-        
-        if (error) throw error;
-        setAccountType(data.account_type);
-      } catch (error) {
-        console.error('Error fetching account type:', error);
-      }
-    };
-
-    fetchAccountType();
-  }, [user]);
-
-  const handleLogout = async () => {
-    try {
-      await logout();
-    } catch (error) {
-      console.error("Logout failed:", error);
-    }
+  const handleSignOut = async () => {
+    await signOut();
+    navigate('/');
   };
 
   return (
-    <div className="border-b">
-      <div className="container-custom h-16 flex items-center justify-between">
-        <Link to="/" className="mr-4 flex items-center space-x-2">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="h-6 w-6"
-          >
-            <path d="M15 6v12a3 3 0 0 0 3-3H6a3 3 0 0 0 3 3V6a3 3 0 0 0-3 3h12a3 3 0 0 0-3-3Z" />
-          </svg>
-          <span className="font-bold">ProLinkTT</span>
-        </Link>
-        <NavigationMenu>
-          <NavigationMenuList className="space-x-6">
-            <NavigationMenuItem>
-              <NavigationMenuLink>
-                <Link to="/marketplace" className="text-sm font-medium leading-none text-ttc-blue-700 hover:text-ttc-blue-800 focus:text-ttc-blue-800 transition-colors">
-                  Professional Marketplace
-                </Link>
-              </NavigationMenuLink>
-            </NavigationMenuItem>
-            <NavigationMenuItem>
-              <NavigationMenuLink>
-                <Link to="/project-marketplace" className="text-sm font-medium leading-none text-ttc-blue-700 hover:text-ttc-blue-800 focus:text-ttc-blue-800 transition-colors">
-                  Project Marketplace
-                </Link>
-              </NavigationMenuLink>
-            </NavigationMenuItem>
-            {user && (
+    <nav className="bg-white shadow-sm border-b">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex justify-between h-16">
+          <div className="flex items-center">
+            <Link to="/" className="flex-shrink-0">
+              <h1 className="text-2xl font-bold text-primary">ServiceConnect</h1>
+            </Link>
+          </div>
+
+          <NavigationMenu>
+            <NavigationMenuList className="flex items-center space-x-8">
               <NavigationMenuItem>
-                <NavigationMenuLink>
-                  <Link to="/dashboard" className="text-sm font-medium leading-none text-ttc-blue-700 hover:text-ttc-blue-800 focus:text-ttc-blue-800 transition-colors">
-                    {accountType === 'professional' ? 'Professional Dashboard' : 'Client Dashboard'}
-                  </Link>
-                </NavigationMenuLink>
-              </NavigationMenuItem>
-            )}
-            <NavigationMenuItem>
-              <NavigationMenuLink>
-                <Link to="/resources" className="text-sm font-medium leading-none text-ttc-blue-700 hover:text-ttc-blue-800 focus:text-ttc-blue-800 transition-colors">
-                  Resources
+                <Link 
+                  to="/how-it-works" 
+                  className="text-gray-600 hover:text-gray-900 px-3 py-2 text-sm font-medium"
+                >
+                  How It Works
                 </Link>
-              </NavigationMenuLink>
-            </NavigationMenuItem>
-          </NavigationMenuList>
-        </NavigationMenu>
-        {user ? (
+              </NavigationMenuItem>
+              <NavigationMenuItem>
+                <Link 
+                  to="/marketplace" 
+                  className="text-gray-600 hover:text-gray-900 px-3 py-2 text-sm font-medium"
+                >
+                  Find Work
+                </Link>
+              </NavigationMenuItem>
+              <NavigationMenuItem>
+                <Link 
+                  to="/professional-marketplace" 
+                  className="text-gray-600 hover:text-gray-900 px-3 py-2 text-sm font-medium"
+                >
+                  Find Professionals
+                </Link>
+              </NavigationMenuItem>
+            </NavigationMenuList>
+          </NavigationMenu>
+
           <div className="flex items-center space-x-4">
-            <NotificationBell />
-            <Link to="/dashboard">
-              <Avatar>
-                <AvatarImage src="https://github.com/shadcn.png" />
-                <AvatarFallback>CN</AvatarFallback>
-              </Avatar>
-            </Link>
-            <Button size="sm" onClick={handleLogout}>
-              <LogOut className="w-4 h-4 mr-2" />
-              Logout
-            </Button>
+            {user ? (
+              <>
+                <NotificationBell />
+                <Link to="/dashboard">
+                  <Button variant="outline">Dashboard</Button>
+                </Link>
+                <Button onClick={handleSignOut} variant="ghost">
+                  Sign Out
+                </Button>
+              </>
+            ) : (
+              <>
+                <Link to="/login">
+                  <Button variant="outline">Login</Button>
+                </Link>
+                <Link to="/signup">
+                  <Button>Sign Up</Button>
+                </Link>
+              </>
+            )}
           </div>
-        ) : (
-          <div className="flex items-center space-x-4">
-            <Link to="/login">
-              <Button variant="outline" size="sm">
-                Login
-              </Button>
-            </Link>
-            <Link to="/signup">
-              <Button size="sm">Sign Up</Button>
-            </Link>
-          </div>
-        )}
+        </div>
       </div>
-    </div>
+    </nav>
   );
 };
 

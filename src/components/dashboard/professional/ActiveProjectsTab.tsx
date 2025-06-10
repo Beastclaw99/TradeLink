@@ -34,10 +34,18 @@ interface DatabaseMilestone {
   updated_at: string | null;
   created_by: string | null;
   requires_deliverable: boolean | null;
+  tasks: {
+    id: string;
+    title: string;
+    description: string | null;
+    status: string | null;
+    completed: boolean;
+  }[];
 }
 
-interface ProjectWithMilestones extends Project {
+interface ProjectWithMilestones extends Omit<Project, 'milestones'> {
   milestones?: DatabaseMilestone[];
+  required_skills: string | null;
 }
 
 interface ActiveProjectsTabProps {
@@ -100,7 +108,8 @@ const ActiveProjectsTab: React.FC<ActiveProjectsTabProps> = ({
             created_at: m.created_at,
             updated_at: m.updated_at,
             created_by: m.created_by,
-            requires_deliverable: m.requires_deliverable
+            requires_deliverable: m.requires_deliverable,
+            tasks: [] // Initialize empty tasks array since we removed the relationship
           })) || []
         };
         setSelectedProject(transformedProject);
@@ -188,7 +197,7 @@ const ActiveProjectsTab: React.FC<ActiveProjectsTabProps> = ({
     }
   };
 
-  const handleTaskStatusUpdate = async (taskId: string, completed: boolean) => {
+  const handleTaskStatusUpdate = async (milestoneId: string, taskId: string, completed: boolean) => {
     try {
       const { error } = await supabase
         .from('project_tasks')
@@ -347,7 +356,7 @@ const ActiveProjectsTab: React.FC<ActiveProjectsTabProps> = ({
                         dueDate: m.due_date || '',
                         status: (m.status as any) || 'not_started',
                         deliverables: [],
-                        tasks: []
+                        tasks: m.tasks || []
                       }))}
                       isClient={false}
                       onAddMilestone={async () => {}}

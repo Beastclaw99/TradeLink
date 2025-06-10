@@ -54,15 +54,15 @@ export const useApplications = (
           // Transform applications to match the Application type
           const transformedApplications: Application[] = (data || []).map(app => ({
             id: app.id,
-            project_id: app.project_id,
-            professional_id: app.professional_id,
+            project_id: app.project_id || '',
+            professional_id: app.professional_id || '',
             cover_letter: app.cover_letter,
             proposal_message: app.proposal_message,
             bid_amount: app.bid_amount,
             availability: app.availability,
-            status: app.status,
-            created_at: app.created_at,
-            updated_at: app.updated_at,
+            status: app.status || 'pending',
+            created_at: app.created_at || '',
+            updated_at: app.updated_at || '',
             project: app.project ? {
               id: app.project.id,
               title: app.project.title,

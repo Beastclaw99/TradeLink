@@ -1,238 +1,174 @@
 
 import React from 'react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { X, MapPin, DollarSign, Clock } from 'lucide-react';
-import { StarRating } from '@/components/ui/star-rating';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Star, User, X } from 'lucide-react';
 
 interface ProfessionalSearchFiltersProps {
-  filters: {
-    skills?: string[];
-    rating?: number;
-    location?: string;
-    hourlyRate?: {
-      min?: number;
-      max?: number;
-    };
-    availability?: 'available' | 'busy' | 'unavailable';
-    verificationStatus?: 'verified' | 'pending' | 'unverified';
-  };
-  onFiltersChange: (filters: ProfessionalSearchFiltersProps['filters']) => void;
-  onClearFilters: () => void;
+  searchQuery: string;
+  setSearchQuery: (query: string) => void;
+  selectedSkills: string[];
+  setSelectedSkills: (skills: string[]) => void;
+  locationFilter: string;
+  setLocationFilter: (location: string) => void;
+  minRating: number;
+  setMinRating: (rating: number) => void;
+  maxRate: string;
+  setMaxRate: (rate: string) => void;
+  availabilityFilter: string;
+  setAvailabilityFilter: (availability: string) => void;
+  allSkills: string[];
+  isLoading: boolean;
 }
 
-const SKILLS = [
-  'Plumbing',
-  'Electrical',
-  'Carpentry',
-  'Painting',
-  'Masonry',
-  'Roofing',
-  'HVAC',
-  'Landscaping',
-  'Flooring',
-  'Drywall',
-  'Tiling',
-  'Welding',
-  'Auto Repair',
-  'Appliance Repair',
-  'General Contractor'
-];
-
-const LOCATIONS = [
-  'Port of Spain',
-  'San Fernando',
-  'Chaguanas',
-  'Arima',
-  'Point Fortin',
-  'Scarborough',
-  'Tobago'
-];
-
 const ProfessionalSearchFilters: React.FC<ProfessionalSearchFiltersProps> = ({
-  filters,
-  onFiltersChange,
-  onClearFilters
+  searchQuery,
+  setSearchQuery,
+  selectedSkills,
+  setSelectedSkills,
+  locationFilter,
+  setLocationFilter,
+  minRating,
+  setMinRating,
+  maxRate,
+  setMaxRate,
+  availabilityFilter,
+  setAvailabilityFilter,
+  allSkills,
+  isLoading
 }) => {
-  const handleSkillToggle = (skill: string) => {
-    const currentSkills = filters.skills || [];
-    const newSkills = currentSkills.includes(skill)
-      ? currentSkills.filter(s => s !== skill)
-      : [...currentSkills, skill];
-    
-    onFiltersChange({ ...filters, skills: newSkills });
+  const addSkill = (skill: string) => {
+    if (!selectedSkills.includes(skill)) {
+      setSelectedSkills([...selectedSkills, skill]);
+    }
   };
 
-  const handleRatingChange = (rating: number) => {
-    onFiltersChange({ ...filters, rating });
+  const removeSkill = (skill: string) => {
+    setSelectedSkills(selectedSkills.filter(s => s !== skill));
   };
 
-  const handleLocationChange = (location: string) => {
-    const actualLocation = location === 'all_locations' ? undefined : location;
-    onFiltersChange({ ...filters, location: actualLocation });
-  };
-
-  const handleHourlyRateChange = (type: 'min' | 'max', value: string) => {
-    const numValue = value ? parseInt(value) : undefined;
-    onFiltersChange({
-      ...filters,
-      hourlyRate: {
-        ...filters.hourlyRate,
-        [type]: numValue
-      }
-    });
-  };
-
-  const handleAvailabilityChange = (availability: string) => {
-    const actualAvailability = availability === 'any_availability' ? undefined : availability as 'available' | 'busy' | 'unavailable';
-    onFiltersChange({ ...filters, availability: actualAvailability });
-  };
-
-  const handleVerificationStatusChange = (status: string) => {
-    const actualStatus = status === 'any_status' ? undefined : status as 'verified' | 'pending' | 'unverified';
-    onFiltersChange({ ...filters, verificationStatus: actualStatus });
-  };
-
-  const clearFilters = () => {
-    onFiltersChange({});
-  };
+  const availableSkills = allSkills.filter(skill => 
+    !selectedSkills.includes(skill) && 
+    skill.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
-    <Card>
-      <CardContent className="p-6">
-        <div className="space-y-6">
-          <div>
-            <Label className="text-lg font-semibold mb-4 block">Location</Label>
-            <Select
-              value={filters.location || 'all_locations'}
-              onValueChange={handleLocationChange}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select location" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all_locations">All Locations</SelectItem>
-                {LOCATIONS.map((location) => (
-                  <SelectItem key={location} value={location}>
-                    {location}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+    <div className="bg-white p-6 rounded-lg shadow-sm border space-y-6">
+      <div className="flex items-center gap-2 mb-4">
+        <User className="h-5 w-5 text-primary" />
+        <h3 className="text-lg font-semibold">Filter Professionals</h3>
+      </div>
 
-          <div>
-            <Label className="text-lg font-semibold mb-4 block">Skills</Label>
-            <div className="flex flex-wrap gap-2">
-              {SKILLS.map((skill) => (
-                <Badge
-                  key={skill}
-                  variant={filters.skills?.includes(skill) ? 'default' : 'outline'}
-                  className="cursor-pointer hover:bg-ttc-blue-50"
-                  onClick={() => handleSkillToggle(skill)}
-                >
+      {/* Search */}
+      <div>
+        <Label htmlFor="search">Search by name or skills</Label>
+        <Input
+          id="search"
+          type="text"
+          placeholder="Enter name or skill..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="mt-1"
+        />
+      </div>
+
+      {/* Skills */}
+      <div>
+        <Label>Skills</Label>
+        <div className="mt-2">
+          {selectedSkills.length > 0 && (
+            <div className="flex flex-wrap gap-2 mb-3">
+              {selectedSkills.map((skill) => (
+                <Badge key={skill} variant="default" className="flex items-center gap-1">
                   {skill}
+                  <X
+                    className="h-3 w-3 cursor-pointer"
+                    onClick={() => removeSkill(skill)}
+                  />
                 </Badge>
               ))}
             </div>
-          </div>
-
-          <div>
-            <Label className="text-lg font-semibold mb-4 block">Minimum Rating</Label>
-            <div className="flex items-center space-x-2">
-              <StarRating
-                value={filters.rating || 0}
-                onChange={handleRatingChange}
-                size="large"
-              />
-              {filters.rating ? (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => onFiltersChange({ ...filters, rating: undefined })}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              ) : null}
-            </div>
-          </div>
-
-          <div>
-            <Label className="text-lg font-semibold mb-4 block">Hourly Rate (TTD)</Label>
-            <div className="flex gap-2">
-              <div className="flex-1">
-                <Input
-                  type="number"
-                  placeholder="Min"
-                  value={filters.hourlyRate?.min || ''}
-                  onChange={(e) => handleHourlyRateChange('min', e.target.value)}
-                />
-              </div>
-              <div className="flex-1">
-                <Input
-                  type="number"
-                  placeholder="Max"
-                  value={filters.hourlyRate?.max || ''}
-                  onChange={(e) => handleHourlyRateChange('max', e.target.value)}
-                />
-              </div>
-            </div>
-          </div>
-
-          <div>
-            <Label className="text-lg font-semibold mb-4 block">Availability</Label>
-            <Select
-              value={filters.availability || 'any_availability'}
-              onValueChange={handleAvailabilityChange}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select availability" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="any_availability">Any</SelectItem>
-                <SelectItem value="available">Available</SelectItem>
-                <SelectItem value="busy">Busy</SelectItem>
-                <SelectItem value="unavailable">Unavailable</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div>
-            <Label className="text-lg font-semibold mb-4 block">Verification Status</Label>
-            <Select
-              value={filters.verificationStatus || 'any_status'}
-              onValueChange={handleVerificationStatusChange}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="any_status">Any</SelectItem>
-                <SelectItem value="verified">Verified</SelectItem>
-                <SelectItem value="pending">Pending</SelectItem>
-                <SelectItem value="unverified">Unverified</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {(filters.skills?.length || filters.rating || filters.location || 
-            filters.hourlyRate?.min || filters.hourlyRate?.max || 
-            filters.availability || filters.verificationStatus) && (
-            <Button
-              variant="outline"
-              className="w-full"
-              onClick={clearFilters}
-            >
-              Clear Filters
-            </Button>
           )}
+          
+          <div className="max-h-32 overflow-y-auto space-y-1">
+            {availableSkills.slice(0, 10).map((skill) => (
+              <Button
+                key={skill}
+                variant="outline"
+                size="sm"
+                onClick={() => addSkill(skill)}
+                className="mr-2 mb-2"
+              >
+                + {skill}
+              </Button>
+            ))}
+          </div>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+
+      {/* Location */}
+      <div>
+        <Label htmlFor="location">Location</Label>
+        <Input
+          id="location"
+          type="text"
+          placeholder="Enter location..."
+          value={locationFilter}
+          onChange={(e) => setLocationFilter(e.target.value)}
+          className="mt-1"
+        />
+      </div>
+
+      {/* Rating */}
+      <div>
+        <Label>Minimum Rating</Label>
+        <div className="flex items-center gap-2 mt-2">
+          {[1, 2, 3, 4, 5].map((rating) => (
+            <Star
+              key={rating}
+              className={`h-5 w-5 cursor-pointer ${
+                rating <= minRating
+                  ? 'text-yellow-400 fill-current'
+                  : 'text-gray-300'
+              }`}
+              onClick={() => setMinRating(rating)}
+            />
+          ))}
+        </div>
+      </div>
+
+      {/* Hourly Rate */}
+      <div>
+        <Label htmlFor="maxRate">Max Hourly Rate ($)</Label>
+        <Input
+          id="maxRate"
+          type="number"
+          placeholder="Enter max rate..."
+          value={maxRate}
+          onChange={(e) => setMaxRate(e.target.value)}
+          className="mt-1"
+        />
+      </div>
+
+      {/* Availability */}
+      <div>
+        <Label>Availability</Label>
+        <div className="flex flex-wrap gap-2 mt-2">
+          {['available', 'busy', 'unavailable'].map((status) => (
+            <Button
+              key={status}
+              variant={availabilityFilter === status ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setAvailabilityFilter(availabilityFilter === status ? '' : status)}
+            >
+              {status.charAt(0).toUpperCase() + status.slice(1)}
+            </Button>
+          ))}
+        </div>
+      </div>
+    </div>
   );
 };
 
