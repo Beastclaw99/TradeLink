@@ -64,7 +64,7 @@ export const useClientDashboard = (userId: string) => {
       console.log('Profile data:', userProfileData);
       setProfile(transformClient(userProfileData));
       
-      // Fetch client's projects
+      // Fetch client's projects - both created and assigned
       const { data: projectsData, error: projectsError } = await supabase
         .from('projects')
         .select(`
@@ -100,7 +100,8 @@ export const useClientDashboard = (userId: string) => {
             approved_at
           )
         `)
-        .eq('client_id', userId);
+        .or(`client_id.eq.${userId},assigned_to.eq.${userId}`)
+        .order('created_at', { ascending: false });
       
       if (projectsError) {
         console.error('Projects fetch error:', projectsError);
@@ -108,7 +109,7 @@ export const useClientDashboard = (userId: string) => {
       }
       
       console.log('Projects data:', projectsData);
-      setProjects(transformProjects(projectsData));
+      setProjects(transformProjects(projectsData || []));
       
       // Fetch applications for client's projects
       const { data: appsData, error: appsError } = await supabase
@@ -148,7 +149,7 @@ export const useClientDashboard = (userId: string) => {
       }
       
       console.log('Applications data:', appsData);
-      setApplications(transformApplications(appsData));
+      setApplications(transformApplications(appsData || []));
       
       // Fetch payments
       const { data: paymentsData, error: paymentsError } = await supabase

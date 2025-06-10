@@ -29,6 +29,7 @@ import { ProgressIndicator } from "@/components/ui/progress-indicator";
 import ProjectProgressOverview from '@/components/project/ProjectProgressOverview';
 import { ProjectStatus } from '@/types/projectUpdates';
 import { useToast } from "@/components/ui/use-toast";
+import { Badge } from "@/components/ui/badge";
 
 interface ProjectsTabProps {
   isLoading: boolean;
@@ -55,353 +56,179 @@ interface ProjectsTabProps {
   handleEditMilestone: (projectId: string, milestoneId: string, updates: Partial<Milestone>) => Promise<void>;
   handleDeleteMilestone: (projectId: string, milestoneId: string) => Promise<void>;
   fetchProjectDetails: (projectId: string) => Promise<any>;
+  error: string | null;
+  onEditProject: (project: Project) => void;
+  onDeleteProject: (projectId: string) => void;
 }
 
-const ProjectsTab: React.FC<ProjectsTabProps> = ({ 
-  isLoading, 
-  projects, 
-  applications, 
-  editProject, 
-  projectToDelete,
-  editedProject,
-  isSubmitting,
-  setEditedProject,
-  handleEditInitiate,
-  handleEditCancel,
-  handleUpdateProject,
-  handleDeleteInitiate,
-  handleDeleteCancel,
-  handleDeleteProject,
+export const ProjectsTab: React.FC<ProjectsTabProps> = ({
+  projects,
+  isLoading,
+  error,
+  onEditProject,
+  onDeleteProject,
   selectedProject,
   setSelectedProject,
   handleAddMilestone,
   handleEditMilestone,
   handleDeleteMilestone,
-  fetchProjectDetails,
+  fetchProjectDetails
 }) => {
+  const [expandedProjectId, setExpandedProjectId] = useState<string | null>(null);
   const { toast } = useToast();
-  const [expandedProjects, setExpandedProjects] = useState<Record<string, boolean>>({});
-  const [activeTab, setActiveTab] = useState<Record<string, string>>({});
-
-  const openProjects = projects.filter(p => p.status === 'open');
-  const assignedProjects = projects.filter(p => p.status === 'assigned');
-  
-  const navigateToCreateTab = () => {
-    const createTab = document.querySelector('[data-value="create"]');
-    if (createTab) {
-      (createTab as HTMLElement).click();
-    }
-  };
-
-  const toggleProjectExpansion = (projectId: string) => {
-    setExpandedProjects(prev => ({
-      ...prev,
-      [projectId]: !prev[projectId]
-    }));
-  };
-
-  const setProjectTab = (projectId: string, tabValue: string) => {
-    setActiveTab(prev => ({
-      ...prev,
-      [projectId]: tabValue
-    }));
-  };
-
-  const getProjectSteps = (project: Project) => {
-    return [
-      {
-        id: 'assigned',
-        title: 'Assigned',
-        status: project.status === 'assigned' ? 'current' : 'completed' as 'completed' | 'current' | 'pending'
-      },
-      {
-        id: 'in_progress',
-        title: 'In Progress',
-        status: project.status === 'in_progress' ? 'current' : 
-               ['assigned'].includes(project.status || '') ? 'pending' : 'completed' as 'completed' | 'current' | 'pending'
-      },
-      {
-        id: 'work_submitted',
-        title: 'Review',
-        status: project.status === 'work_submitted' ? 'current' : 
-               ['assigned', 'in_progress'].includes(project.status || '') ? 'pending' : 'completed' as 'completed' | 'current' | 'pending'
-      },
-      {
-        id: 'completed',
-        title: 'Completed',
-        status: project.status === 'completed' ? 'completed' : 'pending' as 'completed' | 'current' | 'pending'
-      }
-    ];
-  };
 
   const handleProjectSelect = async (projectId: string) => {
     try {
+      if (expandedProjectId === projectId) {
+        setExpandedProjectId(null);
+        setSelectedProject(null);
+        return;
+      }
+
       const projectDetails = await fetchProjectDetails(projectId);
-      
-      // Ensure the project has all required fields
+      if (!projectDetails) {
+        throw new Error('Failed to fetch project details');
+      }
+
+      // Ensure project has all required fields
       const enrichedProject = {
         ...projectDetails,
         milestones: projectDetails.milestones || [],
         deliverables: projectDetails.deliverables || [],
-        status: projectDetails.status || 'open'
+        status: projectDetails.status || 'draft'
       };
-      
+
       setSelectedProject(enrichedProject);
-      toggleProjectExpansion(projectId);
+      setExpandedProjectId(projectId);
     } catch (error: any) {
-      console.error('Error fetching project details:', error);
+      console.error('Error selecting project:', error);
       toast({
         title: "Error",
         description: error.message || 'Failed to load project details',
         variant: "destructive"
       });
-      // Don't expand the project if there was an error
-      setExpandedProjects(prev => ({
-        ...prev,
-        [projectId]: false
-      }));
+      setExpandedProjectId(null);
+      setSelectedProject(null);
     }
   };
 
-  return (
-    <>
-      <h2 className="text-2xl font-bold mb-4">Your Open Projects</h2>
-      {isLoading ? (
-        <p>Loading your projects...</p>
-      ) : openProjects.length === 0 ? (
-        <EmptyProjectState 
-          message="You don't have any open projects." 
-          showCreateButton={true}
-          onCreateClick={navigateToCreateTab}
-        />
-      ) : (
-        <div className="space-y-4">
-          {openProjects.map(project => (
-            <Card key={project.id} className="overflow-hidden">
-              <CardHeader className="pb-2">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <CardTitle className="text-lg mb-2">{project.title}</CardTitle>
-                    <div className="flex items-center gap-2 text-sm text-gray-500">
-                      <Clock className="h-4 w-4" />
-                      <span>Posted {new Date(project.created_at || '').toLocaleDateString()}</span>
-                      {project.location && (
-                        <>
-                          <MapPin className="h-4 w-4 ml-2" />
-                          <span>{project.location}</span>
-                        </>
-                      )}
-                      {project.budget && (
-                        <>
-                          <DollarSign className="h-4 w-4 ml-2" />
-                          <span>${project.budget.toLocaleString()}</span>
-                        </>
-                      )}
-                    </div>
+  const renderProjectCard = (project: Project) => {
+    const isExpanded = expandedProjectId === project.id;
+    const isSelected = selectedProject?.id === project.id;
+
+    return (
+      <Card key={project.id} className="mb-4">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <div>
+                <h3 className="text-lg font-semibold">{project.title}</h3>
+                <p className="text-sm text-muted-foreground">
+                  Created: {new Date(project.created_at).toLocaleDateString()}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Badge variant={getStatusVariant(project.status)}>
+                {project.status}
+              </Badge>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => handleProjectSelect(project.id)}
+              >
+                <ChevronDown className={`h-4 w-4 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+              </Button>
+            </div>
+          </div>
+        </CardHeader>
+        
+        {isExpanded && isSelected && (
+          <CardContent>
+            <div className="space-y-4">
+              <div>
+                <h4 className="font-medium mb-2">Description</h4>
+                <p className="text-sm text-muted-foreground">{project.description}</p>
+              </div>
+              
+              <div>
+                <h4 className="font-medium mb-2">Details</h4>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <span className="text-muted-foreground">Budget:</span>
+                    <span className="ml-2">${project.budget}</span>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleProjectSelect(project.id)}
-                  >
-                    {expandedProjects[project.id] ? (
-                      <ChevronUp className="h-4 w-4" />
-                    ) : (
-                      <ChevronDown className="h-4 w-4" />
-                    )}
-                  </Button>
-                </div>
-              </CardHeader>
-
-              {expandedProjects[project.id] && (
-                <CardContent>
-                  <Tabs
-                    value={activeTab[project.id] || 'overview'}
-                    onValueChange={(value) => setProjectTab(project.id, value)}
-                  >
-                    <TabsList className="mb-4">
-                      <TabsTrigger value="overview">Overview</TabsTrigger>
-                      <TabsTrigger value="milestones">Milestones</TabsTrigger>
-                      <TabsTrigger value="deliverables">Deliverables</TabsTrigger>
-                      <TabsTrigger value="updates">Updates</TabsTrigger>
-                    </TabsList>
-
-                    <TabsContent value="overview">
-                      <ProjectProgressOverview
-                        milestones={selectedProject?.milestones || []}
-                        projectStatus={project.status as ProjectStatus}
-                        startDate={project.project_start_time}
-                        endDate={project.deadline}
-                        budget={project.budget}
-                        spent={project.spent}
-                        created_at={project.created_at}
-                      />
-                    </TabsContent>
-
-                    <TabsContent value="milestones">
-                      <ProjectMilestones 
-                        milestones={selectedProject?.milestones || []}
-                        isClient={true}
-                        projectId={project.id}
-                        projectStatus={(project.status || 'open') as ProjectStatus}
-                        onAddMilestone={(milestone) => handleAddMilestone(project.id, milestone)}
-                        onEditMilestone={(milestoneId, updates) => handleEditMilestone(project.id, milestoneId, updates)}
-                        onDeleteMilestone={(milestoneId) => handleDeleteMilestone(project.id, milestoneId)}
-                      />
-                    </TabsContent>
-
-                    <TabsContent value="deliverables">
-                      <ProjectDeliverables 
-                        projectId={project.id}
-                        canUpload={false}
-                      />
-                    </TabsContent>
-
-                    <TabsContent value="updates">
-                      <ProjectUpdateTimeline projectId={project.id} />
-                    </TabsContent>
-                  </Tabs>
-                </CardContent>
-              )}
-            </Card>
-          ))}
-        </div>
-      )}
-      
-      <h2 className="text-2xl font-bold mb-4 mt-8">Assigned Projects</h2>
-      {isLoading ? (
-        <p>Loading your projects...</p>
-      ) : assignedProjects.length === 0 ? (
-        <EmptyProjectState message="You don't have any assigned projects." />
-      ) : (
-        <div className="space-y-6">
-          {assignedProjects.map(project => (
-            <Card key={project.id} className="overflow-hidden">
-              <CardHeader className="pb-2">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <CardTitle className="text-lg mb-2">{project.title}</CardTitle>
-                    <div className="flex items-center gap-2 text-sm text-gray-500">
-                      <Clock className="h-4 w-4" />
-                      <span>Started {new Date(project.project_start_time || '').toLocaleDateString()}</span>
-                      {project.location && (
-                        <>
-                          <MapPin className="h-4 w-4 ml-2" />
-                          <span>{project.location}</span>
-                        </>
-                      )}
-                      {project.budget && (
-                        <>
-                          <DollarSign className="h-4 w-4 ml-2" />
-                          <span>${project.budget.toLocaleString()}</span>
-                        </>
-                      )}
-                    </div>
+                  <div>
+                    <span className="text-muted-foreground">Timeline:</span>
+                    <span className="ml-2">{project.timeline} days</span>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => toggleProjectExpansion(project.id)}
-                  >
-                    {expandedProjects[project.id] ? (
-                      <ChevronUp className="h-4 w-4" />
-                    ) : (
-                      <ChevronDown className="h-4 w-4" />
-                    )}
-                  </Button>
+                  <div>
+                    <span className="text-muted-foreground">Category:</span>
+                    <span className="ml-2">{project.category}</span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Location:</span>
+                    <span className="ml-2">{project.location}</span>
+                  </div>
                 </div>
-              </CardHeader>
+              </div>
 
-              {expandedProjects[project.id] && (
-                <CardContent>
-                  <Tabs
-                    value={activeTab[project.id] || 'overview'}
-                    onValueChange={(value) => setProjectTab(project.id, value)}
-                  >
-                    <TabsList className="mb-4">
-                      <TabsTrigger value="overview">Overview</TabsTrigger>
-                      <TabsTrigger value="milestones">Milestones</TabsTrigger>
-                      <TabsTrigger value="deliverables">Deliverables</TabsTrigger>
-                      <TabsTrigger value="updates">Updates</TabsTrigger>
-                    </TabsList>
-
-                    <TabsContent value="overview">
-                      <ProjectProgressOverview
-                        milestones={project.milestones || []}
-                        projectStatus={project.status as ProjectStatus}
-                        startDate={project.project_start_time}
-                        endDate={project.deadline}
-                        budget={project.budget}
-                        spent={project.spent}
-                        created_at={project.created_at}
-                      />
-                      <div className="mt-4">
-                        <ProgressIndicator steps={getProjectSteps(project)} />
+              {project.milestones && project.milestones.length > 0 && (
+                <div>
+                  <h4 className="font-medium mb-2">Milestones</h4>
+                  <div className="space-y-2">
+                    {project.milestones.map((milestone) => (
+                      <div key={milestone.id} className="flex items-center justify-between p-2 bg-muted rounded">
+                        <div>
+                          <p className="font-medium">{milestone.title}</p>
+                          <p className="text-sm text-muted-foreground">{milestone.description}</p>
+                        </div>
+                        <Badge variant={getStatusVariant(milestone.status)}>
+                          {milestone.status}
+                        </Badge>
                       </div>
-                    </TabsContent>
-
-                    <TabsContent value="milestones">
-                      <ProjectMilestones 
-                        milestones={project.milestones || []}
-                        isClient={true}
-                        projectId={project.id}
-                        projectStatus={(project.status || 'open') as ProjectStatus}
-                      />
-                    </TabsContent>
-
-                    <TabsContent value="deliverables">
-                      <ProjectDeliverables 
-                        projectId={project.id}
-                        canUpload={false}
-                      />
-                    </TabsContent>
-
-                    <TabsContent value="updates">
-                      <ProjectUpdateTimeline projectId={project.id} />
-                    </TabsContent>
-                  </Tabs>
-                </CardContent>
+                    ))}
+                  </div>
+                </div>
               )}
-            </Card>
-          ))}
-        </div>
-      )}
-      
-      {/* Edit Project Form */}
-      {editProject && (
-        <EditProjectForm
-          editProject={editProject}
-          editedProject={editedProject}
-          isSubmitting={isSubmitting}
-          onCancel={handleEditCancel}
-          onUpdate={handleUpdateProject}
-          onChange={setEditedProject}
-        />
-      )}
-      
-      {/* Delete Project Confirmation Dialog */}
-      <AlertDialog open={!!projectToDelete} onOpenChange={() => handleDeleteCancel()}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Project</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete this project? This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <Button variant="outline" onClick={handleDeleteCancel}>
-              Cancel
-            </Button>
-            <Button 
-              variant="destructive" 
-              onClick={() => projectToDelete && handleDeleteProject(projectToDelete)}
-            >
-              Delete
-            </Button>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </>
+
+              <div className="flex justify-end space-x-2">
+                <Button
+                  variant="outline"
+                  onClick={() => onEditProject(project)}
+                >
+                  Edit Project
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={() => onDeleteProject(project.id)}
+                >
+                  Delete Project
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        )}
+      </Card>
+    );
+  };
+
+  if (isLoading) {
+    return <div>Loading projects...</div>;
+  }
+
+  if (error) {
+    return <div>Error: {error}</div>;
+  }
+
+  if (!projects || projects.length === 0) {
+    return <div>No projects found.</div>;
+  }
+
+  return (
+    <div className="space-y-4">
+      {projects.map(renderProjectCard)}
+    </div>
   );
 };
 
