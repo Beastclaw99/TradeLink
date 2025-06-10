@@ -45,7 +45,7 @@ const Dashboard: React.FC = () => {
             .insert([
               {
                 id: user.id,
-                account_type: 'client', // Default to client
+                account_type: user.user_metadata?.account_type || 'client', // Use account type from metadata
                 first_name: user.user_metadata?.full_name?.split(' ')[0] || null,
                 last_name: user.user_metadata?.full_name?.split(' ').slice(1).join(' ') || null,
                 email: user.email
@@ -109,7 +109,7 @@ const Dashboard: React.FC = () => {
             .insert([
               {
                 id: user.id,
-                account_type: 'client', // Default to client
+                account_type: user.user_metadata?.account_type || 'client', // Use account type from metadata
                 first_name: user.user_metadata?.full_name?.split(' ')[0] || null,
                 last_name: user.user_metadata?.full_name?.split(' ').slice(1).join(' ') || null,
                 email: user.email
