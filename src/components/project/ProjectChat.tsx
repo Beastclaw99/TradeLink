@@ -1,367 +1,183 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Send, AlertCircle, Info, Lock } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
-import { useToast } from "@/components/ui/use-toast";
-import { supabase } from "@/integrations/supabase/client";
-import { Badge } from "@/components/ui/badge";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Separator } from "@/components/ui/separator";
 
-interface ProjectMessage {
+import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { MessageSquare, Send } from 'lucide-react';
+import { useToast } from '@/components/ui/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { format } from 'date-fns';
+
+interface ProjectChatProps {
+  projectId: string;
+  currentUserId: string;
+}
+
+interface Message {
   id: string;
-  project_id: string;
-  sender_id: string;
-  recipient_id: string;
   content: string;
+  sender_id: string;
   sent_at: string;
-  sender_name: string;
-  sender_role: 'client' | 'professional';
-  metadata?: {
-    type?: string;
-    title?: string;
-  };
   sender?: {
     first_name: string;
     last_name: string;
   };
 }
 
-type DatabaseMessage = {
-  id: string;
-  project_id: string;
-  sender_id: string;
-  recipient_id: string;
-  content: string;
-  sent_at: string;
-  metadata?: {
-    type?: string;
-    title?: string;
-  };
-  sender: {
-    first_name: string;
-    last_name: string;
-  } | null;
-};
-
-interface ProjectChatProps {
-  projectId: string;
-  projectStatus: string;
-  clientId: string;
-  professionalId: string;
-}
-
-const ProjectChat: React.FC<ProjectChatProps> = ({
-  projectId,
-  projectStatus,
-  clientId,
-  professionalId
-}) => {
-  const { user } = useAuth();
-  const { toast } = useToast();
-  const [messages, setMessages] = useState<ProjectMessage[]>([]);
+const ProjectChat: React.FC<ProjectChatProps> = ({ projectId, currentUserId }) => {
+  const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [isLoading, setIsLoading] = useState(true);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-
-  const userRole = user?.id === clientId ? 'client' : 'professional';
-
-  // Define chat restrictions based on project status
-  const getChatRestrictions = () => {
-    switch (projectStatus) {
-      case 'open':
-        return {
-          allowed: false,
-          readOnly: false,
-          message: 'Chat is only available after a professional is assigned to the project.'
-        };
-      case 'assigned':
-        return {
-          allowed: true,
-          readOnly: false,
-          message: 'Chat is now available. You can discuss project details with the professional.'
-        };
-      case 'in_progress':
-        return {
-          allowed: true,
-          readOnly: false,
-          message: 'Chat is available for discussing work progress and updates.'
-        };
-      case 'work_submitted':
-        return {
-          allowed: true,
-          readOnly: false,
-          message: 'Chat is available for discussing the submitted work and providing feedback.'
-        };
-      case 'work_revision_requested':
-        return {
-          allowed: true,
-          readOnly: false,
-          message: 'Chat is available for discussing revision requirements and clarifications.'
-        };
-      case 'work_approved':
-        return {
-          allowed: true,
-          readOnly: false,
-          message: 'Chat is available for discussing project completion and final details.'
-        };
-      case 'completed':
-        return {
-          allowed: true,
-          readOnly: true,
-          message: 'Chat is read-only for completed projects. All messages are preserved for reference.'
-        };
-      case 'archived':
-        return {
-          allowed: false,
-          readOnly: true,
-          message: 'Chat is no longer available for archived projects.'
-        };
-      case 'cancelled':
-        return {
-          allowed: false,
-          readOnly: true,
-          message: 'Chat is no longer available for cancelled projects.'
-        };
-      case 'disputed':
-        return {
-          allowed: true,
-          readOnly: true,
-          message: 'Chat is read-only during dispute resolution. All messages are preserved for reference.'
-        };
-      default:
-        return {
-          allowed: false,
-          readOnly: false,
-          message: 'Chat is currently unavailable.'
-        };
-    }
-  };
-
-  const chatRestrictions = getChatRestrictions();
-  const isChatDisabled = !chatRestrictions.allowed;
-  const isReadOnly = chatRestrictions.readOnly;
+  const [isSending, setIsSending] = useState(false);
+  const { toast } = useToast();
 
   useEffect(() => {
-    if (chatRestrictions.allowed) {
-      fetchMessages();
-      subscribeToMessages();
-    }
-  }, [projectId, chatRestrictions.allowed]);
+    fetchMessages();
+  }, [projectId]);
 
   const fetchMessages = async () => {
     try {
       const { data, error } = await supabase
         .from('project_messages')
         .select(`
-          id,
-          project_id,
-          sender_id,
-          recipient_id,
-          content,
-          sent_at,
-          metadata,
-          sender:profiles!project_messages_sender_id_fkey(
-            first_name,
-            last_name
-          )
+          *,
+          sender:profiles!sender_id(first_name, last_name)
         `)
         .eq('project_id', projectId)
         .order('sent_at', { ascending: true });
 
       if (error) throw error;
-
-      const formattedMessages: ProjectMessage[] = (data as unknown as DatabaseMessage[]).map(msg => ({
-        id: msg.id,
-        project_id: msg.project_id,
-        sender_id: msg.sender_id,
-        recipient_id: msg.recipient_id,
-        content: msg.content,
-        sent_at: msg.sent_at,
-        metadata: msg.metadata,
-        sender_name: msg.sender ? `${msg.sender.first_name} ${msg.sender.last_name}` : 'Unknown User',
-        sender_role: msg.sender_id === clientId ? 'client' : 'professional' as const
-      }));
-
-      setMessages(formattedMessages);
-    } catch (error: any) {
+      setMessages(data || []);
+    } catch (error) {
       console.error('Error fetching messages:', error);
       toast({
-        title: "Error",
-        description: "Failed to load messages. Please try again later.",
-        variant: "destructive"
+        title: 'Error',
+        description: 'Failed to load messages.',
+        variant: 'destructive'
       });
     } finally {
       setIsLoading(false);
     }
   };
 
-  const subscribeToMessages = () => {
-    const subscription = supabase
-      .channel(`project_messages:${projectId}`)
-      .on('postgres_changes', {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'project_messages',
-        filter: `project_id=eq.${projectId}`
-      }, (payload) => {
-        const newMessage = payload.new as ProjectMessage;
-        setMessages(prev => [...prev, newMessage]);
-        scrollToBottom();
-      })
-      .subscribe();
+  const handleSendMessage = async () => {
+    if (!newMessage.trim()) return;
 
-    return () => {
-      subscription.unsubscribe();
-    };
-  };
-
-  const sendMessage = async () => {
-    if (!newMessage.trim() || !user || isChatDisabled) return;
-
+    setIsSending(true);
     try {
       const { error } = await supabase
         .from('project_messages')
         .insert({
           project_id: projectId,
-          sender_id: user.id,
-          recipient_id: user.id === clientId ? professionalId : clientId,
-          content: newMessage.trim(),
-          sent_at: new Date().toISOString(),
-          metadata: {
-            type: 'chat_message',
-            title: 'Chat Message'
-          }
+          sender_id: currentUserId,
+          content: newMessage.trim()
         });
 
       if (error) throw error;
 
       setNewMessage('');
-    } catch (error: any) {
+      fetchMessages();
+    } catch (error) {
       console.error('Error sending message:', error);
       toast({
-        title: "Error",
-        description: "Failed to send message. Please try again.",
-        variant: "destructive"
+        title: 'Error',
+        description: 'Failed to send message.',
+        variant: 'destructive'
       });
+    } finally {
+      setIsSending(false);
     }
   };
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  const getInitials = (firstName: string = '', lastName: string = '') => {
+    return `${firstName[0] || ''}${lastName[0] || ''}`.toUpperCase();
   };
 
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
-
   if (isLoading) {
-    return (
-      <Card>
-        <CardContent className="p-6">
-          <div className="flex justify-center items-center h-40">
-            <div className="animate-spin w-8 h-8 border-4 border-ttc-blue-700 border-t-transparent rounded-full"></div>
-          </div>
-        </CardContent>
-      </Card>
-    );
+    return <div>Loading messages...</div>;
   }
 
   return (
-    <Card className="h-[600px] flex flex-col">
-      <CardHeader className="border-b">
-        <div className="flex items-center justify-between">
-          <CardTitle>Project Chat</CardTitle>
-          <div className="flex items-center gap-2">
-            {isReadOnly && (
-              <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">
-                Read Only
-              </Badge>
-            )}
-            <Badge variant="secondary" className={isChatDisabled ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}>
-              {isChatDisabled ? 'Chat Disabled' : 'Chat Active'}
-            </Badge>
-          </div>
-        </div>
-        {chatRestrictions.message && (
-          <Alert className="mt-2">
-            <Info className="h-4 w-4" />
-            <AlertDescription>{chatRestrictions.message}</AlertDescription>
-          </Alert>
-        )}
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <MessageSquare className="h-5 w-5" />
+          Project Chat
+        </CardTitle>
       </CardHeader>
-
-      <CardContent className="flex-1 overflow-y-auto p-4 space-y-4">
-        {messages.map((message) => (
-          <div
-            key={message.id}
-            className={`flex ${message.sender_id === user?.id ? 'justify-end' : 'justify-start'}`}
-          >
-            <div className={`max-w-xs lg:max-w-md ${
-              message.sender_id === user?.id ? 'bg-ttc-blue-700 text-white' : 'bg-gray-100'
-            } rounded-lg px-4 py-2`}>
-              <div className="flex items-center gap-2 mb-1">
-                <Badge variant="outline" className={`${
-                  message.sender_role === 'client' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'
-                }`}>
-                  {message.sender_role === 'client' ? 'Client' : 'Professional'}
-                </Badge>
-                <span className="text-xs opacity-75">{message.sender_name}</span>
+      <CardContent>
+        <div className="space-y-4">
+          {/* Messages List */}
+          <div className="h-96 overflow-y-auto space-y-4 p-4 border rounded-lg bg-gray-50">
+            {messages.length === 0 ? (
+              <div className="text-center text-gray-500">
+                No messages yet. Start the conversation!
               </div>
-              {message.metadata?.type === 'status_change' && (
-                <div className="mb-2">
-                  <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">
-                    {message.metadata.title || 'Status Update'}
-                  </Badge>
+            ) : (
+              messages.map((message) => (
+                <div
+                  key={message.id}
+                  className={`flex gap-3 ${
+                    message.sender_id === currentUserId ? 'justify-end' : 'justify-start'
+                  }`}
+                >
+                  {message.sender_id !== currentUserId && (
+                    <Avatar>
+                      <AvatarFallback>
+                        {getInitials(message.sender?.first_name, message.sender?.last_name)}
+                      </AvatarFallback>
+                    </Avatar>
+                  )}
+                  <div
+                    className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
+                      message.sender_id === currentUserId
+                        ? 'bg-blue-500 text-white'
+                        : 'bg-white border'
+                    }`}
+                  >
+                    <p className="text-sm">{message.content}</p>
+                    <p className={`text-xs mt-1 ${
+                      message.sender_id === currentUserId ? 'text-blue-100' : 'text-gray-500'
+                    }`}>
+                      {format(new Date(message.sent_at), 'MMM d, h:mm a')}
+                    </p>
+                  </div>
+                  {message.sender_id === currentUserId && (
+                    <Avatar>
+                      <AvatarFallback>You</AvatarFallback>
+                    </Avatar>
+                  )}
                 </div>
-              )}
-              <p className="text-sm">{message.content}</p>
-              <div className="text-xs opacity-75 mt-1">
-                {new Date(message.sent_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-              </div>
-            </div>
+              ))
+            )}
           </div>
-        ))}
-        <div ref={messagesEndRef} />
-      </CardContent>
 
-      {isChatDisabled ? (
-        <div className="border-t p-4 bg-gray-50">
-          <Alert variant="destructive">
-            <Lock className="h-4 w-4" />
-            <AlertDescription>
-              Chat is currently disabled. {chatRestrictions.message}
-            </AlertDescription>
-          </Alert>
-        </div>
-      ) : isReadOnly ? (
-        <div className="border-t p-4 bg-gray-50">
-          <Alert>
-            <Lock className="h-4 w-4" />
-            <AlertDescription>
-              Chat is read-only. {chatRestrictions.message}
-            </AlertDescription>
-          </Alert>
-        </div>
-      ) : (
-        <div className="border-t p-4">
+          {/* Message Input */}
           <div className="flex gap-2">
-            <Input
+            <Textarea
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
-              placeholder="Type a message..."
-              onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
+              placeholder="Type your message..."
+              className="flex-1"
+              onKeyPress={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSendMessage();
+                }
+              }}
             />
-            <Button onClick={sendMessage} disabled={!newMessage.trim()}>
+            <Button
+              onClick={handleSendMessage}
+              disabled={isSending || !newMessage.trim()}
+            >
               <Send className="h-4 w-4" />
             </Button>
           </div>
         </div>
-      )}
+      </CardContent>
     </Card>
   );
 };
 
-export default ProjectChat; 
+export default ProjectChat;

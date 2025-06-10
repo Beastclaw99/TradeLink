@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -8,8 +9,7 @@ import {
   ArrowLeft,
   MessageSquare,
   Clock,
-  User,
-  AlertTriangle
+  User
 } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -36,8 +36,12 @@ interface DisputeMessage {
   is_internal: boolean;
 }
 
-const DisputeDetail: React.FC = () => {
-  const { disputeId } = useParams<{ disputeId: string }>();
+interface DisputeDetailProps {
+  disputeId: string;
+  projectId: string;
+}
+
+const DisputeDetail: React.FC<DisputeDetailProps> = ({ disputeId, projectId }) => {
   const navigate = useNavigate();
   const { toast } = useToast();
   
@@ -61,7 +65,21 @@ const DisputeDetail: React.FC = () => {
 
         if (disputeError) throw disputeError;
 
-        setDispute(disputeData);
+        // Transform the data to match our interface
+        const transformedDispute: Dispute = {
+          id: disputeData.id,
+          title: disputeData.title,
+          description: disputeData.description,
+          type: disputeData.type,
+          status: disputeData.status,
+          created_at: disputeData.created_at || new Date().toISOString(),
+          initiator_id: disputeData.initiator_id,
+          respondent_id: disputeData.respondent_id,
+          project_id: disputeData.project_id,
+          resolution: disputeData.resolution || undefined
+        };
+
+        setDispute(transformedDispute);
 
         const { data: messagesData, error: messagesError } = await supabase
           .from('dispute_messages')
@@ -71,7 +89,16 @@ const DisputeDetail: React.FC = () => {
 
         if (messagesError) throw messagesError;
 
-        setMessages(messagesData || []);
+        // Transform messages data to match our interface
+        const transformedMessages: DisputeMessage[] = (messagesData || []).map(msg => ({
+          id: msg.id,
+          content: msg.content,
+          created_at: msg.created_at || new Date().toISOString(),
+          sender_id: msg.sender_id,
+          is_internal: msg.is_internal || false
+        }));
+
+        setMessages(transformedMessages);
       } catch (error: any) {
         console.error("Error fetching dispute details:", error);
         toast({
@@ -92,11 +119,13 @@ const DisputeDetail: React.FC = () => {
     try {
       if (!disputeId) throw new Error("Dispute ID is missing.");
 
+      const { data: { user } } = await supabase.auth.getUser();
+
       const { error } = await supabase.from('dispute_messages').insert([
         {
           dispute_id: disputeId,
           content: newMessage,
-          sender_id: supabase.auth.user()?.id,
+          sender_id: user?.id,
           is_internal: false,
         },
       ]);
@@ -118,7 +147,16 @@ const DisputeDetail: React.FC = () => {
 
       if (messagesError) throw messagesError;
 
-      setMessages(messagesData || []);
+      // Transform messages data to match our interface
+      const transformedMessages: DisputeMessage[] = (messagesData || []).map(msg => ({
+        id: msg.id,
+        content: msg.content,
+        created_at: msg.created_at || new Date().toISOString(),
+        sender_id: msg.sender_id,
+        is_internal: msg.is_internal || false
+      }));
+
+      setMessages(transformedMessages);
     } catch (error: any) {
       console.error("Error sending message:", error);
       toast({

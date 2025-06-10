@@ -1,288 +1,224 @@
-import { useState, useEffect } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { CheckCircle, Download, AlertCircle } from 'lucide-react';
+import { format } from 'date-fns';
+import { DollarSign, Plus, FileText } from 'lucide-react';
 
 interface InvoiceSectionProps {
   projectId: string;
-  projectStatus: string;
-  isClient: boolean;
-  isProfessional: boolean;
-  onPaymentProcessed: () => void;
+  userRole: 'client' | 'professional';
 }
 
-export default function InvoiceSection({
+const InvoiceSection: React.FC<InvoiceSectionProps> = ({
   projectId,
-  projectStatus,
-  isClient,
-  isProfessional,
-  onPaymentProcessed
-}: InvoiceSectionProps) {
-  const { user } = useAuth();
-  const { toast } = useToast();
-  const [invoice, setInvoice] = useState<any>(null);
+  userRole
+}) => {
+  const [invoices, setInvoices] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [paymentNote, setPaymentNote] = useState('');
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [formData, setFormData] = useState({
+    amount: '',
+    description: ''
+  });
+  const { toast } = useToast();
 
-  // Check if section should be visible
-  const isVisible = projectStatus === 'completed' || projectStatus === 'paid';
-
-  // Fetch invoice on mount
   useEffect(() => {
-    const fetchInvoice = async () => {
-      try {
-        setIsLoading(true);
-        
-        // Check if invoice exists
-        const { data, error } = await supabase
-          .from('invoices')
-          .select('*')
-          .eq('project_id', projectId)
-          .single();
+    fetchInvoices();
+  }, [projectId]);
 
-        if (error && error.code !== 'PGRST116') { // PGRST116 is "no rows returned"
-          throw error;
-        }
-
-        if (!data && projectStatus === 'completed') {
-          // Create new invoice if project is completed and no invoice exists
-          const { data: projectData, error: projectError } = await supabase
-            .from('projects')
-            .select('client_id, professional_id, budget')
-            .eq('id', projectId)
-            .single();
-
-          if (projectError) throw projectError;
-
-          const { data: newInvoice, error: createError } = await supabase
-            .from('invoices')
-            .insert([{
-              project_id: projectId,
-              client_id: projectData.client_id,
-              professional_id: projectData.professional_id,
-              amount: projectData.budget,
-              status: 'pending',
-              created_at: new Date().toISOString()
-            }])
-            .select()
-            .single();
-
-          if (createError) throw createError;
-          setInvoice(newInvoice);
-        } else {
-          setInvoice(data);
-        }
-      } catch (error) {
-        console.error('Error fetching/creating invoice:', error);
-        toast({
-          title: "Error",
-          description: "Failed to load invoice details. Please try again.",
-          variant: "destructive"
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    if (isVisible) {
-      fetchInvoice();
-    }
-  }, [projectId, projectStatus, toast]);
-
-  // Handle payment confirmation
-  const handlePaymentConfirmation = async () => {
+  const fetchInvoices = async () => {
     try {
-      setIsSubmitting(true);
-
-      // Update invoice status
-      const { error: invoiceError } = await supabase
+      const { data, error } = await supabase
         .from('invoices')
-        .update({ 
-          status: 'paid',
-          payment_note: paymentNote,
-          paid_at: new Date().toISOString()
-        })
-        .eq('id', invoice.id);
+        .select('*')
+        .eq('project_id', projectId)
+        .order('created_at', { ascending: false });
 
-      if (invoiceError) throw invoiceError;
-
-      // Update project status
-      const { error: projectError } = await supabase
-        .from('projects')
-        .update({ status: 'paid' })
-        .eq('id', projectId);
-
-      if (projectError) throw projectError;
-
-      // Create project update
-      await supabase.from('project_updates').insert([{
-        project_id: projectId,
-        update_type: 'status_update',
-        message: 'Payment has been processed',
-        professional_id: user?.id,
-        metadata: {
-          status_change: 'paid'
-        }
-      }]);
-
-      // Send message to project chat
-      await supabase.from('project_messages').insert([{
-        project_id: projectId,
-        sender_id: user?.id,
-        content: 'Payment has been processed successfully.',
-        sent_at: new Date().toISOString(),
-        metadata: {
-          type: 'payment_processed',
-          title: 'Payment Processed'
-        }
-      }]);
-
+      if (error) throw error;
+      setInvoices(data || []);
+    } catch (error) {
+      console.error('Error fetching invoices:', error);
       toast({
-        title: "Payment Processed",
-        description: "The payment has been processed successfully."
-      });
-
-      setShowPaymentModal(false);
-      onPaymentProcessed();
-    } catch (error: any) {
-      console.error('Error processing payment:', error);
-      toast({
-        title: "Error",
-        description: "Failed to process payment. Please try again.",
-        variant: "destructive"
+        title: 'Error',
+        description: 'Failed to fetch invoices.',
+        variant: 'destructive'
       });
     } finally {
-      setIsSubmitting(false);
+      setIsLoading(false);
     }
   };
 
-  if (!isVisible || isLoading) {
-    return null;
+  const handleCreateInvoice = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      const { data: project } = await supabase
+        .from('projects')
+        .select('client_id, professional_id')
+        .eq('id', projectId)
+        .single();
+
+      if (!user || !project) throw new Error('User or project not found');
+
+      const amount = parseFloat(formData.amount);
+      if (isNaN(amount) || amount <= 0) {
+        throw new Error('Please enter a valid amount');
+      }
+
+      const invoiceData = {
+        project_id: projectId,
+        client_id: project.client_id,
+        professional_id: project.professional_id,
+        amount: amount,
+        status: 'unpaid' as const,
+        issued_at: new Date().toISOString()
+      };
+
+      const { error } = await supabase
+        .from('invoices')
+        .insert([invoiceData]);
+
+      if (error) throw error;
+
+      toast({
+        title: 'Success',
+        description: 'Invoice created successfully.'
+      });
+
+      setShowCreateForm(false);
+      setFormData({ amount: '', description: '' });
+      fetchInvoices();
+    } catch (error: any) {
+      console.error('Error creating invoice:', error);
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to create invoice.',
+        variant: 'destructive'
+      });
+    }
+  };
+
+  const getStatusBadge = (status: string) => {
+    const statusColors = {
+      paid: 'bg-green-100 text-green-800',
+      unpaid: 'bg-yellow-100 text-yellow-800',
+      overdue: 'bg-red-100 text-red-800'
+    };
+
+    return (
+      <Badge className={statusColors[status as keyof typeof statusColors] || 'bg-gray-100 text-gray-800'}>
+        {status}
+      </Badge>
+    );
+  };
+
+  if (isLoading) {
+    return <div>Loading invoices...</div>;
   }
 
   return (
-    <Card className="mt-6">
+    <Card>
       <CardHeader>
-        <CardTitle>Invoice Details</CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle className="flex items-center gap-2">
+            <FileText className="h-5 w-5" />
+            Invoices
+          </CardTitle>
+          {userRole === 'professional' && (
+            <Button onClick={() => setShowCreateForm(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Create Invoice
+            </Button>
+          )}
+        </div>
       </CardHeader>
       <CardContent>
-        {invoice ? (
-          <div className="space-y-6">
-            {/* Invoice Status Banner */}
-            {invoice.status === 'paid' ? (
-              <div className="bg-green-50 p-4 rounded-lg text-green-800 border border-green-200">
-                <div className="flex items-center">
-                  <CheckCircle className="mr-2" size={20} />
-                  <h3 className="font-medium">Payment Processed</h3>
-                </div>
-                <p className="text-sm mt-1">
-                  Payment was processed on {new Date(invoice.paid_at).toLocaleDateString()}
-                </p>
-              </div>
-            ) : (
-              <div className="bg-yellow-50 p-4 rounded-lg text-yellow-800 border border-yellow-200">
-                <div className="flex items-center">
-                  <AlertCircle className="mr-2" size={20} />
-                  <h3 className="font-medium">Payment Pending</h3>
-                </div>
-                <p className="text-sm mt-1">
-                  Invoice was created on {new Date(invoice.created_at).toLocaleDateString()}
-                </p>
-              </div>
-            )}
-
-            {/* Invoice Details */}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <p className="text-sm text-gray-500">Amount</p>
-                <p className="font-medium">${invoice.amount}</p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-500">Status</p>
-                <p className="font-medium capitalize">{invoice.status}</p>
-              </div>
-              {invoice.payment_note && (
-                <div className="col-span-2">
-                  <p className="text-sm text-gray-500">Payment Note</p>
-                  <p className="font-medium">{invoice.payment_note}</p>
-                </div>
-              )}
-            </div>
-
-            {/* Action Buttons */}
-            {isClient && invoice.status === 'pending' && (
-              <div className="flex gap-4">
-                <Button
-                  className="flex-1"
-                  onClick={() => setShowPaymentModal(true)}
-                  disabled={isSubmitting}
-                >
-                  Mark as Paid
-                </Button>
-                <Button
-                  variant="outline"
-                  className="flex-1"
-                  onClick={() => {/* TODO: Implement PDF download */}}
-                >
-                  <Download className="w-4 h-4 mr-2" />
-                  Download Invoice
-                </Button>
-              </div>
-            )}
-          </div>
-        ) : (
-          <p className="text-gray-500">No invoice found.</p>
-        )}
-      </CardContent>
-
-      {/* Payment Confirmation Modal */}
-      <Dialog open={showPaymentModal} onOpenChange={setShowPaymentModal}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Confirm Payment</DialogTitle>
-            <DialogDescription>
-              Please confirm that you have processed the payment of ${invoice?.amount} for this project.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="py-4">
+        {showCreateForm && (
+          <div className="mb-6 p-4 border rounded-lg bg-gray-50">
+            <h3 className="font-medium mb-4">Create New Invoice</h3>
             <div className="space-y-4">
               <div>
-                <Label htmlFor="paymentNote">Payment Note (Optional)</Label>
-                <Textarea
-                  id="paymentNote"
-                  value={paymentNote}
-                  onChange={(e) => setPaymentNote(e.target.value)}
-                  placeholder="Add any notes about the payment..."
-                  className="min-h-[100px]"
+                <Label htmlFor="amount">Amount ($)</Label>
+                <Input
+                  id="amount"
+                  type="number"
+                  step="0.01"
+                  value={formData.amount}
+                  onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+                  placeholder="0.00"
                 />
+              </div>
+              <div>
+                <Label htmlFor="description">Description</Label>
+                <Textarea
+                  id="description"
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  placeholder="Invoice description..."
+                />
+              </div>
+              <div className="flex gap-2">
+                <Button onClick={handleCreateInvoice}>
+                  Create Invoice
+                </Button>
+                <Button variant="outline" onClick={() => setShowCreateForm(false)}>
+                  Cancel
+                </Button>
               </div>
             </div>
           </div>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setShowPaymentModal(false)}
-              disabled={isSubmitting}
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={handlePaymentConfirmation}
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? "Processing..." : "Confirm Payment"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        )}
+
+        {invoices.length === 0 ? (
+          <div className="text-center py-8 text-gray-500">
+            <DollarSign className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+            <p>No invoices found for this project.</p>
+          </div>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Amount</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Issued</TableHead>
+                <TableHead>Paid</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {invoices.map((invoice) => (
+                <TableRow key={invoice.id}>
+                  <TableCell>
+                    ${typeof invoice.amount === 'number' ? invoice.amount.toFixed(2) : '0.00'}
+                  </TableCell>
+                  <TableCell>{getStatusBadge(invoice.status)}</TableCell>
+                  <TableCell>
+                    {invoice.issued_at ? format(new Date(invoice.issued_at), 'PPP') : 'N/A'}
+                  </TableCell>
+                  <TableCell>
+                    {invoice.paid_at ? format(new Date(invoice.paid_at), 'PPP') : '-'}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
+      </CardContent>
     </Card>
   );
-} 
+};
+
+export default InvoiceSection;
