@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { notificationService } from './notificationService';
 import { Milestone } from '@/components/project/creation/types';
@@ -10,6 +11,7 @@ interface Task {
   dependencies: string[];
   status: 'todo' | 'in_progress' | 'completed';
   priority: 'low' | 'medium' | 'high';
+  [key: string]: any; // Add index signature for Json compatibility
 }
 
 interface MilestoneWithTasks {
@@ -19,7 +21,7 @@ interface MilestoneWithTasks {
   due_date: string;
   status: string;
   progress: number;
-  tasks: Task[];
+  tasks: any[]; // Change to any[] for Json compatibility
   project_id: string;
   created_at: string;
   updated_at: string;
@@ -34,7 +36,7 @@ export const taskService = {
     dependencies: string[] = [],
     priority: Task['priority'] = 'medium'
   ): Promise<Task> {
-    const newTask = {
+    const newTask: Task = {
       id: crypto.randomUUID(),
       title,
       completed: false,
@@ -56,11 +58,11 @@ export const taskService = {
     const milestoneWithTasks = milestone as unknown as MilestoneWithTasks;
     const tasks = milestoneWithTasks.tasks || [];
 
-    // Update milestone with new task
+    // Update milestone with new task - convert to Json-compatible format
     const { error: updateError } = await supabase
       .from('project_milestones')
       .update({
-        tasks: [...tasks, newTask],
+        tasks: [...tasks, newTask as any],
         updated_at: new Date().toISOString()
       })
       .eq('id', milestoneId);
@@ -79,7 +81,7 @@ export const taskService = {
     milestoneTitle: string,
     clientId: string,
     professionalId: string
-  ): Promise<void> {
+  ): Promise<void> => {
     // Get current milestone
     const { data: milestone, error: milestoneError } = await supabase
       .from('project_milestones')
@@ -94,10 +96,10 @@ export const taskService = {
 
     // Check dependencies before completing task
     if (completed) {
-      const task = tasks.find(t => t.id === taskId);
-      if (task && task.dependencies.length > 0) {
-        const incompleteDependencies = task.dependencies.filter(depId => {
-          const depTask = tasks.find(t => t.id === depId);
+      const task = tasks.find((t: any) => t.id === taskId);
+      if (task && task.dependencies && task.dependencies.length > 0) {
+        const incompleteDependencies = task.dependencies.filter((depId: string) => {
+          const depTask = tasks.find((t: any) => t.id === depId);
           return !depTask?.completed;
         });
 
@@ -108,7 +110,7 @@ export const taskService = {
     }
 
     // Update task status
-    const updatedTasks = tasks.map(task => 
+    const updatedTasks = tasks.map((task: any) => 
       task.id === taskId ? { 
         ...task, 
         completed,
@@ -118,14 +120,14 @@ export const taskService = {
 
     // Calculate milestone progress
     const totalTasks = updatedTasks.length;
-    const completedTasks = updatedTasks.filter(task => task.completed).length;
+    const completedTasks = updatedTasks.filter((task: any) => task.completed).length;
     const progress = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
 
     // Update milestone
     const { error: updateError } = await supabase
       .from('project_milestones')
       .update({
-        tasks: updatedTasks,
+        tasks: updatedTasks as any,
         progress,
         status: progress === 100 ? 'completed' : 'in_progress',
         updated_at: new Date().toISOString()
@@ -136,7 +138,7 @@ export const taskService = {
 
     // Create notification for task completion
     if (completed) {
-      const task = updatedTasks.find(t => t.id === taskId);
+      const task = updatedTasks.find((t: any) => t.id === taskId);
       if (task) {
         await notificationService.createNotification({
           user_id: clientId,
@@ -184,7 +186,7 @@ export const taskService = {
     deadline?: string,
     dependencies: string[] = [],
     priority: Task['priority'] = 'medium'
-  ): Promise<void> {
+  ): Promise<void> => {
     // Get current milestone
     const { data: milestone, error: milestoneError } = await supabase
       .from('project_milestones')
@@ -198,7 +200,7 @@ export const taskService = {
     const tasks = milestoneWithTasks.tasks || [];
 
     // Add new task
-    const newTask = {
+    const newTask: Task = {
       id: crypto.randomUUID(),
       title,
       completed: false,
@@ -214,7 +216,7 @@ export const taskService = {
     const { error: updateError } = await supabase
       .from('project_milestones')
       .update({
-        tasks: updatedTasks,
+        tasks: updatedTasks as any,
         updated_at: new Date().toISOString()
       })
       .eq('id', milestoneId);
@@ -250,7 +252,7 @@ export const taskService = {
     milestoneTitle: string,
     clientId: string,
     professionalId: string
-  ): Promise<void> {
+  ): Promise<void> => {
     // Get current milestone
     const { data: milestone, error: milestoneError } = await supabase
       .from('project_milestones')
@@ -264,8 +266,8 @@ export const taskService = {
     const tasks = milestoneWithTasks.tasks || [];
 
     // Check if task is a dependency of any other task
-    const isDependency = tasks.some(task => 
-      task.dependencies.includes(taskId)
+    const isDependency = tasks.some((task: any) => 
+      task.dependencies && task.dependencies.includes(taskId)
     );
 
     if (isDependency) {
@@ -273,18 +275,18 @@ export const taskService = {
     }
 
     // Remove task
-    const updatedTasks = tasks.filter(task => task.id !== taskId);
+    const updatedTasks = tasks.filter((task: any) => task.id !== taskId);
 
     // Calculate new progress
     const totalTasks = updatedTasks.length;
-    const completedTasks = updatedTasks.filter(task => task.completed).length;
+    const completedTasks = updatedTasks.filter((task: any) => task.completed).length;
     const progress = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
 
     // Update milestone
     const { error: updateError } = await supabase
       .from('project_milestones')
       .update({
-        tasks: updatedTasks,
+        tasks: updatedTasks as any,
         progress,
         status: progress === 100 ? 'completed' : 'in_progress',
         updated_at: new Date().toISOString()
@@ -299,7 +301,7 @@ export const taskService = {
     milestoneId: string,
     taskId: string,
     deadline: string
-  ): Promise<void> {
+  ): Promise<void> => {
     const { data: milestone, error: milestoneError } = await supabase
       .from('project_milestones')
       .select('*')
@@ -311,14 +313,14 @@ export const taskService = {
     const milestoneWithTasks = milestone as unknown as MilestoneWithTasks;
     const tasks = milestoneWithTasks.tasks || [];
 
-    const updatedTasks = tasks.map(task =>
+    const updatedTasks = tasks.map((task: any) =>
       task.id === taskId ? { ...task, deadline } : task
     );
 
     const { error: updateError } = await supabase
       .from('project_milestones')
       .update({
-        tasks: updatedTasks,
+        tasks: updatedTasks as any,
         updated_at: new Date().toISOString()
       })
       .eq('id', milestoneId);
@@ -331,7 +333,7 @@ export const taskService = {
     milestoneId: string,
     taskId: string,
     dependencyId: string
-  ): Promise<void> {
+  ): Promise<void> => {
     const { data: milestone, error: milestoneError } = await supabase
       .from('project_milestones')
       .select('*')
@@ -349,10 +351,10 @@ export const taskService = {
       if (visited.has(taskId)) return false;
       
       visited.add(taskId);
-      const task = tasks.find(t => t.id === taskId);
+      const task = tasks.find((t: any) => t.id === taskId);
       if (!task) return false;
 
-      return task.dependencies.some(depId => 
+      return task.dependencies && task.dependencies.some((depId: string) => 
         hasCircularDependency(depId, dependencyId, visited)
       );
     };
@@ -361,11 +363,11 @@ export const taskService = {
       throw new Error('Cannot add dependency: would create a circular dependency');
     }
 
-    const updatedTasks = tasks.map(task =>
+    const updatedTasks = tasks.map((task: any) =>
       task.id === taskId 
         ? { 
             ...task, 
-            dependencies: [...new Set([...task.dependencies, dependencyId])]
+            dependencies: [...new Set([...(task.dependencies || []), dependencyId])]
           } 
         : task
     );
@@ -373,7 +375,7 @@ export const taskService = {
     const { error: updateError } = await supabase
       .from('project_milestones')
       .update({
-        tasks: updatedTasks,
+        tasks: updatedTasks as any,
         updated_at: new Date().toISOString()
       })
       .eq('id', milestoneId);
@@ -386,7 +388,7 @@ export const taskService = {
     milestoneId: string,
     taskId: string,
     dependencyId: string
-  ): Promise<void> {
+  ): Promise<void> => {
     const { data: milestone, error: milestoneError } = await supabase
       .from('project_milestones')
       .select('*')
@@ -398,11 +400,11 @@ export const taskService = {
     const milestoneWithTasks = milestone as unknown as MilestoneWithTasks;
     const tasks = milestoneWithTasks.tasks || [];
 
-    const updatedTasks = tasks.map(task =>
+    const updatedTasks = tasks.map((task: any) =>
       task.id === taskId 
         ? { 
             ...task, 
-            dependencies: task.dependencies.filter(id => id !== dependencyId)
+            dependencies: (task.dependencies || []).filter((id: string) => id !== dependencyId)
           } 
         : task
     );
@@ -410,7 +412,7 @@ export const taskService = {
     const { error: updateError } = await supabase
       .from('project_milestones')
       .update({
-        tasks: updatedTasks,
+        tasks: updatedTasks as any,
         updated_at: new Date().toISOString()
       })
       .eq('id', milestoneId);
@@ -427,11 +429,22 @@ export const taskService = {
       .single();
 
     if (error) throw error;
-    return (milestone?.tasks as Task[]) || [];
+    
+    // Safe conversion with proper type checking
+    const tasks = milestone?.tasks as any[] || [];
+    return tasks.map((task: any) => ({
+      id: task.id || crypto.randomUUID(),
+      title: task.title || '',
+      completed: Boolean(task.completed),
+      deadline: task.deadline,
+      dependencies: Array.isArray(task.dependencies) ? task.dependencies : [],
+      status: task.status || 'todo',
+      priority: task.priority || 'medium'
+    }));
   },
 
   // Check for overdue tasks
-  async checkOverdueTasks(milestoneId: string): Promise<Task[]> {
+  async checkOverdueTasks(milestoneId: string): Promise<Task[]> => {
     const tasks = await this.getMilestoneTasks(milestoneId);
     const now = new Date();
     
@@ -441,4 +454,4 @@ export const taskService = {
       new Date(task.deadline) < now
     );
   }
-}; 
+};

@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card, CardContent, CardFooter } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -10,12 +11,15 @@ import { Task, Milestone } from '@/components/project/creation/types';
 
 interface UnifiedProjectCardProps {
   project: any;
-  view?: 'card' | 'list';
+  variant?: 'card' | 'list';
+  isProfessional?: boolean;
+  actionLabel?: string;
+  onClick?: () => void;
 }
 
 interface StatusConfig {
   label: string;
-  variant: "default" | "secondary" | "success" | "destructive" | "outline";
+  variant: "default" | "secondary" | "destructive" | "outline";
 }
 
 interface Json {
@@ -29,7 +33,7 @@ const getStatusConfig = (status: string): StatusConfig => {
     case 'assigned':
       return { label: 'Assigned', variant: 'secondary' };
     case 'completed':
-      return { label: 'Completed', variant: 'success' };
+      return { label: 'Completed', variant: 'default' }; // Changed from 'success' to 'default'
     case 'cancelled':
       return { label: 'Cancelled', variant: 'destructive' };
     default:
@@ -37,7 +41,13 @@ const getStatusConfig = (status: string): StatusConfig => {
   }
 };
 
-const UnifiedProjectCard: React.FC<UnifiedProjectCardProps> = ({ project, view = 'card' }) => {
+const UnifiedProjectCard: React.FC<UnifiedProjectCardProps> = ({ 
+  project, 
+  variant = 'card',
+  isProfessional = false,
+  actionLabel = "View Project",
+  onClick
+}) => {
   const navigate = useNavigate();
 
   // Convert database milestones to Milestone type
@@ -48,13 +58,16 @@ const UnifiedProjectCard: React.FC<UnifiedProjectCardProps> = ({ project, view =
       tasks = dbMilestone.tasks.map((task: any) => {
         if (typeof task === 'object' && task !== null) {
           return {
-            id: task.id || crypto.randomUUID(),
-            title: task.title || '',
-            description: task.description || '',
+            id: String(task.id || crypto.randomUUID()),
+            title: String(task.title || ''),
+            description: String(task.description || ''),
             completed: Boolean(task.completed),
-            created_at: task.created_at || new Date().toISOString(),
-            updated_at: task.updated_at || new Date().toISOString(),
-            ...task
+            created_at: String(task.created_at || new Date().toISOString()),
+            updated_at: String(task.updated_at || new Date().toISOString()),
+            status: task.status || 'todo',
+            priority: task.priority || 'medium',
+            deadline: task.deadline,
+            dependencies: Array.isArray(task.dependencies) ? task.dependencies : []
           };
         }
         return {
@@ -63,7 +76,10 @@ const UnifiedProjectCard: React.FC<UnifiedProjectCardProps> = ({ project, view =
           description: '',
           completed: false,
           created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
+          status: 'todo' as const,
+          priority: 'medium' as const,
+          dependencies: []
         };
       });
     }
@@ -89,7 +105,11 @@ const UnifiedProjectCard: React.FC<UnifiedProjectCardProps> = ({ project, view =
   const statusConfig = getStatusConfig(project.status);
 
   const handleCardClick = () => {
-    navigate(`/projects/${project.id}`);
+    if (onClick) {
+      onClick();
+    } else {
+      navigate(`/projects/${project.id}`);
+    }
   };
 
   const getProjectType = (): 'open' | 'applied' | 'assigned' | 'completed' => {
@@ -156,7 +176,7 @@ const UnifiedProjectCard: React.FC<UnifiedProjectCardProps> = ({ project, view =
           {project.status === 'completed' ? (
             <CheckCircle2 className="w-6 h-6 text-green-500" />
           ) : (
-            <Button size="sm">View Project</Button>
+            <Button size="sm">{actionLabel}</Button>
           )}
         </div>
       </CardFooter>

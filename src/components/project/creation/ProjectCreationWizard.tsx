@@ -178,7 +178,7 @@ const ProjectCreationWizard: React.FC = () => {
     if (!step) return null;
     const Component = step.component;
     
-    // Special handling for ReviewStep which doesn't need onUpdate
+    // Special handling for ReviewStep which only needs data prop
     if (step.id === 6) {
       return <Component data={projectData} />;
     }
