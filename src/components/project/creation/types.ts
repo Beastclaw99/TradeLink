@@ -23,12 +23,14 @@ export interface Deliverable {
   reviewed_at?: string;
 }
 
+export type MilestoneStatus = 'not_started' | 'in_progress' | 'completed' | 'on_hold' | 'overdue';
+
 export interface Milestone {
   id?: string;
   title: string;
   description?: string;
   dueDate?: string;
-  status: 'not_started' | 'in_progress' | 'completed' | 'on_hold';
+  status: MilestoneStatus;
   requires_deliverable?: boolean;
   progress?: number;
   deliverables: Deliverable[];
@@ -37,7 +39,7 @@ export interface Milestone {
   created_at?: string;
   updated_at?: string;
   is_complete?: boolean;
-  due_date?: string;
+  tasks?: Task[];
 }
 
 export interface ProjectData {
@@ -122,7 +124,7 @@ export const convertDBMilestoneToMilestone = (dbMilestone: any): Milestone => {
     created_at: dbMilestone.created_at,
     updated_at: dbMilestone.updated_at,
     is_complete: dbMilestone.is_complete || false,
-    due_date: dbMilestone.due_date
+    tasks: dbMilestone.tasks || []
   };
 };
 
@@ -131,7 +133,7 @@ export const convertMilestoneToDBMilestone = (milestone: Milestone, projectId?: 
     id: milestone.id,
     title: milestone.title,
     description: milestone.description || '',
-    due_date: milestone.dueDate || milestone.due_date,
+    due_date: milestone.dueDate,
     status: milestone.status,
     requires_deliverable: milestone.requires_deliverable || false,
     project_id: projectId || milestone.project_id,

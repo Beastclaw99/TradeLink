@@ -63,11 +63,11 @@ const ProjectMilestones: React.FC<ProjectMilestonesProps> = ({
     deliverables: []
   });
   const [newTask, setNewTask] = useState('');
-  const [deliverables, setDeliverables] = useState<Record<string, any[]>>({});
+  const [deliverables, setDeliverables] = useState<Record<string, Deliverable[]>>({});
 
   useEffect(() => {
     const fetchDeliverables = async () => {
-      const deliverablesMap: Record<string, any[]> = {};
+      const deliverablesMap: Record<string, Deliverable[]> = {};
       
       for (const milestone of milestones) {
         if (milestone.id) {
@@ -78,7 +78,20 @@ const ProjectMilestones: React.FC<ProjectMilestonesProps> = ({
             .order('created_at', { ascending: false });
 
           if (!error && data) {
-            deliverablesMap[milestone.id] = data;
+            deliverablesMap[milestone.id] = data.map(d => ({
+              id: d.id,
+              description: d.description,
+              deliverable_type: d.deliverable_type as 'file' | 'note' | 'link',
+              content: d.content,
+              file_url: d.file_url,
+              file_name: d.file_name,
+              milestone_id: d.milestone_id,
+              uploaded_by: d.uploaded_by,
+              created_at: d.created_at,
+              status: d.status as 'pending' | 'approved' | 'rejected',
+              feedback: d.feedback,
+              reviewed_at: d.reviewed_at
+            }));
           }
         }
       }
@@ -243,7 +256,7 @@ const ProjectMilestones: React.FC<ProjectMilestonesProps> = ({
   const handleDeliverableSubmitted = () => {
     // Refresh the deliverables data
     const fetchDeliverables = async () => {
-      const deliverablesMap: Record<string, any[]> = {};
+      const deliverablesMap: Record<string, Deliverable[]> = {};
       
       for (const milestone of milestones) {
         if (milestone.id) {
@@ -254,7 +267,20 @@ const ProjectMilestones: React.FC<ProjectMilestonesProps> = ({
             .order('created_at', { ascending: false });
 
           if (!error && data) {
-            deliverablesMap[milestone.id] = data;
+            deliverablesMap[milestone.id] = data.map(d => ({
+              id: d.id,
+              description: d.description,
+              deliverable_type: d.deliverable_type as 'file' | 'note' | 'link',
+              content: d.content,
+              file_url: d.file_url,
+              file_name: d.file_name,
+              milestone_id: d.milestone_id,
+              uploaded_by: d.uploaded_by,
+              created_at: d.created_at,
+              status: d.status as 'pending' | 'approved' | 'rejected',
+              feedback: d.feedback,
+              reviewed_at: d.reviewed_at
+            }));
           }
         }
       }
