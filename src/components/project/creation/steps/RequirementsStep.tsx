@@ -3,10 +3,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Plus, X, Info } from 'lucide-react';
+import { Plus, X, Info, Upload, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ProjectData } from '../types';
+import { useToast } from '@/components/ui/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 interface RequirementsStepProps {
   data: ProjectData;
@@ -113,7 +115,11 @@ const CATEGORY_SKILLS: Record<string, string[]> = {
 };
 
 const RequirementsStep: React.FC<RequirementsStepProps> = ({ data, onUpdate }) => {
+  const { toast } = useToast();
   const [newSkill, setNewSkill] = useState('');
+  const [newRequirement, setNewRequirement] = useState('');
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
 
   const addSkill = (skill: string) => {
     if (skill.trim() && !data.recommendedSkills.includes(skill.trim())) {
@@ -140,90 +146,150 @@ const RequirementsStep: React.FC<RequirementsStepProps> = ({ data, onUpdate }) =
   // Get suggested skills based on the selected category
   const suggestedSkills = data.category ? CATEGORY_SKILLS[data.category] || CATEGORY_SKILLS.other : CATEGORY_SKILLS.other;
 
+  const handleAddRequirement = () => {
+    if (!newRequirement.trim()) return;
+    
+    const updatedRequirements = [...(data.requirements || []), newRequirement.trim()];
+    onUpdate({ requirements: updatedRequirements });
+    setNewRequirement('');
+  };
+
+  const handleRemoveRequirement = (index: number) => {
+    const updatedRequirements = data.requirements?.filter((_, i) => i !== index);
+    onUpdate({ requirements: updatedRequirements });
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setSelectedFile(e.target.files[0]);
+    }
+  };
+
+  const handleFileUpload = async () => {
+    if (!selectedFile) return;
+
+    try {
+      setIsUploading(true);
+      const fileExt = selectedFile.name.split('.').pop();
+      const fileName = `${Date.now()}.${fileExt}`;
+      const filePath = `requirements/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('project-files')
+        .upload(filePath, selectedFile);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('project-files')
+        .getPublicUrl(filePath);
+
+      // Add the file URL as a requirement
+      const updatedRequirements = [
+        ...(data.requirements || []),
+        `[File] ${selectedFile.name}: ${publicUrl}`
+      ];
+      
+      onUpdate({ requirements: updatedRequirements });
+      setSelectedFile(null);
+      
+      toast({
+        title: "File Uploaded",
+        description: "Requirement document has been uploaded successfully."
+      });
+    } catch (error) {
+      console.error('Error uploading file:', error);
+      toast({
+        title: "Error",
+        description: "Failed to upload file. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
+      <div>
+        <h3 className="text-lg font-semibold mb-4">Project Requirements</h3>
+        <p className="text-gray-600 mb-6">
+          List all the requirements and specifications for your project. You can add text requirements
+          or upload requirement documents.
+        </p>
+      </div>
+
       <Card>
-        <CardHeader>
-          <CardTitle>Recommended Skills</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <Alert>
-            <Info className="h-4 w-4" />
-            <AlertDescription>
-              Add skills that would be helpful for professionals working on your project. 
-              This helps match you with the right professionals. Don't worry if you're not sure - 
-              professionals can suggest additional skills when they apply.
-            </AlertDescription>
-          </Alert>
-
+        <CardContent className="pt-6">
           <div className="space-y-4">
-            <div>
-              <Label>Quick Add - {data.category ? `${data.category.charAt(0).toUpperCase() + data.category.slice(1)} Skills` : 'Common Skills'}</Label>
-              <div className="flex flex-wrap gap-2 mt-2">
-                {suggestedSkills.map((skill) => (
-                  <Button
-                    key={skill}
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => addSuggestedSkill(skill)}
-                    disabled={data.recommendedSkills.includes(skill)}
-                    className="text-xs"
-                  >
-                    <Plus className="h-3 w-3 mr-1" />
-                    {skill}
-                  </Button>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <Label htmlFor="custom-skill">Add Custom Skill</Label>
+            {/* Text Requirements */}
+            <div className="space-y-2">
+              <Label>Add Text Requirement</Label>
               <div className="flex gap-2">
                 <Input
-                  id="custom-skill"
-                  placeholder="e.g., Pool cleaning, Smart home setup"
-                  value={newSkill}
-                  onChange={(e) => setNewSkill(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      addSkill(newSkill);
-                    }
-                  }}
+                  value={newRequirement}
+                  onChange={(e) => setNewRequirement(e.target.value)}
+                  placeholder="Enter a requirement..."
+                  onKeyPress={(e) => e.key === 'Enter' && handleAddRequirement()}
                 />
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  onClick={() => addSkill(newSkill)}
-                >
-                  <Plus className="h-4 w-4" />
+                <Button onClick={handleAddRequirement}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add
                 </Button>
               </div>
             </div>
 
+            {/* File Upload */}
             <div className="space-y-2">
-              <Label>Selected Skills ({data.recommendedSkills.length})</Label>
-              <div className="flex flex-wrap gap-2 mt-2 min-h-[2rem] p-2 border rounded-md bg-gray-50">
-                {data.recommendedSkills.length === 0 ? (
-                  <span className="text-gray-500 text-sm">No skills selected yet</span>
-                ) : (
-                  data.recommendedSkills.map((skill, index) => (
-                    <Badge key={index} variant="secondary" className="flex items-center gap-1">
-                      {skill}
-                      <button
-                        type="button"
-                        onClick={() => removeSkill(index)}
-                        className="ml-1 hover:text-destructive"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                    </Badge>
-                  ))
-                )}
+              <Label>Upload Requirement Document</Label>
+              <div className="flex gap-2">
+                <Input
+                  type="file"
+                  onChange={handleFileChange}
+                  accept=".pdf,.doc,.docx,.txt"
+                />
+                <Button 
+                  onClick={handleFileUpload}
+                  disabled={!selectedFile || isUploading}
+                >
+                  <Upload className="h-4 w-4 mr-2" />
+                  {isUploading ? 'Uploading...' : 'Upload'}
+                </Button>
               </div>
+              <p className="text-sm text-gray-500">
+                Supported formats: PDF, DOC, DOCX, TXT
+              </p>
             </div>
+
+            {/* Requirements List */}
+            {data.requirements && data.requirements.length > 0 && (
+              <div className="space-y-2">
+                <Label>Current Requirements</Label>
+                <div className="space-y-2">
+                  {data.requirements.map((req, index) => (
+                    <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                      <div className="flex items-center gap-2">
+                        {req.startsWith('[File]') ? (
+                          <FileText className="h-4 w-4 text-blue-600" />
+                        ) : (
+                          <Info className="h-4 w-4 text-gray-600" />
+                        )}
+                        <span className="text-sm">
+                          {req.startsWith('[File]') ? req.split(': ')[0].replace('[File] ', '') : req}
+                        </span>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleRemoveRequirement(index)}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
