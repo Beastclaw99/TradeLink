@@ -81,14 +81,7 @@ export const useClientDataFetcher = (userId: string) => {
             title,
             description,
             due_date,
-            status,
-            tasks:project_tasks(
-              id,
-              title,
-              description,
-              status,
-              completed
-            )
+            status
           ),
           deliverables:project_deliverables(
             id,
@@ -108,8 +101,34 @@ export const useClientDataFetcher = (userId: string) => {
         throw projectsError;
       }
       
-      console.log('Projects data:', projectsData);
-      setProjects(transformProjects(projectsData || []));
+      // Fetch tasks for each project's milestones
+      const projectsWithTasks = await Promise.all(
+        (projectsData || []).map(async (project) => {
+          const { data: tasksData, error: tasksError } = await supabase
+            .from('project_tasks')
+            .select('*')
+            .in('milestone_id', project.milestones?.map(m => m.id) || []);
+          
+          if (tasksError) {
+            console.error('Tasks fetch error:', tasksError);
+            return project;
+          }
+          
+          // Attach tasks to their respective milestones
+          const milestonesWithTasks = project.milestones?.map(milestone => ({
+            ...milestone,
+            tasks: tasksData?.filter(task => task.milestone_id === milestone.id) || []
+          })) || [];
+          
+          return {
+            ...project,
+            milestones: milestonesWithTasks
+          };
+        })
+      );
+      
+      console.log('Projects data with tasks:', projectsWithTasks);
+      setProjects(transformProjects(projectsWithTasks));
       
       // Fetch applications for client's projects
       const { data: appsData, error: appsError } = await supabase
