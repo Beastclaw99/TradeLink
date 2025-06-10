@@ -74,6 +74,29 @@ export const useClientDashboard = (userId: string) => {
             last_name,
             rating,
             profile_image
+          ),
+          milestones:project_milestones(
+            id,
+            title,
+            description,
+            due_date,
+            status,
+            tasks:project_tasks(
+              id,
+              title,
+              description,
+              status,
+              completed
+            )
+          ),
+          deliverables:project_deliverables(
+            id,
+            title,
+            description,
+            status,
+            file_url,
+            submitted_at,
+            approved_at
           )
         `)
         .eq('client_id', userId);

@@ -31,7 +31,32 @@ export interface Project {
   professional?: {
     first_name?: string;
     last_name?: string;
+    rating?: number;
+    profile_image?: string;
   };
+  milestones?: {
+    id: string;
+    title: string;
+    description: string | null;
+    due_date: string | null;
+    status: string | null;
+    tasks: {
+      id: string;
+      title: string;
+      description: string | null;
+      status: string | null;
+      completed: boolean;
+    }[];
+  }[];
+  deliverables?: {
+    id: string;
+    title: string;
+    description: string | null;
+    status: string | null;
+    file_url: string | null;
+    submitted_at: string | null;
+    approved_at: string | null;
+  }[];
 }
 
 // Simplified project interface for applications

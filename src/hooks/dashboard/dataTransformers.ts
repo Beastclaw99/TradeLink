@@ -1,4 +1,3 @@
-
 import { Project, Application, Payment, Review, Professional } from '@/components/dashboard/types';
 
 export const transformProjects = (data: any[]): Project[] => {
@@ -28,7 +27,31 @@ export const transformProjects = (data: any[]): Project[] => {
     scope: project.scope,
     service_contract: project.service_contract,
     sla_terms: project.sla_terms,
-    client: project.client
+    client: project.client,
+    professional: project.professional,
+    milestones: project.milestones?.map((milestone: any) => ({
+      id: milestone.id,
+      title: milestone.title,
+      description: milestone.description,
+      due_date: milestone.due_date,
+      status: milestone.status,
+      tasks: milestone.tasks?.map((task: any) => ({
+        id: task.id,
+        title: task.title,
+        description: task.description,
+        status: task.status,
+        completed: task.completed
+      })) || []
+    })) || [],
+    deliverables: project.deliverables?.map((deliverable: any) => ({
+      id: deliverable.id,
+      title: deliverable.title,
+      description: deliverable.description,
+      status: deliverable.status,
+      file_url: deliverable.file_url,
+      submitted_at: deliverable.submitted_at,
+      approved_at: deliverable.approved_at
+    })) || []
   }));
 };
 
