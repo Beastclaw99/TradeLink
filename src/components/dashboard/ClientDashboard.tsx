@@ -7,6 +7,7 @@ import CreateProjectTab from './client/CreateProjectTab';
 import PaymentsTab from './client/PaymentsTab';
 import { useClientDashboard } from '@/hooks/useClientDashboard';
 import { Project } from './types';
+import { supabase } from '@/integrations/supabase/client';
 
 interface ClientDashboardProps {
   userId: string;
@@ -58,7 +59,228 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ userId, initialTab = 
     calculateAverageRating,
     calculatePaymentTotals
   } = useClientDashboard(userId);
-  
+
+  // Task handling functions
+  const handleAddMilestone = async (projectId: string, milestone: any) => {
+    try {
+      const { data, error } = await supabase
+        .from('project_milestones')
+        .insert([{
+          project_id: projectId,
+          title: milestone.title,
+          description: milestone.description,
+          due_date: milestone.dueDate,
+          status: 'pending'
+        }])
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      // Add project update
+      await supabase
+        .from('project_updates')
+        .insert([{
+          project_id: projectId,
+          update_type: 'schedule_updated',
+          message: `New milestone added: ${milestone.title}`,
+          user_id: userId
+        }]);
+
+      await fetchDashboardData();
+      return data;
+    } catch (error) {
+      console.error('Error adding milestone:', error);
+      throw error;
+    }
+  };
+
+  const handleEditMilestone = async (projectId: string, milestoneId: string, updates: any) => {
+    try {
+      const { data, error } = await supabase
+        .from('project_milestones')
+        .update({
+          title: updates.title,
+          description: updates.description,
+          due_date: updates.dueDate,
+          status: updates.status
+        })
+        .eq('id', milestoneId)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      // Add project update
+      await supabase
+        .from('project_updates')
+        .insert([{
+          project_id: projectId,
+          update_type: 'schedule_updated',
+          message: `Milestone updated: ${updates.title}`,
+          user_id: userId
+        }]);
+
+      await fetchDashboardData();
+      return data;
+    } catch (error) {
+      console.error('Error editing milestone:', error);
+      throw error;
+    }
+  };
+
+  const handleDeleteMilestone = async (projectId: string, milestoneId: string) => {
+    try {
+      const { error } = await supabase
+        .from('project_milestones')
+        .delete()
+        .eq('id', milestoneId);
+
+      if (error) throw error;
+
+      // Add project update
+      await supabase
+        .from('project_updates')
+        .insert([{
+          project_id: projectId,
+          update_type: 'schedule_updated',
+          message: 'Milestone deleted',
+          user_id: userId
+        }]);
+
+      await fetchDashboardData();
+    } catch (error) {
+      console.error('Error deleting milestone:', error);
+      throw error;
+    }
+  };
+
+  const handleAddTask = async (milestoneId: string, task: any) => {
+    try {
+      const { data, error } = await supabase
+        .from('project_tasks')
+        .insert([{
+          milestone_id: milestoneId,
+          title: task.title,
+          completed: false
+        }])
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      // Get project ID for the update
+      const { data: milestone } = await supabase
+        .from('project_milestones')
+        .select('project_id')
+        .eq('id', milestoneId)
+        .single();
+
+      if (milestone) {
+        // Add project update
+        await supabase
+          .from('project_updates')
+          .insert([{
+            project_id: milestone.project_id,
+            update_type: 'task_completed',
+            message: `New task added: ${task.title}`,
+            user_id: userId
+          }]);
+      }
+
+      await fetchDashboardData();
+      return data;
+    } catch (error) {
+      console.error('Error adding task:', error);
+      throw error;
+    }
+  };
+
+  const handleUpdateTask = async (taskId: string, updates: any) => {
+    try {
+      const { data, error } = await supabase
+        .from('project_tasks')
+        .update({
+          title: updates.title,
+          completed: updates.completed
+        })
+        .eq('id', taskId)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      // Get project ID for the update
+      const { data: milestone } = await supabase
+        .from('project_milestones')
+        .select('project_id')
+        .eq('id', data.milestone_id)
+        .single();
+
+      if (milestone) {
+        // Add project update
+        await supabase
+          .from('project_updates')
+          .insert([{
+            project_id: milestone.project_id,
+            update_type: 'task_completed',
+            message: `Task ${updates.completed ? 'completed' : 'updated'}: ${updates.title}`,
+            user_id: userId
+          }]);
+      }
+
+      await fetchDashboardData();
+      return data;
+    } catch (error) {
+      console.error('Error updating task:', error);
+      throw error;
+    }
+  };
+
+  const handleDeleteTask = async (taskId: string) => {
+    try {
+      // Get task and milestone info before deletion
+      const { data: task } = await supabase
+        .from('project_tasks')
+        .select('title, milestone_id')
+        .eq('id', taskId)
+        .single();
+
+      if (!task) throw new Error('Task not found');
+
+      const { error } = await supabase
+        .from('project_tasks')
+        .delete()
+        .eq('id', taskId);
+
+      if (error) throw error;
+
+      // Get project ID for the update
+      const { data: milestone } = await supabase
+        .from('project_milestones')
+        .select('project_id')
+        .eq('id', task.milestone_id)
+        .single();
+
+      if (milestone) {
+        // Add project update
+        await supabase
+          .from('project_updates')
+          .insert([{
+            project_id: milestone.project_id,
+            update_type: 'task_completed',
+            message: `Task deleted: ${task.title}`,
+            user_id: userId
+          }]);
+      }
+
+      await fetchDashboardData();
+    } catch (error) {
+      console.error('Error deleting task:', error);
+      throw error;
+    }
+  };
+
   // Set the active tab based on initialTab prop
   useEffect(() => {
     if (initialTab && ['projects', 'applications', 'create', 'payments'].includes(initialTab)) {
@@ -97,18 +319,12 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ userId, initialTab = 
     handleDeleteProject,
     selectedProject,
     setSelectedProject,
-    handleAddMilestone: async (projectId: string, milestone: any) => {
-      // Implement milestone handling
-      await fetchDashboardData();
-    },
-    handleEditMilestone: async (projectId: string, milestoneId: string, updates: any) => {
-      // Implement milestone handling
-      await fetchDashboardData();
-    },
-    handleDeleteMilestone: async (projectId: string, milestoneId: string) => {
-      // Implement milestone handling
-      await fetchDashboardData();
-    },
+    handleAddMilestone,
+    handleEditMilestone,
+    handleDeleteMilestone,
+    handleAddTask,
+    handleUpdateTask,
+    handleDeleteTask,
     fetchProjectDetails: async (projectId: string) => {
       const project = projects.find((p: Project) => p.id === projectId);
       if (!project) return null;
