@@ -28,3 +28,14 @@ export interface ProjectData {
   milestones: Milestone[];
   serviceContract: string;
 }
+
+export const convertMilestoneToDBMilestone = (milestone: Milestone, projectId: string) => {
+  return {
+    title: milestone.title,
+    description: milestone.description,
+    due_date: milestone.dueDate,
+    status: milestone.status,
+    project_id: projectId,
+    created_by: milestone.created_by
+  };
+};
