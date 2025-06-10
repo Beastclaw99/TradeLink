@@ -1,4 +1,5 @@
 export type ProjectStatus =
+  | 'draft'                   // Project is in draft mode
   | 'open'                    // Project is open for applications
   | 'assigned'                // Project has been assigned to a professional
   | 'in_progress'             // Work is in progress
