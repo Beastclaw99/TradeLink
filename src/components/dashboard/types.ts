@@ -1,3 +1,4 @@
+
 export interface Project {
   id: string;
   title: string;
@@ -50,12 +51,12 @@ export interface Project {
   }[];
   deliverables?: {
     id: string;
-    title: string;
-    description: string | null;
-    status: string | null;
+    description: string;
+    deliverable_type: string;
+    content: string | null;
     file_url: string | null;
-    submitted_at: string | null;
-    approved_at: string | null;
+    status: string | null;
+    created_at: string | null;
   }[];
 }
 

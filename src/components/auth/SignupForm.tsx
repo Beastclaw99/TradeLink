@@ -1,218 +1,204 @@
 
-import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useState } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/components/ui/use-toast";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 
 const SignupForm: React.FC = () => {
-  const { toast } = useToast();
-  const navigate = useNavigate();
-  const { user } = useAuth();
-  const [accountType, setAccountType] = useState<'client' | 'professional'>('client');
-  const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
     email: '',
     password: '',
     confirmPassword: '',
+    accountType: ''
   });
+  const [isLoading, setIsLoading] = useState(false);
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { toast } = useToast();
   
-  // Redirect if user is already logged in
-  useEffect(() => {
-    if (user) {
-      navigate('/');
-    }
-  }, [user, navigate]);
-  
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({ ...formData, [e.target.id]: e.target.value });
+  const redirectTo = (location.state as any)?.redirect || '/dashboard';
+  const preselectedAccountType = (location.state as any)?.accountType;
+
+  const handleInputChange = (field: string, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
   };
-  
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    if (!formData.firstName || !formData.lastName || !formData.email || !formData.password || !formData.accountType) {
+      toast({
+        title: "Error",
+        description: "Please fill in all fields",
+        variant: "destructive"
+      });
+      return;
+    }
+
     if (formData.password !== formData.confirmPassword) {
       toast({
-        title: "Passwords don't match",
-        description: "Please make sure your passwords match.",
+        title: "Error",
+        description: "Passwords do not match",
         variant: "destructive"
       });
       return;
     }
-    
-    if (formData.password.length < 8) {
+
+    if (formData.password.length < 6) {
       toast({
-        title: "Password too short",
-        description: "Password must be at least 8 characters long.",
+        title: "Error",
+        description: "Password must be at least 6 characters long",
         variant: "destructive"
       });
       return;
     }
-    
+
     setIsLoading(true);
-    
+
     try {
-      // Clean up existing auth state
-      Object.keys(localStorage).forEach((key) => {
-        if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
-          localStorage.removeItem(key);
-        }
-      });
-      
-      // Sign up with Supabase
-      const { data, error } = await supabase.auth.signUp({
+      const { error } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
         options: {
           data: {
             first_name: formData.firstName,
             last_name: formData.lastName,
-            account_type: accountType
+            account_type: formData.accountType
           }
         }
       });
-      
-      if (error) throw error;
-      
+
+      if (error) {
+        toast({
+          title: "Error",
+          description: error.message,
+          variant: "destructive"
+        });
+        return;
+      }
+
       toast({
-        title: "Account created",
-        description: "Your account has been created successfully. Please check your email for verification.",
+        title: "Success",
+        description: "Account created successfully! Please check your email to verify your account.",
       });
-      
-      // Navigate to home page after successful signup
-      navigate('/');
-    } catch (error: any) {
+
+      navigate('/login', { state: { redirect: redirectTo } });
+    } catch (error) {
       toast({
-        title: "Sign Up Failed",
-        description: error.message || "Something went wrong. Please try again later.",
+        title: "Error",
+        description: "An unexpected error occurred",
         variant: "destructive"
       });
-      console.error("Signup error:", error);
     } finally {
       setIsLoading(false);
     }
   };
-  
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <RadioGroup 
-        defaultValue={accountType} 
-        className="grid grid-cols-2 gap-4 mb-4"
-        onValueChange={(value) => setAccountType(value as 'client' | 'professional')}
-      >
-        <div>
-          <RadioGroupItem
-            value="client"
-            id="client"
-            className="peer sr-only"
-          />
-          <Label
-            htmlFor="client"
-            className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-transparent p-4 hover:bg-muted hover:text-accent-foreground peer-data-[state=checked]:border-ttc-blue-500 [&:has([data-state=checked])]:border-primary"
-          >
-            <span className="text-xl mb-2">👤</span>
-            <span className="font-semibold">I'm a Client</span>
-            <span className="text-xs text-muted-foreground mt-1">Hire professionals</span>
-          </Label>
-        </div>
-        
-        <div>
-          <RadioGroupItem
-            value="professional"
-            id="professional"
-            className="peer sr-only"
-          />
-          <Label
-            htmlFor="professional"
-            className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-transparent p-4 hover:bg-muted hover:text-accent-foreground peer-data-[state=checked]:border-ttc-blue-500 [&:has([data-state=checked])]:border-primary"
-          >
-            <span className="text-xl mb-2">🛠️</span>
-            <span className="font-semibold">I'm a Professional</span>
-            <span className="text-xs text-muted-foreground mt-1">Offer services</span>
-          </Label>
-        </div>
-      </RadioGroup>
-    
+    <form onSubmit={handleSubmit} className="space-y-6">
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="firstName">First Name</Label>
-          <Input 
-            id="firstName" 
-            placeholder="John" 
-            required 
+          <Input
+            id="firstName"
+            type="text"
             value={formData.firstName}
-            onChange={handleChange}
+            onChange={(e) => handleInputChange('firstName', e.target.value)}
+            placeholder="Enter your first name"
+            required
           />
         </div>
         
         <div className="space-y-2">
           <Label htmlFor="lastName">Last Name</Label>
-          <Input 
-            id="lastName" 
-            placeholder="Doe" 
-            required 
+          <Input
+            id="lastName"
+            type="text"
             value={formData.lastName}
-            onChange={handleChange}
+            onChange={(e) => handleInputChange('lastName', e.target.value)}
+            placeholder="Enter your last name"
+            required
           />
         </div>
       </div>
       
       <div className="space-y-2">
         <Label htmlFor="email">Email</Label>
-        <Input 
-          id="email" 
-          placeholder="name@example.com" 
-          type="email" 
-          required 
+        <Input
+          id="email"
+          type="email"
           value={formData.email}
-          onChange={handleChange}
+          onChange={(e) => handleInputChange('email', e.target.value)}
+          placeholder="Enter your email"
+          required
         />
+      </div>
+      
+      <div className="space-y-2">
+        <Label htmlFor="accountType">Account Type</Label>
+        <Select 
+          value={formData.accountType || preselectedAccountType || ''} 
+          onValueChange={(value) => handleInputChange('accountType', value)}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Select account type" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="client">Client - I need services</SelectItem>
+            <SelectItem value="professional">Professional - I provide services</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
       
       <div className="space-y-2">
         <Label htmlFor="password">Password</Label>
-        <Input 
-          id="password" 
-          type="password" 
-          required 
+        <Input
+          id="password"
+          type="password"
           value={formData.password}
-          onChange={handleChange}
+          onChange={(e) => handleInputChange('password', e.target.value)}
+          placeholder="Enter your password"
+          required
         />
-        <p className="text-xs text-muted-foreground">
-          Must be at least 8 characters long with a number and special character.
-        </p>
       </div>
       
       <div className="space-y-2">
         <Label htmlFor="confirmPassword">Confirm Password</Label>
-        <Input 
-          id="confirmPassword" 
-          type="password" 
-          required 
+        <Input
+          id="confirmPassword"
+          type="password"
           value={formData.confirmPassword}
-          onChange={handleChange}
+          onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
+          placeholder="Confirm your password"
+          required
         />
       </div>
       
       <Button 
         type="submit" 
-        className="w-full bg-ttc-blue-500 hover:bg-ttc-blue-600"
+        className="w-full bg-ttc-blue-700 hover:bg-ttc-blue-800"
         disabled={isLoading}
       >
-        {isLoading ? "Creating account..." : (accountType === 'client' ? 'Create Client Account' : 'Create Professional Account')}
+        {isLoading ? 'Creating Account...' : 'Create Account'}
       </Button>
       
-      <div className="text-center text-sm">
-        Already have an account?{' '}
-        <Link to="/login" className="font-medium text-ttc-blue-500 hover:text-ttc-blue-600">
-          Sign in
-        </Link>
+      <div className="text-center">
+        <p className="text-sm text-ttc-neutral-600">
+          Already have an account?{' '}
+          <button
+            type="button"
+            onClick={() => navigate('/login', { state: { redirect: redirectTo } })}
+            className="text-ttc-blue-700 hover:underline"
+          >
+            Sign in here
+          </button>
+        </p>
       </div>
     </form>
   );

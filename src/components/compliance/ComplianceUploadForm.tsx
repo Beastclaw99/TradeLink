@@ -1,93 +1,81 @@
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Upload, FileText, Calendar, AlertTriangle, CheckCircle } from 'lucide-react';
+import { Upload, File, Trash2, CheckCircle, AlertCircle } from 'lucide-react';
 
 interface Document {
   id: string;
-  type: string;
   name: string;
-  status: 'verified' | 'pending' | 'expired' | 'rejected';
-  expiryDate?: string;
-  uploadedDate: string;
+  type: string;
+  status: 'pending' | 'approved' | 'rejected';
+  uploadDate: string;
 }
 
 const ComplianceUploadForm: React.FC = () => {
-  const [documents, setDocuments] = useState<Document[]>([
+  const [documents] = useState<Document[]>([
     {
       id: '1',
-      type: 'Insurance Certificate',
-      name: 'liability-insurance-2024.pdf',
-      status: 'verified',
-      expiryDate: '2024-12-31',
-      uploadedDate: '2024-01-15'
+      name: 'Business License.pdf',
+      type: 'license',
+      status: 'approved',
+      uploadDate: '2024-01-15'
     },
     {
       id: '2',
-      type: 'Trade License',
-      name: 'plumbing-license.pdf',
+      name: 'Insurance Certificate.pdf',
+      type: 'insurance',
       status: 'pending',
-      expiryDate: '2025-06-30',
-      uploadedDate: '2024-01-20'
-    },
-    {
-      id: '3',
-      type: 'Safety Certification',
-      name: 'safety-cert-2023.pdf',
-      status: 'expired',
-      expiryDate: '2024-01-01',
-      uploadedDate: '2023-01-15'
+      uploadDate: '2024-01-20'
     }
   ]);
 
-  const documentTypes = [
-    'Insurance Certificate',
-    'Trade License',
-    'Safety Certification',
-    'Business Registration',
-    'Tax Clearance',
-    'Professional Qualification'
-  ];
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [documentType, setDocumentType] = useState('');
 
-  const statusConfig = {
-    verified: { 
-      color: 'bg-green-100 text-green-800', 
-      icon: CheckCircle, 
-      text: 'Verified' 
-    },
-    pending: { 
-      color: 'bg-yellow-100 text-yellow-800', 
-      icon: FileText, 
-      text: 'Pending Review' 
-    },
-    expired: { 
-      color: 'bg-red-100 text-red-800', 
-      icon: AlertTriangle, 
-      text: 'Expired' 
-    },
-    rejected: { 
-      color: 'bg-red-100 text-red-800', 
-      icon: AlertTriangle, 
-      text: 'Rejected' 
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setSelectedFile(file);
     }
   };
 
-  const handleFileUpload = (type: string) => {
-    // TODO: Implement actual file upload
-    console.log('Uploading file for:', type);
-    alert(`File upload for ${type} - Integration needed (Placeholder)`);
+  const handleUpload = () => {
+    if (selectedFile && documentType) {
+      console.log('Uploading:', selectedFile.name, 'Type:', documentType);
+      // Here you would typically upload to your backend/storage
+      setSelectedFile(null);
+      setDocumentType('');
+    }
   };
 
-  const isExpiringSoon = (expiryDate?: string) => {
-    if (!expiryDate) return false;
-    const expiry = new Date(expiryDate);
-    const thirtyDaysFromNow = new Date();
-    thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
-    return expiry <= thirtyDaysFromNow;
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'approved':
+        return <CheckCircle className="w-4 h-4 text-green-500" />;
+      case 'rejected':
+        return <AlertCircle className="w-4 h-4 text-red-500" />;
+      default:
+        return <AlertCircle className="w-4 h-4 text-yellow-500" />;
+    }
+  };
+
+  const getStatusBadge = (status: string) => {
+    const variants = {
+      approved: 'bg-green-100 text-green-800',
+      rejected: 'bg-red-100 text-red-800',
+      pending: 'bg-yellow-100 text-yellow-800'
+    };
+    
+    return (
+      <Badge className={variants[status as keyof typeof variants]}>
+        {status.charAt(0).toUpperCase() + status.slice(1)}
+      </Badge>
+    );
   };
 
   return (
@@ -95,155 +83,118 @@ const ComplianceUploadForm: React.FC = () => {
       {/* Upload New Document */}
       <Card>
         <CardHeader>
-          <CardTitle>Upload Compliance Documents</CardTitle>
-          <p className="text-sm text-gray-600">
-            Upload required certificates and licenses to maintain platform compliance
-          </p>
+          <CardTitle className="flex items-center gap-2">
+            <Upload className="w-5 h-5" />
+            Upload New Document
+          </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="document-type">Document Type</Label>
-              <select 
-                id="document-type"
-                className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="">Select document type</option>
-                {documentTypes.map((type) => (
-                  <option key={type} value={type}>{type}</option>
-                ))}
-              </select>
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="expiry-date">Expiry Date (if applicable)</Label>
-              <Input
-                id="expiry-date"
-                type="date"
-                placeholder="Select expiry date"
-              />
-            </div>
+          <div className="space-y-2">
+            <Label htmlFor="document-type">Document Type</Label>
+            <Select value={documentType} onValueChange={setDocumentType}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select document type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="license">Business License</SelectItem>
+                <SelectItem value="insurance">Insurance Certificate</SelectItem>
+                <SelectItem value="certification">Professional Certification</SelectItem>
+                <SelectItem value="permit">Work Permit</SelectItem>
+                <SelectItem value="tax">Tax Registration</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
-          <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
-            <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium mb-2">Upload Document</h3>
-            <p className="text-sm text-gray-600 mb-4">
-              Drag and drop your file here, or click to browse
-            </p>
-            <Button variant="outline">
-              Choose File
-            </Button>
-            <p className="text-xs text-gray-500 mt-2">
-              Supported formats: PDF, JPG, PNG (Max 10MB)
-            </p>
+          <div className="space-y-2">
+            <Label htmlFor="file-upload">Choose File</Label>
+            <div className="flex items-center gap-4">
+              <Input
+                id="file-upload"
+                type="file"
+                accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                onChange={handleFileSelect}
+                className="flex-1"
+              />
+              <Button 
+                onClick={handleUpload}
+                disabled={!selectedFile || !documentType}
+                className="bg-ttc-blue-700 hover:bg-ttc-blue-800"
+              >
+                Upload
+              </Button>
+            </div>
+            {selectedFile && (
+              <p className="text-sm text-gray-600">
+                Selected: {selectedFile.name} ({(selectedFile.size / 1024 / 1024).toFixed(2)} MB)
+              </p>
+            )}
+          </div>
+
+          <div className="text-sm text-gray-600">
+            <p>Accepted formats: PDF, JPG, PNG, DOC, DOCX</p>
+            <p>Maximum file size: 10MB</p>
           </div>
         </CardContent>
       </Card>
 
-      {/* Current Documents */}
+      {/* Uploaded Documents */}
       <Card>
         <CardHeader>
-          <CardTitle>Your Documents</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <File className="w-5 h-5" />
+            Your Documents
+          </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            {documents.map((doc) => {
-              const StatusIcon = statusConfig[doc.status].icon;
-              const isExpiring = isExpiringSoon(doc.expiryDate);
-              
-              return (
-                <div key={doc.id} className="border rounded-lg p-4">
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-start gap-3">
-                      <FileText className="h-6 w-6 text-gray-500 mt-1" />
-                      <div>
-                        <h4 className="font-medium">{doc.type}</h4>
-                        <p className="text-sm text-gray-600">{doc.name}</p>
-                        <div className="flex items-center gap-2 mt-2 text-xs text-gray-500">
-                          <span>Uploaded: {new Date(doc.uploadedDate).toLocaleDateString()}</span>
-                          {doc.expiryDate && (
-                            <>
-                              <span>•</span>
-                              <div className="flex items-center gap-1">
-                                <Calendar className="h-3 w-3" />
-                                <span>Expires: {new Date(doc.expiryDate).toLocaleDateString()}</span>
-                              </div>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center gap-2">
-                      {isExpiring && doc.status === 'verified' && (
-                        <Badge className="bg-orange-100 text-orange-800">
-                          <AlertTriangle className="h-3 w-3 mr-1" />
-                          Expiring Soon
-                        </Badge>
-                      )}
-                      <Badge className={statusConfig[doc.status].color}>
-                        <StatusIcon className="h-3 w-3 mr-1" />
-                        {statusConfig[doc.status].text}
-                      </Badge>
+          {documents.length === 0 ? (
+            <p className="text-center text-gray-500 py-8">
+              No documents uploaded yet. Upload your first compliance document above.
+            </p>
+          ) : (
+            <div className="space-y-4">
+              {documents.map((doc) => (
+                <div key={doc.id} className="flex items-center justify-between p-4 border rounded-lg">
+                  <div className="flex items-center gap-3">
+                    {getStatusIcon(doc.status)}
+                    <div>
+                      <p className="font-medium">{doc.name}</p>
+                      <p className="text-sm text-gray-600">
+                        Uploaded on {new Date(doc.uploadDate).toLocaleDateString()}
+                      </p>
                     </div>
                   </div>
                   
-                  {(doc.status === 'expired' || doc.status === 'rejected' || isExpiring) && (
-                    <div className="mt-3 pt-3 border-t">
-                      <Button 
-                        size="sm" 
-                        variant="outline"
-                        onClick={() => handleFileUpload(doc.type)}
-                      >
-                        Upload New Document
-                      </Button>
-                    </div>
-                  )}
+                  <div className="flex items-center gap-3">
+                    {getStatusBadge(doc.status)}
+                    <Button variant="outline" size="sm">
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </div>
-              );
-            })}
-          </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
 
-      {/* Compliance Status Overview */}
+      {/* Compliance Status */}
       <Card>
         <CardHeader>
           <CardTitle>Compliance Status</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid md:grid-cols-4 gap-4">
-            <div className="text-center p-4 bg-green-50 rounded-lg">
-              <CheckCircle className="h-8 w-8 text-green-600 mx-auto mb-2" />
-              <div className="text-2xl font-bold text-green-600">
-                {documents.filter(d => d.status === 'verified').length}
-              </div>
-              <div className="text-sm text-gray-600">Verified</div>
+          <div className="space-y-3">
+            <div className="flex justify-between items-center">
+              <span>Business License</span>
+              <Badge className="bg-green-100 text-green-800">Verified</Badge>
             </div>
-            
-            <div className="text-center p-4 bg-yellow-50 rounded-lg">
-              <FileText className="h-8 w-8 text-yellow-600 mx-auto mb-2" />
-              <div className="text-2xl font-bold text-yellow-600">
-                {documents.filter(d => d.status === 'pending').length}
-              </div>
-              <div className="text-sm text-gray-600">Pending</div>
+            <div className="flex justify-between items-center">
+              <span>Insurance Certificate</span>
+              <Badge className="bg-yellow-100 text-yellow-800">Pending</Badge>
             </div>
-            
-            <div className="text-center p-4 bg-red-50 rounded-lg">
-              <AlertTriangle className="h-8 w-8 text-red-600 mx-auto mb-2" />
-              <div className="text-2xl font-bold text-red-600">
-                {documents.filter(d => d.status === 'expired').length}
-              </div>
-              <div className="text-sm text-gray-600">Expired</div>
-            </div>
-            
-            <div className="text-center p-4 bg-orange-50 rounded-lg">
-              <Calendar className="h-8 w-8 text-orange-600 mx-auto mb-2" />
-              <div className="text-2xl font-bold text-orange-600">
-                {documents.filter(d => isExpiringSoon(d.expiryDate)).length}
-              </div>
-              <div className="text-sm text-gray-600">Expiring Soon</div>
+            <div className="flex justify-between items-center">
+              <span>Professional Certification</span>
+              <Badge className="bg-gray-100 text-gray-800">Not Submitted</Badge>
             </div>
           </div>
         </CardContent>

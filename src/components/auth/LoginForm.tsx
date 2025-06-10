@@ -1,131 +1,113 @@
 
-import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useState } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/components/ui/use-toast";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 
 const LoginForm: React.FC = () => {
-  const { toast } = useToast();
-  const navigate = useNavigate();
-  const { user } = useAuth();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [formData, setFormData] = useState({
-    email: '',
-    password: '',
-    rememberMe: false
-  });
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { toast } = useToast();
   
-  // Redirect if user is already logged in
-  useEffect(() => {
-    if (user) {
-      navigate('/');
-    }
-  }, [user, navigate]);
-  
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({ ...formData, [e.target.id]: e.target.value });
-  };
-  
-  const handleCheckboxChange = (checked: boolean) => {
-    setFormData({ ...formData, rememberMe: checked });
-  };
-  
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const redirectTo = (location.state as any)?.redirect || '/dashboard';
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
     
+    if (!email || !password) {
+      toast({
+        title: "Error",
+        description: "Please fill in all fields",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsLoading(true);
+
     try {
-      // Clean up existing auth state
-      Object.keys(localStorage).forEach((key) => {
-        if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
-          localStorage.removeItem(key);
-        }
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
       });
-      
-      // Attempt sign in
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: formData.email,
-        password: formData.password,
-      });
-      
-      if (error) throw error;
-      
+
+      if (error) {
+        toast({
+          title: "Error",
+          description: error.message,
+          variant: "destructive"
+        });
+        return;
+      }
+
       toast({
-        title: "Login successful",
-        description: "Welcome back to Trade Link!",
+        title: "Success",
+        description: "Logged in successfully!",
       });
-      
-      navigate('/');
-    } catch (error: any) {
+
+      navigate(redirectTo);
+    } catch (error) {
       toast({
-        title: "Login Failed",
-        description: error.message || "Invalid email or password. Please try again.",
+        title: "Error",
+        description: "An unexpected error occurred",
         variant: "destructive"
       });
     } finally {
       setIsLoading(false);
     }
   };
-  
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-6">
       <div className="space-y-2">
         <Label htmlFor="email">Email</Label>
-        <Input 
-          id="email" 
-          placeholder="name@example.com" 
-          type="email" 
-          required 
-          value={formData.email}
-          onChange={handleChange}
+        <Input
+          id="email"
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="Enter your email"
+          required
         />
       </div>
       
       <div className="space-y-2">
-        <div className="flex items-center justify-between">
-          <Label htmlFor="password">Password</Label>
-          <Link to="/forgot-password" className="text-sm font-medium text-ttc-blue-500 hover:text-ttc-blue-600">
-            Forgot password?
-          </Link>
-        </div>
-        <Input 
-          id="password" 
-          type="password" 
-          required 
-          value={formData.password}
-          onChange={handleChange}
+        <Label htmlFor="password">Password</Label>
+        <Input
+          id="password"
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          placeholder="Enter your password"
+          required
         />
-      </div>
-      
-      <div className="flex items-center space-x-2">
-        <Checkbox 
-          id="remember" 
-          checked={formData.rememberMe} 
-          onCheckedChange={handleCheckboxChange} 
-        />
-        <Label htmlFor="remember" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-          Remember me
-        </Label>
       </div>
       
       <Button 
         type="submit" 
-        className="w-full bg-ttc-blue-500 hover:bg-ttc-blue-600"
+        className="w-full bg-ttc-blue-700 hover:bg-ttc-blue-800"
         disabled={isLoading}
       >
-        {isLoading ? "Signing in..." : "Sign In"}
+        {isLoading ? 'Signing in...' : 'Sign In'}
       </Button>
       
-      <div className="text-center text-sm">
-        Don't have an account?{' '}
-        <Link to="/signup" className="font-medium text-ttc-blue-500 hover:text-ttc-blue-600">
-          Sign up
-        </Link>
+      <div className="text-center">
+        <p className="text-sm text-ttc-neutral-600">
+          Don't have an account?{' '}
+          <button
+            type="button"
+            onClick={() => navigate('/signup', { state: { redirect: redirectTo } })}
+            className="text-ttc-blue-700 hover:underline"
+          >
+            Sign up here
+          </button>
+        </p>
       </div>
     </form>
   );
