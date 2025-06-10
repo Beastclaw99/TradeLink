@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
@@ -29,16 +28,47 @@ export const useProfessionalDataFetcher = (userId: string) => {
     try {
       console.log('Fetching professional dashboard data for user:', userId);
       
-      // Fetch profile
+      // Fetch profile with all necessary fields
       const { data: userProfileData, error: userProfileError } = await supabase
         .from('profiles')
-        .select('skills, first_name, last_name, created_at')
+        .select(`
+          id,
+          first_name,
+          last_name,
+          account_type,
+          skills,
+          rating,
+          bio,
+          phone,
+          email,
+          location,
+          hourly_rate,
+          availability,
+          certifications,
+          completed_projects,
+          response_rate,
+          on_time_completion,
+          profile_visibility,
+          show_email,
+          show_phone,
+          allow_messages,
+          profile_image,
+          verification_status,
+          years_experience,
+          portfolio_images,
+          created_at,
+          updated_at
+        `)
         .eq('id', userId)
         .single();
       
       if (userProfileError) {
         console.error('Profile fetch error:', userProfileError);
         throw userProfileError;
+      }
+      
+      if (!userProfileData) {
+        throw new Error('Profile not found');
       }
       
       console.log('Profile data:', userProfileData);
