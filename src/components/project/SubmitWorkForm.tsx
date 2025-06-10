@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -7,8 +7,6 @@ import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { PaperClipIcon, XMarkIcon } from '@heroicons/react/24/outline';
-import { AlertCircle } from 'lucide-react';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface SubmitWorkFormProps {
   projectId: string;
@@ -29,41 +27,9 @@ export default function SubmitWorkForm({
   const [files, setFiles] = useState<File[]>([]);
   const [filePreviews, setFilePreviews] = useState<{ [key: string]: string }>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [revisionFeedback, setRevisionFeedback] = useState<string | null>(null);
 
   // Check if form should be visible
-  const isVisible = isProfessional && ['in_progress', 'work_revision_requested'].includes(projectStatus);
-
-  // Fetch revision feedback if any
-  useEffect(() => {
-    const fetchRevisionFeedback = async () => {
-      if (projectStatus === 'work_revision_requested') {
-        try {
-          const { data, error } = await supabase
-            .from('project_updates')
-            .select('message, metadata')
-            .eq('project_id', projectId)
-            .eq('update_type', 'status_change')
-            .eq('status_update', 'work_revision_requested')
-            .order('created_at', { ascending: false })
-            .limit(1)
-            .single();
-
-          if (error) throw error;
-          if (data) {
-            const metadata = data.metadata as { revision_notes?: string } | null;
-            setRevisionFeedback(data.message || metadata?.revision_notes || null);
-          }
-        } catch (error) {
-          console.error('Error fetching revision feedback:', error);
-        }
-      }
-    };
-
-    if (isVisible) {
-      fetchRevisionFeedback();
-    }
-  }, [projectId, projectStatus, isVisible]);
+  const isVisible = isProfessional && ['in_progress', 'revision'].includes(projectStatus);
 
   // Handle file selection
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -124,15 +90,14 @@ export default function SubmitWorkForm({
         file_url: fileUrls[0], // Store first file URL in update
         professional_id: user?.id,
         metadata: {
-          submitted_files: fileUrls,
-          is_revision: projectStatus === 'work_revision_requested'
+          submitted_files: fileUrls
         }
       }]);
 
       // Update project status
       const { error: statusError } = await supabase
         .from('projects')
-        .update({ status: 'work_submitted' })
+        .update({ status: 'submitted' })
         .eq('id', projectId);
 
       if (statusError) throw statusError;
@@ -141,15 +106,11 @@ export default function SubmitWorkForm({
       await supabase.from('project_messages').insert([{
         project_id: projectId,
         sender_id: user?.id,
-        content: projectStatus === 'work_revision_requested' 
-          ? 'Revised work has been submitted for review.'
-          : 'Work has been submitted for review.',
+        content: 'Work has been submitted for review.',
         sent_at: new Date().toISOString(),
         metadata: {
           type: 'work_submitted',
-          title: projectStatus === 'work_revision_requested' 
-            ? 'Revised Work Submitted'
-            : 'Work Submitted for Review'
+          title: 'Work Submitted for Review'
         }
       }]);
 
@@ -157,13 +118,10 @@ export default function SubmitWorkForm({
       setSummary('');
       setFiles([]);
       setFilePreviews({});
-      setRevisionFeedback(null);
 
       toast({
         title: "Work Submitted",
-        description: projectStatus === 'work_revision_requested'
-          ? "Your revised work has been submitted for review."
-          : "Your work has been submitted for review."
+        description: "Your work has been submitted for review."
       });
 
       onWorkSubmitted();
@@ -186,21 +144,10 @@ export default function SubmitWorkForm({
   return (
     <Card className="mt-6">
       <CardHeader>
-        <CardTitle>
-          {projectStatus === 'work_revision_requested' ? 'Submit Revised Work' : 'Submit Work'}
-        </CardTitle>
+        <CardTitle>Submit Work</CardTitle>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-6">
-          {revisionFeedback && (
-            <Alert variant="destructive" className="mb-4">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>
-                <strong>Revision Requested:</strong> {revisionFeedback}
-              </AlertDescription>
-            </Alert>
-          )}
-
           {/* Summary Input */}
           <div className="space-y-2">
             <Label htmlFor="summary">Summary / Notes</Label>
@@ -208,9 +155,7 @@ export default function SubmitWorkForm({
               id="summary"
               value={summary}
               onChange={(e) => setSummary(e.target.value)}
-              placeholder={projectStatus === 'work_revision_requested'
-                ? "Describe the changes made in this revision..."
-                : "Describe the work completed and any important notes..."}
+              placeholder="Describe the work completed and any important notes..."
               className="min-h-[100px]"
             />
           </div>
@@ -273,11 +218,7 @@ export default function SubmitWorkForm({
             disabled={isSubmitting || files.length === 0}
             className="w-full"
           >
-            {isSubmitting 
-              ? 'Submitting...' 
-              : projectStatus === 'work_revision_requested'
-                ? 'Submit Revision'
-                : 'Submit Work'}
+            {isSubmitting ? 'Submitting...' : 'Submit Work'}
           </Button>
         </form>
       </CardContent>
