@@ -197,7 +197,7 @@ const ActiveProjectsTab: React.FC<ActiveProjectsTabProps> = ({
     }
   };
 
-  const handleTaskStatusUpdate = async (milestoneId: string, taskId: string, completed: boolean) => {
+  const handleTaskStatusUpdate = async (_milestoneId: string, taskId: string, completed: boolean) => {
     try {
       const { error } = await supabase
         .from('project_tasks')
