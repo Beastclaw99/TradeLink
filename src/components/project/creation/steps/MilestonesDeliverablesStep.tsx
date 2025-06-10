@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -32,10 +33,13 @@ const MilestonesDeliverablesStep: React.FC<MilestonesDeliverablesStepProps> = ({
     content: ''
   });
 
+  // Ensure milestones array exists
+  const milestones = data.milestones || [];
+
   const addMilestone = () => {
     if (newMilestone.title.trim()) {
       onUpdate({
-        milestones: [...(data.milestones || []), { 
+        milestones: [...milestones, { 
           ...newMilestone,
           id: crypto.randomUUID() // Generate ID for new milestone
         }]
@@ -53,13 +57,13 @@ const MilestonesDeliverablesStep: React.FC<MilestonesDeliverablesStepProps> = ({
   };
 
   const removeMilestone = (index: number) => {
-    const updated = data.milestones.filter((_, i) => i !== index);
+    const updated = milestones.filter((_, i) => i !== index);
     onUpdate({ milestones: updated });
   };
 
   const addDeliverable = (milestoneIndex: number) => {
     if (newDeliverable.description.trim()) {
-      const updatedMilestones = [...data.milestones];
+      const updatedMilestones = [...milestones];
       if (!updatedMilestones[milestoneIndex].deliverables) {
         updatedMilestones[milestoneIndex].deliverables = [];
       }
@@ -77,7 +81,7 @@ const MilestonesDeliverablesStep: React.FC<MilestonesDeliverablesStepProps> = ({
   };
 
   const removeDeliverable = (milestoneIndex: number, deliverableIndex: number) => {
-    const updatedMilestones = [...data.milestones];
+    const updatedMilestones = [...milestones];
     if (updatedMilestones[milestoneIndex].deliverables) {
       updatedMilestones[milestoneIndex].deliverables = updatedMilestones[milestoneIndex].deliverables.filter(
         (_, i) => i !== deliverableIndex
@@ -136,7 +140,7 @@ const MilestonesDeliverablesStep: React.FC<MilestonesDeliverablesStepProps> = ({
 
         {/* Display Added Milestones */}
         <div className="space-y-6">
-          {(data.milestones || []).map((milestone, milestoneIndex) => (
+          {milestones.map((milestone, milestoneIndex) => (
             <Card key={milestoneIndex}>
               <CardHeader>
                 <div className="flex items-center justify-between">
@@ -156,7 +160,7 @@ const MilestonesDeliverablesStep: React.FC<MilestonesDeliverablesStepProps> = ({
                   <div className="flex items-center gap-2">
                     <Calendar className="h-4 w-4 text-gray-500" />
                     <span className="text-sm text-gray-600">
-                      {new Date(milestone.dueDate).toLocaleDateString()}
+                      {milestone.dueDate ? new Date(milestone.dueDate).toLocaleDateString() : 'No due date'}
                     </span>
                   </div>
                   <Badge variant="outline" className="border-gray-200 bg-gray-50 text-gray-700">
@@ -214,7 +218,7 @@ const MilestonesDeliverablesStep: React.FC<MilestonesDeliverablesStepProps> = ({
                       <Label htmlFor={`deliverable-content-${milestoneIndex}`}>Content</Label>
                       <Textarea
                         id={`deliverable-content-${milestoneIndex}`}
-                        value={newDeliverable.content}
+                        value={newDeliverable.content || ''}
                         onChange={(e) => setNewDeliverable(prev => ({ ...prev, content: e.target.value }))}
                         placeholder="Enter deliverable content..."
                       />
@@ -251,4 +255,4 @@ const MilestonesDeliverablesStep: React.FC<MilestonesDeliverablesStepProps> = ({
   );
 };
 
-export default MilestonesDeliverablesStep; 
+export default MilestonesDeliverablesStep;

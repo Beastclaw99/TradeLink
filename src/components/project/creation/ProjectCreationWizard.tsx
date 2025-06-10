@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -153,10 +154,10 @@ const ProjectCreationWizard: React.FC = () => {
           category: projectData.category,
           location: projectData.location,
           budget: projectData.budget,
-          timeline: projectData.timeline,
+          expected_timeline: projectData.timeline,
           urgency: projectData.urgency,
           status: 'open',
-          created_by: user.id,
+          client_id: user.id,
           requirements: projectData.requirements || [],
           scope: projectData.scope,
           industry_specific_fields: projectData.industry_specific_fields,
@@ -164,14 +165,15 @@ const ProjectCreationWizard: React.FC = () => {
           deadline: projectData.deadline,
           project_start_time: projectData.project_start_time,
           rich_description: projectData.rich_description,
-          sla_terms: projectData.sla_terms
+          sla_terms: projectData.sla_terms,
+          recommended_skills: projectData.recommendedSkills?.join(', ') || null
         }])
         .select()
         .single();
 
       if (projectError) throw projectError;
 
-      // Create milestones
+      // Create milestones if they exist
       if (projectData.milestones && projectData.milestones.length > 0) {
         const { error: milestonesError } = await supabase
           .from('project_milestones')
@@ -201,7 +203,7 @@ const ProjectCreationWizard: React.FC = () => {
 
         // Create deliverables for each milestone
         for (const milestone of projectData.milestones) {
-          const createdMilestone = createdMilestones.find(m => m.title === milestone.title);
+          const createdMilestone = createdMilestones?.find(m => m.title === milestone.title);
           if (createdMilestone && milestone.deliverables && milestone.deliverables.length > 0) {
             const { error: deliverablesError } = await supabase
               .from('project_deliverables')
@@ -228,8 +230,8 @@ const ProjectCreationWizard: React.FC = () => {
         description: "Project created successfully!"
       });
 
-      // Navigate to the project details page
-      navigate(`/project/${project.id}`);
+      // Navigate to dashboard with projects tab active
+      navigate('/dashboard', { state: { activeTab: 'projects' } });
     } catch (error) {
       console.error('Error creating project:', error);
       toast({
@@ -294,9 +296,9 @@ const ProjectCreationWizard: React.FC = () => {
             <Alert>
               <Info className="h-4 w-4" />
               <AlertDescription>
-                <div className="font-medium">Step {currentStep}: {steps[currentStep - 1].title}</div>
+                <div className="font-medium">Step {currentStep}: {steps[currentStep - 1]?.title}</div>
                 <div className="text-sm text-gray-600 mt-1">
-                  {steps[currentStep - 1].description}
+                  {steps[currentStep - 1]?.description}
                 </div>
                 <div className="mt-2">
                   <span className="text-sm font-medium">Required fields:</span>
