@@ -18,13 +18,11 @@ interface DeliverableReviewProps {
     feedback?: string;
     created_at: string;
   };
-  projectId: string;
   onReviewComplete?: () => void;
 }
 
 const DeliverableReview: React.FC<DeliverableReviewProps> = ({
   deliverable,
-  projectId,
   onReviewComplete
 }) => {
   const [feedback, setFeedback] = useState(deliverable.feedback || '');

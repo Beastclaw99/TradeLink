@@ -64,16 +64,24 @@ const DeliverableSubmission: React.FC<DeliverableSubmissionProps> = ({
         fileName = selectedFile.name;
       }
 
+      const insertData: any = {
+        project_id: projectId,
+        description,
+        deliverable_type: selectedFile ? 'file' : 'note',
+        status: 'pending'
+      };
+
+      if (milestoneId) {
+        insertData.milestone_id = milestoneId;
+      }
+
+      if (fileUrl) {
+        insertData.file_url = fileUrl;
+      }
+
       const { error } = await supabase
         .from('project_deliverables')
-        .insert({
-          project_id: projectId,
-          milestone_id: milestoneId,
-          description,
-          file_url: fileUrl || null,
-          deliverable_type: selectedFile ? 'file' : 'note',
-          status: 'pending'
-        });
+        .insert(insertData);
 
       if (error) throw error;
 
