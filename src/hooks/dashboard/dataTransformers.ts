@@ -1,7 +1,8 @@
-
 import { Project, Application, Payment, Review, ApplicationProject } from '@/components/dashboard/types';
 
 export const transformProjects = (projects: any[]): Project[] => {
+  if (!projects) return [];
+  
   return projects.map(project => ({
     id: project.id,
     title: project.title,
@@ -28,12 +29,27 @@ export const transformProjects = (projects: any[]): Project[] => {
     scope: project.scope,
     service_contract: project.service_contract,
     sla_terms: project.sla_terms,
-    client: project.client
+    client: project.client ? {
+      id: project.client.id,
+      first_name: project.client.first_name,
+      last_name: project.client.last_name,
+      rating: project.client.rating,
+      profile_image: project.client.profile_image
+    } : null,
+    professional: project.professional ? {
+      id: project.professional.id,
+      first_name: project.professional.first_name,
+      last_name: project.professional.last_name,
+      rating: project.professional.rating,
+      profile_image: project.professional.profile_image
+    } : null
   }));
 };
 
 export const transformApplications = (appsData: any[]): Application[] => {
-  return (appsData || []).map(app => ({
+  if (!appsData) return [];
+  
+  return appsData.map(app => ({
     id: app.id,
     project_id: app.project_id,
     professional_id: app.professional_id,
@@ -50,28 +66,47 @@ export const transformApplications = (appsData: any[]): Application[] => {
       status: app.project.status,
       budget: app.project.budget,
       created_at: app.project.created_at
-    } as ApplicationProject : undefined
+    } as ApplicationProject : undefined,
+    professional: app.professional ? {
+      id: app.professional.id,
+      first_name: app.professional.first_name,
+      last_name: app.professional.last_name,
+      rating: app.professional.rating,
+      profile_image: app.professional.profile_image
+    } : undefined
   }));
 };
 
 export const transformPayments = (paymentsData: any[]): Payment[] => {
-  return (paymentsData || []).map(payment => ({
+  if (!paymentsData) return [];
+  
+  return paymentsData.map(payment => ({
     id: payment.id,
     amount: payment.amount,
     status: payment.status,
-    payment_method: (payment as any).payment_method || null,
-    transaction_id: (payment as any).transaction_id || null,
+    payment_method: payment.payment_method || null,
+    transaction_id: payment.transaction_id || null,
     created_at: payment.created_at || new Date().toISOString(),
     paid_at: payment.paid_at,
     client_id: payment.client_id,
     professional_id: payment.professional_id,
     project_id: payment.project_id,
-    project: payment.project
+    project: payment.project ? {
+      id: payment.project.id,
+      title: payment.project.title
+    } : null,
+    professional: payment.professional ? {
+      id: payment.professional.id,
+      first_name: payment.professional.first_name,
+      last_name: payment.professional.last_name
+    } : null
   }));
 };
 
 export const transformReviews = (reviewsData: any[]): Review[] => {
-  return (reviewsData || []).map(review => ({
+  if (!reviewsData) return [];
+  
+  return reviewsData.map(review => ({
     id: review.id,
     rating: review.rating,
     comment: review.comment,
@@ -79,6 +114,12 @@ export const transformReviews = (reviewsData: any[]): Review[] => {
     professional_id: review.professional_id,
     project_id: review.project_id,
     created_at: review.created_at,
-    updated_at: review['updated at'] || review.created_at
+    updated_at: review['updated at'] || review.created_at,
+    professional: review.professional ? {
+      id: review.professional.id,
+      first_name: review.professional.first_name,
+      last_name: review.professional.last_name,
+      profile_image: review.professional.profile_image
+    } : null
   }));
 };
