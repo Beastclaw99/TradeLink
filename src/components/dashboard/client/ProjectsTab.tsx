@@ -91,11 +91,11 @@ export const ProjectsTab: React.FC<ProjectsTabProps> = ({
   const [loadingDetails, setLoadingDetails] = useState<string | null>(null);
 
   const handleProjectSelect = async (projectId: string) => {
-    if (expandedProjectId === projectId) {
-      setExpandedProjectId(null);
-      setSelectedProject(null);
-      return;
-    }
+      if (expandedProjectId === projectId) {
+        setExpandedProjectId(null);
+        setSelectedProject(null);
+        return;
+      }
     setLoadingDetails(projectId);
     try {
       const projectDetails = await fetchProjectDetails(projectId);
@@ -133,33 +133,33 @@ export const ProjectsTab: React.FC<ProjectsTabProps> = ({
       ) : (
         projects.map((project) => {
           const isExpanded = expandedProjectId === project.id;
-          return (
-            <Card key={project.id} className="mb-4">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-lg font-semibold">{project.title}</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Created: {new Date(project.created_at).toLocaleDateString()}
-                    </p>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Badge variant={getStatusVariant(project.status)}>
-                      {project.status}
-                    </Badge>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleProjectSelect(project.id)}
+  return (
+      <Card key={project.id} className="mb-4">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-semibold">{project.title}</h3>
+                <p className="text-sm text-muted-foreground">
+                  Created: {new Date(project.created_at).toLocaleDateString()}
+                </p>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Badge variant={getStatusVariant(project.status)}>
+                {project.status}
+              </Badge>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => handleProjectSelect(project.id)}
                       disabled={loadingDetails === project.id}
-                    >
+              >
                       <span className={`transition-transform ${isExpanded ? 'rotate-180' : ''}`}>▼</span>
-                    </Button>
-                  </div>
-                </div>
-              </CardHeader>
+              </Button>
+            </div>
+          </div>
+        </CardHeader>
               {isExpanded && selectedProject && selectedProject.id === project.id && (
-                <CardContent>
+          <CardContent>
                   <Tabs
                     value={activeTab[project.id] || 'timeline'}
                     onValueChange={(tab) => setActiveTab((prev) => ({ ...prev, [project.id]: tab }))}
@@ -196,23 +196,23 @@ export const ProjectsTab: React.FC<ProjectsTabProps> = ({
                       <ProjectProgressOverview project={selectedProject} />
                       <div className="mt-4">
                         <h4 className="font-medium mb-2">Project Details</h4>
-                        <div className="grid grid-cols-2 gap-4 text-sm">
-                          <div>
-                            <span className="text-muted-foreground">Budget:</span>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <span className="text-muted-foreground">Budget:</span>
                             <span className="ml-2">${selectedProject.budget}</span>
-                          </div>
-                          <div>
-                            <span className="text-muted-foreground">Timeline:</span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Timeline:</span>
                             <span className="ml-2">{selectedProject.timeline || selectedProject.expected_timeline || 'N/A'} days</span>
-                          </div>
-                          <div>
-                            <span className="text-muted-foreground">Category:</span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Category:</span>
                             <span className="ml-2">{selectedProject.category}</span>
-                          </div>
-                          <div>
-                            <span className="text-muted-foreground">Location:</span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Location:</span>
                             <span className="ml-2">{selectedProject.location}</span>
-                          </div>
+        </div>
                         </div>
                         {selectedProject.requirements && (
                           <div className="col-span-2 mt-2">
@@ -220,17 +220,17 @@ export const ProjectsTab: React.FC<ProjectsTabProps> = ({
                             <ul className="list-disc list-inside mt-1">
                               {selectedProject.requirements.map((req: string, idx: number) => (
                                 <li key={idx}>{req}</li>
-                              ))}
+                    ))}
                             </ul>
-                          </div>
-                        )}
-                      </div>
+        </div>
+      )}
+              </div>
                     </TabsContent>
                   </Tabs>
-                </CardContent>
-              )}
-            </Card>
-          );
+          </CardContent>
+        )}
+      </Card>
+    );
         })
       )}
     </div>
