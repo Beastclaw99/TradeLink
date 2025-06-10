@@ -32,39 +32,15 @@ const ProjectChat: React.FC<ProjectChatProps> = ({ projectId, currentUserId }) =
   const [isSending, setIsSending] = useState(false);
   const { toast } = useToast();
   const channelRef = useRef<any>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
 
   useEffect(() => {
-    fetchMessages();
-    
-    // Set up realtime subscription only if we don't have one already
-    if (!channelRef.current) {
-      const channel = supabase
-        .channel(`project_messages_${projectId}`)
-        .on(
-          'postgres_changes',
-          {
-            event: 'INSERT',
-            schema: 'public',
-            table: 'project_messages',
-            filter: `project_id=eq.${projectId}`
-          },
-          () => {
-            fetchMessages();
-          }
-        )
-        .subscribe();
-      
-      channelRef.current = channel;
-    }
-
-    // Cleanup function
-    return () => {
-      if (channelRef.current) {
-        supabase.removeChannel(channelRef.current);
-        channelRef.current = null;
-      }
-    };
-  }, [projectId]);
+    scrollToBottom();
+  }, [messages]);
 
   const fetchMessages = async () => {
     try {
@@ -79,7 +55,6 @@ const ProjectChat: React.FC<ProjectChatProps> = ({ projectId, currentUserId }) =
 
       if (error) throw error;
       
-      // Transform the data to match our Message interface
       const transformedMessages: Message[] = (data || []).map(msg => ({
         id: msg.id,
         content: msg.content,
@@ -101,6 +76,44 @@ const ProjectChat: React.FC<ProjectChatProps> = ({ projectId, currentUserId }) =
     }
   };
 
+  useEffect(() => {
+    fetchMessages();
+    
+    // Clean up any existing channel before creating a new one
+    if (channelRef.current) {
+      supabase.removeChannel(channelRef.current);
+      channelRef.current = null;
+    }
+
+    // Create a new channel with a unique name
+    const channelName = `project_messages_${projectId}_${Date.now()}`;
+    const channel = supabase
+      .channel(channelName)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'project_messages',
+          filter: `project_id=eq.${projectId}`
+        },
+        () => {
+          fetchMessages();
+        }
+      )
+      .subscribe();
+    
+    channelRef.current = channel;
+
+    // Cleanup function
+    return () => {
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
+    };
+  }, [projectId]); // Only depend on projectId
+
   const handleSendMessage = async () => {
     if (!newMessage.trim()) return;
 
@@ -117,7 +130,6 @@ const ProjectChat: React.FC<ProjectChatProps> = ({ projectId, currentUserId }) =
       if (error) throw error;
 
       setNewMessage('');
-      // Don't fetch messages here as realtime will handle it
     } catch (error) {
       console.error('Error sending message:', error);
       toast({
@@ -150,7 +162,6 @@ const ProjectChat: React.FC<ProjectChatProps> = ({ projectId, currentUserId }) =
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
-          {/* Messages List */}
           <div className="h-96 overflow-y-auto space-y-4 p-4 border rounded-lg bg-gray-50">
             {messages.length === 0 ? (
               <div className="text-center text-gray-500">
@@ -193,9 +204,9 @@ const ProjectChat: React.FC<ProjectChatProps> = ({ projectId, currentUserId }) =
                 </div>
               ))
             )}
+            <div ref={messagesEndRef} />
           </div>
 
-          {/* Message Input */}
           <div className="flex gap-2">
             <Textarea
               value={newMessage}

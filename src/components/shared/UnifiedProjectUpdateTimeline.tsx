@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
@@ -102,9 +103,10 @@ export default function UnifiedProjectUpdateTimeline({
   useEffect(() => {
     fetchUpdates();
 
-    // Set up real-time subscription for updates
+    // Create unique channel name to avoid conflicts
+    const channelName = `project_updates_${projectId}_${Date.now()}`;
     const channel = supabase
-      .channel(`project_updates:${projectId}`)
+      .channel(channelName)
       .on('postgres_changes', {
         event: '*',
         schema: 'public',
