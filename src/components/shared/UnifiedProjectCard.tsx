@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Badge } from "@/components/ui/badge";
 import { 
@@ -286,7 +287,6 @@ const UnifiedProjectCard: React.FC<UnifiedProjectCardProps> = ({
         </CardHeader>
 
         <CardContent className="space-y-4">
-          {/* Project Progress */}
           <div className="space-y-3">
             <div className="flex items-center justify-between text-sm">
               <span className="font-medium">Project Progress</span>
@@ -301,7 +301,6 @@ const UnifiedProjectCard: React.FC<UnifiedProjectCardProps> = ({
 
           <Separator />
 
-          {/* Project Details */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
             <div>
               <span className="font-medium text-gray-700">Budget:</span>
