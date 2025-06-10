@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { AvailableProjectsTab } from './AvailableProjectsTab';
+import AvailableProjectsTab from './AvailableProjectsTab';
 import ApplicationsTab from './ApplicationsTab';
 import ActiveProjectsTab from './ActiveProjectsTab';
 import PaymentsTab from './PaymentsTab';
@@ -21,13 +21,13 @@ interface ProfessionalDashboardTabsProps {
   coverLetter: string;
   setCoverLetter: (value: string) => void;
   bidAmount: number | null;
-  setBidAmount: (value: number) => void;
+  setBidAmount: (value: number | null) => void;
   selectedProject: string | null;
   setSelectedProject: (projectId: string | null) => void;
   availability: string;
   setAvailability: (value: string) => void;
   isApplying: boolean;
-  handleApplyToProject: () => void;
+  handleApplyToProject: () => Promise<void>;
   markProjectComplete: (projectId: string) => void;
   calculateAverageRating: () => number;
   calculatePaymentTotals: () => { total: number; pending: number; completed: number };
@@ -100,7 +100,7 @@ export const ProfessionalDashboardTabs: React.FC<ProfessionalDashboardTabsProps>
           projects={projects}
           applications={applications}
           skills={skills}
-          setSelectedProject={setSelectedProject}
+          setSelectedProject={(project: Project) => setSelectedProject(project.id)}
           setBidAmount={setBidAmount}
         />
         {selectedProject && (
@@ -125,7 +125,6 @@ export const ProfessionalDashboardTabs: React.FC<ProfessionalDashboardTabsProps>
         <ApplicationsTab 
           isLoading={isLoading} 
           applications={applications}
-          userId={userId}
         />
       </TabsContent>
       
@@ -134,7 +133,16 @@ export const ProfessionalDashboardTabs: React.FC<ProfessionalDashboardTabsProps>
       </TabsContent>
       
       <TabsContent value="payments">
-        <PaymentsTab {...sharedProps} />
+        <PaymentsTab 
+          {...sharedProps}
+          calculatePaymentTotals={() => {
+            const totals = calculatePaymentTotals();
+            return {
+              received: totals.completed,
+              pending: totals.pending
+            };
+          }}
+        />
       </TabsContent>
       
       <TabsContent value="reviews">
