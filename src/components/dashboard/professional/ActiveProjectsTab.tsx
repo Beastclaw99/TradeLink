@@ -45,7 +45,7 @@ interface DatabaseMilestone {
 
 interface ProjectWithMilestones extends Omit<Project, 'milestones'> {
   milestones?: DatabaseMilestone[];
-  required_skills: string | null;
+  required_skills?: string | null;
 }
 
 interface ActiveProjectsTabProps {
@@ -96,7 +96,7 @@ const ActiveProjectsTab: React.FC<ActiveProjectsTabProps> = ({
         // Transform the data to match our interface
         const transformedProject: ProjectWithMilestones = {
           ...project,
-          required_skills: project.required_skills || null,
+          required_skills: project.recommended_skills || null,
           milestones: project.milestones?.map((m: any) => ({
             id: m.id,
             title: m.title,
@@ -197,7 +197,7 @@ const ActiveProjectsTab: React.FC<ActiveProjectsTabProps> = ({
     }
   };
 
-  const handleTaskStatusUpdate = async (milestoneId: string, taskId: string, completed: boolean) => {
+  const handleTaskStatusUpdate = async (_: string, taskId: string, completed: boolean) => {
     try {
       const { error } = await supabase
         .from('project_tasks')

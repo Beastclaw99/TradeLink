@@ -58,6 +58,7 @@ const ProjectsDisplay: React.FC<ProjectsDisplayProps> = ({
             key={project.id}
             project={project}
             onClick={() => onProjectClick(project)}
+            userType="professional"
             userSkills={userSkills}
           />
         ))}
@@ -72,7 +73,6 @@ const ProjectsDisplay: React.FC<ProjectsDisplayProps> = ({
           key={project.id}
           project={project}
           onClick={() => onProjectClick(project)}
-          userSkills={userSkills}
         />
       ))}
     </div>

@@ -20,7 +20,6 @@ interface ProfessionalSearchFiltersProps {
   availabilityFilter: string;
   setAvailabilityFilter: (availability: string) => void;
   allSkills: string[];
-  isLoading: boolean;
 }
 
 const ProfessionalSearchFilters: React.FC<ProfessionalSearchFiltersProps> = ({
@@ -36,8 +35,7 @@ const ProfessionalSearchFilters: React.FC<ProfessionalSearchFiltersProps> = ({
   setMaxRate,
   availabilityFilter,
   setAvailabilityFilter,
-  allSkills,
-  isLoading
+  allSkills
 }) => {
   const addSkill = (skill: string) => {
     if (!selectedSkills.includes(skill)) {

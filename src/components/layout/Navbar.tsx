@@ -1,9 +1,8 @@
 
-import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { NavigationMenu, NavigationMenuItem, NavigationMenuList } from '@/components/ui/navigation-menu';
-import { NotificationBell } from '@/components/shared/NotificationBell';
+import NotificationBell from '@/components/shared/NotificationBell';
 import { useAuth } from '@/contexts/AuthContext';
 
 const Navbar = () => {
