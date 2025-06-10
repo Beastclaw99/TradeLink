@@ -15,6 +15,7 @@ const Dashboard: React.FC = () => {
   const [accountType, setAccountType] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isProfileComplete, setIsProfileComplete] = useState(false);
   const location = useLocation();
   const activeTab = location.state?.activeTab || 'projects';
 
@@ -29,7 +30,7 @@ const Dashboard: React.FC = () => {
         // First check if profile exists
         const { data: profileData, error: profileError } = await supabase
           .from('profiles')
-          .select('id, account_type')
+          .select('*')
           .eq('id', user.id)
           .single();
         
@@ -45,7 +46,7 @@ const Dashboard: React.FC = () => {
             .insert([
               {
                 id: user.id,
-                account_type: user.user_metadata?.account_type || 'client', // Use account type from metadata
+                account_type: user.user_metadata?.account_type || 'client',
                 first_name: user.user_metadata?.full_name?.split(' ')[0] || null,
                 last_name: user.user_metadata?.full_name?.split(' ').slice(1).join(' ') || null,
                 email: user.email
@@ -61,9 +62,22 @@ const Dashboard: React.FC = () => {
           
           console.log('Created new profile:', newProfile);
           setAccountType(newProfile.account_type);
+          setIsProfileComplete(false);
         } else {
           console.log('Existing profile data:', profileData);
           setAccountType(profileData.account_type);
+          
+          // Check if profile is complete
+          const requiredFields = ['first_name', 'last_name', 'phone', 'location', 'bio'] as const;
+          let isComplete = requiredFields.every(field => profileData[field as keyof typeof profileData]);
+          
+          // For professionals, check additional required fields
+          if (profileData.account_type === 'professional') {
+            const professionalFields = ['years_experience', 'hourly_rate', 'skills'] as const;
+            isComplete = isComplete && professionalFields.every(field => profileData[field as keyof typeof profileData]);
+          }
+          
+          setIsProfileComplete(isComplete);
         }
       } catch (error: any) {
         console.error('Error in profile handling:', error);
@@ -146,6 +160,11 @@ const Dashboard: React.FC = () => {
   // If not logged in, redirect to login
   if (!authLoading && !user) {
     return <Navigate to="/login" replace />;
+  }
+
+  // If profile is not complete, redirect to onboarding
+  if (!isLoading && !isProfileComplete && user) {
+    return <Navigate to="/onboarding" replace />;
   }
 
   // Loading state
