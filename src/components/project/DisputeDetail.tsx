@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -7,7 +8,7 @@ import { format } from 'date-fns';
 import { AlertCircle, MessageSquare, FileText, CheckCircle, XCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useRouter } from 'next/navigation';
-import { FileUpload } from './FileUpload';
+import FileUpload from './FileUpload';
 import { fileService } from '@/services/fileService';
 
 interface DisputeDetailProps {
@@ -335,4 +336,4 @@ const DisputeDetail: React.FC<DisputeDetailProps> = ({
   );
 };
 
-export default DisputeDetail; 
+export default DisputeDetail;

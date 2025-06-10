@@ -1,6 +1,6 @@
+
 import React from 'react';
 import DisputeForm from '@/components/project/DisputeForm';
-import { getProjectMembers } from '@/services/projectService';
 
 interface NewDisputePageProps {
   params: {
@@ -39,4 +39,4 @@ export default async function NewDisputePage({
       />
     </div>
   );
-} 
+}

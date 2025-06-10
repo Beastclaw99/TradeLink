@@ -108,4 +108,4 @@ export interface ProjectData {
   project_start_time: string;
   rich_description: string;
   sla_terms: string | null;
-} 
+}
