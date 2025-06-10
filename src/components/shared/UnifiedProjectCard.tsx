@@ -1,4 +1,5 @@
 
+
 import { useState, useEffect } from 'react';
 import { Badge } from "@/components/ui/badge";
 import { 
@@ -436,3 +437,4 @@ const UnifiedProjectCard: React.FC<UnifiedProjectCardProps> = ({
 };
 
 export default UnifiedProjectCard;
+
