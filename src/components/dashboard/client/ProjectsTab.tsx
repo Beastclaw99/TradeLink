@@ -135,10 +135,24 @@ const ProjectsTab: React.FC<ProjectsTabProps> = ({
   const handleProjectSelect = async (projectId: string) => {
     try {
       const projectDetails = await fetchProjectDetails(projectId);
-      setSelectedProject(projectDetails);
+      if (!projectDetails) {
+        console.error('No project details returned for project:', projectId);
+        return;
+      }
+      
+      // Ensure the project has all required fields
+      const enrichedProject = {
+        ...projectDetails,
+        milestones: projectDetails.milestones || [],
+        deliverables: projectDetails.deliverables || [],
+        status: projectDetails.status || 'open'
+      };
+      
+      setSelectedProject(enrichedProject);
       toggleProjectExpansion(projectId);
     } catch (error) {
       console.error('Error fetching project details:', error);
+      // Optionally show an error toast here
     }
   };
 
