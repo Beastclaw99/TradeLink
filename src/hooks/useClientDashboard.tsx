@@ -1,220 +1,12 @@
-import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/components/ui/use-toast';
-import { Project, Application, Payment, Review, Client } from '@/components/dashboard/types';
-import { 
-  transformProjects, 
-  transformApplications, 
-  transformPayments, 
-  transformReviews,
-  transformClient
-} from './dashboard/dataTransformers';
+import { useEffect } from 'react';
+import { useClientDataFetcher } from './dashboard/useClientDataFetcher';
+import { useClientActions } from './dashboard/useClientActions';
+import { calculateAverageRating, calculatePaymentTotals } from './dashboard/calculationUtils';
+import { useState } from 'react';
+import { Project, Application } from '@/components/dashboard/types';
 
 export const useClientDashboard = (userId: string) => {
-  const { toast } = useToast();
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [applications, setApplications] = useState<Application[]>([]);
-  const [payments, setPayments] = useState<Payment[]>([]);
-  const [reviews, setReviews] = useState<Review[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [profile, setProfile] = useState<Client | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  const fetchDashboardData = async () => {
-    setIsLoading(true);
-    setError(null);
-    
-    try {
-      console.log('Fetching client dashboard data for user:', userId);
-      
-      // Fetch profile with all necessary fields
-      const { data: userProfileData, error: userProfileError } = await supabase
-        .from('profiles')
-        .select(`
-          id,
-          first_name,
-          last_name,
-          account_type,
-          rating,
-          bio,
-          phone,
-          email,
-          location,
-          profile_visibility,
-          show_email,
-          show_phone,
-          allow_messages,
-          profile_image,
-          verification_status,
-          created_at,
-          updated_at
-        `)
-        .eq('id', userId)
-        .single();
-      
-      if (userProfileError) {
-        console.error('Profile fetch error:', userProfileError);
-        throw userProfileError;
-      }
-      
-      if (!userProfileData) {
-        throw new Error('Profile not found');
-      }
-      
-      console.log('Profile data:', userProfileData);
-      setProfile(transformClient(userProfileData));
-      
-      // Fetch client's projects - both created and assigned
-      const { data: projectsData, error: projectsError } = await supabase
-        .from('projects')
-        .select(`
-          *,
-          professional:profiles!projects_assigned_to_fkey(
-            id,
-            first_name,
-            last_name,
-            rating,
-            profile_image
-          ),
-          milestones:project_milestones(
-            id,
-            title,
-            description,
-            due_date,
-            status,
-            tasks:project_tasks(
-              id,
-              title,
-              description,
-              status,
-              completed
-            )
-          ),
-          deliverables:project_deliverables(
-            id,
-            title,
-            description,
-            status,
-            file_url,
-            submitted_at,
-            approved_at
-          )
-        `)
-        .or(`client_id.eq.${userId},assigned_to.eq.${userId}`)
-        .order('created_at', { ascending: false });
-      
-      if (projectsError) {
-        console.error('Projects fetch error:', projectsError);
-        throw projectsError;
-      }
-      
-      console.log('Projects data:', projectsData);
-      setProjects(transformProjects(projectsData || []));
-      
-      // Fetch applications for client's projects
-      const { data: appsData, error: appsError } = await supabase
-        .from('applications')
-        .select(`
-          id,
-          created_at,
-          status,
-          bid_amount,
-          cover_letter,
-          professional_id,
-          project_id,
-          availability,
-          proposal_message,
-          updated_at,
-          project:projects (
-            id,
-            title,
-            status,
-            budget,
-            created_at
-          ),
-          professional:profiles!applications_professional_id_fkey(
-            id,
-            first_name,
-            last_name,
-            rating,
-            profile_image
-          )
-        `)
-        .in('project_id', projectsData?.map(p => p.id) || [])
-        .order('created_at', { ascending: false });
-      
-      if (appsError) {
-        console.error('Applications fetch error:', appsError);
-        throw appsError;
-      }
-      
-      console.log('Applications data:', appsData);
-      setApplications(transformApplications(appsData || []));
-      
-      // Fetch payments
-      const { data: paymentsData, error: paymentsError } = await supabase
-        .from('payments')
-        .select(`
-          *,
-          project:projects(title),
-          professional:profiles!payments_professional_id_fkey(
-            id,
-            first_name,
-            last_name
-          )
-        `)
-        .eq('client_id', userId);
-      
-      if (paymentsError) {
-        console.error('Payments fetch error:', paymentsError);
-        throw paymentsError;
-      }
-      
-      console.log('Payments data:', paymentsData);
-      setPayments(transformPayments(paymentsData));
-      
-      // Fetch reviews
-      const { data: reviewsData, error: reviewsError } = await supabase
-        .from('reviews')
-        .select(`
-          *,
-          professional:profiles!reviews_professional_id_fkey(
-            id,
-            first_name,
-            last_name,
-            profile_image
-          )
-        `)
-        .eq('client_id', userId);
-      
-      if (reviewsError) {
-        console.error('Reviews fetch error:', reviewsError);
-        throw reviewsError;
-      }
-      
-      console.log('Reviews data:', reviewsData);
-      setReviews(transformReviews(reviewsData));
-      
-    } catch (error: any) {
-      console.error('Dashboard data fetch error:', error);
-      setError(error.message || 'Failed to load dashboard data');
-      toast({
-        title: "Error",
-        description: error.message || 'Failed to load dashboard data',
-        variant: "destructive"
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    if (userId) {
-      fetchDashboardData();
-    }
-  }, [userId]);
-
-  return {
+  const {
     projects,
     applications,
     payments,
@@ -222,13 +14,149 @@ export const useClientDashboard = (userId: string) => {
     profile,
     isLoading,
     error,
+    fetchDashboardData
+  } = useClientDataFetcher(userId);
+
+  const { isProcessing, handleApplicationUpdate } = useClientActions(userId, fetchDashboardData);
+
+  // Project state
+  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+  const [editedProject, setEditedProject] = useState<Project | null>(null);
+  const [projectToDelete, setProjectToDelete] = useState<string | null>(null);
+  const [isProjectSubmitting, setIsProjectSubmitting] = useState(false);
+
+  // Review state
+  const [projectToReview, setProjectToReview] = useState<Application | null>(null);
+  const [reviewData, setReviewData] = useState({
+    rating: 0,
+    comment: '',
+    professional_id: ''
+  });
+  const [isReviewSubmitting, setIsReviewSubmitting] = useState(false);
+
+  // Initial data fetch
+  useEffect(() => {
+    fetchDashboardData();
+  }, [userId]);
+
+  // Project operations
+  const handleEditInitiate = (project: Project) => {
+    setEditedProject(project);
+  };
+
+  const handleEditCancel = () => {
+    setEditedProject(null);
+  };
+
+  const handleUpdateProject = async (projectData: Project) => {
+    try {
+      setIsProjectSubmitting(true);
+      // Update project logic here
+      await fetchDashboardData();
+      setEditedProject(null);
+    } catch (error) {
+      console.error('Error updating project:', error);
+    } finally {
+      setIsProjectSubmitting(false);
+    }
+  };
+
+  const handleDeleteInitiate = (projectId: string) => {
+    setProjectToDelete(projectId);
+  };
+
+  const handleDeleteCancel = () => {
+    setProjectToDelete(null);
+  };
+
+  const handleDeleteProject = async (projectId: string) => {
+    try {
+      setIsProjectSubmitting(true);
+      // Delete project logic here
+      await fetchDashboardData();
+      setProjectToDelete(null);
+    } catch (error) {
+      console.error('Error deleting project:', error);
+    } finally {
+      setIsProjectSubmitting(false);
+    }
+  };
+
+  // Review operations
+  const handleReviewInitiate = (application: Application) => {
+    setProjectToReview(application);
+    setReviewData({
+      rating: 0,
+      comment: '',
+      professional_id: application.professional_id
+    });
+  };
+
+  const handleReviewCancel = () => {
+    setProjectToReview(null);
+    setReviewData({
+      rating: 0,
+      comment: '',
+      professional_id: ''
+    });
+  };
+
+  const handleReviewSubmit = async () => {
+    try {
+      setIsReviewSubmitting(true);
+      // Submit review logic here
+      await fetchDashboardData();
+      setProjectToReview(null);
+      setReviewData({
+        rating: 0,
+        comment: '',
+        professional_id: ''
+      });
+    } catch (error) {
+      console.error('Error submitting review:', error);
+    } finally {
+      setIsReviewSubmitting(false);
+    }
+  };
+
+  return {
+    // Data
+    projects,
+    applications,
+    payments,
+    reviews,
+    profile,
+    isLoading,
+    error,
+    
+    // Project state
+    selectedProject,
+    setSelectedProject,
+    editedProject,
+    projectToDelete,
+    isProjectSubmitting,
+    
+    // Review state
+    projectToReview,
+    reviewData,
+    isReviewSubmitting,
+    
+    // Actions
     fetchDashboardData,
-    setProjects,
-    setApplications,
-    setPayments,
-    setReviews,
-    setProfile,
-    setIsLoading,
-    setError
+    handleApplicationUpdate,
+    handleEditInitiate,
+    handleEditCancel,
+    handleUpdateProject,
+    handleDeleteInitiate,
+    handleDeleteCancel,
+    handleDeleteProject,
+    handleReviewInitiate,
+    handleReviewCancel,
+    handleReviewSubmit,
+    setReviewData,
+    
+    // Calculations
+    calculateAverageRating: () => calculateAverageRating(reviews),
+    calculatePaymentTotals: () => calculatePaymentTotals(payments),
   };
 };

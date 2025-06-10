@@ -44,29 +44,29 @@ const ProjectCreationWizard: React.FC = () => {
       return JSON.parse(savedDraft);
     }
     return {
-      title: '',
-      description: '',
-      category: '',
-      location: '',
-      recommendedSkills: [],
-      budget: 0,
-      timeline: '',
-      urgency: '',
-      milestones: [],
-      deliverables: [],
-      service_contract: '',
-      requirements: [],
-      rich_description: '',
-      expected_timeline: '',
-      scope: '',
-      industry_specific_fields: null,
-      location_coordinates: null,
-      contract_template_id: '',
-      payment_required: true,
-      payment_due_date: '',
-      project_start_time: '',
-      client_id: user?.id,
-      sla_terms: null
+    title: '',
+    description: '',
+    category: '',
+    location: '',
+    recommendedSkills: [],
+    budget: 0,
+    timeline: '',
+    urgency: '',
+    milestones: [],
+    deliverables: [],
+    service_contract: '',
+    requirements: [],
+    rich_description: '',
+    expected_timeline: '',
+    scope: '',
+    industry_specific_fields: null,
+    location_coordinates: null,
+    contract_template_id: '',
+    payment_required: true,
+    payment_due_date: '',
+    project_start_time: '',
+    client_id: user?.id,
+    sla_terms: null
     };
   });
 
@@ -212,17 +212,17 @@ const ProjectCreationWizard: React.FC = () => {
 
       if (!draftId) {
         // Create new project
-        const { data: project, error: projectError } = await supabase
-          .from('projects')
-          .insert([{
+      const { data: project, error: projectError } = await supabase
+        .from('projects')
+        .insert([{
             ...projectData,
             status: 'open',
             client_id: user.id
-          }])
-          .select()
-          .single();
+        }])
+        .select()
+        .single();
 
-        if (projectError) throw projectError;
+      if (projectError) throw projectError;
         projectId = project.id;
       } else {
         // Update draft to open project
@@ -352,15 +352,15 @@ const ProjectCreationWizard: React.FC = () => {
           
           <div className="flex justify-between pt-6 border-t">
             <div className="flex gap-2">
-              <Button
-                variant="outline"
-                onClick={handlePrevious}
-                disabled={currentStep === 1}
-                className="flex items-center gap-2"
-              >
-                <ChevronLeft className="w-4 h-4" />
-                Previous
-              </Button>
+            <Button
+              variant="outline"
+              onClick={handlePrevious}
+              disabled={currentStep === 1}
+              className="flex items-center gap-2"
+            >
+              <ChevronLeft className="w-4 h-4" />
+              Previous
+            </Button>
               
               <Button
                 variant="outline"

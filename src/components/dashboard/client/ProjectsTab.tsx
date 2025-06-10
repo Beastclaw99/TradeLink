@@ -63,7 +63,7 @@ interface ProjectsTabProps {
 
 export const ProjectsTab: React.FC<ProjectsTabProps> = ({
   projects,
-  isLoading,
+  isLoading, 
   error,
   onEditProject,
   onDeleteProject,
@@ -115,8 +115,8 @@ export const ProjectsTab: React.FC<ProjectsTabProps> = ({
   const renderProjectCard = (project: Project) => {
     const isExpanded = expandedProjectId === project.id;
     const isSelected = selectedProject?.id === project.id;
-
-    return (
+  
+  return (
       <Card key={project.id} className="mb-4">
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -145,7 +145,7 @@ export const ProjectsTab: React.FC<ProjectsTabProps> = ({
         
         {isExpanded && isSelected && (
           <CardContent>
-            <div className="space-y-4">
+        <div className="space-y-4">
               <div>
                 <h4 className="font-medium mb-2">Description</h4>
                 <p className="text-sm text-muted-foreground">{project.description}</p>
@@ -171,7 +171,7 @@ export const ProjectsTab: React.FC<ProjectsTabProps> = ({
                     <span className="ml-2">{project.location}</span>
                   </div>
                 </div>
-              </div>
+        </div>
 
               {project.milestones && project.milestones.length > 0 && (
                 <div>
@@ -189,22 +189,22 @@ export const ProjectsTab: React.FC<ProjectsTabProps> = ({
                       </div>
                     ))}
                   </div>
-                </div>
-              )}
-
+        </div>
+      )}
+      
               <div className="flex justify-end space-x-2">
                 <Button
                   variant="outline"
                   onClick={() => onEditProject(project)}
                 >
                   Edit Project
-                </Button>
-                <Button
-                  variant="destructive"
+            </Button>
+            <Button 
+              variant="destructive" 
                   onClick={() => onDeleteProject(project.id)}
-                >
+            >
                   Delete Project
-                </Button>
+            </Button>
               </div>
             </div>
           </CardContent>

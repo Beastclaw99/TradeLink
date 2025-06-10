@@ -235,7 +235,7 @@ const RequirementsStep: React.FC<RequirementsStepProps> = ({ data, onUpdate }) =
                 <Button onClick={handleAddRequirement}>
                   <Plus className="h-4 w-4 mr-2" />
                   Add
-                </Button>
+                  </Button>
               </div>
             </div>
 
@@ -248,7 +248,7 @@ const RequirementsStep: React.FC<RequirementsStepProps> = ({ data, onUpdate }) =
                   onChange={handleFileChange}
                   accept=".pdf,.doc,.docx,.txt"
                 />
-                <Button 
+                <Button
                   onClick={handleFileUpload}
                   disabled={!selectedFile || isUploading}
                 >
@@ -265,7 +265,7 @@ const RequirementsStep: React.FC<RequirementsStepProps> = ({ data, onUpdate }) =
             {data.requirements && data.requirements.length > 0 && (
               <div className="space-y-2">
                 <Label>Current Requirements</Label>
-                <div className="space-y-2">
+            <div className="space-y-2">
                   {data.requirements.map((req, index) => (
                     <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded">
                       <div className="flex items-center gap-2">
