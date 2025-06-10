@@ -1,8 +1,8 @@
-
 import { useState } from 'react';
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Project } from '@/components/dashboard/types';
+import { Milestone, convertDBMilestoneToMilestone, convertMilestoneToDBMilestone } from '@/components/project/creation/types';
 
 export const useProjectOperations = (userId: string, onUpdate: () => void) => {
   const { toast } = useToast();
@@ -19,6 +19,208 @@ export const useProjectOperations = (userId: string, onUpdate: () => void) => {
     budget: ''
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+
+  const fetchProjectDetails = async (projectId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('projects')
+        .select(`
+          *,
+          professional:profiles!projects_assigned_to_fkey(
+            id,
+            first_name,
+            last_name,
+            rating,
+            profile_image
+          ),
+          milestones:project_milestones(
+            id,
+            title,
+            description,
+            due_date,
+            status,
+            tasks:project_tasks(
+              id,
+              title,
+              description,
+              status,
+              completed
+            )
+          ),
+          deliverables:project_deliverables(
+            id,
+            title,
+            description,
+            status,
+            file_url,
+            submitted_at,
+            approved_at
+          )
+        `)
+        .eq('id', projectId)
+        .single();
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error('Error fetching project details:', error);
+      throw error;
+    }
+  };
+
+  const handleAddMilestone = async (projectId: string, milestone: Omit<Milestone, 'id'>) => {
+    try {
+      const dbMilestone = convertMilestoneToDBMilestone(milestone as Milestone, projectId);
+      const { data, error } = await supabase
+        .from('project_milestones')
+        .insert([dbMilestone])
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      // Create deliverables for the milestone
+      if (milestone.deliverables.length > 0) {
+        const { error: deliverablesError } = await supabase
+          .from('project_deliverables')
+          .insert(
+            milestone.deliverables.map(deliverable => ({
+              description: deliverable.description,
+              deliverable_type: deliverable.deliverable_type,
+              content: deliverable.content || null,
+              file_url: deliverable.deliverable_type === 'file' ? deliverable.content || '' : '',
+              milestone_id: data.id,
+              project_id: projectId,
+              uploaded_by: userId
+            }))
+          );
+
+        if (deliverablesError) throw deliverablesError;
+      }
+
+      toast({
+        title: "Success",
+        description: "Milestone added successfully."
+      });
+
+      // Refresh project data
+      const updatedProject = await fetchProjectDetails(projectId);
+      setSelectedProject(updatedProject);
+      onUpdate();
+    } catch (error) {
+      console.error('Error adding milestone:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add milestone.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleEditMilestone = async (projectId: string, milestoneId: string, updates: Partial<Milestone>) => {
+    try {
+      setIsSubmitting(true);
+
+      const dbUpdates = convertMilestoneToDBMilestone(updates as Milestone, projectId);
+      const { error } = await supabase
+        .from('project_milestones')
+        .update(dbUpdates)
+        .eq('id', milestoneId);
+
+      if (error) throw error;
+
+      // Update deliverables if they were changed
+      if (updates.deliverables) {
+        // First delete existing deliverables
+        const { error: deleteError } = await supabase
+          .from('project_deliverables')
+          .delete()
+          .eq('milestone_id', milestoneId);
+
+        if (deleteError) throw deleteError;
+
+        // Then insert new deliverables
+        if (updates.deliverables.length > 0) {
+          const { error: deliverablesError } = await supabase
+            .from('project_deliverables')
+            .insert(
+              updates.deliverables.map(deliverable => ({
+                description: deliverable.description,
+                deliverable_type: deliverable.deliverable_type,
+                content: deliverable.content || null,
+                file_url: deliverable.deliverable_type === 'file' ? deliverable.content || '' : '',
+                milestone_id: milestoneId,
+                project_id: projectId,
+                uploaded_by: userId
+              }))
+            );
+
+          if (deliverablesError) throw deliverablesError;
+        }
+      }
+
+      toast({
+        title: "Success",
+        description: "Milestone updated successfully."
+      });
+
+      // Refresh project data
+      const updatedProject = await fetchProjectDetails(projectId);
+      setSelectedProject(updatedProject);
+      onUpdate();
+    } catch (error) {
+      console.error('Error updating milestone:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update milestone.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleDeleteMilestone = async (projectId: string, milestoneId: string) => {
+    try {
+      setIsSubmitting(true);
+
+      // First delete associated deliverables
+      const { error: deliverablesError } = await supabase
+        .from('project_deliverables')
+        .delete()
+        .eq('milestone_id', milestoneId);
+
+      if (deliverablesError) throw deliverablesError;
+
+      // Then delete the milestone
+      const { error } = await supabase
+        .from('project_milestones')
+        .delete()
+        .eq('id', milestoneId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Milestone deleted successfully."
+      });
+
+      // Refresh project data
+      const updatedProject = await fetchProjectDetails(projectId);
+      setSelectedProject(updatedProject);
+      onUpdate();
+    } catch (error) {
+      console.error('Error deleting milestone:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete milestone.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const handleCreateProject = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -205,6 +407,12 @@ export const useProjectOperations = (userId: string, onUpdate: () => void) => {
     handleUpdateProject,
     handleDeleteInitiate,
     handleDeleteCancel,
-    handleDeleteProject
+    handleDeleteProject,
+    selectedProject,
+    setSelectedProject,
+    handleAddMilestone,
+    handleEditMilestone,
+    handleDeleteMilestone,
+    fetchProjectDetails
   };
 };

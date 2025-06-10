@@ -44,7 +44,13 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ userId, initialTab = 
     handleUpdateProject, 
     handleDeleteInitiate, 
     handleDeleteCancel, 
-    handleDeleteProject 
+    handleDeleteProject,
+    selectedProject,
+    setSelectedProject,
+    handleAddMilestone,
+    handleEditMilestone,
+    handleDeleteMilestone,
+    fetchProjectDetails
   } = useProjectOperations(userId, fetchDashboardData);
   
   const { 
@@ -84,7 +90,13 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ userId, initialTab = 
     handleUpdateProject,
     handleDeleteInitiate,
     handleDeleteCancel,
-    handleDeleteProject
+    handleDeleteProject,
+    selectedProject,
+    setSelectedProject,
+    handleAddMilestone,
+    handleEditMilestone,
+    handleDeleteMilestone,
+    fetchProjectDetails
   };
   
   const applicationsTabProps = {

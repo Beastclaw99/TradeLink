@@ -48,6 +48,12 @@ interface ProjectsTabProps {
   handleDeleteInitiate: (projectId: string) => void;
   handleDeleteCancel: () => void;
   handleDeleteProject: (projectId: string) => void;
+  selectedProject: Project | null;
+  setSelectedProject: (project: Project | null) => void;
+  handleAddMilestone: (projectId: string, milestone: Omit<Milestone, 'id'>) => Promise<void>;
+  handleEditMilestone: (projectId: string, milestoneId: string, updates: Partial<Milestone>) => Promise<void>;
+  handleDeleteMilestone: (projectId: string, milestoneId: string) => Promise<void>;
+  fetchProjectDetails: (projectId: string) => Promise<any>;
 }
 
 const ProjectsTab: React.FC<ProjectsTabProps> = ({ 
@@ -64,11 +70,16 @@ const ProjectsTab: React.FC<ProjectsTabProps> = ({
   handleUpdateProject,
   handleDeleteInitiate,
   handleDeleteCancel,
-  handleDeleteProject
+  handleDeleteProject,
+  selectedProject,
+  setSelectedProject,
+  handleAddMilestone,
+  handleEditMilestone,
+  handleDeleteMilestone,
+  fetchProjectDetails,
 }) => {
   const [expandedProjects, setExpandedProjects] = useState<Record<string, boolean>>({});
   const [activeTab, setActiveTab] = useState<Record<string, string>>({});
-  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
 
   const openProjects = projects.filter(p => p.status === 'open');
   const assignedProjects = projects.filter(p => p.status === 'assigned');
@@ -120,7 +131,17 @@ const ProjectsTab: React.FC<ProjectsTabProps> = ({
       }
     ];
   };
-  
+
+  const handleProjectSelect = async (projectId: string) => {
+    try {
+      const projectDetails = await fetchProjectDetails(projectId);
+      setSelectedProject(projectDetails);
+      toggleProjectExpansion(projectId);
+    } catch (error) {
+      console.error('Error fetching project details:', error);
+    }
+  };
+
   return (
     <>
       <h2 className="text-2xl font-bold mb-4">Your Open Projects</h2>
@@ -160,7 +181,7 @@ const ProjectsTab: React.FC<ProjectsTabProps> = ({
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => toggleProjectExpansion(project.id)}
+                    onClick={() => handleProjectSelect(project.id)}
                   >
                     {expandedProjects[project.id] ? (
                       <ChevronUp className="h-4 w-4" />
@@ -186,7 +207,7 @@ const ProjectsTab: React.FC<ProjectsTabProps> = ({
 
                     <TabsContent value="overview">
                       <ProjectProgressOverview
-                        milestones={project.milestones || []}
+                        milestones={selectedProject?.milestones || []}
                         projectStatus={project.status as ProjectStatus}
                         startDate={project.project_start_time}
                         endDate={project.deadline}
@@ -198,10 +219,13 @@ const ProjectsTab: React.FC<ProjectsTabProps> = ({
 
                     <TabsContent value="milestones">
                       <ProjectMilestones 
-                        milestones={project.milestones || []}
+                        milestones={selectedProject?.milestones || []}
                         isClient={true}
                         projectId={project.id}
                         projectStatus={(project.status || 'open') as ProjectStatus}
+                        onAddMilestone={(milestone) => handleAddMilestone(project.id, milestone)}
+                        onEditMilestone={(milestoneId, updates) => handleEditMilestone(project.id, milestoneId, updates)}
+                        onDeleteMilestone={(milestoneId) => handleDeleteMilestone(project.id, milestoneId)}
                       />
                     </TabsContent>
 
