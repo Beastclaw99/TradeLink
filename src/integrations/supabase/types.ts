@@ -1146,7 +1146,6 @@ export type Database = {
           project_id: string | null
           requires_deliverable: boolean | null
           status: string | null
-          tasks: Json | null
           title: string
           updated_at: string | null
         }
@@ -1160,7 +1159,6 @@ export type Database = {
           project_id?: string | null
           requires_deliverable?: boolean | null
           status?: string | null
-          tasks?: Json | null
           title: string
           updated_at?: string | null
         }
@@ -1174,7 +1172,6 @@ export type Database = {
           project_id?: string | null
           requires_deliverable?: boolean | null
           status?: string | null
-          tasks?: Json | null
           title?: string
           updated_at?: string | null
         }

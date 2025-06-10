@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
@@ -64,7 +65,7 @@ export const useClientDataFetcher = (userId: string) => {
       console.log('Profile data:', userProfileData);
       setProfile(transformClient(userProfileData));
       
-      // Fetch client's projects with all related data
+      // Fetch client's projects with related data (without the problematic tasks relationship)
       const { data: projectsData, error: projectsError } = await supabase
         .from('projects')
         .select(`
@@ -87,25 +88,16 @@ export const useClientDataFetcher = (userId: string) => {
             title,
             description,
             due_date,
-            status,
-            tasks:project_tasks (
-              id,
-              title,
-              description,
-              status,
-              completed
-            )
+            status
           ),
           deliverables:project_deliverables (
             id,
-            title,
             description,
             deliverable_type,
             content,
             file_url,
             status,
-            submitted_at,
-            approved_at
+            created_at
           ),
           applications:applications (
             id,

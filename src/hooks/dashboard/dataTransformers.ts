@@ -35,22 +35,16 @@ export const transformProjects = (data: any[]): Project[] => {
       description: milestone.description || null,
       due_date: milestone.due_date || null,
       status: milestone.status || null,
-      tasks: Array.isArray(milestone.tasks) ? milestone.tasks.map((task: any) => ({
-        id: task.id,
-        title: task.title || '',
-        description: task.description || null,
-        status: task.status || null,
-        completed: task.completed || false
-      })) : []
+      tasks: [] // Initialize empty tasks array since we removed the relationship
     })) : [],
     deliverables: Array.isArray(project.deliverables) ? project.deliverables.map((deliverable: any) => ({
       id: deliverable.id,
-      title: deliverable.title || '',
-      description: deliverable.description || null,
-      status: deliverable.status || null,
+      description: deliverable.description || '',
+      deliverable_type: deliverable.deliverable_type || 'file',
+      content: deliverable.content || null,
       file_url: deliverable.file_url || null,
-      submitted_at: deliverable.submitted_at || null,
-      approved_at: deliverable.approved_at || null
+      status: deliverable.status || null,
+      created_at: deliverable.created_at || null
     })) : []
   }));
 };
