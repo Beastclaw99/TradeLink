@@ -1,123 +1,90 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Progress } from '@/components/ui/progress';
-import { Clock, CheckCircle, DollarSign } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { Badge } from '@/components/ui/badge';
+import {
+  Calendar,
+  Clock,
+  DollarSign,
+  CheckCircle2,
+  AlertTriangle,
+  TrendingUp
+} from 'lucide-react';
 
 interface ProjectStatsProps {
-  milestones: {
-    total: number;
-    completed: number;
-  };
-  tasks: {
-    total: number;
-    completed: number;
-  };
-  budget: string;
-  spent: number;
+  project: any;
 }
 
-const ProjectStats: React.FC<ProjectStatsProps> = ({
-  milestones,
-  tasks,
-  budget,
-  spent
-}) => {
-  const milestoneProgress = milestones.total > 0 ? (milestones.completed / milestones.total) * 100 : 0;
-  const taskProgress = tasks.total > 0 ? (tasks.completed / tasks.total) * 100 : 0;
-  const budgetProgress = budget ? (spent / parseFloat(budget)) * 100 : 0;
-
-  const getProgressColor = (progress: number, type: 'milestone' | 'task' | 'budget') => {
-    if (type === 'budget' && progress > 100) return 'bg-red-500';
-    if (progress >= 90) return 'bg-green-500';
-    if (progress >= 70) return 'bg-blue-500';
-    if (progress >= 40) return 'bg-yellow-500';
-    return 'bg-gray-500';
-  };
-
+const ProjectStats: React.FC<ProjectStatsProps> = ({ project }) => {
   return (
-    <div className="grid gap-4 md:grid-cols-3">
-      {/* Milestone Progress */}
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium">Milestones</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2">
-              <CheckCircle className="h-4 w-4 text-gray-500" />
-              <h4 className="font-medium">Progress</h4>
-            </div>
-            <span className="text-sm text-gray-500">
-              {milestones.completed}/{milestones.total}
-            </span>
-          </div>
-          <Progress 
-            value={milestoneProgress} 
-            className={`h-2 ${getProgressColor(milestoneProgress, 'milestone')}`}
-          />
-          <p className="text-sm text-gray-500 mt-2">
-            {milestoneProgress.toFixed(1)}% complete
-          </p>
-        </CardContent>
-      </Card>
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <TrendingUp className="h-5 w-5" />
+          Project Statistics
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {/* Status */}
+          <Card>
+            <CardContent className="flex items-center space-x-4">
+              <CheckCircle2 className="h-6 w-6 text-green-500" />
+              <div>
+                <p className="text-sm font-medium">Status</p>
+                <Badge variant="secondary">{project.status}</Badge>
+              </div>
+            </CardContent>
+          </Card>
 
-      {/* Task Progress */}
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium">Tasks</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2">
-              <Clock className="h-4 w-4 text-gray-500" />
-              <h4 className="font-medium">Progress</h4>
-            </div>
-            <span className="text-sm text-gray-500">
-              {tasks.completed}/{tasks.total}
-            </span>
-          </div>
-          <Progress 
-            value={taskProgress} 
-            className={`h-2 ${getProgressColor(taskProgress, 'task')}`}
-          />
-          <p className="text-sm text-gray-500 mt-2">
-            {taskProgress.toFixed(1)}% complete
-          </p>
-        </CardContent>
-      </Card>
+          {/* Start Date */}
+          <Card>
+            <CardContent className="flex items-center space-x-4">
+              <Calendar className="h-6 w-6 text-blue-500" />
+              <div>
+                <p className="text-sm font-medium">Start Date</p>
+                <p className="text-sm text-gray-600">{new Date(project.startDate).toLocaleDateString()}</p>
+              </div>
+            </CardContent>
+          </Card>
 
-      {/* Budget Progress */}
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium">Budget</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2">
-              <DollarSign className="h-4 w-4 text-gray-500" />
-              <h4 className="font-medium">Spent</h4>
-            </div>
-            <span className="text-sm text-gray-500">
-              ${spent.toLocaleString()}/{budget}
-            </span>
-          </div>
-          <Progress 
-            value={budgetProgress} 
-            className={`h-2 ${getProgressColor(budgetProgress, 'budget')}`}
-          />
-          <p className="text-sm text-gray-500 mt-2">
-            {budgetProgress.toFixed(1)}% spent
-            {budgetProgress > 100 && (
-              <span className="text-red-500 ml-2">
-                Over budget
-              </span>
-            )}
-          </p>
-        </CardContent>
-      </Card>
-    </div>
+          {/* Due Date */}
+          <Card>
+            <CardContent className="flex items-center space-x-4">
+              <Clock className="h-6 w-6 text-yellow-500" />
+              <div>
+                <p className="text-sm font-medium">Due Date</p>
+                <p className="text-sm text-gray-600">{new Date(project.dueDate).toLocaleDateString()}</p>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Budget */}
+          <Card>
+            <CardContent className="flex items-center space-x-4">
+              <DollarSign className="h-6 w-6 text-green-500" />
+              <div>
+                <p className="text-sm font-medium">Budget</p>
+                <p className="text-sm text-gray-600">${project.budget}</p>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Overdue */}
+          {project.isOverdue && (
+            <Card>
+              <CardContent className="flex items-center space-x-4">
+                <AlertTriangle className="h-6 w-6 text-red-500" />
+                <div>
+                  <p className="text-sm font-medium">Overdue</p>
+                  <p className="text-sm text-gray-600">This project is overdue.</p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      </CardContent>
+    </Card>
   );
 };
 
-export default ProjectStats; 
+export default ProjectStats;
