@@ -13,6 +13,7 @@ import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { X } from 'lucide-react';
 import PortfolioUpload from '@/components/profile/PortfolioUpload';
+import ProfileImageUpload from '@/components/profile/ProfileImageUpload';
 import { ProfileData } from '@/components/profile/types';
 
 const EditProfile: React.FC = () => {
@@ -216,11 +217,12 @@ const EditProfile: React.FC = () => {
         </CardHeader>
         <CardContent>
           <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-            <TabsList className="grid w-full grid-cols-4 mb-8">
+            <TabsList className="grid w-full grid-cols-5 mb-8">
               <TabsTrigger value="personal">Personal Info</TabsTrigger>
               <TabsTrigger value="professional">Professional</TabsTrigger>
               <TabsTrigger value="skills">Skills & Certifications</TabsTrigger>
               <TabsTrigger value="portfolio">Portfolio</TabsTrigger>
+              <TabsTrigger value="photo">Profile Photo</TabsTrigger>
             </TabsList>
 
             <TabsContent value="personal">
@@ -424,6 +426,16 @@ const EditProfile: React.FC = () => {
             <TabsContent value="portfolio">
               {user?.id && (
                 <PortfolioUpload userId={user.id} onUploadComplete={fetchProfile} />
+              )}
+            </TabsContent>
+
+            <TabsContent value="photo">
+              {user?.id && (
+                <ProfileImageUpload 
+                  userId={user.id} 
+                  currentImage={profile?.profile_image || null}
+                  onUploadComplete={fetchProfile}
+                />
               )}
             </TabsContent>
           </Tabs>
