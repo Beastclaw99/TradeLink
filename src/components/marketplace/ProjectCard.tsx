@@ -23,10 +23,13 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
   const navigate = useNavigate();
   
   const handleClick = () => {
-    if (onClick) {
-      onClick();
-    } else {
-      navigate(`/projects/${project.id}`);
+    // Only allow navigation to project details for professionals
+    if (userType === 'professional') {
+      if (onClick) {
+        onClick();
+      } else {
+        navigate(`/projects/${project.id}`);
+      }
     }
   };
 
@@ -44,7 +47,9 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
 
   return (
     <Card 
-      className={`hover:shadow-md transition-shadow cursor-pointer ${
+      className={`hover:shadow-md transition-shadow ${
+        userType === 'professional' ? 'cursor-pointer' : ''
+      } ${
         userType === 'professional' && hasMatchingSkills ? 'border-ttc-green-500 border-2' : ''
       }`}
       onClick={handleClick}
@@ -99,14 +104,16 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
             </div>
           )}
 
-          <div className="flex justify-end">
-            <Button 
-              variant={userType === 'professional' && hasMatchingSkills ? "default" : "outline"} 
-              size="sm"
-            >
-              {userType === 'professional' ? 'Apply Now' : 'View Details'}
-            </Button>
-          </div>
+          {userType === 'professional' && (
+            <div className="flex justify-end">
+              <Button 
+                variant={hasMatchingSkills ? "default" : "outline"} 
+                size="sm"
+              >
+                Apply Now
+              </Button>
+            </div>
+          )}
         </div>
       </CardContent>
     </Card>
