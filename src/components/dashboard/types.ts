@@ -1,4 +1,3 @@
-
 export interface Project {
   id: string;
   title: string;
@@ -111,13 +110,25 @@ export interface Client {
 
 export interface Review {
   id: string;
-  rating: number | null;
-  comment: string | null;
-  client_id: string | null;
-  professional_id: string | null;
-  project_id: string | null;
+  rating: number;
+  comment: string;
+  status: 'pending' | 'approved' | 'rejected' | 'reported';
+  reported_at?: string;
+  reported_by?: string;
+  report_reason?: string;
   created_at: string;
-  updated_at: string | null;
+  client_id: string;
+  professional_id: string;
+  project_id: string;
+  communication_rating?: number;
+  quality_rating?: number;
+  timeliness_rating?: number;
+  professionalism_rating?: number;
+  is_verified: boolean;
+  verification_method?: string;
+  moderated_at?: string;
+  moderated_by?: string;
+  moderation_notes?: string;
 }
 
 export interface Payment {

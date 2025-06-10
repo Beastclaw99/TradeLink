@@ -25,7 +25,7 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ userId, initialTab = 
     applications, 
     payments, 
     reviews, 
-    profileData, 
+    profile, 
     isLoading, 
     fetchDashboardData 
   } = useClientDashboard(userId);

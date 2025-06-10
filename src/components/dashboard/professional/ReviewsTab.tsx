@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StarRating } from "@/components/ui/star-rating";
@@ -22,6 +23,13 @@ const ReviewsTab: React.FC<ReviewsTabProps> = ({
     userId: user?.id || '',
     onUpdate: () => {} // Add refresh logic if needed
   });
+
+  // Convert reviews to enhanced format with required properties
+  const enhancedReviews = reviews.map(review => ({
+    ...review,
+    status: review.status || 'approved' as const,
+    is_verified: review.is_verified || false
+  }));
 
   return (
     <>
@@ -58,7 +66,7 @@ const ReviewsTab: React.FC<ReviewsTabProps> = ({
         </div>
       ) : (
         <div className="space-y-6">
-          {reviews.map(review => (
+          {enhancedReviews.map(review => (
             <EnhancedReviewDisplay
               key={review.id}
               review={review}

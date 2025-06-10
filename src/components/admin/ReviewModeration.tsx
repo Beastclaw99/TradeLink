@@ -10,24 +10,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-
-interface Review {
-  id: string;
-  rating: number;
-  comment: string;
-  status: 'pending' | 'approved' | 'rejected' | 'reported';
-  reported_at?: string;
-  reported_by?: string;
-  report_reason?: string;
-  created_at: string;
-  client_id: string;
-  professional_id: string;
-  project_id: string;
-  communication_rating?: number;
-  quality_rating?: number;
-  timeliness_rating?: number;
-  professionalism_rating?: number;
-}
+import { Review } from '../dashboard/types';
 
 const ReviewModeration: React.FC = () => {
   const { toast } = useToast();
@@ -51,7 +34,15 @@ const ReviewModeration: React.FC = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setReviews(data || []);
+      
+      // Type assertion to ensure compatibility
+      const typedReviews: Review[] = (data || []).map(review => ({
+        ...review,
+        status: review.status as Review['status'],
+        is_verified: review.is_verified || false
+      }));
+      
+      setReviews(typedReviews);
     } catch (error: any) {
       console.error('Error fetching reviews:', error);
       toast({
@@ -251,4 +242,4 @@ const ReviewModeration: React.FC = () => {
   );
 };
 
-export default ReviewModeration; 
+export default ReviewModeration;
