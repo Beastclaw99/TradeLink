@@ -4,10 +4,11 @@ import { cn } from '@/lib/utils';
 
 interface StarRatingProps {
   value: number;
-  onChange: (rating: number) => void;
+  onChange?: (rating: number) => void;
   onHover?: (rating: number) => void;
   size?: 'default' | 'large';
   className?: string;
+  readOnly?: boolean;
 }
 
 export const StarRating: React.FC<StarRatingProps> = ({
@@ -15,7 +16,8 @@ export const StarRating: React.FC<StarRatingProps> = ({
   onChange,
   onHover = () => {},
   size = 'default',
-  className
+  className,
+  readOnly = false
 }) => {
   const [hoverRating, setHoverRating] = React.useState(0);
   const starSize = size === 'large' ? 'h-8 w-8' : 'h-5 w-5';
@@ -27,19 +29,24 @@ export const StarRating: React.FC<StarRatingProps> = ({
           key={star}
           className={cn(
             starSize,
-            "cursor-pointer transition-colors",
+            !readOnly && "cursor-pointer",
+            "transition-colors",
             star <= (hoverRating || value)
               ? "fill-yellow-400 text-yellow-400"
               : "text-gray-300"
           )}
-          onClick={() => onChange(star)}
+          onClick={() => !readOnly && onChange?.(star)}
           onMouseEnter={() => {
-            setHoverRating(star);
-            onHover(star);
+            if (!readOnly) {
+              setHoverRating(star);
+              onHover(star);
+            }
           }}
           onMouseLeave={() => {
-            setHoverRating(0);
-            onHover(0);
+            if (!readOnly) {
+              setHoverRating(0);
+              onHover(0);
+            }
           }}
         />
       ))}

@@ -3,7 +3,6 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { MapPin, Clock } from 'lucide-react';
 import { StarRating } from '@/components/ui/star-rating';
 import type { Database } from '@/integrations/supabase/types';
 
@@ -16,6 +15,12 @@ interface ProfessionalListItemProps {
 const ProfessionalListItem: React.FC<ProfessionalListItemProps> = ({ professional }) => {
   const fullName = `${professional.first_name || 'Anonymous'} ${professional.last_name || ''}`;
   const initials = `${professional.first_name?.[0] || ''}${professional.last_name?.[0] || ''}`;
+  const skills = professional.skills || [];
+  const hourlyRate = professional.hourly_rate || 0;
+  const responseRate = professional.response_rate || 0;
+  const onTimeCompletion = professional.on_time_completion || 0;
+  const rating = professional.rating || 0;
+  const completedProjects = professional.completed_projects || 0;
 
   return (
     <Card className="hover:shadow-md transition-shadow">
@@ -32,26 +37,26 @@ const ProfessionalListItem: React.FC<ProfessionalListItemProps> = ({ professiona
                 <div>
                   <h3 className="text-xl font-semibold">{fullName}</h3>
                   <p className="text-ttc-blue-700 font-medium text-lg">
-                    {professional.skills?.[0] || 'Professional'}
+                    {skills[0] || 'Professional'}
                   </p>
                 </div>
                 
                 <div className="text-right">
                   <div className="text-2xl font-bold text-ttc-blue-700">
-                    ${professional.hourly_rate || 0}
+                    ${hourlyRate.toFixed(2)}
                     <span className="text-sm font-normal text-gray-500">/hour</span>
                   </div>
                   <div className="text-sm text-gray-600">
-                    {professional.completed_projects || 0} projects completed
+                    {completedProjects} {completedProjects === 1 ? 'project' : 'projects'} completed
                   </div>
-                  {professional.response_rate && (
+                  {responseRate > 0 && (
                     <div className="text-sm text-gray-600">
-                      {professional.response_rate}% response rate
+                      {responseRate}% response rate
                     </div>
                   )}
-                  {professional.on_time_completion && (
+                  {onTimeCompletion > 0 && (
                     <div className="text-sm text-gray-600">
-                      {professional.on_time_completion}% on-time completion
+                      {onTimeCompletion}% on-time completion
                     </div>
                   )}
                 </div>
@@ -59,17 +64,21 @@ const ProfessionalListItem: React.FC<ProfessionalListItemProps> = ({ professiona
               
               <div className="flex items-center space-x-1 mt-2">
                 <StarRating
-                  value={professional.rating || 0}
-                  onChange={() => {}}
+                  value={rating}
+                  readOnly
                   className="h-4 w-4"
                 />
-                <span className="font-medium">{professional.rating?.toFixed(1) || '0.0'}</span>
+                <span className="font-medium">{rating.toFixed(1)}</span>
               </div>
               
               <div className="mt-3">
                 <div className="flex flex-wrap gap-2">
-                  {professional.skills?.map((skill) => (
-                    <Badge key={skill} variant="secondary">
+                  {skills.map((skill) => (
+                    <Badge 
+                      key={skill} 
+                      variant="secondary" 
+                      className="text-xs"
+                    >
                       {skill}
                     </Badge>
                   ))}
@@ -77,7 +86,10 @@ const ProfessionalListItem: React.FC<ProfessionalListItemProps> = ({ professiona
               </div>
 
               {professional.verification_status === 'verified' && (
-                <Badge className="mt-2" variant="secondary">
+                <Badge 
+                  variant="secondary" 
+                  className="mt-2"
+                >
                   Verified Professional
                 </Badge>
               )}
