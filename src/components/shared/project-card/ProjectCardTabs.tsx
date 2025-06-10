@@ -48,6 +48,11 @@ export const ProjectCardTabs: React.FC<ProjectCardTabsProps> = ({
     return validStatuses.includes(status as ProjectStatus) ? status as ProjectStatus : 'open';
   };
 
+  const defaultMilestoneHandler = async (): Promise<void> => {};
+  const defaultMilestoneUpdateHandler = async (_milestoneId: string, _updates: Partial<Milestone>): Promise<void> => {};
+  const defaultMilestoneDeleteHandler = async (_milestoneId: string): Promise<void> => {};
+  const defaultTaskStatusHandler = async (_milestoneId: string, _taskId: string, _completed: boolean): Promise<void> => {};
+
   return (
     <div className="mt-6 border-t pt-6">
       <Tabs 
@@ -88,10 +93,10 @@ export const ProjectCardTabs: React.FC<ProjectCardTabsProps> = ({
             projectStatus={getValidProjectStatus(project.status)}
             milestones={milestones}
             isClient={isClient}
-            onAddMilestone={async () => {}}
-            onEditMilestone={onMilestoneUpdate || async () => {}}
-            onDeleteMilestone={onMilestoneDelete || async () => {}}
-            onUpdateTaskStatus={onTaskStatusUpdate || async () => {}}
+            onAddMilestone={defaultMilestoneHandler}
+            onEditMilestone={onMilestoneUpdate || defaultMilestoneUpdateHandler}
+            onDeleteMilestone={onMilestoneDelete || defaultMilestoneDeleteHandler}
+            onUpdateTaskStatus={onTaskStatusUpdate || defaultTaskStatusHandler}
           />
         </TabsContent>
 
