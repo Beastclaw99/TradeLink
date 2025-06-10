@@ -27,6 +27,32 @@ interface MilestoneWithTasks {
   updated_at: string;
 }
 
+// Helper function to convert Task to Json-compatible format
+const taskToJson = (task: Task): any => {
+  return {
+    id: task.id,
+    title: task.title,
+    completed: task.completed,
+    deadline: task.deadline,
+    dependencies: task.dependencies,
+    status: task.status,
+    priority: task.priority
+  };
+};
+
+// Helper function to convert Json to Task format
+const jsonToTask = (json: any): Task => {
+  return {
+    id: json.id || crypto.randomUUID(),
+    title: json.title || '',
+    completed: Boolean(json.completed),
+    deadline: json.deadline,
+    dependencies: Array.isArray(json.dependencies) ? json.dependencies : [],
+    status: json.status || 'todo',
+    priority: json.priority || 'medium'
+  };
+};
+
 export const taskService = {
   // Create a new task
   async createTask(
@@ -62,7 +88,7 @@ export const taskService = {
     const { error: updateError } = await supabase
       .from('project_milestones')
       .update({
-        tasks: [...tasks, newTask as any],
+        tasks: [...tasks, taskToJson(newTask)],
         updated_at: new Date().toISOString()
       })
       .eq('id', milestoneId);
@@ -81,7 +107,7 @@ export const taskService = {
     milestoneTitle: string,
     clientId: string,
     professionalId: string
-  ): Promise<void> => {
+  ): Promise<void> {
     // Get current milestone
     const { data: milestone, error: milestoneError } = await supabase
       .from('project_milestones')
@@ -127,7 +153,7 @@ export const taskService = {
     const { error: updateError } = await supabase
       .from('project_milestones')
       .update({
-        tasks: updatedTasks as any,
+        tasks: updatedTasks,
         progress,
         status: progress === 100 ? 'completed' : 'in_progress',
         updated_at: new Date().toISOString()
@@ -186,7 +212,7 @@ export const taskService = {
     deadline?: string,
     dependencies: string[] = [],
     priority: Task['priority'] = 'medium'
-  ): Promise<void> => {
+  ): Promise<void> {
     // Get current milestone
     const { data: milestone, error: milestoneError } = await supabase
       .from('project_milestones')
@@ -210,13 +236,13 @@ export const taskService = {
       priority
     };
 
-    const updatedTasks = [...tasks, newTask];
+    const updatedTasks = [...tasks, taskToJson(newTask)];
 
     // Update milestone
     const { error: updateError } = await supabase
       .from('project_milestones')
       .update({
-        tasks: updatedTasks as any,
+        tasks: updatedTasks,
         updated_at: new Date().toISOString()
       })
       .eq('id', milestoneId);
@@ -252,7 +278,7 @@ export const taskService = {
     milestoneTitle: string,
     clientId: string,
     professionalId: string
-  ): Promise<void> => {
+  ): Promise<void> {
     // Get current milestone
     const { data: milestone, error: milestoneError } = await supabase
       .from('project_milestones')
@@ -286,7 +312,7 @@ export const taskService = {
     const { error: updateError } = await supabase
       .from('project_milestones')
       .update({
-        tasks: updatedTasks as any,
+        tasks: updatedTasks,
         progress,
         status: progress === 100 ? 'completed' : 'in_progress',
         updated_at: new Date().toISOString()
@@ -301,7 +327,7 @@ export const taskService = {
     milestoneId: string,
     taskId: string,
     deadline: string
-  ): Promise<void> => {
+  ): Promise<void> {
     const { data: milestone, error: milestoneError } = await supabase
       .from('project_milestones')
       .select('*')
@@ -320,7 +346,7 @@ export const taskService = {
     const { error: updateError } = await supabase
       .from('project_milestones')
       .update({
-        tasks: updatedTasks as any,
+        tasks: updatedTasks,
         updated_at: new Date().toISOString()
       })
       .eq('id', milestoneId);
@@ -333,7 +359,7 @@ export const taskService = {
     milestoneId: string,
     taskId: string,
     dependencyId: string
-  ): Promise<void> => {
+  ): Promise<void> {
     const { data: milestone, error: milestoneError } = await supabase
       .from('project_milestones')
       .select('*')
@@ -375,7 +401,7 @@ export const taskService = {
     const { error: updateError } = await supabase
       .from('project_milestones')
       .update({
-        tasks: updatedTasks as any,
+        tasks: updatedTasks,
         updated_at: new Date().toISOString()
       })
       .eq('id', milestoneId);
@@ -388,7 +414,7 @@ export const taskService = {
     milestoneId: string,
     taskId: string,
     dependencyId: string
-  ): Promise<void> => {
+  ): Promise<void> {
     const { data: milestone, error: milestoneError } = await supabase
       .from('project_milestones')
       .select('*')
@@ -412,7 +438,7 @@ export const taskService = {
     const { error: updateError } = await supabase
       .from('project_milestones')
       .update({
-        tasks: updatedTasks as any,
+        tasks: updatedTasks,
         updated_at: new Date().toISOString()
       })
       .eq('id', milestoneId);
@@ -432,19 +458,11 @@ export const taskService = {
     
     // Safe conversion with proper type checking
     const tasks = milestone?.tasks as any[] || [];
-    return tasks.map((task: any) => ({
-      id: task.id || crypto.randomUUID(),
-      title: task.title || '',
-      completed: Boolean(task.completed),
-      deadline: task.deadline,
-      dependencies: Array.isArray(task.dependencies) ? task.dependencies : [],
-      status: task.status || 'todo',
-      priority: task.priority || 'medium'
-    }));
+    return tasks.map((task: any) => jsonToTask(task));
   },
 
   // Check for overdue tasks
-  async checkOverdueTasks(milestoneId: string): Promise<Task[]> => {
+  async checkOverdueTasks(milestoneId: string): Promise<Task[]> {
     const tasks = await this.getMilestoneTasks(milestoneId);
     const now = new Date();
     
