@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -41,7 +40,7 @@ const ProjectCreationWizard: React.FC = () => {
     timeline: '',
     urgency: '',
     milestones: [],
-    deliverables: [], // Add missing deliverables property
+    deliverables: [],
     service_contract: '',
     requirements: [],
     rich_description: '',
@@ -178,6 +177,12 @@ const ProjectCreationWizard: React.FC = () => {
     const step = STEPS.find(s => s.id === currentStep);
     if (!step) return null;
     const Component = step.component;
+    
+    // Special handling for ReviewStep which doesn't need onUpdate
+    if (step.id === 6) {
+      return <Component data={projectData} />;
+    }
+    
     return <Component data={projectData} onUpdate={handleUpdateData} />;
   };
 

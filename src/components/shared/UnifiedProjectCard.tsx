@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { MapPin, Calendar, DollarSign, User, Clock, Target } from "lucide-react";
 import { Project } from '@/components/dashboard/types';
-import { Milestone } from '@/components/project/creation/types';
+import { Milestone, Task } from '@/components/project/creation/types';
 import { ProjectCardTabs } from './project-card/ProjectCardTabs';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
@@ -52,22 +52,43 @@ const UnifiedProjectCard: React.FC<UnifiedProjectCardProps> = ({
 
         if (error) throw error;
 
-        const formattedMilestones: Milestone[] = (data || []).map(milestone => ({
-          id: milestone.id,
-          title: milestone.title,
-          description: milestone.description || '',
-          dueDate: milestone.due_date,
-          status: milestone.status as 'not_started' | 'in_progress' | 'completed' | 'on_hold',
-          requires_deliverable: Boolean(milestone.requires_deliverable), // Convert to boolean
-          tasks: Array.isArray(milestone.tasks) ? milestone.tasks : [],
-          deliverables: [],
-          project_id: milestone.project_id,
-          created_by: milestone.created_by,
-          created_at: milestone.created_at,
-          updated_at: milestone.updated_at,
-          is_complete: Boolean(milestone.is_complete), // Convert to boolean
-          due_date: milestone.due_date
-        }));
+        const formattedMilestones: Milestone[] = (data || []).map(milestone => {
+          // Convert tasks from JSON to Task array
+          let tasks: Task[] = [];
+          if (milestone.tasks) {
+            try {
+              const tasksData = Array.isArray(milestone.tasks) ? milestone.tasks : JSON.parse(milestone.tasks);
+              tasks = tasksData.map((task: any) => ({
+                id: task.id || crypto.randomUUID(),
+                title: task.title || '',
+                description: task.description || '',
+                completed: task.completed || false,
+                created_at: task.created_at,
+                updated_at: task.updated_at
+              }));
+            } catch (e) {
+              console.warn('Failed to parse tasks for milestone:', milestone.id, e);
+              tasks = [];
+            }
+          }
+
+          return {
+            id: milestone.id,
+            title: milestone.title,
+            description: milestone.description || '',
+            dueDate: milestone.due_date,
+            status: milestone.status as 'not_started' | 'in_progress' | 'completed' | 'on_hold',
+            requires_deliverable: Boolean(milestone.requires_deliverable),
+            tasks: tasks,
+            deliverables: [],
+            project_id: milestone.project_id,
+            created_by: milestone.created_by,
+            created_at: milestone.created_at,
+            updated_at: milestone.updated_at,
+            is_complete: Boolean(milestone.is_complete),
+            due_date: milestone.due_date
+          };
+        });
 
         setMilestones(formattedMilestones);
       } catch (error) {

@@ -5,16 +5,16 @@ import { notificationService } from './notificationService';
 export interface Dispute {
   id: string;
   project_id: string;
-  work_version_id: string;
   initiator_id: string;
   respondent_id: string;
-  status: 'open' | 'under_review' | 'resolved' | 'closed';
-  type: 'quality' | 'timeline' | 'payment' | 'other';
   title: string;
   description: string;
-  resolution: string | null;
-  resolved_at: string | null;
-  resolved_by: string | null;
+  type: 'quality' | 'timeline' | 'payment' | 'communication' | 'scope' | 'other';
+  status: 'open' | 'in_review' | 'resolved' | 'escalated' | 'closed';
+  work_version_id?: string;
+  resolution?: string;
+  resolved_by?: string;
+  resolved_at?: string;
   created_at: string;
   updated_at: string;
 }
@@ -33,80 +33,57 @@ export interface DisputeDocument {
   dispute_id: string;
   file_id: string;
   uploaded_by: string;
-  description: string | null;
+  description?: string;
   created_at: string;
 }
 
-export interface DisputeStatusHistory {
-  id: string;
-  dispute_id: string;
-  status: 'open' | 'under_review' | 'resolved' | 'closed';
-  changed_by: string;
-  reason: string | null;
-  created_at: string;
-}
-
-class DisputeService {
-  async createDispute(
-    projectId: string,
-    workVersionId: string,
-    respondentId: string,
-    type: Dispute['type'],
-    title: string,
-    description: string
-  ): Promise<Dispute> {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('Not authenticated');
-
+export const disputeService = {
+  // Create a new dispute
+  async createDispute(disputeData: Omit<Dispute, 'id' | 'created_at' | 'updated_at'>): Promise<Dispute> {
     const { data, error } = await supabase
       .from('disputes')
-      .insert({
-        project_id: projectId,
-        work_version_id: workVersionId,
-        initiator_id: user.id,
-        respondent_id: respondentId,
-        type,
-        title,
-        description,
-        status: 'open'
-      })
+      .insert(disputeData)
       .select()
       .single();
 
     if (error) throw error;
 
-    // Create initial status history entry
-    await supabase
-      .from('dispute_status_history')
-      .insert({
-        dispute_id: data.id,
-        status: 'open',
-        changed_by: user.id,
-        reason: 'Dispute created'
-      });
+    // Create notification for respondent
+    await notificationService.createNotification({
+      user_id: disputeData.respondent_id,
+      title: 'New Dispute Filed',
+      message: `A dispute has been filed against project: ${disputeData.title}`,
+      type: 'dispute_created'
+    });
 
-    // Send notification to respondent
-    await notificationService.createNotification(
-      respondentId,
-      'info',
-      'New Dispute Created',
-      `A new dispute has been created for project: ${title}`
-    );
+    return data;
+  },
 
-    return data as Dispute;
-  }
-
-  async getDispute(disputeId: string): Promise<Dispute> {
+  // Get dispute by ID
+  async getDispute(disputeId: string): Promise<Dispute | null> {
     const { data, error } = await supabase
       .from('disputes')
       .select('*')
       .eq('id', disputeId)
       .single();
 
-    if (error) throw error;
-    return data as Dispute;
-  }
+    if (error && error.code !== 'PGRST116') throw error;
+    return data;
+  },
 
+  // Get disputes for a user
+  async getUserDisputes(userId: string): Promise<Dispute[]> {
+    const { data, error } = await supabase
+      .from('disputes')
+      .select('*')
+      .or(`initiator_id.eq.${userId},respondent_id.eq.${userId}`)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return data || [];
+  },
+
+  // Get disputes for a project
   async getProjectDisputes(projectId: string): Promise<Dispute[]> {
     const { data, error } = await supabase
       .from('disputes')
@@ -115,100 +92,52 @@ class DisputeService {
       .order('created_at', { ascending: false });
 
     if (error) throw error;
-    return (data || []) as Dispute[];
-  }
+    return data || [];
+  },
 
-  async updateDisputeStatus(
-    disputeId: string,
-    status: Dispute['status'],
-    reason?: string
-  ): Promise<Dispute> {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('Not authenticated');
+  // Update dispute status
+  async updateDisputeStatus(disputeId: string, status: Dispute['status'], resolution?: string): Promise<void> {
+    const updateData: any = { status };
+    if (resolution) {
+      updateData.resolution = resolution;
+      updateData.resolved_at = new Date().toISOString();
+    }
 
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from('disputes')
-      .update({
-        status,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', disputeId)
-      .select()
-      .single();
+      .update(updateData)
+      .eq('id', disputeId);
 
     if (error) throw error;
 
-    // Add to status history
+    // Record status change in history
     await supabase
       .from('dispute_status_history')
       .insert({
         dispute_id: disputeId,
         status,
-        changed_by: user.id,
-        reason
+        changed_by: (await supabase.auth.getUser()).data.user?.id
       });
+  },
 
-    // Send notifications
-    const dispute = data as Dispute;
-    const recipients = [dispute.initiator_id, dispute.respondent_id].filter(id => id !== user.id);
-    
-    for (const recipientId of recipients) {
-      await notificationService.createNotification(
-        recipientId,
-        'info',
-        'Dispute Status Updated',
-        `Dispute status changed to: ${status}`
-      );
-    }
-
-    return dispute;
-  }
-
-  async addResolution(disputeId: string, resolution: string): Promise<Dispute> {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('Not authenticated');
-
+  // Add message to dispute
+  async addDisputeMessage(disputeId: string, content: string, isInternal: boolean = false): Promise<DisputeMessage> {
     const { data, error } = await supabase
-      .from('disputes')
-      .update({
-        resolution,
-        resolved_at: new Date().toISOString(),
-        resolved_by: user.id,
-        status: 'resolved',
-        updated_at: new Date().toISOString()
+      .from('dispute_messages')
+      .insert({
+        dispute_id: disputeId,
+        sender_id: (await supabase.auth.getUser()).data.user?.id,
+        content,
+        is_internal: isInternal
       })
-      .eq('id', disputeId)
       .select()
       .single();
 
     if (error) throw error;
+    return data;
+  },
 
-    // Add to status history
-    await supabase
-      .from('dispute_status_history')
-      .insert({
-        dispute_id: disputeId,
-        status: 'resolved',
-        changed_by: user.id,
-        reason: 'Resolution added'
-      });
-
-    // Send notifications
-    const dispute = data as Dispute;
-    const recipients = [dispute.initiator_id, dispute.respondent_id].filter(id => id !== user.id);
-    
-    for (const recipientId of recipients) {
-      await notificationService.createNotification(
-        recipientId,
-        'info',
-        'Dispute Resolved',
-        `A resolution has been added to the dispute: ${dispute.title}`
-      );
-    }
-
-    return dispute;
-  }
-
+  // Get dispute messages
   async getDisputeMessages(disputeId: string): Promise<DisputeMessage[]> {
     const { data, error } = await supabase
       .from('dispute_messages')
@@ -218,48 +147,26 @@ class DisputeService {
 
     if (error) throw error;
     return data || [];
-  }
+  },
 
-  async addMessage(disputeId: string, content: string, isInternal = false): Promise<DisputeMessage> {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('Not authenticated');
-
+  // Add document to dispute
+  async addDisputeDocument(disputeId: string, fileId: string, description?: string): Promise<DisputeDocument> {
     const { data, error } = await supabase
-      .from('dispute_messages')
+      .from('dispute_documents')
       .insert({
         dispute_id: disputeId,
-        sender_id: user.id,
-        content,
-        is_internal: isInternal
+        file_id: fileId,
+        uploaded_by: (await supabase.auth.getUser()).data.user?.id,
+        description
       })
       .select()
       .single();
 
     if (error) throw error;
-
-    // Send notification to other parties
-    const { data: dispute } = await supabase
-      .from('disputes')
-      .select('initiator_id, respondent_id, title')
-      .eq('id', disputeId)
-      .single();
-
-    if (dispute) {
-      const recipients = [dispute.initiator_id, dispute.respondent_id].filter(id => id !== user.id);
-      
-      for (const recipientId of recipients) {
-        await notificationService.createNotification(
-          recipientId,
-          'info',
-          'New Dispute Message',
-          `New message in dispute: ${dispute.title}`
-        );
-      }
-    }
-
     return data;
-  }
+  },
 
+  // Get dispute documents
   async getDisputeDocuments(disputeId: string): Promise<DisputeDocument[]> {
     const { data, error } = await supabase
       .from('dispute_documents')
@@ -270,40 +177,4 @@ class DisputeService {
     if (error) throw error;
     return data || [];
   }
-
-  async addDocument(
-    disputeId: string,
-    fileId: string,
-    description?: string
-  ): Promise<DisputeDocument> {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('Not authenticated');
-
-    const { data, error } = await supabase
-      .from('dispute_documents')
-      .insert({
-        dispute_id: disputeId,
-        file_id: fileId,
-        uploaded_by: user.id,
-        description
-      })
-      .select()
-      .single();
-
-    if (error) throw error;
-    return data;
-  }
-
-  async getStatusHistory(disputeId: string): Promise<DisputeStatusHistory[]> {
-    const { data, error } = await supabase
-      .from('dispute_status_history')
-      .select('*')
-      .eq('dispute_id', disputeId)
-      .order('created_at', { ascending: false });
-
-    if (error) throw error;
-    return (data || []) as DisputeStatusHistory[];
-  }
-}
-
-export const disputeService = new DisputeService();
+};

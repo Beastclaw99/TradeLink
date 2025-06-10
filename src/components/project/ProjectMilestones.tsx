@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -59,7 +60,6 @@ const ProjectMilestones: React.FC<ProjectMilestonesProps> = ({
     description: '',
     dueDate: '',
     status: 'not_started',
-    progress: 0,
     tasks: [],
     deliverables: []
   });
@@ -105,7 +105,6 @@ const ProjectMilestones: React.FC<ProjectMilestonesProps> = ({
         description: '',
         dueDate: '',
         status: 'not_started',
-        progress: 0,
         tasks: [],
         deliverables: []
       });
@@ -178,8 +177,12 @@ const ProjectMilestones: React.FC<ProjectMilestonesProps> = ({
     setNewTask('');
   };
 
-  const getStatusBadge = (status: Milestone['status']) => {
-    const statusConfig: Record<Milestone['status'], { color: string; icon: React.ReactNode }> = {
+  const getStatusBadge = (status: Milestone['status'], dueDate?: string) => {
+    // Check if milestone is overdue
+    const isOverdue = dueDate && isPast(new Date(dueDate)) && !isToday(new Date(dueDate)) && status !== 'completed';
+    const effectiveStatus = isOverdue ? 'overdue' : status;
+
+    const statusConfig: Record<string, { color: string; icon: React.ReactNode }> = {
       not_started: {
         color: 'bg-gray-100 text-gray-800 border-gray-200',
         icon: <Clock className="h-4 w-4" />
@@ -192,18 +195,22 @@ const ProjectMilestones: React.FC<ProjectMilestonesProps> = ({
         color: 'bg-green-100 text-green-800 border-green-200',
         icon: <CheckCircle2 className="h-4 w-4" />
       },
+      on_hold: {
+        color: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+        icon: <AlertTriangle className="h-4 w-4" />
+      },
       overdue: {
         color: 'bg-red-100 text-red-800 border-red-200',
         icon: <AlertTriangle className="h-4 w-4" />
       }
     };
 
-    const { color, icon } = statusConfig[status];
+    const { color, icon } = statusConfig[effectiveStatus];
     return (
       <Badge variant="outline" className={color}>
         {icon}
         <span className="ml-1">
-          {status.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
+          {effectiveStatus.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
         </span>
       </Badge>
     );
@@ -398,7 +405,7 @@ const ProjectMilestones: React.FC<ProjectMilestonesProps> = ({
         ) : (
           <div className="space-y-4">
             {milestones.map((milestone) => {
-              const deadlineStatus = getDeadlineStatus(milestone.dueDate);
+              const deadlineStatus = milestone.dueDate ? getDeadlineStatus(milestone.dueDate) : null;
               const milestoneDeliverables = deliverables[milestone.id!] || [];
 
               return (
@@ -410,16 +417,14 @@ const ProjectMilestones: React.FC<ProjectMilestonesProps> = ({
                         <CardTitle className="text-lg">{milestone.title}</CardTitle>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Badge variant="outline" className="capitalize">
-                          {milestone.status.replace('_', ' ')}
-                        </Badge>
+                        {getStatusBadge(milestone.status, milestone.dueDate)}
                         <MilestoneStatusUpdate
                           milestoneId={milestone.id!}
                           projectId={projectId}
                           projectTitle={milestone.title}
                           milestoneTitle={milestone.title}
                           currentStatus={milestone.status}
-                          clientId={milestone.assignedTo?.id || ''}
+                          clientId={milestone.created_by || ''}
                           professionalId={milestone.created_by || ''}
                           onStatusUpdate={handleStatusUpdate}
                         />
@@ -428,14 +433,16 @@ const ProjectMilestones: React.FC<ProjectMilestonesProps> = ({
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <p className="text-sm text-gray-600">{milestone.description}</p>
-                    <div className="flex items-center gap-4">
-                      <div className="flex items-center gap-2">
-                        <Calendar className="h-4 w-4 text-gray-500" />
-                        <span className={`text-sm ${deadlineStatus.color}`}>
-                          {deadlineStatus.message}
-                        </span>
+                    {deadlineStatus && (
+                      <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-2">
+                          <Calendar className="h-4 w-4 text-gray-500" />
+                          <span className={`text-sm ${deadlineStatus.color}`}>
+                            {deadlineStatus.message}
+                          </span>
+                        </div>
                       </div>
-                    </div>
+                    )}
 
                     {/* Tasks Section */}
                     {milestone.tasks && milestone.tasks.length > 0 && (
@@ -469,7 +476,7 @@ const ProjectMilestones: React.FC<ProjectMilestonesProps> = ({
                             projectId={projectId}
                             projectTitle={milestone.title}
                             milestoneTitle={milestone.title}
-                            clientId={milestone.assignedTo?.id || ''}
+                            clientId={milestone.created_by || ''}
                             professionalId={milestone.created_by || ''}
                             onSubmissionComplete={handleDeliverableSubmitted}
                           />
@@ -527,4 +534,4 @@ const ProjectMilestones: React.FC<ProjectMilestonesProps> = ({
   );
 };
 
-export default ProjectMilestones; 
+export default ProjectMilestones;

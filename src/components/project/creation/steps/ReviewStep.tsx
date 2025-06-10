@@ -1,7 +1,7 @@
+
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, MapPin, DollarSign, Clock, AlertCircle, ListChecks, FileText, Link, CheckCircle } from 'lucide-react';
 import { ProjectData } from '../types';
 
 interface ReviewStepProps {
@@ -9,67 +9,36 @@ interface ReviewStepProps {
 }
 
 const ReviewStep: React.FC<ReviewStepProps> = ({ data }) => {
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD'
-    }).format(amount);
-  };
-
-  const getTimelineLabel = (value: string) => {
-    const labels: Record<string, string> = {
-      'less_than_1_month': 'Less than 1 month',
-      '1_to_3_months': '1-3 months',
-      '3_to_6_months': '3-6 months',
-      'more_than_6_months': 'More than 6 months'
-    };
-    return labels[value] || value;
-  };
-
-  const getUrgencyLabel = (value: string) => {
-    const labels: Record<string, string> = {
-      'low': 'Low - Flexible timeline',
-      'medium': 'Medium - Standard timeline',
-      'high': 'High - Urgent completion needed'
-    };
-    return labels[value] || value;
-  };
-
   return (
     <div className="space-y-6">
+      <div>
+        <h3 className="text-lg font-semibold mb-4">Review Your Project</h3>
+        <p className="text-gray-600 mb-6">
+          Please review all the information below before submitting your project.
+        </p>
+      </div>
+
       <Card>
         <CardHeader>
-          <CardTitle className="text-xl">Project Overview</CardTitle>
+          <CardTitle>Basic Details</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <h3 className="font-semibold text-lg">{data.title}</h3>
-            <p className="text-gray-600 mt-1">{data.description}</p>
+            <h4 className="font-medium">Title</h4>
+            <p className="text-gray-700">{data.title}</p>
           </div>
-
+          <div>
+            <h4 className="font-medium">Description</h4>
+            <p className="text-gray-700">{data.description}</p>
+          </div>
           <div className="grid grid-cols-2 gap-4">
-            <div className="flex items-center space-x-2">
-              <Badge variant="secondary">{data.category}</Badge>
+            <div>
+              <h4 className="font-medium">Category</h4>
+              <p className="text-gray-700">{data.category}</p>
             </div>
-            <div className="flex items-center space-x-2">
-              <MapPin className="h-4 w-4 text-gray-500" />
-              <span>{data.location}</span>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-xl">Recommended Skills</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div>
-            <h4 className="font-medium mb-2">Skills that would be helpful for this project</h4>
-            <div className="flex flex-wrap gap-2">
-              {data.recommendedSkills.map((skill, index) => (
-                <Badge key={index} variant="secondary">{skill}</Badge>
-              ))}
+            <div>
+              <h4 className="font-medium">Location</h4>
+              <p className="text-gray-700">{data.location}</p>
             </div>
           </div>
         </CardContent>
@@ -77,160 +46,120 @@ const ReviewStep: React.FC<ReviewStepProps> = ({ data }) => {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-xl">Budget & Timeline</CardTitle>
+          <CardTitle>Requirements & Skills</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-3 gap-4">
-            <div className="flex items-center space-x-2">
-              <DollarSign className="h-4 w-4 text-gray-500" />
-              <span>{formatCurrency(data.budget)}</span>
+          {data.requirements && data.requirements.length > 0 && (
+            <div>
+              <h4 className="font-medium mb-2">Requirements</h4>
+              <ul className="list-disc list-inside space-y-1">
+                {data.requirements.map((req, index) => (
+                  <li key={index} className="text-gray-700">{req}</li>
+                ))}
+              </ul>
             </div>
-            <div className="flex items-center space-x-2">
-              <Clock className="h-4 w-4 text-gray-500" />
-              <span>{getTimelineLabel(data.timeline)}</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <AlertCircle className="h-4 w-4 text-gray-500" />
-              <span>{getUrgencyLabel(data.urgency)}</span>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {data.milestones.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-xl">Milestones</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {data.milestones.map((milestone, index) => (
-                <div key={index} className="border rounded-lg p-4">
-                  <div className="flex items-center justify-between">
-                    <h4 className="font-medium">{milestone.title}</h4>
-                    {milestone.dueDate && (
-                      <div className="flex items-center space-x-2">
-                        <Calendar className="h-4 w-4 text-gray-500" />
-                        <span>{new Date(milestone.dueDate).toLocaleDateString()}</span>
-                      </div>
-                    )}
-                  </div>
-                  {milestone.description && (
-                    <p className="text-gray-600 mt-2">{milestone.description}</p>
-                  )}
-                  <div className="flex gap-2 mt-2">
-                    <Badge variant="outline" className="border-gray-200 bg-gray-50 text-gray-700">
-                      {milestone.status}
-                    </Badge>
-                  </div>
-                  
-                  {/* Tasks */}
-                  {milestone.tasks.length > 0 && (
-                    <div className="mt-4">
-                      <h5 className="text-sm font-medium text-gray-700">Tasks</h5>
-                      <ul className="mt-2 space-y-1">
-                        {milestone.tasks.map((task, taskIndex) => (
-                          <li key={taskIndex} className="flex items-center gap-2 text-sm">
-                            <input
-                              type="checkbox"
-                              checked={task.completed}
-                              readOnly
-                              className="h-4 w-4"
-                            />
-                            <span className={task.completed ? 'line-through text-gray-500' : ''}>
-                              {task.title}
-                            </span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-
-                  {/* Deliverables */}
-                  {milestone.deliverables.length > 0 && (
-                    <div className="mt-4">
-                      <h5 className="text-sm font-medium text-gray-700">Deliverables</h5>
-                      <div className="mt-2 space-y-2">
-                        {milestone.deliverables.map((deliverable, deliverableIndex) => (
-                          <div key={deliverableIndex} className="bg-gray-50 p-2 rounded">
-                            <p className="text-sm font-medium">{deliverable.description}</p>
-                            <p className="text-xs text-gray-500 mt-1">
-                              Type: {deliverable.deliverable_type}
-                            </p>
-                            {deliverable.content && (
-                              <p className="text-sm mt-1">{deliverable.content}</p>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {data.deliverables.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-xl">Deliverables</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {data.deliverables.map((deliverable, index) => (
-                <div key={index} className="border rounded-lg p-4">
-                  <div className="flex items-center space-x-2">
-                    {deliverable.deliverable_type === 'file' && <FileText className="h-4 w-4 text-gray-500" />}
-                    {deliverable.deliverable_type === 'note' && <ListChecks className="h-4 w-4 text-gray-500" />}
-                    {deliverable.deliverable_type === 'link' && <Link className="h-4 w-4 text-gray-500" />}
-                    <span className="font-medium">{deliverable.description}</span>
-                  </div>
-                  {deliverable.content && (
-                    <p className="text-gray-600 mt-2">{deliverable.content}</p>
-                  )}
-                  <Badge variant="secondary" className="mt-2">
-                    {deliverable.deliverable_type}
-                  </Badge>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-xl">Service Contract</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {data.service_contract ? (
-            <div className="flex items-center gap-2 text-green-600">
-              <CheckCircle className="h-5 w-5" />
-              <span>Service contract has been accepted</span>
-            </div>
-          ) : (
-            <div className="flex items-center gap-2 text-yellow-600">
-              <AlertCircle className="h-5 w-5" />
-              <span>Service contract has not been accepted</span>
+          )}
+          {data.recommendedSkills && data.recommendedSkills.length > 0 && (
+            <div>
+              <h4 className="font-medium mb-2">Recommended Skills</h4>
+              <div className="flex flex-wrap gap-2">
+                {data.recommendedSkills.map((skill, index) => (
+                  <Badge key={index} variant="outline">{skill}</Badge>
+                ))}
+              </div>
             </div>
           )}
         </CardContent>
       </Card>
 
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <div className="flex items-start gap-2">
-          <AlertCircle className="h-5 w-5 text-blue-600 mt-0.5" />
-          <div>
-            <h4 className="font-medium text-blue-900">Ready to Create</h4>
-            <p className="text-sm text-blue-700">
-              Review your project details above. Once created, professionals will be able to 
-              view and apply for your project.
-            </p>
+      <Card>
+        <CardHeader>
+          <CardTitle>Budget & Timeline</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <h4 className="font-medium">Budget</h4>
+              <p className="text-gray-700">${data.budget?.toLocaleString()}</p>
+            </div>
+            <div>
+              <h4 className="font-medium">Timeline</h4>
+              <p className="text-gray-700">{data.timeline}</p>
+            </div>
+            <div>
+              <h4 className="font-medium">Urgency</h4>
+              <Badge variant="outline">{data.urgency}</Badge>
+            </div>
           </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
+
+      {data.milestones && data.milestones.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Milestones</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {data.milestones.map((milestone, index) => (
+                <div key={index} className="border rounded-lg p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <h4 className="font-medium">{milestone.title}</h4>
+                    <Badge variant="outline">{milestone.status}</Badge>
+                  </div>
+                  {milestone.description && (
+                    <p className="text-gray-600 text-sm mb-2">{milestone.description}</p>
+                  )}
+                  {milestone.dueDate && (
+                    <p className="text-sm text-gray-500">Due: {milestone.dueDate}</p>
+                  )}
+                  {milestone.tasks && milestone.tasks.length > 0 && (
+                    <div className="mt-2">
+                      <p className="text-sm font-medium">Tasks:</p>
+                      <ul className="list-disc list-inside text-sm text-gray-600">
+                        {milestone.tasks.map((task, taskIndex) => (
+                          <li key={taskIndex}>{task.title}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {data.deliverables && data.deliverables.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Deliverables</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {data.deliverables.map((deliverable, index) => (
+                <div key={index} className="border rounded p-3">
+                  <div className="flex items-center justify-between">
+                    <p className="font-medium">{deliverable.description}</p>
+                    <Badge variant="outline">{deliverable.deliverable_type}</Badge>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {data.service_contract && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Service Contract</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-gray-700 whitespace-pre-wrap">{data.service_contract}</p>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 };
