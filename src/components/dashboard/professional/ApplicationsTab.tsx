@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,13 +11,13 @@ import { Application } from '../types';
 interface ApplicationsTabProps {
   isLoading: boolean;
   applications: Application[];
-  onUpdate: () => void;
+  userId: string;
 }
 
 export const ApplicationsTab: React.FC<ApplicationsTabProps> = ({
   isLoading,
   applications,
-  onUpdate
+  userId
 }) => {
   const [selectedApplication, setSelectedApplication] = useState<Application | null>(null);
   const [isWithdrawDialogOpen, setIsWithdrawDialogOpen] = useState(false);
@@ -65,7 +66,8 @@ export const ApplicationsTab: React.FC<ApplicationsTabProps> = ({
 
       setIsWithdrawDialogOpen(false);
       setSelectedApplication(null);
-      onUpdate();
+      // Note: onUpdate removed as it's not needed in this refactored version
+      window.location.reload(); // Simple refresh for now
     } catch (error: any) {
       console.error('Error withdrawing application:', error);
       toast({
@@ -191,3 +193,5 @@ export const ApplicationsTab: React.FC<ApplicationsTabProps> = ({
     </div>
   );
 };
+
+export default ApplicationsTab;
