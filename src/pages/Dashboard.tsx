@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useToast } from "@/components/ui/use-toast";
@@ -27,21 +26,47 @@ const Dashboard: React.FC = () => {
         setError(null);
         console.log('Fetching user profile for:', user.id);
         
-        const { data, error } = await supabase
+        // First check if profile exists
+        const { data: profileData, error: profileError } = await supabase
           .from('profiles')
-          .select('account_type')
+          .select('id, account_type')
           .eq('id', user.id)
           .single();
         
-        if (error) {
-          console.error('Profile fetch error:', error);
-          throw error;
+        if (profileError) {
+          console.error('Profile fetch error:', profileError);
+          throw profileError;
         }
         
-        console.log('Profile data:', data);
-        setAccountType(data.account_type);
+        if (!profileData) {
+          // Profile doesn't exist, create it
+          const { data: newProfile, error: createError } = await supabase
+            .from('profiles')
+            .insert([
+              {
+                id: user.id,
+                account_type: 'client', // Default to client
+                first_name: user.user_metadata?.full_name?.split(' ')[0] || null,
+                last_name: user.user_metadata?.full_name?.split(' ').slice(1).join(' ') || null,
+                email: user.email
+              }
+            ])
+            .select()
+            .single();
+          
+          if (createError) {
+            console.error('Profile creation error:', createError);
+            throw createError;
+          }
+          
+          console.log('Created new profile:', newProfile);
+          setAccountType(newProfile.account_type);
+        } else {
+          console.log('Existing profile data:', profileData);
+          setAccountType(profileData.account_type);
+        }
       } catch (error: any) {
-        console.error('Error fetching user profile:', error);
+        console.error('Error in profile handling:', error);
         setError('Failed to load your profile. Please try again later.');
         toast({
           title: "Error",
@@ -66,15 +91,44 @@ const Dashboard: React.FC = () => {
       try {
         setError(null);
         
-        const { data, error } = await supabase
+        const { data: profileData, error: profileError } = await supabase
           .from('profiles')
-          .select('account_type')
+          .select('id, account_type')
           .eq('id', user.id)
           .single();
         
-        if (error) throw error;
+        if (profileError) {
+          console.error('Profile fetch error:', profileError);
+          throw profileError;
+        }
         
-        setAccountType(data.account_type);
+        if (!profileData) {
+          // Profile doesn't exist, create it
+          const { data: newProfile, error: createError } = await supabase
+            .from('profiles')
+            .insert([
+              {
+                id: user.id,
+                account_type: 'client', // Default to client
+                first_name: user.user_metadata?.full_name?.split(' ')[0] || null,
+                last_name: user.user_metadata?.full_name?.split(' ').slice(1).join(' ') || null,
+                email: user.email
+              }
+            ])
+            .select()
+            .single();
+          
+          if (createError) {
+            console.error('Profile creation error:', createError);
+            throw createError;
+          }
+          
+          console.log('Created new profile:', newProfile);
+          setAccountType(newProfile.account_type);
+        } else {
+          console.log('Existing profile data:', profileData);
+          setAccountType(profileData.account_type);
+        }
       } catch (error: any) {
         console.error('Error retrying profile fetch:', error);
         setError('Failed to load your profile. Please try again later.');
@@ -122,6 +176,12 @@ const Dashboard: React.FC = () => {
               Try Again
             </Button>
           </div>
+        ) : !accountType ? (
+          <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-md">
+            <p className="text-yellow-700">
+              Your account type is not properly set. Please contact support.
+            </p>
+          </div>
         ) : accountType === 'client' ? (
           <ClientDashboard userId={user.id} initialTab={activeTab} />
         ) : accountType === 'professional' ? (
@@ -129,7 +189,7 @@ const Dashboard: React.FC = () => {
         ) : (
           <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-md">
             <p className="text-yellow-700">
-              Your account type is not properly set. Please contact support.
+              Invalid account type. Please contact support.
             </p>
           </div>
         )}
