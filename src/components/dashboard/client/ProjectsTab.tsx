@@ -1,27 +1,36 @@
-
 import React, { useState } from 'react';
+import { AlertDialog, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
 import { Project } from '../types';
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { AlertTriangle } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
+import { 
+  Briefcase, 
+  ChevronDown, 
+  ChevronUp, 
+  Clock, 
+  MapPin, 
+  DollarSign,
+  Calendar,
+  AlertTriangle,
+  CheckCircle,
+  Target,
+  FileText,
+  Edit,
+  Eye
+} from "lucide-react";
+import EditProjectForm from './projects/EditProjectForm';
 import EmptyProjectState from './projects/EmptyProjectState';
 import ProjectUpdateTimeline from "@/components/project/ProjectUpdateTimeline";
 import ProjectMilestones from "@/components/project/ProjectMilestones";
 import ProjectDeliverables from "@/components/project/ProjectDeliverables";
+import { ProgressIndicator } from "@/components/ui/progress-indicator";
 import ProjectProgressOverview from '@/components/project/ProjectProgressOverview';
+import { ProjectStatus } from '@/types/projectUpdates';
+import { useToast } from "@/components/ui/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
-
-interface Milestone {
-  id: string;
-  title: string;
-  description: string;
-  dueDate: string;
-  status: 'not_started' | 'in_progress' | 'completed' | 'on_hold';
-  deliverables: any[];
-  tasks?: any[];
-}
 
 interface ProjectsTabProps {
   isLoading: boolean;
@@ -68,8 +77,13 @@ export const ProjectsTab: React.FC<ProjectsTabProps> = ({
   projects,
   isLoading, 
   error,
+  onEditProject,
+  onDeleteProject,
   selectedProject,
   setSelectedProject,
+  handleAddMilestone,
+  handleEditMilestone,
+  handleDeleteMilestone,
   fetchProjectDetails
 }) => {
   const [expandedProjectId, setExpandedProjectId] = useState<string | null>(null);
@@ -77,11 +91,11 @@ export const ProjectsTab: React.FC<ProjectsTabProps> = ({
   const [loadingDetails, setLoadingDetails] = useState<string | null>(null);
 
   const handleProjectSelect = async (projectId: string) => {
-    if (expandedProjectId === projectId) {
-      setExpandedProjectId(null);
-      setSelectedProject(null);
-      return;
-    }
+      if (expandedProjectId === projectId) {
+        setExpandedProjectId(null);
+        setSelectedProject(null);
+        return;
+      }
     setLoadingDetails(projectId);
     try {
       const projectDetails = await fetchProjectDetails(projectId);
@@ -115,37 +129,37 @@ export const ProjectsTab: React.FC<ProjectsTabProps> = ({
         </Alert>
       )}
       {(!projects || projects.length === 0) ? (
-        <EmptyProjectState message="You haven't created any projects yet. Start by posting your first project!" />
+        <EmptyProjectState />
       ) : (
         projects.map((project) => {
           const isExpanded = expandedProjectId === project.id;
-          return (
-            <Card key={project.id} className="mb-4">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-lg font-semibold">{project.title}</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Created: {project.created_at ? new Date(project.created_at).toLocaleDateString() : 'N/A'}
-                    </p>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Badge variant={getStatusVariant(project.status || 'open')}>
-                      {project.status || 'open'}
-                    </Badge>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleProjectSelect(project.id)}
+  return (
+      <Card key={project.id} className="mb-4">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-semibold">{project.title}</h3>
+                <p className="text-sm text-muted-foreground">
+                  Created: {new Date(project.created_at).toLocaleDateString()}
+                </p>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Badge variant={getStatusVariant(project.status)}>
+                {project.status}
+              </Badge>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => handleProjectSelect(project.id)}
                       disabled={loadingDetails === project.id}
-                    >
+              >
                       <span className={`transition-transform ${isExpanded ? 'rotate-180' : ''}`}>▼</span>
-                    </Button>
-                  </div>
-                </div>
-              </CardHeader>
+              </Button>
+            </div>
+          </div>
+        </CardHeader>
               {isExpanded && selectedProject && selectedProject.id === project.id && (
-                <CardContent>
+          <CardContent>
                   <Tabs
                     value={activeTab[project.id] || 'timeline'}
                     onValueChange={(tab) => setActiveTab((prev) => ({ ...prev, [project.id]: tab }))}
@@ -170,10 +184,6 @@ export const ProjectsTab: React.FC<ProjectsTabProps> = ({
                         projectStatus={selectedProject.status}
                         milestones={selectedProject.milestones || []}
                         isClient={true}
-                        onAddMilestone={async () => {}}
-                        onEditMilestone={async () => {}}
-                        onDeleteMilestone={async () => {}}
-                        onUpdateTaskStatus={async () => {}}
                       />
                     </TabsContent>
                     <TabsContent value="deliverables">
@@ -186,23 +196,23 @@ export const ProjectsTab: React.FC<ProjectsTabProps> = ({
                       <ProjectProgressOverview project={selectedProject} />
                       <div className="mt-4">
                         <h4 className="font-medium mb-2">Project Details</h4>
-                        <div className="grid grid-cols-2 gap-4 text-sm">
-                          <div>
-                            <span className="text-muted-foreground">Budget:</span>
-                            <span className="ml-2">${selectedProject.budget || 'N/A'}</span>
-                          </div>
-                          <div>
-                            <span className="text-muted-foreground">Timeline:</span>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <span className="text-muted-foreground">Budget:</span>
+                            <span className="ml-2">${selectedProject.budget}</span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Timeline:</span>
                             <span className="ml-2">{selectedProject.timeline || selectedProject.expected_timeline || 'N/A'} days</span>
-                          </div>
-                          <div>
-                            <span className="text-muted-foreground">Category:</span>
-                            <span className="ml-2">{selectedProject.category || 'N/A'}</span>
-                          </div>
-                          <div>
-                            <span className="text-muted-foreground">Location:</span>
-                            <span className="ml-2">{selectedProject.location || 'N/A'}</span>
-                          </div>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Category:</span>
+                            <span className="ml-2">{selectedProject.category}</span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Location:</span>
+                            <span className="ml-2">{selectedProject.location}</span>
+        </div>
                         </div>
                         {selectedProject.requirements && (
                           <div className="col-span-2 mt-2">
@@ -210,17 +220,17 @@ export const ProjectsTab: React.FC<ProjectsTabProps> = ({
                             <ul className="list-disc list-inside mt-1">
                               {selectedProject.requirements.map((req: string, idx: number) => (
                                 <li key={idx}>{req}</li>
-                              ))}
+                    ))}
                             </ul>
-                          </div>
-                        )}
-                      </div>
+        </div>
+      )}
+              </div>
                     </TabsContent>
                   </Tabs>
-                </CardContent>
-              )}
-            </Card>
-          );
+          </CardContent>
+        )}
+      </Card>
+    );
         })
       )}
     </div>
