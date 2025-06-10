@@ -119,9 +119,31 @@ const ProfessionalDashboard: React.FC<ProfessionalDashboardProps> = ({ userId })
 
   const markProjectComplete = async (projectId: string) => {
     try {
+      // First check if all milestones are complete
+      const { data: milestones, error: milestonesError } = await supabase
+        .from('project_milestones')
+        .select('*')
+        .eq('project_id', projectId);
+        
+      if (milestonesError) throw milestonesError;
+      
+      const incompleteMilestones = milestones?.filter(m => !m.is_complete);
+      if (incompleteMilestones?.length > 0) {
+        toast({
+          title: "Cannot Complete Project",
+          description: "All milestones must be completed before marking the project as complete.",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      // Update project status
       const { error } = await supabase
         .from('projects')
-        .update({ status: 'completed' })
+        .update({ 
+          status: 'completed',
+          updated_at: new Date().toISOString()
+        })
         .eq('id', projectId)
         .eq('assigned_to', userId);
       
@@ -143,15 +165,25 @@ const ProfessionalDashboard: React.FC<ProfessionalDashboardProps> = ({ userId })
     }
   };
 
-  const updateProfile = async (data: { skills: string[] }) => {
+  const updateProfile = async (data: { 
+    skills?: string[];
+    hourly_rate?: number;
+    availability?: string;
+    bio?: string;
+    location?: string;
+    show_email?: boolean;
+    show_phone?: boolean;
+    allow_messages?: boolean;
+  }) => {
     try {
       setIsSubmitting(true);
       
-      // Update profile with new skills
+      // Update profile with all provided fields
       const { data: updatedProfileInfo, error: profileUpdateError } = await supabase
         .from('profiles')
         .update({
-          skills: data.skills,
+          ...data,
+          updated_at: new Date().toISOString()
         })
         .eq('id', userId)
         .select()
@@ -161,7 +193,7 @@ const ProfessionalDashboard: React.FC<ProfessionalDashboardProps> = ({ userId })
       
       toast({
         title: "Profile updated",
-        description: "Your skills have been updated successfully!",
+        description: "Your profile has been updated successfully!",
       });
       
       setIsEditing(false);

@@ -1,22 +1,20 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Briefcase } from "lucide-react";
 import { Project, Application } from '../types';
+import { Badge } from "@/components/ui/badge";
 
 interface AvailableProjectsTabProps {
   isLoading: boolean;
   projects: Project[];
   applications: Application[];
-  skills: string[];
-  selectedProject: string | null;
-  setSelectedProject: (id: string | null) => void;
-  bidAmount: number | null;
-  setBidAmount: (amount: number | null) => void;
+  skills?: string[];
+  setSelectedProject: (project: Project) => void;
+  setBidAmount: (amount: number) => void;
 }
 
-const AvailableProjectsTab: React.FC<AvailableProjectsTabProps> = ({
+export const AvailableProjectsTab: React.FC<AvailableProjectsTabProps> = ({
   isLoading,
   projects,
   applications,
@@ -24,86 +22,93 @@ const AvailableProjectsTab: React.FC<AvailableProjectsTabProps> = ({
   setSelectedProject,
   setBidAmount
 }) => {
-  const availableProjects = projects.filter(p => p.status === 'open');
-  
+  const filteredProjects = projects.filter(project => {
+    // Filter out projects that are not open
+    if (project.status !== 'open') return false;
+    
+    // Filter out projects that the user has already applied to
+    if (applications.some(app => app.project_id === project.id)) return false;
+    
+    // If user has skills, filter projects that match at least one skill
+    if (skills && skills.length > 0) {
+      const projectSkills = project.required_skills ? JSON.parse(project.required_skills) as string[] : [];
+      return projectSkills.some(skill => skills.includes(skill));
+    }
+    
+    return true;
+  });
+
+  const formatBudget = (budget: number | null | undefined) => {
+    if (budget === null || budget === undefined) return 'Not specified';
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(budget);
+  };
+
   return (
-    <>
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-2xl font-bold">Available Projects</h2>
-        {skills.length > 0 && (
-          <div className="flex flex-wrap gap-2">
-            {skills.map((skill, index) => (
-              <span 
-                key={index} 
-                className="px-2 py-1 bg-ttc-blue-50 text-ttc-blue-700 text-xs rounded-full"
-              >
-                {skill}
-              </span>
-            ))}
-          </div>
-        )}
-      </div>
-      
+    <div className="space-y-6">
       {isLoading ? (
-        <p>Loading projects...</p>
-      ) : availableProjects.length === 0 ? (
+        <div className="flex justify-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </div>
+      ) : filteredProjects.length === 0 ? (
         <div className="text-center py-8">
-          <Briefcase className="w-12 h-12 mx-auto text-ttc-neutral-400" />
-          <p className="mt-4 text-ttc-neutral-600">No matching projects available at the moment.</p>
-          {skills.length === 0 && (
-            <p className="mt-2 text-sm text-ttc-neutral-500">
-              Add skills to your profile to see matching projects.
-            </p>
-          )}
+          <p className="text-muted-foreground">No available projects match your skills at the moment.</p>
         </div>
       ) : (
-        <div className="grid gap-6 md:grid-cols-2">
-          {availableProjects.map(project => {
-            // Check if user has already applied to this project
-            const hasApplied = applications.some(app => 
-              app.project_id === project.id && 
-              app.status !== 'withdrawn'
-            );
-            
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {filteredProjects.map((project) => {
+            const projectSkills = project.required_skills ? JSON.parse(project.required_skills) as string[] : [];
             return (
-              <Card key={project.id}>
+              <Card key={project.id} className="overflow-hidden">
                 <CardHeader>
-                  <CardTitle>{project.title}</CardTitle>
-                  <CardDescription className="flex items-center justify-between">
-                    <span>Posted on {new Date(project.created_at || '').toLocaleDateString()}</span>
-                    <span>by {project.client?.first_name} {project.client?.last_name}</span>
+                  <CardTitle className="line-clamp-1">{project.title}</CardTitle>
+                  <CardDescription className="line-clamp-2">
+                    {project.description}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-sm text-ttc-neutral-600 mb-4">{project.description}</p>
-                  <p className="font-medium">Budget: ${project.budget}</p>
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium">Budget</span>
+                      <span className="text-sm">{formatBudget(project.budget)}</span>
+                    </div>
+                    {projectSkills.length > 0 && (
+                      <div className="space-y-2">
+                        <span className="text-sm font-medium">Required Skills</span>
+                        <div className="flex flex-wrap gap-2">
+                          {projectSkills.map((skill) => (
+                            <Badge
+                              key={skill}
+                              variant={skills?.includes(skill) ? "default" : "secondary"}
+                            >
+                              {skill}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </CardContent>
                 <CardFooter>
-                  {hasApplied ? (
-                    <Button variant="outline" disabled className="w-full">
-                      Already Applied
-                    </Button>
-                  ) : (
-                    <Button 
-                      className="w-full bg-ttc-blue-700 hover:bg-ttc-blue-800"
-                      onClick={() => {
-                        setSelectedProject(project.id);
-                        if (project.budget) {
-                          setBidAmount(project.budget);
-                        }
-                      }}
-                    >
-                      Apply for this Project
-                    </Button>
-                  )}
+                  <Button
+                    className="w-full"
+                    onClick={() => {
+                      setSelectedProject(project);
+                      setBidAmount(project.budget || 0);
+                    }}
+                  >
+                    Apply Now
+                  </Button>
                 </CardFooter>
               </Card>
             );
           })}
         </div>
       )}
-    </>
+    </div>
   );
 };
-
-export default AvailableProjectsTab;

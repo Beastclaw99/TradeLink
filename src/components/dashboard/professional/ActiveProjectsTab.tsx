@@ -31,25 +31,34 @@ import { supabase } from '@/integrations/supabase/client';
 import { Milestone, convertDBMilestoneToMilestone, convertMilestoneToDBMilestone } from '@/components/project/creation/types';
 import { ProjectStatus } from '@/types/projectUpdates';
 import { useProjectStatus } from '@/hooks/useProjectStatus';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 
 interface ActiveProjectsTabProps {
   isLoading: boolean;
   projects: Project[];
   userId: string;
   markProjectComplete: (projectId: string) => Promise<void>;
+  onUpdate: () => void;
+}
+
+interface ProjectWithMilestones extends Project {
+  milestones?: Milestone[];
 }
 
 const ActiveProjectsTab: React.FC<ActiveProjectsTabProps> = ({ 
   isLoading, 
   projects, 
   userId, 
-  markProjectComplete 
+  markProjectComplete,
+  onUpdate
 }) => {
   const { toast } = useToast();
   const [expandedProjects, setExpandedProjects] = useState<Record<string, boolean>>({});
   const [activeTab, setActiveTab] = useState<Record<string, string>>({});
-  const [showUpdateForm, setShowUpdateForm] = useState<Record<string, boolean>>({});
-  const [projectMilestones, setProjectMilestones] = useState<Record<string, Milestone[]>>({});
+  const [selectedProject, setSelectedProject] = useState<ProjectWithMilestones | null>(null);
+  const [selectedMilestone, setSelectedMilestone] = useState<Milestone | null>(null);
+  const [isMilestoneDialogOpen, setIsMilestoneDialogOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Get the useProjectStatus hook for each project
   const projectStatusHooks = projects.reduce((acc, project) => {
@@ -68,9 +77,9 @@ const ActiveProjectsTab: React.FC<ActiveProjectsTabProps> = ({
 
       if (error) throw error;
 
-      setProjectMilestones(prev => ({
+      setSelectedProject(prev => ({
         ...prev,
-        [projectId]: (data || []).map(convertDBMilestoneToMilestone)
+        milestones: (data || []).map(convertDBMilestoneToMilestone)
       }));
     } catch (error) {
       console.error('Error fetching milestones:', error);
@@ -112,9 +121,9 @@ const ActiveProjectsTab: React.FC<ActiveProjectsTabProps> = ({
         if (deliverablesError) throw deliverablesError;
       }
 
-      setProjectMilestones(prev => ({
+      setSelectedProject(prev => ({
         ...prev,
-        [projectId]: [...(prev[projectId] || []), convertDBMilestoneToMilestone(data)]
+        milestones: [...(prev.milestones || []), convertDBMilestoneToMilestone(data)]
       }));
 
       toast({
@@ -133,6 +142,8 @@ const ActiveProjectsTab: React.FC<ActiveProjectsTabProps> = ({
 
   const handleEditMilestone = async (projectId: string, milestoneId: string, updates: Partial<Milestone>) => {
     try {
+      setIsSubmitting(true);
+
       const dbUpdates = convertMilestoneToDBMilestone(updates as Milestone, projectId);
       const { error } = await supabase
         .from('project_milestones')
@@ -171,17 +182,21 @@ const ActiveProjectsTab: React.FC<ActiveProjectsTabProps> = ({
         }
       }
 
-      setProjectMilestones(prev => ({
+      setSelectedProject(prev => ({
         ...prev,
-        [projectId]: prev[projectId].map(m =>
+        milestones: prev.milestones?.map(m =>
           m.id === milestoneId ? { ...m, ...updates } : m
-        )
+        ) || []
       }));
 
       toast({
         title: "Success",
         description: "Milestone updated successfully."
       });
+
+      setIsMilestoneDialogOpen(false);
+      setSelectedMilestone(null);
+      onUpdate();
     } catch (error) {
       console.error('Error updating milestone:', error);
       toast({
@@ -189,6 +204,8 @@ const ActiveProjectsTab: React.FC<ActiveProjectsTabProps> = ({
         description: "Failed to update milestone.",
         variant: "destructive"
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -201,9 +218,9 @@ const ActiveProjectsTab: React.FC<ActiveProjectsTabProps> = ({
 
       if (error) throw error;
 
-      setProjectMilestones(prev => ({
+      setSelectedProject(prev => ({
         ...prev,
-        [projectId]: prev[projectId].filter(m => m.id !== milestoneId)
+        milestones: prev.milestones?.filter(m => m.id !== milestoneId) || []
       }));
 
       toast({
@@ -236,13 +253,6 @@ const ActiveProjectsTab: React.FC<ActiveProjectsTabProps> = ({
     }));
   };
 
-  const toggleUpdateForm = (projectId: string) => {
-    setShowUpdateForm(prev => ({
-      ...prev,
-      [projectId]: !prev[projectId]
-    }));
-  };
-
   const setProjectTab = (projectId: string, tabValue: string) => {
     setActiveTab(prev => ({
       ...prev,
@@ -250,12 +260,10 @@ const ActiveProjectsTab: React.FC<ActiveProjectsTabProps> = ({
     }));
   };
 
-  const getProjectProgress = (project: Project) => {
-    // Calculate progress based on project status and milestones
-    if (project.status === 'completed') return 100;
-    if (project.status === 'open') return 0;
-    if (project.status === 'assigned') return 25;
-    return 50; // default for in-progress
+  const getProjectProgress = (project: ProjectWithMilestones) => {
+    if (!project.milestones || project.milestones.length === 0) return 0;
+    const completedMilestones = project.milestones.filter((m: Milestone) => m.is_complete).length;
+    return Math.round((completedMilestones / project.milestones.length) * 100);
   };
 
   const getUrgencyColor = (urgency?: string) => {
@@ -329,6 +337,72 @@ const ActiveProjectsTab: React.FC<ActiveProjectsTabProps> = ({
   const completedProjects = projects.filter(p => 
     p.status === 'completed' && p.assigned_to === userId
   );
+
+  const handleMilestoneUpdate = async (milestoneId: string, updates: Partial<Milestone>) => {
+    if (!selectedProject?.id) return;
+
+    try {
+      setIsSubmitting(true);
+
+      // Update milestone
+      const { error: updateError } = await supabase
+        .from('project_milestones')
+        .update({
+          ...updates,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', milestoneId);
+
+      if (updateError) throw updateError;
+
+      // If milestone is marked as complete, check if all milestones are complete
+      if (updates.is_complete) {
+        const { data: projectMilestones, error: fetchError } = await supabase
+          .from('project_milestones')
+          .select('is_complete')
+          .eq('project_id', selectedProject.id);
+
+        if (fetchError) throw fetchError;
+
+        const allComplete = projectMilestones?.every(m => m.is_complete);
+        if (allComplete) {
+          // Update project status to work_submitted
+          const { error: projectError } = await supabase
+            .from('projects')
+            .update({
+              status: 'work_submitted',
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', selectedProject.id);
+
+          if (projectError) throw projectError;
+
+          toast({
+            title: "Project Ready for Review",
+            description: "All milestones are complete. The project is now ready for client review."
+          });
+        }
+      }
+
+      toast({
+        title: "Milestone Updated",
+        description: "The milestone has been updated successfully."
+      });
+
+      setIsMilestoneDialogOpen(false);
+      setSelectedMilestone(null);
+      onUpdate();
+    } catch (error: any) {
+      console.error('Error updating milestone:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update milestone. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -429,9 +503,9 @@ const ActiveProjectsTab: React.FC<ActiveProjectsTabProps> = ({
                   <div className="space-y-3">
                     <div className="flex items-center justify-between text-sm">
                       <span className="font-medium">Project Progress</span>
-                      <span className="text-gray-600">{getProjectProgress(project)}%</span>
+                      <span className="text-gray-600">{getProjectProgress(project as ProjectWithMilestones)}%</span>
                     </div>
-                    <Progress value={getProjectProgress(project)} className="h-2" />
+                    <Progress value={getProjectProgress(project as ProjectWithMilestones)} className="h-2" />
                     <ProgressIndicator 
                       steps={getProjectSteps(project)}
                       orientation="horizontal"
@@ -504,14 +578,14 @@ const ActiveProjectsTab: React.FC<ActiveProjectsTabProps> = ({
 
                         <TabsContent value="milestones" className="mt-4">
                           <ProjectMilestones 
-                            milestones={projectMilestones[project.id] || []}
+                            milestones={selectedProject?.milestones || []}
                             isClient={false}
                             onAddMilestone={(milestone) => handleAddMilestone(project.id, milestone)}
                             onEditMilestone={(milestoneId, updates) => handleEditMilestone(project.id, milestoneId, updates)}
                             onDeleteMilestone={(milestoneId) => handleDeleteMilestone(project.id, milestoneId)}
                             onUpdateTaskStatus={async (milestoneId, taskId, completed) => {
                               // Update task status in the milestone
-                              const milestone = projectMilestones[project.id]?.find(m => m.id === milestoneId);
+                              const milestone = selectedProject?.milestones?.find(m => m.id === milestoneId);
                               if (milestone) {
                                 const updatedTasks = milestone.tasks.map(task =>
                                   task.id === taskId ? { ...task, completed } : task
@@ -595,33 +669,13 @@ const ActiveProjectsTab: React.FC<ActiveProjectsTabProps> = ({
                     <Button 
                       variant="outline" 
                       className="flex-1"
-                      onClick={() => toggleUpdateForm(project.id)}
+                      onClick={() => toggleProjectExpansion(project.id)}
                     >
                       <FileText className="h-4 w-4 mr-2" />
                       Submit Update
                     </Button>
                   </div>
                 </CardFooter>
-
-                {showUpdateForm[project.id] && (
-                  <CardContent className="border-t pt-6">
-                    <AddProjectUpdate
-                      projectId={project.id}
-                      onUpdateAdded={() => {
-                        toggleUpdateForm(project.id);
-                        // Refresh the project updates
-                        if (activeTab[project.id] === 'timeline') {
-                          const timelineElement = document.querySelector(`[data-project-id="${project.id}"] .project-timeline`);
-                          if (timelineElement) {
-                            (timelineElement as any).refresh?.();
-                          }
-                        }
-                      }}
-                      projectStatus={project.status || ''}
-                      isProfessional={true}
-                    />
-                  </CardContent>
-                )}
               </Card>
             ))}
           </div>
@@ -682,6 +736,38 @@ const ActiveProjectsTab: React.FC<ActiveProjectsTabProps> = ({
           </div>
         )}
       </div>
+
+      <Dialog open={isMilestoneDialogOpen} onOpenChange={setIsMilestoneDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Update Milestone</DialogTitle>
+            <DialogDescription>
+              Update the status of milestone "{selectedMilestone?.title}" for project "{selectedProject?.title}".
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setIsMilestoneDialogOpen(false)}
+              disabled={isSubmitting}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={() => {
+                if (selectedMilestone?.id) {
+                  handleMilestoneUpdate(selectedMilestone.id, {
+                    is_complete: !selectedMilestone.is_complete
+                  });
+                }
+              }}
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? 'Updating...' : selectedMilestone?.is_complete ? 'Mark Incomplete' : 'Mark Complete'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
