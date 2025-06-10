@@ -64,16 +64,19 @@ export const useClientDataFetcher = (userId: string) => {
       console.log('Profile data:', userProfileData);
       setProfile(transformClient(userProfileData));
       
-      // Fetch client's projects - both created and assigned
+      // Fetch client's projects with all related data
       const { data: projectsData, error: projectsError } = await supabase
         .from('projects')
         .select(`
           *,
           client:client_id (
+            id,
             first_name,
-            last_name
+            last_name,
+            profile_image
           ),
           professional:professional_id (
+            id,
             first_name,
             last_name,
             rating,
@@ -95,6 +98,7 @@ export const useClientDataFetcher = (userId: string) => {
           ),
           deliverables:project_deliverables (
             id,
+            title,
             description,
             deliverable_type,
             content,
@@ -102,6 +106,23 @@ export const useClientDataFetcher = (userId: string) => {
             status,
             submitted_at,
             approved_at
+          ),
+          applications:applications (
+            id,
+            status,
+            bid_amount,
+            cover_letter,
+            proposal_message,
+            availability,
+            created_at,
+            updated_at,
+            professional:profiles!applications_professional_id_fkey (
+              id,
+              first_name,
+              last_name,
+              rating,
+              profile_image
+            )
           )
         `)
         .eq('client_id', userId)
@@ -111,110 +132,81 @@ export const useClientDataFetcher = (userId: string) => {
         console.error('Projects fetch error:', projectsError);
         throw projectsError;
       }
+
+      // Transform and set projects
+      const transformedProjects = transformProjects(projectsData || []);
+      setProjects(transformedProjects);
       
-      // Fetch tasks for each project's milestones
-      const projectsWithTasks = await Promise.all(
-        (projectsData || []).map(async (project) => {
-          const { data: tasksData, error: tasksError } = await supabase
-            .from('project_tasks')
-            .select('*')
-            .in('milestone_id', project.milestones?.map(m => m.id) || []);
-          
-          if (tasksError) {
-            console.error('Tasks fetch error:', tasksError);
-            return project;
-          }
-          
-          // Attach tasks to their respective milestones
-          const milestonesWithTasks = project.milestones?.map(milestone => ({
-            ...milestone,
-            tasks: tasksData?.filter(task => task.milestone_id === milestone.id) || []
-          })) || [];
-          
-          return {
-            ...project,
-            milestones: milestonesWithTasks
-          };
-        })
-      );
+      // Extract and transform applications from projects
+      const allApplications = (projectsData || [])
+        .flatMap(project => 
+          (project.applications || []).map(app => ({
+            ...app,
+            project: {
+              id: project.id,
+              title: project.title,
+              status: project.status,
+              budget: project.budget,
+              created_at: project.created_at
+            }
+          }))
+        );
       
-      console.log('Projects data with tasks:', projectsWithTasks);
-      setProjects(transformProjects(projectsWithTasks));
-      
-      // Fetch applications for client's projects
-      const { data: appsData, error: appsError } = await supabase
-        .from('applications')
-        .select(`
-          id,
-          created_at,
-          status,
-          bid_amount,
-          cover_letter,
-          professional_id,
-          project_id,
-          availability,
-          proposal_message,
-          updated_at,
-          project:projects (
-            id,
-            title,
-            status,
-            budget,
-            created_at
-          ),
-          professional:profiles!applications_professional_id_fkey(
-            id,
-            first_name,
-            last_name,
-            rating,
-            profile_image
-          )
-        `)
-        .in('project_id', projectsData?.map(p => p.id) || [])
-        .order('created_at', { ascending: false });
-      
-      if (appsError) {
-        console.error('Applications fetch error:', appsError);
-        throw appsError;
-      }
-      
-      console.log('Applications data:', appsData);
-      setApplications(transformApplications(appsData || []));
+      setApplications(transformApplications(allApplications));
       
       // Fetch payments
       const { data: paymentsData, error: paymentsError } = await supabase
         .from('payments')
         .select(`
           *,
-          project:projects(title),
+          project:projects(
+            id,
+            title,
+            status,
+            budget
+          ),
           professional:profiles!payments_professional_id_fkey(
             id,
             first_name,
-            last_name
+            last_name,
+            profile_image
           )
         `)
-        .eq('client_id', userId);
+        .eq('client_id', userId)
+        .order('created_at', { ascending: false });
       
       if (paymentsError) {
         console.error('Payments fetch error:', paymentsError);
         throw paymentsError;
       }
       
-      console.log('Payments data:', paymentsData);
       setPayments(transformPayments(paymentsData || []));
       
       // Fetch reviews
       const { data: reviewsData, error: reviewsError } = await supabase
         .from('reviews')
-        .select('*')
-        .eq('client_id', userId);
+        .select(`
+          *,
+          project:projects(
+            id,
+            title,
+            status
+          ),
+          professional:profiles!reviews_professional_id_fkey(
+            id,
+            first_name,
+            last_name,
+            profile_image
+          )
+        `)
+        .eq('client_id', userId)
+        .order('created_at', { ascending: false });
       
       if (reviewsError) {
         console.error('Reviews fetch error:', reviewsError);
         throw reviewsError;
       }
       
-      console.log('Reviews data:', reviewsData);
       setReviews(transformReviews(reviewsData || []));
       
     } catch (error: any) {

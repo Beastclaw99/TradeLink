@@ -62,6 +62,17 @@ interface ProjectsTabProps {
   onDeleteProject: (projectId: string) => void;
 }
 
+const getStatusVariant = (status: string) => {
+  switch (status) {
+    case 'completed': return 'success';
+    case 'in_progress': return 'default';
+    case 'assigned': return 'secondary';
+    case 'open': return 'outline';
+    case 'cancelled': return 'destructive';
+    default: return 'default';
+  }
+};
+
 export const ProjectsTab: React.FC<ProjectsTabProps> = ({
   projects,
   isLoading, 
@@ -76,142 +87,27 @@ export const ProjectsTab: React.FC<ProjectsTabProps> = ({
   fetchProjectDetails
 }) => {
   const [expandedProjectId, setExpandedProjectId] = useState<string | null>(null);
-  const { toast } = useToast();
+  const [activeTab, setActiveTab] = useState<Record<string, string>>({});
+  const [loadingDetails, setLoadingDetails] = useState<string | null>(null);
 
   const handleProjectSelect = async (projectId: string) => {
-    try {
-      if (expandedProjectId === projectId) {
-        setExpandedProjectId(null);
-        setSelectedProject(null);
-        return;
-      }
-
-      const projectDetails = await fetchProjectDetails(projectId);
-      if (!projectDetails) {
-        throw new Error('Failed to fetch project details');
-      }
-
-      // Ensure project has all required fields
-      const enrichedProject = {
-        ...projectDetails,
-        milestones: projectDetails.milestones || [],
-        deliverables: projectDetails.deliverables || [],
-        status: projectDetails.status || 'draft'
-      };
-
-      setSelectedProject(enrichedProject);
-      setExpandedProjectId(projectId);
-    } catch (error: any) {
-      console.error('Error selecting project:', error);
-      toast({
-        title: "Error",
-        description: error.message || 'Failed to load project details',
-        variant: "destructive"
-      });
+    if (expandedProjectId === projectId) {
       setExpandedProjectId(null);
       setSelectedProject(null);
+      return;
     }
-  };
-
-  const renderProjectCard = (project: Project) => {
-    const isExpanded = expandedProjectId === project.id;
-    const isSelected = selectedProject?.id === project.id;
-  
-    return (
-      <Card key={project.id} className="mb-4">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <div>
-                <h3 className="text-lg font-semibold">{project.title}</h3>
-                <p className="text-sm text-muted-foreground">
-                  Created: {new Date(project.created_at).toLocaleDateString()}
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Badge variant={getStatusVariant(project.status)}>
-                {project.status}
-              </Badge>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => handleProjectSelect(project.id)}
-              >
-                <ChevronDown className={`h-4 w-4 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
-              </Button>
-            </div>
-          </div>
-        </CardHeader>
-        
-        {isExpanded && isSelected && (
-          <CardContent>
-            <div className="space-y-4">
-              <div>
-                <h4 className="font-medium mb-2">Description</h4>
-                <p className="text-sm text-muted-foreground">{project.description}</p>
-              </div>
-              
-              <div>
-                <h4 className="font-medium mb-2">Details</h4>
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <span className="text-muted-foreground">Budget:</span>
-                    <span className="ml-2">${project.budget}</span>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">Timeline:</span>
-                    <span className="ml-2">{project.timeline} days</span>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">Category:</span>
-                    <span className="ml-2">{project.category}</span>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">Location:</span>
-                    <span className="ml-2">{project.location}</span>
-                  </div>
-                </div>
-              </div>
-
-              {project.milestones && project.milestones.length > 0 && (
-                <div>
-                  <h4 className="font-medium mb-2">Milestones</h4>
-                  <div className="space-y-2">
-                    {project.milestones.map((milestone) => (
-                      <div key={milestone.id} className="flex items-center justify-between p-2 bg-muted rounded">
-                        <div>
-                          <p className="font-medium">{milestone.title}</p>
-                          <p className="text-sm text-muted-foreground">{milestone.description}</p>
-                        </div>
-                        <Badge variant={getStatusVariant(milestone.status)}>
-                          {milestone.status}
-                        </Badge>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-      
-              <div className="flex justify-end space-x-2">
-                <Button
-                  variant="outline"
-                  onClick={() => onEditProject(project)}
-                >
-                  Edit Project
-                </Button>
-                <Button 
-                  variant="destructive" 
-                  onClick={() => onDeleteProject(project.id)}
-                >
-                  Delete Project
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        )}
-      </Card>
-    );
+    setLoadingDetails(projectId);
+    try {
+      const projectDetails = await fetchProjectDetails(projectId);
+      setSelectedProject(projectDetails);
+      setExpandedProjectId(projectId);
+      setActiveTab((prev) => ({ ...prev, [projectId]: 'timeline' }));
+    } catch (e) {
+      setExpandedProjectId(null);
+      setSelectedProject(null);
+    } finally {
+      setLoadingDetails(null);
+    }
   };
 
   if (isLoading) {
@@ -232,11 +128,110 @@ export const ProjectsTab: React.FC<ProjectsTabProps> = ({
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
-      
       {(!projects || projects.length === 0) ? (
         <EmptyProjectState />
       ) : (
-        projects.map(renderProjectCard)
+        projects.map((project) => {
+          const isExpanded = expandedProjectId === project.id;
+          return (
+            <Card key={project.id} className="mb-4">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-lg font-semibold">{project.title}</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Created: {new Date(project.created_at).toLocaleDateString()}
+                    </p>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Badge variant={getStatusVariant(project.status)}>
+                      {project.status}
+                    </Badge>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleProjectSelect(project.id)}
+                      disabled={loadingDetails === project.id}
+                    >
+                      <span className={`transition-transform ${isExpanded ? 'rotate-180' : ''}`}>▼</span>
+                    </Button>
+                  </div>
+                </div>
+              </CardHeader>
+              {isExpanded && selectedProject && selectedProject.id === project.id && (
+                <CardContent>
+                  <Tabs
+                    value={activeTab[project.id] || 'timeline'}
+                    onValueChange={(tab) => setActiveTab((prev) => ({ ...prev, [project.id]: tab }))}
+                    className="w-full"
+                  >
+                    <TabsList className="grid w-full grid-cols-4 mb-4">
+                      <TabsTrigger value="timeline">Timeline</TabsTrigger>
+                      <TabsTrigger value="milestones">Milestones</TabsTrigger>
+                      <TabsTrigger value="deliverables">Deliverables</TabsTrigger>
+                      <TabsTrigger value="details">Details</TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="timeline">
+                      <ProjectUpdateTimeline 
+                        projectId={selectedProject.id} 
+                        projectStatus={selectedProject.status}
+                        isProfessional={false}
+                      />
+                    </TabsContent>
+                    <TabsContent value="milestones">
+                      <ProjectMilestones 
+                        projectId={selectedProject.id}
+                        projectStatus={selectedProject.status}
+                        milestones={selectedProject.milestones || []}
+                        isClient={true}
+                      />
+                    </TabsContent>
+                    <TabsContent value="deliverables">
+                      <ProjectDeliverables 
+                        projectId={selectedProject.id}
+                        canUpload={false}
+                      />
+                    </TabsContent>
+                    <TabsContent value="details">
+                      <ProjectProgressOverview project={selectedProject} />
+                      <div className="mt-4">
+                        <h4 className="font-medium mb-2">Project Details</h4>
+                        <div className="grid grid-cols-2 gap-4 text-sm">
+                          <div>
+                            <span className="text-muted-foreground">Budget:</span>
+                            <span className="ml-2">${selectedProject.budget}</span>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground">Timeline:</span>
+                            <span className="ml-2">{selectedProject.timeline || selectedProject.expected_timeline || 'N/A'} days</span>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground">Category:</span>
+                            <span className="ml-2">{selectedProject.category}</span>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground">Location:</span>
+                            <span className="ml-2">{selectedProject.location}</span>
+                          </div>
+                        </div>
+                        {selectedProject.requirements && (
+                          <div className="col-span-2 mt-2">
+                            <span className="text-muted-foreground">Requirements:</span>
+                            <ul className="list-disc list-inside mt-1">
+                              {selectedProject.requirements.map((req: string, idx: number) => (
+                                <li key={idx}>{req}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </div>
+                    </TabsContent>
+                  </Tabs>
+                </CardContent>
+              )}
+            </Card>
+          );
+        })
       )}
     </div>
   );

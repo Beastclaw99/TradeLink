@@ -8,6 +8,7 @@ import PaymentsTab from './client/PaymentsTab';
 import { useClientDashboard } from '@/hooks/useClientDashboard';
 import { Project } from './types';
 import { supabase } from '@/integrations/supabase/client';
+import { useProjectOperations } from '@/hooks/useProjectOperations';
 
 interface ClientDashboardProps {
   userId: string;
@@ -59,6 +60,9 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ userId, initialTab = 
     calculateAverageRating,
     calculatePaymentTotals
   } = useClientDashboard(userId);
+
+  // Add useProjectOperations for robust project detail fetching
+  const { fetchProjectDetails } = useProjectOperations(userId, fetchDashboardData);
 
   // Task handling functions
   const handleAddMilestone = async (projectId: string, milestone: any) => {
@@ -325,11 +329,8 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ userId, initialTab = 
     handleAddTask,
     handleUpdateTask,
     handleDeleteTask,
-    fetchProjectDetails: async (projectId: string) => {
-      const project = projects.find((p: Project) => p.id === projectId);
-      if (!project) return null;
-      return project;
-    },
+    // Use robust fetchProjectDetails
+    fetchProjectDetails,
     error,
     onEditProject: handleEditInitiate,
     onDeleteProject: handleDeleteInitiate,
