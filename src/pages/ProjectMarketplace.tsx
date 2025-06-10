@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
@@ -26,8 +25,35 @@ const ProjectMarketplace: React.FC = () => {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
+  const [userType, setUserType] = useState<'professional' | 'client' | null>(null);
+  const [userSkills, setUserSkills] = useState<string[]>([]);
   
   useEffect(() => {
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+
+    // Fetch user type and skills
+    const fetchUserData = async () => {
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('account_type, skills')
+        .eq('id', user.id)
+        .single();
+
+      if (error) {
+        console.error('Error fetching user data:', error);
+        return;
+      }
+
+      setUserType(profile.account_type);
+      if (profile.skills) {
+        setUserSkills(profile.skills);
+      }
+    };
+
+    fetchUserData();
     fetchProjects();
     
     // Show success message if redirected from project creation
@@ -37,13 +63,11 @@ const ProjectMarketplace: React.FC = () => {
         description: location.state.message
       });
     }
-  }, [location.state, toast]);
+  }, [location.state, toast, user, navigate]);
   
   const fetchProjects = async () => {
     try {
       setLoading(true);
-      
-      console.log('Fetching projects from database...');
       
       const { data, error } = await supabase
         .from('projects')
@@ -54,14 +78,8 @@ const ProjectMarketplace: React.FC = () => {
         .eq('status', 'open')
         .order('created_at', { ascending: false });
         
-      if (error) {
-        console.error('Database error:', error);
-        throw error;
-      }
+      if (error) throw error;
       
-      console.log('Fetched projects:', data);
-      
-      // Ensure the data is properly typed as Project[]
       const typedProjects: Project[] = data?.map(project => ({
         id: project.id,
         title: project.title,
@@ -72,7 +90,7 @@ const ProjectMarketplace: React.FC = () => {
         location: project.location || null,
         urgency: project.urgency || null,
         requirements: project.requirements || null,
-        required_skills: project.recommended_skills || null, // Map recommended_skills to required_skills
+        required_skills: project.recommended_skills || null,
         status: project.status || null,
         created_at: project.created_at || null,
         updated_at: project.updated_at || null,
@@ -92,7 +110,6 @@ const ProjectMarketplace: React.FC = () => {
       })) || [];
       
       setProjects(typedProjects);
-      console.log('Projects state updated with:', typedProjects.length, 'projects');
     } catch (error: any) {
       console.error('Error fetching projects:', error);
       toast({
@@ -108,7 +125,7 @@ const ProjectMarketplace: React.FC = () => {
   // Filter logic
   const filteredProjects = projects.filter(project => {
     const matchesSearch = project.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          (project.description?.toLowerCase().includes(searchTerm.toLowerCase()) || false);
+                         (project.description?.toLowerCase().includes(searchTerm.toLowerCase()) || false);
     
     const matchesCategory = categoryFilter === "" || categoryFilter === "all" || 
                            (project.category?.toLowerCase() === categoryFilter.toLowerCase() || false);
@@ -132,16 +149,33 @@ const ProjectMarketplace: React.FC = () => {
   });
 
   const handlePostProject = () => {
-    if (user) {
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+
+    if (userType === 'client') {
       navigate('/client/create-project');
     } else {
-      navigate('/login');
+      toast({
+        title: "Access Denied",
+        description: "Only clients can post new projects.",
+        variant: "destructive"
+      });
     }
   };
   
   return (
     <Layout>
-      <HeroSection onPostProject={handlePostProject} />
+      <HeroSection 
+        onPostProject={handlePostProject}
+        title={userType === 'professional' ? "Find Projects" : "Project Marketplace"}
+        description={userType === 'professional' 
+          ? "Browse and apply to projects that match your skills and expertise"
+          : "Browse available projects or post your own project to find the right professional"
+        }
+        showPostButton={userType === 'client'}
+      />
       
       <section className="py-8 bg-gray-50">
         <div className="container-custom">
@@ -155,6 +189,7 @@ const ProjectMarketplace: React.FC = () => {
             budgetFilter={budgetFilter}
             setBudgetFilter={setBudgetFilter}
             onFilterApply={fetchProjects}
+            userType={userType}
           />
           
           <ViewModeToggle 
@@ -166,12 +201,16 @@ const ProjectMarketplace: React.FC = () => {
           <ProjectsDisplay 
             projects={filteredProjects} 
             loading={loading} 
-            viewMode={viewMode} 
+            viewMode={viewMode}
+            userType={userType}
+            userSkills={userSkills}
           />
         </div>
       </section>
 
-      <CTASection onPostProject={handlePostProject} />
+      {userType === 'client' && (
+        <CTASection onPostProject={handlePostProject} />
+      )}
     </Layout>
   );
 };

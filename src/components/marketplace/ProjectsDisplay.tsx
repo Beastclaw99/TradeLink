@@ -1,17 +1,25 @@
-
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import ProjectCard from './ProjectCard';
 import ProjectListItem from './ProjectListItem';
 import { Project } from '@/components/dashboard/types';
+import { Loader2 } from 'lucide-react';
 
 interface ProjectsDisplayProps {
   projects: Project[];
   loading: boolean;
   viewMode: 'grid' | 'list';
+  userType: 'professional' | 'client' | null;
+  userSkills?: string[];
 }
 
-const ProjectsDisplay: React.FC<ProjectsDisplayProps> = ({ projects, loading, viewMode }) => {
+const ProjectsDisplay: React.FC<ProjectsDisplayProps> = ({ 
+  projects, 
+  loading, 
+  viewMode,
+  userType,
+  userSkills = []
+}) => {
   const navigate = useNavigate();
   
   const handleProjectClick = (projectId: string) => {
@@ -39,7 +47,11 @@ const ProjectsDisplay: React.FC<ProjectsDisplayProps> = ({ projects, loading, vi
     return (
       <div className="my-8 text-center py-12 bg-gray-50 rounded-lg border border-gray-200">
         <h3 className="text-xl font-semibold text-gray-700 mb-2">No projects found</h3>
-        <p className="text-gray-500">Try adjusting your filters or search term.</p>
+        <p className="text-gray-500">
+          {userType === 'professional' 
+            ? "Try adjusting your filters or search term to find projects matching your skills."
+            : "Try adjusting your filters or search term."}
+        </p>
       </div>
     );
   }
@@ -53,6 +65,8 @@ const ProjectsDisplay: React.FC<ProjectsDisplayProps> = ({ projects, loading, vi
               key={project.id} 
               project={project} 
               onClick={() => handleProjectClick(project.id)}
+              userType={userType}
+              userSkills={userSkills}
             />
           ))}
         </div>
@@ -63,6 +77,8 @@ const ProjectsDisplay: React.FC<ProjectsDisplayProps> = ({ projects, loading, vi
               key={project.id} 
               project={project}
               onClick={() => handleProjectClick(project.id)}
+              userType={userType}
+              userSkills={userSkills}
             />
           ))}
         </div>
