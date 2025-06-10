@@ -160,25 +160,31 @@ const EditProfile: React.FC = () => {
     
     setIsSaving(true);
     try {
+      const updateData: any = {
+        first_name: formData.first_name,
+        last_name: formData.last_name,
+        bio: formData.bio,
+        location: formData.location,
+        phone: formData.phone,
+        email: formData.email,
+        profile_visibility: formData.profile_visibility,
+        show_email: formData.show_email,
+        show_phone: formData.show_phone,
+        allow_messages: formData.allow_messages,
+      };
+
+      // Only include professional-specific fields if the user is a professional
+      if (profile?.account_type === 'professional') {
+        updateData.hourly_rate = formData.hourly_rate ? parseFloat(formData.hourly_rate) : null;
+        updateData.availability = formData.availability || null;
+        updateData.skills = formData.skills;
+        updateData.certifications = formData.certifications;
+        updateData.years_experience = formData.years_experience ? parseInt(formData.years_experience) : null;
+      }
+
       const { error } = await supabase
         .from('profiles')
-        .update({
-          first_name: formData.first_name,
-          last_name: formData.last_name,
-          bio: formData.bio,
-          location: formData.location,
-          phone: formData.phone,
-          email: formData.email,
-          hourly_rate: formData.hourly_rate ? parseFloat(formData.hourly_rate) : null,
-          availability: formData.availability || null,
-          skills: formData.skills,
-          certifications: formData.certifications,
-          years_experience: formData.years_experience ? parseInt(formData.years_experience) : null,
-          profile_visibility: formData.profile_visibility,
-          show_email: formData.show_email,
-          show_phone: formData.show_phone,
-          allow_messages: formData.allow_messages,
-        })
+        .update(updateData)
         .eq('id', user.id);
 
       if (error) throw error;
@@ -209,6 +215,8 @@ const EditProfile: React.FC = () => {
     );
   }
 
+  const isProfessional = profile?.account_type === 'professional';
+
   return (
     <div className="container-custom py-8">
       <Card>
@@ -217,10 +225,14 @@ const EditProfile: React.FC = () => {
         </CardHeader>
         <CardContent>
           <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-            <TabsList className="grid w-full grid-cols-5 mb-8">
+            <TabsList className={`grid w-full ${isProfessional ? 'grid-cols-5' : 'grid-cols-3'} mb-8`}>
               <TabsTrigger value="personal">Personal Info</TabsTrigger>
-              <TabsTrigger value="professional">Professional</TabsTrigger>
-              <TabsTrigger value="skills">Skills & Certifications</TabsTrigger>
+              {isProfessional && (
+                <>
+                  <TabsTrigger value="professional">Professional</TabsTrigger>
+                  <TabsTrigger value="skills">Skills & Certifications</TabsTrigger>
+                </>
+              )}
               <TabsTrigger value="portfolio">Portfolio</TabsTrigger>
               <TabsTrigger value="photo">Profile Photo</TabsTrigger>
             </TabsList>
@@ -251,24 +263,26 @@ const EditProfile: React.FC = () => {
                     id="bio"
                     value={formData.bio}
                     onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
-                    className="min-h-32"
+                    placeholder="Tell us about yourself..."
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="location">Location</Label>
-                  <Input
-                    id="location"
-                    value={formData.location}
-                    onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="phone">Phone Number</Label>
-                  <Input
-                    id="phone"
-                    value={formData.phone}
-                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  />
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="location">Location</Label>
+                    <Input
+                      id="location"
+                      value={formData.location}
+                      onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="phone">Phone</Label>
+                    <Input
+                      id="phone"
+                      value={formData.phone}
+                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    />
+                  </div>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="email">Email</Label>
@@ -278,43 +292,6 @@ const EditProfile: React.FC = () => {
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   />
-                </div>
-              </div>
-            </TabsContent>
-
-            <TabsContent value="professional">
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="hourly_rate">Hourly Rate (TTD)</Label>
-                  <Input
-                    id="hourly_rate"
-                    type="number"
-                    value={formData.hourly_rate}
-                    onChange={(e) => setFormData({ ...formData, hourly_rate: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="years_experience">Years of Experience</Label>
-                  <Input
-                    id="years_experience"
-                    type="number"
-                    value={formData.years_experience}
-                    onChange={(e) => setFormData({ ...formData, years_experience: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="availability">Availability</Label>
-                  <select
-                    id="availability"
-                    value={formData.availability}
-                    onChange={(e) => setFormData({ ...formData, availability: e.target.value as 'available' | 'busy' | 'unavailable' | '' })}
-                    className="w-full p-2 border rounded-md"
-                  >
-                    <option value="">Select availability</option>
-                    <option value="available">Available</option>
-                    <option value="busy">Busy</option>
-                    <option value="unavailable">Unavailable</option>
-                  </select>
                 </div>
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
@@ -353,98 +330,116 @@ const EditProfile: React.FC = () => {
               </div>
             </TabsContent>
 
-            <TabsContent value="skills">
-              <div className="space-y-6">
-                <div className="space-y-4">
-                  <div>
-                    <Label>Skills</Label>
-                    <div className="flex gap-2 mt-2">
+            {isProfessional && (
+              <>
+                <TabsContent value="professional">
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="hourly_rate">Hourly Rate ($)</Label>
                       <Input
-                        value={newSkill}
-                        onChange={(e) => setNewSkill(e.target.value)}
-                        placeholder="Add a skill"
-                        onKeyPress={(e) => {
-                          if (e.key === 'Enter') {
-                            e.preventDefault();
-                            handleAddSkill();
-                          }
-                        }}
+                        id="hourly_rate"
+                        type="number"
+                        value={formData.hourly_rate}
+                        onChange={(e) => setFormData({ ...formData, hourly_rate: e.target.value })}
                       />
-                      <Button onClick={handleAddSkill}>Add</Button>
                     </div>
-                    <div className="flex flex-wrap gap-2 mt-4">
-                      {formData.skills.map((skill, index) => (
-                        <Badge key={index} variant="secondary" className="flex items-center gap-1">
-                          {skill}
-                          <button
-                            onClick={() => handleRemoveSkill(skill)}
-                            className="ml-1 hover:text-destructive"
-                          >
-                            <X className="h-3 w-3" />
-                          </button>
-                        </Badge>
-                      ))}
+                    <div className="space-y-2">
+                      <Label htmlFor="years_experience">Years of Experience</Label>
+                      <Input
+                        id="years_experience"
+                        type="number"
+                        value={formData.years_experience}
+                        onChange={(e) => setFormData({ ...formData, years_experience: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="availability">Availability</Label>
+                      <select
+                        id="availability"
+                        value={formData.availability}
+                        onChange={(e) => setFormData({ ...formData, availability: e.target.value as 'available' | 'busy' | 'unavailable' })}
+                        className="w-full p-2 border rounded-md"
+                      >
+                        <option value="">Select availability</option>
+                        <option value="available">Available</option>
+                        <option value="busy">Busy</option>
+                        <option value="unavailable">Unavailable</option>
+                      </select>
                     </div>
                   </div>
-                </div>
+                </TabsContent>
 
-                <div className="space-y-4">
-                  <div>
-                    <Label>Certifications</Label>
-                    <div className="flex gap-2 mt-2">
-                      <Input
-                        value={newCertification}
-                        onChange={(e) => setNewCertification(e.target.value)}
-                        placeholder="Add a certification"
-                        onKeyPress={(e) => {
-                          if (e.key === 'Enter') {
-                            e.preventDefault();
-                            handleAddCertification();
-                          }
-                        }}
-                      />
-                      <Button onClick={handleAddCertification}>Add</Button>
+                <TabsContent value="skills">
+                  <div className="space-y-6">
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label>Skills</Label>
+                        <div className="flex gap-2">
+                          <Input
+                            value={newSkill}
+                            onChange={(e) => setNewSkill(e.target.value)}
+                            placeholder="Add a skill"
+                          />
+                          <Button onClick={handleAddSkill}>Add</Button>
+                        </div>
+                        <div className="flex flex-wrap gap-2 mt-2">
+                          {formData.skills.map((skill) => (
+                            <Badge key={skill} variant="secondary">
+                              {skill}
+                              <button
+                                onClick={() => handleRemoveSkill(skill)}
+                                className="ml-2 hover:text-destructive"
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
                     </div>
-                    <div className="flex flex-wrap gap-2 mt-4">
-                      {formData.certifications.map((certification, index) => (
-                        <Badge key={index} variant="secondary" className="flex items-center gap-1">
-                          {certification}
-                          <button
-                            onClick={() => handleRemoveCertification(certification)}
-                            className="ml-1 hover:text-destructive"
-                          >
-                            <X className="h-3 w-3" />
-                          </button>
-                        </Badge>
-                      ))}
+
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label>Certifications</Label>
+                        <div className="flex gap-2">
+                          <Input
+                            value={newCertification}
+                            onChange={(e) => setNewCertification(e.target.value)}
+                            placeholder="Add a certification"
+                          />
+                          <Button onClick={handleAddCertification}>Add</Button>
+                        </div>
+                        <div className="flex flex-wrap gap-2 mt-2">
+                          {formData.certifications.map((certification) => (
+                            <Badge key={certification} variant="secondary">
+                              {certification}
+                              <button
+                                onClick={() => handleRemoveCertification(certification)}
+                                className="ml-2 hover:text-destructive"
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </div>
-            </TabsContent>
+                </TabsContent>
+              </>
+            )}
 
             <TabsContent value="portfolio">
-              {user?.id && (
-                <PortfolioUpload userId={user.id} onUploadComplete={fetchProfile} />
-              )}
+              <PortfolioUpload userId={user?.id || ''} />
             </TabsContent>
 
             <TabsContent value="photo">
-              {user?.id && (
-                <ProfileImageUpload 
-                  userId={user.id} 
-                  currentImage={profile?.profile_image || null}
-                  onUploadComplete={fetchProfile}
-                />
-              )}
+              <ProfileImageUpload userId={user?.id || ''} />
             </TabsContent>
           </Tabs>
 
           <div className="flex justify-end mt-6">
-            <Button
-              onClick={handleSave}
-              disabled={isSaving}
-            >
+            <Button onClick={handleSave} disabled={isSaving}>
               {isSaving ? 'Saving...' : 'Save Changes'}
             </Button>
           </div>
