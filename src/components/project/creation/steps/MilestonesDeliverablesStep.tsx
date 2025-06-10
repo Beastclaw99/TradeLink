@@ -5,9 +5,8 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Plus, X, Target, FileText, Trash2, Calendar } from 'lucide-react';
+import { Plus, Trash2, Target, FileText, Calendar } from 'lucide-react';
 import { ProjectData, Milestone } from '../types';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
@@ -22,7 +21,6 @@ const MilestonesDeliverablesStep: React.FC<MilestonesDeliverablesStepProps> = ({
     description: '',
     dueDate: '',
     status: 'not_started',
-    progress: 0,
     tasks: [],
     deliverables: []
   });
@@ -49,7 +47,6 @@ const MilestonesDeliverablesStep: React.FC<MilestonesDeliverablesStepProps> = ({
         description: '',
         dueDate: '',
         status: 'not_started',
-        progress: 0,
         tasks: [],
         deliverables: []
       });

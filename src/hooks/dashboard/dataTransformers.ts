@@ -1,11 +1,10 @@
-import { Project, Application, Payment, Review, ApplicationProject } from '@/components/dashboard/types';
 
-export const transformProjects = (projects: any[]): Project[] => {
-  if (!projects) return [];
-  
-  return projects.map(project => ({
+import { Project, Application, Payment, Review, Professional } from '@/components/dashboard/types';
+
+export const transformProjects = (data: any[]): Project[] => {
+  return (data || []).map(project => ({
     id: project.id,
-    title: project.title,
+    title: project.title || '',
     description: project.description,
     category: project.category,
     budget: project.budget,
@@ -13,7 +12,7 @@ export const transformProjects = (projects: any[]): Project[] => {
     location: project.location,
     urgency: project.urgency,
     requirements: project.requirements,
-    required_skills: project.recommended_skills || null,
+    required_skills: project.required_skills,
     status: project.status,
     created_at: project.created_at,
     updated_at: project.updated_at,
@@ -29,97 +28,98 @@ export const transformProjects = (projects: any[]): Project[] => {
     scope: project.scope,
     service_contract: project.service_contract,
     sla_terms: project.sla_terms,
-    client: project.client ? {
-      id: project.client.id,
-      first_name: project.client.first_name,
-      last_name: project.client.last_name,
-      rating: project.client.rating,
-      profile_image: project.client.profile_image
-    } : null,
-    professional: project.professional ? {
-      id: project.professional.id,
-      first_name: project.professional.first_name,
-      last_name: project.professional.last_name,
-      rating: project.professional.rating,
-      profile_image: project.professional.profile_image
-    } : null
+    client: project.client
   }));
 };
 
-export const transformApplications = (appsData: any[]): Application[] => {
-  if (!appsData) return [];
-  
-  return appsData.map(app => ({
+export const transformApplications = (data: any[]): Application[] => {
+  return (data || []).map(app => ({
     id: app.id,
     project_id: app.project_id,
     professional_id: app.professional_id,
     cover_letter: app.cover_letter,
-    proposal_message: app.proposal_message || app.cover_letter || '',
+    proposal_message: app.proposal_message,
     bid_amount: app.bid_amount,
     availability: app.availability,
-    status: app.status,
+    status: app.status || 'pending',
     created_at: app.created_at,
-    updated_at: app.updated_at || app.created_at,
+    updated_at: app.updated_at,
     project: app.project ? {
       id: app.project.id,
       title: app.project.title,
       status: app.project.status,
       budget: app.project.budget,
       created_at: app.project.created_at
-    } as ApplicationProject : undefined,
-    professional: app.professional ? {
-      id: app.professional.id,
-      first_name: app.professional.first_name,
-      last_name: app.professional.last_name,
-      rating: app.professional.rating,
-      profile_image: app.professional.profile_image
     } : undefined
   }));
 };
 
-export const transformPayments = (paymentsData: any[]): Payment[] => {
-  if (!paymentsData) return [];
-  
-  return paymentsData.map(payment => ({
+export const transformPayments = (data: any[]): Payment[] => {
+  return (data || []).map(payment => ({
     id: payment.id,
     amount: payment.amount,
-    status: payment.status,
-    payment_method: payment.payment_method || null,
-    transaction_id: payment.transaction_id || null,
-    created_at: payment.created_at || new Date().toISOString(),
+    status: payment.status || 'pending',
+    payment_method: payment.payment_method,
+    transaction_id: payment.transaction_id,
+    created_at: payment.created_at,
     paid_at: payment.paid_at,
     client_id: payment.client_id,
     professional_id: payment.professional_id,
     project_id: payment.project_id,
-    project: payment.project ? {
-      id: payment.project.id,
-      title: payment.project.title
-    } : null,
-    professional: payment.professional ? {
-      id: payment.professional.id,
-      first_name: payment.professional.first_name,
-      last_name: payment.professional.last_name
-    } : null
+    project: payment.project,
+    professional: payment.professional
   }));
 };
 
-export const transformReviews = (reviewsData: any[]): Review[] => {
-  if (!reviewsData) return [];
-  
-  return reviewsData.map(review => ({
+export const transformReviews = (data: any[]): Review[] => {
+  return (data || []).map(review => ({
     id: review.id,
     rating: review.rating,
     comment: review.comment,
+    status: review.status || 'approved',
+    reported_at: review.reported_at,
+    reported_by: review.reported_by,
+    report_reason: review.report_reason,
+    created_at: review.created_at,
     client_id: review.client_id,
     professional_id: review.professional_id,
     project_id: review.project_id,
-    created_at: review.created_at,
-    updated_at: review['updated at'] || review.created_at,
-    professional: review.professional ? {
-      id: review.professional.id,
-      first_name: review.professional.first_name,
-      last_name: review.professional.last_name,
-      profile_image: review.professional.profile_image
-    } : null
+    communication_rating: review.communication_rating,
+    quality_rating: review.quality_rating,
+    timeliness_rating: review.timeliness_rating,
+    professionalism_rating: review.professionalism_rating,
+    is_verified: review.is_verified || false,
+    verification_method: review.verification_method,
+    moderated_at: review.moderated_at,
+    moderated_by: review.moderated_by,
+    moderation_notes: review.moderation_notes
+  }));
+};
+
+export const transformProfessionals = (data: any[]): Professional[] => {
+  return (data || []).map(prof => ({
+    id: prof.id,
+    first_name: prof.first_name,
+    last_name: prof.last_name,
+    skills: prof.skills,
+    rating: prof.rating,
+    account_type: 'professional',
+    bio: prof.bio,
+    location: prof.location,
+    phone: prof.phone,
+    email: prof.email,
+    availability: prof.availability,
+    certifications: prof.certifications,
+    completed_projects: prof.completed_projects,
+    response_rate: prof.response_rate,
+    on_time_completion: prof.on_time_completion,
+    profile_visibility: prof.profile_visibility,
+    show_email: prof.show_email,
+    show_phone: prof.show_phone,
+    allow_messages: prof.allow_messages,
+    profile_image: prof.profile_image,
+    verification_status: prof.verification_status,
+    created_at: prof.created_at,
+    updated_at: prof.updated_at
   }));
 };

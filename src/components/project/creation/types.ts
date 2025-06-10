@@ -1,3 +1,4 @@
+
 export interface Task {
   id: string;
   title: string;
@@ -5,6 +6,7 @@ export interface Task {
   completed: boolean;
   created_at?: string;
   updated_at?: string;
+  [key: string]: any; // Add index signature for JSON compatibility
 }
 
 export interface Deliverable {
@@ -71,6 +73,39 @@ export interface ProjectData {
   payment_id?: string;
 }
 
+// Database milestone interface for Supabase operations
+export interface DBMilestone {
+  id?: string;
+  title: string;
+  description?: string;
+  due_date?: string;
+  status: string;
+  requires_deliverable?: boolean;
+  tasks: any; // JSON type for database
+  project_id?: string;
+  created_by?: string;
+  created_at?: string;
+  updated_at?: string;
+  is_complete?: boolean;
+}
+
+// Database deliverable interface for Supabase operations
+export interface DBDeliverable {
+  id?: string;
+  description: string;
+  deliverable_type: string;
+  content?: string;
+  file_url?: string;
+  file_name?: string;
+  milestone_id?: string;
+  project_id?: string;
+  uploaded_by?: string;
+  created_at?: string;
+  status?: string;
+  feedback?: string;
+  reviewed_at?: string;
+}
+
 export const convertDBMilestoneToMilestone = (dbMilestone: any): Milestone => {
   return {
     id: dbMilestone.id,
@@ -90,7 +125,7 @@ export const convertDBMilestoneToMilestone = (dbMilestone: any): Milestone => {
   };
 };
 
-export const convertMilestoneToDBMilestone = (milestone: Milestone) => {
+export const convertMilestoneToDBMilestone = (milestone: Milestone, projectId?: string): DBMilestone => {
   return {
     id: milestone.id,
     title: milestone.title,
@@ -99,7 +134,7 @@ export const convertMilestoneToDBMilestone = (milestone: Milestone) => {
     status: milestone.status,
     requires_deliverable: milestone.requires_deliverable || false,
     tasks: milestone.tasks || [],
-    project_id: milestone.project_id,
+    project_id: projectId || milestone.project_id,
     created_by: milestone.created_by,
     is_complete: milestone.is_complete || false
   };

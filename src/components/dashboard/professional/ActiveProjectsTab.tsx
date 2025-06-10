@@ -28,7 +28,7 @@ import { ProgressIndicator } from "@/components/ui/progress-indicator";
 import AddProjectUpdate from "@/components/project/updates/AddProjectUpdate";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from '@/integrations/supabase/client';
-import { Milestone, DBMilestone, convertDBMilestoneToMilestone, convertMilestoneToDBMilestone } from '@/components/project/creation/types';
+import { Milestone, convertDBMilestoneToMilestone, convertMilestoneToDBMilestone } from '@/components/project/creation/types';
 import { ProjectStatus } from '@/types/projectUpdates';
 import { useProjectStatus } from '@/hooks/useProjectStatus';
 
@@ -84,9 +84,10 @@ const ActiveProjectsTab: React.FC<ActiveProjectsTabProps> = ({
 
   const handleAddMilestone = async (projectId: string, milestone: Omit<Milestone, 'id'>) => {
     try {
+      const dbMilestone = convertMilestoneToDBMilestone(milestone as Milestone, projectId);
       const { data, error } = await supabase
         .from('project_milestones')
-        .insert([convertMilestoneToDBMilestone(milestone, projectId)])
+        .insert([dbMilestone])
         .select()
         .single();
 
@@ -132,9 +133,10 @@ const ActiveProjectsTab: React.FC<ActiveProjectsTabProps> = ({
 
   const handleEditMilestone = async (projectId: string, milestoneId: string, updates: Partial<Milestone>) => {
     try {
+      const dbUpdates = convertMilestoneToDBMilestone(updates as Milestone, projectId);
       const { error } = await supabase
         .from('project_milestones')
-        .update(convertMilestoneToDBMilestone(updates as Milestone, projectId))
+        .update(dbUpdates)
         .eq('id', milestoneId);
 
       if (error) throw error;
