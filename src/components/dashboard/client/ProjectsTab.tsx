@@ -55,7 +55,7 @@ interface ProjectsTabProps {
 
 const getStatusVariant = (status: string) => {
   switch (status) {
-    case 'completed': return 'success';
+    case 'completed': return 'default';
     case 'in_progress': return 'default';
     case 'assigned': return 'secondary';
     case 'open': return 'outline';
@@ -115,7 +115,7 @@ export const ProjectsTab: React.FC<ProjectsTabProps> = ({
         </Alert>
       )}
       {(!projects || projects.length === 0) ? (
-        <EmptyProjectState message="You haven't created any projects yet. Start by posting your first project!" />
+        <EmptyProjectState />
       ) : (
         projects.map((project) => {
           const isExpanded = expandedProjectId === project.id;
@@ -160,15 +160,18 @@ export const ProjectsTab: React.FC<ProjectsTabProps> = ({
                     <TabsContent value="timeline">
                       <ProjectUpdateTimeline 
                         projectId={selectedProject.id} 
-                        projectStatus={selectedProject.status}
+                        projectStatus={selectedProject.status || 'open'}
                         isProfessional={false}
                       />
                     </TabsContent>
                     <TabsContent value="milestones">
                       <ProjectMilestones 
                         projectId={selectedProject.id}
-                        projectStatus={selectedProject.status}
-                        milestones={selectedProject.milestones || []}
+                        projectStatus={selectedProject.status || 'open'}
+                        milestones={(selectedProject.milestones || []).map(m => ({
+                          ...m,
+                          deliverables: []
+                        }))}
                         isClient={true}
                         onAddMilestone={async () => {}}
                         onEditMilestone={async () => {}}
@@ -183,7 +186,7 @@ export const ProjectsTab: React.FC<ProjectsTabProps> = ({
                       />
                     </TabsContent>
                     <TabsContent value="details">
-                      <ProjectProgressOverview project={selectedProject} />
+                      <ProjectProgressOverview />
                       <div className="mt-4">
                         <h4 className="font-medium mb-2">Project Details</h4>
                         <div className="grid grid-cols-2 gap-4 text-sm">
@@ -193,7 +196,7 @@ export const ProjectsTab: React.FC<ProjectsTabProps> = ({
                           </div>
                           <div>
                             <span className="text-muted-foreground">Timeline:</span>
-                            <span className="ml-2">{selectedProject.timeline || selectedProject.expected_timeline || 'N/A'} days</span>
+                            <span className="ml-2">{selectedProject.expected_timeline || 'N/A'} days</span>
                           </div>
                           <div>
                             <span className="text-muted-foreground">Category:</span>

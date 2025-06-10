@@ -61,7 +61,7 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ userId, initialTab = 
   // Task handling functions using the correct table structure
   const handleAddMilestone = async (projectId: string, milestone: any): Promise<void> => {
     try {
-      const { data, error } = await supabase
+      await supabase
         .from('project_milestones')
         .insert([{
           project_id: projectId,
@@ -73,8 +73,6 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ userId, initialTab = 
         .select()
         .single();
 
-      if (error) throw error;
-
       // Add project update
       await supabase
         .from('project_updates')
@@ -82,7 +80,7 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ userId, initialTab = 
           project_id: projectId,
           update_type: 'schedule_updated',
           message: `New milestone added: ${milestone.title}`,
-          user_id: userId
+          professional_id: userId
         }]);
 
       await fetchDashboardData();
@@ -94,7 +92,7 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ userId, initialTab = 
 
   const handleEditMilestone = async (projectId: string, milestoneId: string, updates: any): Promise<void> => {
     try {
-      const { data, error } = await supabase
+      await supabase
         .from('project_milestones')
         .update({
           title: updates.title,
@@ -106,8 +104,6 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ userId, initialTab = 
         .select()
         .single();
 
-      if (error) throw error;
-
       // Add project update
       await supabase
         .from('project_updates')
@@ -115,7 +111,7 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ userId, initialTab = 
           project_id: projectId,
           update_type: 'schedule_updated',
           message: `Milestone updated: ${updates.title}`,
-          user_id: userId
+          professional_id: userId
         }]);
 
       await fetchDashboardData();
@@ -127,12 +123,10 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ userId, initialTab = 
 
   const handleDeleteMilestone = async (projectId: string, milestoneId: string): Promise<void> => {
     try {
-      const { error } = await supabase
+      await supabase
         .from('project_milestones')
         .delete()
         .eq('id', milestoneId);
-
-      if (error) throw error;
 
       // Add project update
       await supabase
@@ -141,7 +135,7 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ userId, initialTab = 
           project_id: projectId,
           update_type: 'schedule_updated',
           message: 'Milestone deleted',
-          user_id: userId
+          professional_id: userId
         }]);
 
       await fetchDashboardData();
@@ -203,7 +197,8 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ userId, initialTab = 
     isLoading,
     projects,
     applications,
-    handleApplicationUpdate,
+    handleApplicationUpdate: (applicationId: string, status: string) => 
+      handleApplicationUpdate(applicationId, status, '', ''),
     profile
   };
   

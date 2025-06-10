@@ -11,7 +11,10 @@ export default function NewDisputePage() {
   return (
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-2xl font-bold mb-6">Create New Dispute</h1>
-      <DisputeForm projectId={projectId} />
+      <DisputeForm 
+        projectId={projectId} 
+        respondentId="" // Will be set by the form/service
+      />
     </div>
   );
 }

@@ -1,22 +1,37 @@
+
 import React from 'react';
-import UnifiedProjectCard from '@/components/shared/UnifiedProjectCard';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { Project, Application } from '../../types';
 
 interface AssignedProjectCardProps {
   project: Project;
-  acceptedApp: Application | undefined;
+  applications: Application[];
+  onViewDetails: (project: Project) => void;
 }
 
-const AssignedProjectCard: React.FC<AssignedProjectCardProps> = ({ 
+const AssignedProjectCard: React.FC<AssignedProjectCardProps> = ({
   project,
-  acceptedApp
+  onViewDetails
 }) => {
   return (
-    <UnifiedProjectCard 
-      project={project}
-      variant="card"
-      isProfessional={false}
-    />
+    <Card>
+      <CardHeader>
+        <CardTitle>{project.title}</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <span>Status:</span>
+            <Badge>{project.status}</Badge>
+          </div>
+          <div className="flex items-center justify-between">
+            <span>Budget:</span>
+            <span>${project.budget}</span>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 };
 
