@@ -165,7 +165,7 @@ export const useProfessionalDataFetcher = (userId: string) => {
         .from('payments')
         .select(`
           *,
-          project:projects(title)
+          project:projects!payments_project_id_fkey(title)
         `)
         .eq('professional_id', userId);
       
