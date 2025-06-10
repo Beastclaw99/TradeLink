@@ -1,276 +1,165 @@
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { MapPin, Calendar, DollarSign, User, Clock, Target } from "lucide-react";
-import { Project } from '@/components/dashboard/types';
-import { Milestone, Task } from '@/components/project/creation/types';
-import { ProjectCardTabs } from './project-card/ProjectCardTabs';
-import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/components/ui/use-toast';
+import React from 'react';
+import { Card, CardContent, CardFooter } from "@/components/ui/card"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { CalendarDays, CheckCircle2, Link2, ListChecks, MessageSquare, User2 } from 'lucide-react';
+import { format } from 'date-fns';
+import { useNavigate } from 'react-router-dom';
+import { Task, Milestone } from '@/components/project/creation/types';
 
 interface UnifiedProjectCardProps {
-  project: Project;
-  variant?: 'list' | 'card';
-  onStatusChange?: (newStatus: string) => void;
-  isProfessional?: boolean;
-  onClick?: () => void;
-  actionLabel?: string;
-  isClient?: boolean;
-  onMilestoneUpdate?: (milestoneId: string, updates: Partial<Milestone>) => Promise<void>;
-  onMilestoneDelete?: (milestoneId: string) => Promise<void>;
-  onTaskStatusUpdate?: (milestoneId: string, taskId: string, completed: boolean) => Promise<void>;
+  project: any;
+  view?: 'card' | 'list';
 }
 
-const UnifiedProjectCard: React.FC<UnifiedProjectCardProps> = ({
-  project,
-  variant = 'card',
-  onStatusChange,
-  isProfessional = false,
-  onClick,
-  actionLabel,
-  isClient = false,
-  onMilestoneUpdate,
-  onMilestoneDelete,
-  onTaskStatusUpdate
-}) => {
-  const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState('timeline');
-  const [milestones, setMilestones] = useState<Milestone[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+interface StatusConfig {
+  label: string;
+  variant: "default" | "secondary" | "success" | "destructive" | "outline";
+}
 
-  // Fetch milestones for this project
-  useEffect(() => {
-    const fetchMilestones = async () => {
-      try {
-        setIsLoading(true);
-        const { data, error } = await supabase
-          .from('project_milestones')
-          .select('*')
-          .eq('project_id', project.id)
-          .order('due_date', { ascending: true });
+interface Json {
+  [key: string]: string | number | boolean | Json | Json[] | null;
+}
 
-        if (error) throw error;
-
-        const formattedMilestones: Milestone[] = (data || []).map(milestone => {
-          // Convert tasks from JSON to Task array
-          let tasks: Task[] = [];
-          if (milestone.tasks) {
-            try {
-              const tasksData = Array.isArray(milestone.tasks) ? milestone.tasks : JSON.parse(milestone.tasks);
-              tasks = tasksData.map((task: any) => ({
-                id: task.id || crypto.randomUUID(),
-                title: task.title || '',
-                description: task.description || '',
-                completed: task.completed || false,
-                created_at: task.created_at,
-                updated_at: task.updated_at
-              }));
-            } catch (e) {
-              console.warn('Failed to parse tasks for milestone:', milestone.id, e);
-              tasks = [];
-            }
-          }
-
-          return {
-            id: milestone.id,
-            title: milestone.title,
-            description: milestone.description || '',
-            dueDate: milestone.due_date,
-            status: milestone.status as 'not_started' | 'in_progress' | 'completed' | 'on_hold',
-            requires_deliverable: Boolean(milestone.requires_deliverable),
-            tasks: tasks,
-            deliverables: [],
-            project_id: milestone.project_id,
-            created_by: milestone.created_by,
-            created_at: milestone.created_at,
-            updated_at: milestone.updated_at,
-            is_complete: Boolean(milestone.is_complete),
-            due_date: milestone.due_date
-          };
-        });
-
-        setMilestones(formattedMilestones);
-      } catch (error) {
-        console.error('Error fetching milestones:', error);
-        toast({
-          title: "Error",
-          description: "Failed to load project milestones.",
-          variant: "destructive"
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchMilestones();
-  }, [project.id, toast]);
-
-  const getStatusColor = (status: string | null) => {
-    switch (status) {
-      case 'open':
-        return 'bg-green-100 text-green-800';
-      case 'assigned':
-        return 'bg-blue-100 text-blue-800';
-      case 'in_progress':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'completed':
-        return 'bg-gray-100 text-gray-800';
-      default:
-        return 'bg-gray-100 text-gray-600';
-    }
-  };
-
-  const formatDate = (dateString: string | null) => {
-    if (!dateString) return 'Not specified';
-    return new Date(dateString).toLocaleDateString();
-  };
-
-  if (variant === 'list') {
-    return (
-      <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:shadow-md transition-shadow">
-        <div className="flex-1">
-          <div className="flex items-center gap-3 mb-2">
-            <h3 className="font-semibold text-lg">{project.title}</h3>
-            <Badge className={getStatusColor(project.status)}>
-              {project.status?.replace('_', ' ') || 'Open'}
-            </Badge>
-          </div>
-          
-          <div className="flex items-center gap-4 text-sm text-gray-600 mb-2">
-            {project.location && (
-              <span className="flex items-center gap-1">
-                <MapPin className="h-4 w-4" />
-                {project.location}
-              </span>
-            )}
-            {project.budget && (
-              <span className="flex items-center gap-1">
-                <DollarSign className="h-4 w-4" />
-                ${project.budget.toLocaleString()}
-              </span>
-            )}
-            <span className="flex items-center gap-1">
-              <Calendar className="h-4 w-4" />
-              Posted {formatDate(project.created_at)}
-            </span>
-          </div>
-          
-          {project.description && (
-            <p className="text-gray-700 text-sm line-clamp-2">{project.description}</p>
-          )}
-        </div>
-        
-        {onClick && (
-          <Button onClick={onClick} variant="outline">
-            {actionLabel || 'View Details'}
-          </Button>
-        )}
-      </div>
-    );
+const getStatusConfig = (status: string): StatusConfig => {
+  switch (status) {
+    case 'open':
+      return { label: 'Open', variant: 'default' };
+    case 'assigned':
+      return { label: 'Assigned', variant: 'secondary' };
+    case 'completed':
+      return { label: 'Completed', variant: 'success' };
+    case 'cancelled':
+      return { label: 'Cancelled', variant: 'destructive' };
+    default:
+      return { label: 'Unknown', variant: 'outline' };
   }
+};
+
+const UnifiedProjectCard: React.FC<UnifiedProjectCardProps> = ({ project, view = 'card' }) => {
+  const navigate = useNavigate();
+
+  // Convert database milestones to Milestone type
+  const milestones: Milestone[] = project.project_milestones?.map((dbMilestone: any) => {
+    // Safe conversion of tasks from Json to Task[]
+    let tasks: Task[] = [];
+    if (Array.isArray(dbMilestone.tasks)) {
+      tasks = dbMilestone.tasks.map((task: any) => {
+        if (typeof task === 'object' && task !== null) {
+          return {
+            id: task.id || crypto.randomUUID(),
+            title: task.title || '',
+            description: task.description || '',
+            completed: Boolean(task.completed),
+            created_at: task.created_at || new Date().toISOString(),
+            updated_at: task.updated_at || new Date().toISOString(),
+            ...task
+          };
+        }
+        return {
+          id: crypto.randomUUID(),
+          title: String(task),
+          description: '',
+          completed: false,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        };
+      });
+    }
+
+    return {
+      id: dbMilestone.id,
+      title: dbMilestone.title,
+      description: dbMilestone.description || '',
+      dueDate: dbMilestone.due_date,
+      status: dbMilestone.status as Milestone['status'],
+      requires_deliverable: Boolean(dbMilestone.requires_deliverable),
+      tasks,
+      deliverables: [],
+      project_id: dbMilestone.project_id,
+      created_by: dbMilestone.created_by,
+      created_at: dbMilestone.created_at,
+      updated_at: dbMilestone.updated_at,
+      is_complete: Boolean(dbMilestone.is_complete),
+      due_date: dbMilestone.due_date
+    };
+  }) || [];
+
+  const statusConfig = getStatusConfig(project.status);
+
+  const handleCardClick = () => {
+    navigate(`/projects/${project.id}`);
+  };
+
+  const getProjectType = (): 'open' | 'applied' | 'assigned' | 'completed' => {
+    if (project.assigned_to) return 'assigned';
+    if (project.status === 'completed') return 'completed';
+    if (project.applications && project.applications.length > 0) return 'applied';
+    return 'open';
+  };
+
+  const projectType = getProjectType();
 
   return (
-    <Card className="w-full hover:shadow-lg transition-shadow">
-      <CardHeader>
-        <div className="flex items-start justify-between">
-          <div className="flex-1">
-            <CardTitle className="text-xl mb-2">{project.title}</CardTitle>
-            <div className="flex items-center gap-2 mb-3">
-              <Badge className={getStatusColor(project.status)}>
-                {project.status?.replace('_', ' ') || 'Open'}
-              </Badge>
-              {project.urgency && (
-                <Badge variant="outline">
-                  {project.urgency} Priority
-                </Badge>
-              )}
-            </div>
+    <Card onClick={handleCardClick} className="hover:cursor-pointer">
+      <CardContent className="p-4">
+        <div className="flex items-start">
+          <Avatar className="w-10 h-10 mr-4">
+            <AvatarImage src={`https://api.dicebear.com/7.x/pixel-art/svg?seed=${project.title}`} />
+            <AvatarFallback>{project.title.substring(0, 2)}</AvatarFallback>
+          </Avatar>
+          <div className="space-y-1">
+            <h2 className="text-lg font-semibold">{project.title}</h2>
+            <p className="text-sm text-gray-500">{project.description}</p>
           </div>
-          
-          {onClick && (
-            <Button onClick={onClick} variant="outline" size="sm">
-              {actionLabel || 'View'}
-            </Button>
+        </div>
+        <div className="mt-4">
+          <Badge variant={statusConfig.variant}>{statusConfig.label}</Badge>
+          {projectType === 'applied' && (
+            <Badge variant="secondary" className="ml-2">Applied</Badge>
+          )}
+          {projectType === 'assigned' && (
+            <Badge variant="secondary" className="ml-2">Assigned</Badge>
           )}
         </div>
-      </CardHeader>
-      
-      <CardContent className="space-y-4">
-        {project.description && (
-          <p className="text-gray-700">{project.description}</p>
-        )}
-        
-        <div className="grid grid-cols-2 gap-4 text-sm">
-          {project.location && (
-            <div className="flex items-center gap-2">
-              <MapPin className="h-4 w-4 text-gray-500" />
-              <span>{project.location}</span>
-            </div>
-          )}
-          
-          {project.budget && (
-            <div className="flex items-center gap-2">
-              <DollarSign className="h-4 w-4 text-gray-500" />
-              <span>${project.budget.toLocaleString()}</span>
-            </div>
-          )}
-          
-          <div className="flex items-center gap-2">
-            <Calendar className="h-4 w-4 text-gray-500" />
-            <span>Posted {formatDate(project.created_at)}</span>
+        <div className="mt-4 space-y-2">
+          <div className="flex items-center text-gray-600 text-sm">
+            <CalendarDays className="w-4 h-4 mr-2" />
+            <span>{format(new Date(project.created_at), 'PPP')}</span>
           </div>
-          
-          {project.expected_timeline && (
-            <div className="flex items-center gap-2">
-              <Clock className="h-4 w-4 text-gray-500" />
-              <span>{project.expected_timeline}</span>
-            </div>
-          )}
-          
-          {project.client && (
-            <div className="flex items-center gap-2">
-              <User className="h-4 w-4 text-gray-500" />
-              <span>{project.client.first_name} {project.client.last_name}</span>
-            </div>
-          )}
-          
+          <div className="flex items-center text-gray-600 text-sm">
+            <User2 className="w-4 h-4 mr-2" />
+            <span>{project.client_id}</span>
+          </div>
+          <div className="flex items-center text-gray-600 text-sm">
+            <Link2 className="w-4 h-4 mr-2" />
+            <span>{project.location}</span>
+          </div>
           {milestones.length > 0 && (
-            <div className="flex items-center gap-2">
-              <Target className="h-4 w-4 text-gray-500" />
-              <span>{milestones.length} milestone{milestones.length !== 1 ? 's' : ''}</span>
+            <div className="flex items-center text-gray-600 text-sm">
+              <ListChecks className="w-4 h-4 mr-2" />
+              <span>{milestones.length} Milestone(s)</span>
+            </div>
+          )}
+          {project.comments && project.comments.length > 0 && (
+            <div className="flex items-center text-gray-600 text-sm">
+              <MessageSquare className="w-4 h-4 mr-2" />
+              <span>{project.comments.length} Comments</span>
             </div>
           )}
         </div>
-        
-        {project.requirements && project.requirements.length > 0 && (
-          <div>
-            <h4 className="font-medium mb-2">Requirements</h4>
-            <ul className="list-disc pl-5 space-y-1">
-              {project.requirements.slice(0, 3).map((req, index) => (
-                <li key={index} className="text-sm text-gray-600">{req}</li>
-              ))}
-              {project.requirements.length > 3 && (
-                <li className="text-sm text-gray-500">
-                  +{project.requirements.length - 3} more requirements
-                </li>
-              )}
-            </ul>
-          </div>
-        )}
-
-        <ProjectCardTabs
-          project={project}
-          milestones={milestones}
-          activeTab={activeTab}
-          setActiveTab={setActiveTab}
-          isProfessional={isProfessional}
-          isClient={isClient}
-          onMilestoneUpdate={onMilestoneUpdate}
-          onMilestoneDelete={onMilestoneDelete}
-          onTaskStatusUpdate={onTaskStatusUpdate}
-        />
       </CardContent>
+      <CardFooter className="px-4 py-2 bg-gray-50 border-t">
+        <div className="flex items-center justify-between w-full">
+          <span className="text-sm text-gray-700 font-medium">${project.budget?.toLocaleString()}</span>
+          {project.status === 'completed' ? (
+            <CheckCircle2 className="w-6 h-6 text-green-500" />
+          ) : (
+            <Button size="sm">View Project</Button>
+          )}
+        </div>
+      </CardFooter>
     </Card>
   );
 };

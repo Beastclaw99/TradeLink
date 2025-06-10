@@ -37,12 +37,24 @@ export interface DisputeDocument {
   created_at: string;
 }
 
+export interface DisputeStatusHistory {
+  id: string;
+  dispute_id: string;
+  status: Dispute['status'];
+  changed_by: string;
+  reason?: string;
+  created_at: string;
+}
+
 export const disputeService = {
   // Create a new dispute
   async createDispute(disputeData: Omit<Dispute, 'id' | 'created_at' | 'updated_at'>): Promise<Dispute> {
     const { data, error } = await supabase
       .from('disputes')
-      .insert(disputeData)
+      .insert({
+        ...disputeData,
+        work_version_id: disputeData.work_version_id || null
+      })
       .select()
       .single();
 
@@ -53,10 +65,10 @@ export const disputeService = {
       user_id: disputeData.respondent_id,
       title: 'New Dispute Filed',
       message: `A dispute has been filed against project: ${disputeData.title}`,
-      type: 'dispute_created'
+      type: 'info'
     });
 
-    return data;
+    return data as Dispute;
   },
 
   // Get dispute by ID
@@ -68,7 +80,7 @@ export const disputeService = {
       .single();
 
     if (error && error.code !== 'PGRST116') throw error;
-    return data;
+    return data as Dispute;
   },
 
   // Get disputes for a user
@@ -80,7 +92,7 @@ export const disputeService = {
       .order('created_at', { ascending: false });
 
     if (error) throw error;
-    return data || [];
+    return (data || []) as Dispute[];
   },
 
   // Get disputes for a project
@@ -92,21 +104,23 @@ export const disputeService = {
       .order('created_at', { ascending: false });
 
     if (error) throw error;
-    return data || [];
+    return (data || []) as Dispute[];
   },
 
   // Update dispute status
-  async updateDisputeStatus(disputeId: string, status: Dispute['status'], resolution?: string): Promise<void> {
+  async updateDisputeStatus(disputeId: string, status: Dispute['status'], resolution?: string): Promise<Dispute> {
     const updateData: any = { status };
     if (resolution) {
       updateData.resolution = resolution;
       updateData.resolved_at = new Date().toISOString();
     }
 
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('disputes')
       .update(updateData)
-      .eq('id', disputeId);
+      .eq('id', disputeId)
+      .select()
+      .single();
 
     if (error) throw error;
 
@@ -118,6 +132,8 @@ export const disputeService = {
         status,
         changed_by: (await supabase.auth.getUser()).data.user?.id
       });
+
+    return data as Dispute;
   },
 
   // Add message to dispute
@@ -134,7 +150,12 @@ export const disputeService = {
       .single();
 
     if (error) throw error;
-    return data;
+    return data as DisputeMessage;
+  },
+
+  // Add message (alias)
+  async addMessage(disputeId: string, content: string): Promise<DisputeMessage> {
+    return this.addDisputeMessage(disputeId, content);
   },
 
   // Get dispute messages
@@ -146,7 +167,7 @@ export const disputeService = {
       .order('created_at', { ascending: true });
 
     if (error) throw error;
-    return data || [];
+    return (data || []) as DisputeMessage[];
   },
 
   // Add document to dispute
@@ -163,7 +184,12 @@ export const disputeService = {
       .single();
 
     if (error) throw error;
-    return data;
+    return data as DisputeDocument;
+  },
+
+  // Add document (alias)
+  async addDocument(disputeId: string, fileId: string, description?: string): Promise<DisputeDocument> {
+    return this.addDisputeDocument(disputeId, fileId, description);
   },
 
   // Get dispute documents
@@ -175,6 +201,23 @@ export const disputeService = {
       .order('created_at', { ascending: false });
 
     if (error) throw error;
-    return data || [];
+    return (data || []) as DisputeDocument[];
+  },
+
+  // Get status history
+  async getStatusHistory(disputeId: string): Promise<DisputeStatusHistory[]> {
+    const { data, error } = await supabase
+      .from('dispute_status_history')
+      .select('*')
+      .eq('dispute_id', disputeId)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return (data || []) as DisputeStatusHistory[];
+  },
+
+  // Add resolution
+  async addResolution(disputeId: string, resolution: string): Promise<Dispute> {
+    return this.updateDisputeStatus(disputeId, 'resolved', resolution);
   }
 };

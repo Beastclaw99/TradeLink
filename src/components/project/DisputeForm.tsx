@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,7 +17,7 @@ import { useRouter } from 'next/navigation';
 
 interface DisputeFormProps {
   projectId: string;
-  workVersionId: string;
+  workVersionId?: string;
   respondentId: string;
   onSuccess?: (dispute: Dispute) => void;
 }
@@ -48,14 +49,16 @@ const DisputeForm: React.FC<DisputeFormProps> = ({
 
     setIsSubmitting(true);
     try {
-      const dispute = await disputeService.createDispute(
-        projectId,
-        workVersionId,
-        respondentId,
+      const dispute = await disputeService.createDispute({
+        project_id: projectId,
+        work_version_id: workVersionId,
+        respondent_id: respondentId,
+        initiator_id: '', // Will be set by the service
         type,
         title,
-        description
-      );
+        description,
+        status: 'open'
+      });
 
       toast({
         title: 'Success',
@@ -106,6 +109,8 @@ const DisputeForm: React.FC<DisputeFormProps> = ({
               <SelectItem value="quality">Quality</SelectItem>
               <SelectItem value="timeline">Timeline</SelectItem>
               <SelectItem value="payment">Payment</SelectItem>
+              <SelectItem value="communication">Communication</SelectItem>
+              <SelectItem value="scope">Scope</SelectItem>
               <SelectItem value="other">Other</SelectItem>
             </SelectContent>
           </Select>
@@ -141,4 +146,4 @@ const DisputeForm: React.FC<DisputeFormProps> = ({
   );
 };
 
-export default DisputeForm; 
+export default DisputeForm;

@@ -84,7 +84,7 @@ const DisputeDetail: React.FC<DisputeDetailProps> = ({
     try {
       const uploadedFile = await fileService.uploadFileVersion(
         projectId,
-        dispute!.work_version_id,
+        dispute!.work_version_id || '',
         file,
         'Dispute document',
         'private'
@@ -168,8 +168,9 @@ const DisputeDetail: React.FC<DisputeDetailProps> = ({
   const getStatusBadge = (status: Dispute['status']) => {
     const variants: Record<Dispute['status'], { variant: 'default' | 'secondary' | 'destructive' | 'outline', label: string }> = {
       open: { variant: 'default', label: 'Open' },
-      under_review: { variant: 'secondary', label: 'Under Review' },
+      in_review: { variant: 'secondary', label: 'In Review' },
       resolved: { variant: 'outline', label: 'Resolved' },
+      escalated: { variant: 'destructive', label: 'Escalated' },
       closed: { variant: 'destructive', label: 'Closed' }
     };
 
@@ -199,14 +200,14 @@ const DisputeDetail: React.FC<DisputeDetailProps> = ({
         <div className="flex items-center gap-4">
           {dispute.status === 'open' && (
             <Button
-              onClick={() => handleUpdateStatus('under_review')}
+              onClick={() => handleUpdateStatus('in_review')}
               disabled={isSubmitting}
             >
               <AlertCircle className="h-4 w-4 mr-2" />
               Start Review
             </Button>
           )}
-          {dispute.status === 'under_review' && (
+          {dispute.status === 'in_review' && (
             <>
               <Button
                 onClick={() => handleUpdateStatus('resolved')}
@@ -230,7 +231,7 @@ const DisputeDetail: React.FC<DisputeDetailProps> = ({
       )}
 
       {/* Resolution Section */}
-      {dispute.status === 'under_review' && !dispute.resolution && (
+      {dispute.status === 'in_review' && !dispute.resolution && (
         <div className="space-y-4">
           <h3 className="text-lg font-semibold">Add Resolution</h3>
           <Textarea
@@ -259,8 +260,8 @@ const DisputeDetail: React.FC<DisputeDetailProps> = ({
         <h3 className="text-lg font-semibold">Documents</h3>
         <FileUpload
           projectId={projectId}
-          versionId={dispute.work_version_id}
-          onUploadComplete={handleAddDocument}
+          versionId={dispute.work_version_id || ''}
+          onUploadComplete={(file) => handleAddDocument(file as unknown as File)}
         />
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {documents.map((doc) => (

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
@@ -55,8 +56,9 @@ const DisputeList: React.FC<DisputeListProps> = ({ projectId }) => {
   const getStatusBadge = (status: Dispute['status']) => {
     const variants: Record<Dispute['status'], { variant: 'default' | 'secondary' | 'destructive' | 'outline', label: string }> = {
       open: { variant: 'default', label: 'Open' },
-      under_review: { variant: 'secondary', label: 'Under Review' },
+      in_review: { variant: 'secondary', label: 'In Review' },
       resolved: { variant: 'outline', label: 'Resolved' },
+      escalated: { variant: 'destructive', label: 'Escalated' },
       closed: { variant: 'destructive', label: 'Closed' }
     };
 
@@ -69,6 +71,8 @@ const DisputeList: React.FC<DisputeListProps> = ({ projectId }) => {
       quality: { variant: 'default', label: 'Quality' },
       timeline: { variant: 'secondary', label: 'Timeline' },
       payment: { variant: 'destructive', label: 'Payment' },
+      communication: { variant: 'outline', label: 'Communication' },
+      scope: { variant: 'default', label: 'Scope' },
       other: { variant: 'outline', label: 'Other' }
     };
 
@@ -160,4 +164,4 @@ const DisputeList: React.FC<DisputeListProps> = ({ projectId }) => {
   );
 };
 
-export default DisputeList; 
+export default DisputeList;
