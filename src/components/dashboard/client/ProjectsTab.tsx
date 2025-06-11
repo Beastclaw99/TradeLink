@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { AlertDialog, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import { ExtendedProject, ProjectStatus, ProjectMilestone } from '@/types/database';
+import { Project, ProjectStatus, ProjectMilestone, ProjectDeliverable, Application } from '@/types/database';
 import { Milestone } from '@/components/project/creation/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -35,25 +35,25 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Progress } from "@/components/ui/progress";
 
+interface ExtendedProject extends Project {
+  milestones?: ProjectMilestone[];
+  deliverables?: ProjectDeliverable[];
+  client?: {
+    first_name: string | null;
+    last_name: string | null;
+    profile_image_url: string | null;
+  };
+  professional?: {
+    first_name: string | null;
+    last_name: string | null;
+    profile_image_url: string | null;
+  };
+}
+
 interface ProjectsTabProps {
   isLoading: boolean;
   projects: ExtendedProject[];
-  applications: any[];
-  editProject: ExtendedProject | null;
-  projectToDelete: string | null;
-  editedProject: {
-    title: string;
-    description: string;
-    budget: string;
-  };
-  isSubmitting: boolean;
-  setEditedProject: (project: { title: string; description: string; budget: string }) => void;
-  handleEditInitiate: (project: ExtendedProject) => void;
-  handleEditCancel: () => void;
-  handleUpdateProject: (project: ExtendedProject) => void;
-  handleDeleteInitiate: (projectId: string) => void;
-  handleDeleteCancel: () => void;
-  handleDeleteProject: (projectId: string) => void;
+  applications: Application[];
   selectedProject: ExtendedProject | null;
   setSelectedProject: (project: ExtendedProject | null) => void;
   handleAddMilestone: (projectId: string, milestone: Omit<ProjectMilestone, 'id' | 'created_at' | 'updated_at'>) => Promise<void>;
@@ -79,35 +79,19 @@ const getStatusVariant = (status: ProjectStatus | null): "default" | "destructiv
 };
 
 const getProjectSteps = (project: ExtendedProject) => {
-  return [
-    {
-      id: 'assigned',
-      title: 'Assigned',
-      status: project.status === 'assigned' ? 'current' : 'completed' as 'completed' | 'current' | 'pending'
-    },
-    {
-      id: 'in_progress',
-      title: 'In Progress',
-      status: project.status === 'in_progress' ? 'current' : 
-             ['assigned'].includes(project.status || '') ? 'pending' : 'completed' as 'completed' | 'current' | 'pending'
-    },
-    {
-      id: 'work_submitted',
-      title: 'Review',
-      status: project.status === 'work_submitted' ? 'current' : 
-             ['assigned', 'in_progress'].includes(project.status || '') ? 'pending' : 'completed' as 'completed' | 'current' | 'pending'
-    },
-    {
-      id: 'completed',
-      title: 'Completed',
-      status: project.status === 'completed' ? 'completed' : 'pending' as 'completed' | 'current' | 'pending'
-    }
+  const steps = [
+    { id: 'created', title: 'Created', status: 'completed' as const },
+    { id: 'assigned', title: 'Assigned', status: project.professional_id ? 'completed' as const : 'current' as const },
+    { id: 'in_progress', title: 'In Progress', status: project.status === 'in_progress' ? 'current' as const : 'pending' as const },
+    { id: 'work_submitted', title: 'Work Submitted', status: project.status === 'work_submitted' ? 'current' as const : 'pending' as const },
+    { id: 'completed', title: 'Completed', status: project.status === 'completed' ? 'completed' as const : 'pending' as const }
   ];
+  return steps;
 };
 
-const getProjectProgress = (project: ExtendedProject) => {
-  if (!project.milestones || project.milestones.length === 0) return 0;
-  const completedMilestones = project.milestones.filter(m => m.status === 'completed').length;
+const getProjectProgress = (project: ExtendedProject): number => {
+  if (!project.milestones?.length) return 0;
+  const completedMilestones = project.milestones.filter(m => m.is_complete).length;
   return Math.round((completedMilestones / project.milestones.length) * 100);
 };
 
@@ -157,7 +141,7 @@ export const ProjectsTab: React.FC<ProjectsTabProps> = ({
     status: milestone.status || 'not_started',
     is_complete: milestone.is_complete || false,
     requires_deliverable: milestone.requires_deliverable || false,
-    created_by: selectedProject?.client_id || null,
+    created_by: milestone.created_by || null,
     created_at: milestone.created_at || new Date().toISOString(),
     updated_at: milestone.updated_at || new Date().toISOString(),
     project_id: milestone.project_id || '',
