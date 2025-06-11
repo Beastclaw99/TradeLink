@@ -80,10 +80,17 @@ const getStatusVariant = (status: ProjectStatus | null): "default" | "destructiv
 
 const getProjectSteps = (project: ExtendedProject) => {
   const steps = [
-    { id: 'created', title: 'Created', status: 'completed' as const },
-    { id: 'assigned', title: 'Assigned', status: project.professional_id ? 'completed' as const : 'current' as const },
-    { id: 'in_progress', title: 'In Progress', status: project.status === 'in_progress' ? 'current' as const : 'pending' as const },
-    { id: 'work_submitted', title: 'Work Submitted', status: project.status === 'work_submitted' ? 'current' as const : 'pending' as const },
+    { id: 'draft', title: 'Draft', status: project.status === 'draft' ? 'current' as const : 'completed' as const },
+    { id: 'open', title: 'Open', status: project.status === 'open' ? 'current' as const : 
+      ['draft'].includes(project.status || '') ? 'pending' as const : 'completed' as const },
+    { id: 'assigned', title: 'Assigned', status: project.status === 'assigned' ? 'current' as const : 
+      ['draft', 'open'].includes(project.status || '') ? 'pending' as const : 'completed' as const },
+    { id: 'in_progress', title: 'In Progress', status: project.status === 'in_progress' ? 'current' as const : 
+      ['draft', 'open', 'assigned'].includes(project.status || '') ? 'pending' as const : 'completed' as const },
+    { id: 'work_submitted', title: 'Work Submitted', status: project.status === 'work_submitted' ? 'current' as const : 
+      ['draft', 'open', 'assigned', 'in_progress'].includes(project.status || '') ? 'pending' as const : 'completed' as const },
+    { id: 'work_approved', title: 'Work Approved', status: project.status === 'work_approved' ? 'current' as const : 
+      ['draft', 'open', 'assigned', 'in_progress', 'work_submitted', 'work_revision_requested'].includes(project.status || '') ? 'pending' as const : 'completed' as const },
     { id: 'completed', title: 'Completed', status: project.status === 'completed' ? 'completed' as const : 'pending' as const }
   ];
   return steps;

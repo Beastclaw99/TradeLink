@@ -35,3 +35,16 @@ export interface ProjectUpdate extends DBProjectUpdate {
     profile_image: string | null;
   };
 }
+
+export type ProjectStatus =
+  | 'draft'
+  | 'open'
+  | 'assigned'
+  | 'in_progress'
+  | 'work_submitted'
+  | 'work_revision_requested'
+  | 'work_approved'
+  | 'completed'
+  | 'archived'
+  | 'cancelled'
+  | 'disputed';

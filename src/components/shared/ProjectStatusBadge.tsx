@@ -1,7 +1,6 @@
-
 import React from 'react';
 import { Badge } from '@/components/ui/badge';
-import { Clock, CheckCircle, AlertCircle, Users, Play, Pause } from 'lucide-react';
+import { Clock, CheckCircle, AlertCircle, Users, Play, Pause, FileText, Upload, RefreshCw, Archive, AlertTriangle } from 'lucide-react';
 
 interface ProjectStatusBadgeProps {
   status: string;
@@ -18,8 +17,14 @@ const ProjectStatusBadge: React.FC<ProjectStatusBadgeProps> = ({
     const normalizedStatus = status.toLowerCase();
     
     switch (normalizedStatus) {
+      case 'draft':
+        return {
+          variant: 'outline' as const,
+          className: 'border-gray-500 text-gray-700 bg-gray-50',
+          icon: FileText,
+          label: 'Draft'
+        };
       case 'open':
-      case 'pending':
         return {
           variant: 'outline' as const,
           className: 'border-blue-500 text-blue-700 bg-blue-50',
@@ -34,27 +39,46 @@ const ProjectStatusBadge: React.FC<ProjectStatusBadgeProps> = ({
           label: 'Assigned'
         };
       case 'in_progress':
-      case 'in progress':
         return {
           variant: 'default' as const,
           className: 'bg-blue-500 text-white',
           icon: Play,
           label: 'In Progress'
         };
-      case 'on_hold':
-      case 'on hold':
+      case 'work_submitted':
+        return {
+          variant: 'default' as const,
+          className: 'bg-purple-500 text-white',
+          icon: Upload,
+          label: 'Work Submitted'
+        };
+      case 'work_revision_requested':
         return {
           variant: 'outline' as const,
           className: 'border-orange-500 text-orange-700 bg-orange-50',
-          icon: Pause,
-          label: 'On Hold'
+          icon: RefreshCw,
+          label: 'Revision Requested'
         };
-      case 'completed':
+      case 'work_approved':
         return {
           variant: 'default' as const,
           className: 'bg-green-500 text-white',
           icon: CheckCircle,
+          label: 'Work Approved'
+        };
+      case 'completed':
+        return {
+          variant: 'default' as const,
+          className: 'bg-emerald-500 text-white',
+          icon: CheckCircle,
           label: 'Completed'
+        };
+      case 'archived':
+        return {
+          variant: 'outline' as const,
+          className: 'border-gray-500 text-gray-700 bg-gray-50',
+          icon: Archive,
+          label: 'Archived'
         };
       case 'cancelled':
         return {
@@ -62,6 +86,13 @@ const ProjectStatusBadge: React.FC<ProjectStatusBadgeProps> = ({
           className: 'border-red-500 text-red-700 bg-red-50',
           icon: AlertCircle,
           label: 'Cancelled'
+        };
+      case 'disputed':
+        return {
+          variant: 'outline' as const,
+          className: 'border-rose-500 text-rose-700 bg-rose-50',
+          icon: AlertTriangle,
+          label: 'Disputed'
         };
       default:
         return {

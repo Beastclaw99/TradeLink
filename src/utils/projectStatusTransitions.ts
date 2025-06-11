@@ -4,6 +4,7 @@ import { useToast } from '@/components/ui/use-toast';
 
 // Define valid status transitions
 const VALID_TRANSITIONS: Record<ProjectStatus, ProjectStatus[]> = {
+  draft: ['open', 'cancelled'],
   open: ['assigned', 'cancelled'],
   assigned: ['in_progress', 'cancelled'],
   in_progress: ['work_submitted', 'cancelled'],
@@ -21,6 +22,10 @@ const TRANSITION_REQUIREMENTS: Record<ProjectStatus, {
   requiredFields: string[];
   requiredConditions: (project: any) => boolean;
 }> = {
+  draft: {
+    requiredFields: ['title', 'description'],
+    requiredConditions: (project) => true
+  },
   open: {
     requiredFields: ['title', 'description', 'budget'],
     requiredConditions: (project) => true
