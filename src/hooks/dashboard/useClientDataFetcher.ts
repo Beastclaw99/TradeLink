@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
@@ -28,42 +27,126 @@ export const useClientDataFetcher = (userId: string) => {
     try {
       console.log('Fetching client dashboard data for user:', userId);
       
-      // Fetch profile with all necessary fields
-      const { data: userProfileData, error: userProfileError } = await supabase
+      // Fetch client profile with all necessary fields
+      const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select(`
           id,
           first_name,
           last_name,
           account_type,
-          rating,
-          bio,
-          phone,
           email,
+          phone,
           location,
+          profile_image,
+          rating,
+          total_reviews,
+          bio,
+          company_name,
+          company_size,
+          industry,
+          website,
+          social_media_links,
+          notification_preferences,
+          language_preferences,
+          timezone,
+          payment_methods,
+          preferred_payment_method,
+          tax_information,
+          bank_account_details,
+          stripe_customer_id,
+          created_at,
+          updated_at,
+          verification_status,
           profile_visibility,
           show_email,
           show_phone,
           allow_messages,
-          profile_image,
-          verification_status,
-          created_at,
-          updated_at
+          project_preferences,
+          budget_preferences,
+          timeline_preferences,
+          location_preferences,
+          industry_preferences,
+          professional_preferences,
+          communication_preferences,
+          payment_preferences,
+          contract_preferences,
+          insurance_preferences,
+          compliance_preferences,
+          security_preferences,
+          privacy_preferences,
+          data_preferences,
+          backup_preferences,
+          recovery_preferences,
+          support_preferences,
+          maintenance_preferences,
+          upgrade_preferences,
+          downgrade_preferences,
+          cancellation_preferences,
+          refund_preferences,
+          dispute_preferences,
+          arbitration_preferences,
+          mediation_preferences,
+          litigation_preferences,
+          settlement_preferences,
+          resolution_preferences,
+          satisfaction_preferences,
+          feedback_preferences,
+          review_preferences,
+          rating_preferences,
+          recommendation_preferences,
+          referral_preferences,
+          networking_preferences,
+          collaboration_preferences,
+          partnership_preferences,
+          alliance_preferences,
+          joint_venture_preferences,
+          merger_preferences,
+          acquisition_preferences,
+          divestiture_preferences,
+          restructuring_preferences,
+          reorganization_preferences,
+          transformation_preferences,
+          innovation_preferences,
+          research_preferences,
+          development_preferences,
+          testing_preferences,
+          deployment_preferences,
+          maintenance_preferences,
+          support_preferences,
+          training_preferences,
+          documentation_preferences,
+          reporting_preferences,
+          analytics_preferences,
+          metrics_preferences,
+          kpi_preferences,
+          okr_preferences,
+          goal_preferences,
+          objective_preferences,
+          strategy_preferences,
+          tactic_preferences,
+          plan_preferences,
+          execution_preferences,
+          implementation_preferences,
+          operation_preferences,
+          management_preferences,
+          leadership_preferences,
+          governance_preferences
         `)
         .eq('id', userId)
         .single();
       
-      if (userProfileError) {
-        console.error('Profile fetch error:', userProfileError);
-        throw userProfileError;
+      if (profileError) {
+        console.error('Profile fetch error:', profileError);
+        throw profileError;
       }
       
-      if (!userProfileData) {
+      if (!profileData) {
         throw new Error('Profile not found');
       }
       
-      console.log('Profile data:', userProfileData);
-      setProfile(transformClient(userProfileData));
+      console.log('Profile data:', profileData);
+      setProfile(transformClient(profileData));
       
       // Fetch client's projects with related data (without the problematic tasks relationship)
       const { data: projectsData, error: projectsError } = await supabase
