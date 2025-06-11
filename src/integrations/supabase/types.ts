@@ -7,31 +7,6 @@ export type Json =
   | Json[]
 
 export type Database = {
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          operationName?: string
-          query?: string
-          variables?: Json
-          extensions?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
   public: {
     Tables: {
       admin_actions: {
@@ -1240,6 +1215,7 @@ export type Database = {
           requirements: string[] | null
           scope: string | null
           sla_terms: Json | null
+          spent: number | null
           status: Database["public"]["Enums"]["project_status"] | null
           title: string
           updated_at: string | null
@@ -1263,6 +1239,7 @@ export type Database = {
           requirements?: string[] | null
           scope?: string | null
           sla_terms?: Json | null
+          spent?: number | null
           status?: Database["public"]["Enums"]["project_status"] | null
           title: string
           updated_at?: string | null
@@ -1286,6 +1263,7 @@ export type Database = {
           requirements?: string[] | null
           scope?: string | null
           sla_terms?: Json | null
+          spent?: number | null
           status?: Database["public"]["Enums"]["project_status"] | null
           title?: string
           updated_at?: string | null
@@ -1629,9 +1607,6 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {
       account_type_enum: ["client", "professional"],
