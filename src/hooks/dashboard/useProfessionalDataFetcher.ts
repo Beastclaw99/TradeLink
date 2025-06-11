@@ -119,46 +119,71 @@ export const useProfessionalDataFetcher = (userId: string) => {
       setProjects(allProjects);
       
       // Fetch applications
-      try {
-        const { data: appsData, error: appsError } = await supabase
-          .from('applications')
-          .select(`
+      const { data: appsData, error: appsError } = await supabase
+        .from('applications')
+        .select(`
+          id,
+          created_at,
+          status,
+          bid_amount,
+          cover_letter,
+          professional_id,
+          project_id,
+          availability,
+          proposal_message,
+          updated_at,
+          project:projects (
             id,
-            created_at,
+            title,
             status,
-            bid_amount,
-            cover_letter,
-            professional_id,
-            project_id,
-            availability,
-            proposal_message,
-            updated_at,
-            project:projects (
-              id,
-              title,
-              status,
-              budget,
-              created_at
+            budget,
+            created_at,
+            client:profiles!projects_client_id_fkey(
+              first_name,
+              last_name,
+              profile_image,
+              rating
             )
-          `)
-          .eq('professional_id', userId)
-          .order('created_at', { ascending: false });
-        
-        if (appsError) {
-          console.error('Applications fetch error:', appsError);
-          throw appsError;
-        }
-        console.log('Applications data:', appsData);
-        
-        setApplications(transformApplications(appsData));
-      } catch (error: any) {
-        console.error('Error fetching applications:', error);
-        toast({
-          title: "Warning",
-          description: "There was an issue loading your applications. Some data may be missing.",
-          variant: "destructive"
-        });
+          )
+        `)
+        .eq('professional_id', userId)
+        .order('created_at', { ascending: false });
+      
+      if (appsError) {
+        console.error('Applications fetch error:', appsError);
+        throw appsError;
       }
+      
+      console.log('Applications data:', appsData);
+      
+      // Transform applications to match the Application type
+      const transformedApplications = (appsData || []).map(app => ({
+        id: app.id,
+        project_id: app.project_id,
+        professional_id: app.professional_id,
+        cover_letter: app.cover_letter,
+        proposal_message: app.proposal_message,
+        bid_amount: app.bid_amount,
+        availability: app.availability,
+        status: app.status,
+        created_at: app.created_at,
+        updated_at: app.updated_at,
+        project: app.project ? {
+          id: app.project.id,
+          title: app.project.title,
+          status: app.project.status,
+          budget: app.project.budget,
+          created_at: app.project.created_at,
+          client: app.project.client ? {
+            first_name: app.project.client.first_name,
+            last_name: app.project.client.last_name,
+            profile_image: app.project.client.profile_image,
+            rating: app.project.client.rating
+          } : undefined
+        } : undefined
+      }));
+      
+      setApplications(transformedApplications);
       
       // Fetch payments
       const { data: paymentsData, error: paymentsError } = await supabase
