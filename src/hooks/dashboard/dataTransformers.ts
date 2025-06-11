@@ -1,56 +1,49 @@
+
 import { Project, Application, Payment, Review, Professional, Client } from '@/components/dashboard/types';
 
 export const transformProjects = (data: any[]): Project[] => {
-  return (data || []).map(project => ({
+  return data.map(project => ({
     id: project.id,
-    title: project.title || '',
-    description: project.description || null,
-    category: project.category || null,
-    budget: project.budget || null,
-    expected_timeline: project.expected_timeline || null,
-    location: project.location || null,
-    urgency: project.urgency || null,
-    requirements: project.requirements || null,
-    required_skills: project.required_skills || null,
-    status: project.status || null,
-    created_at: project.created_at || null,
-    updated_at: project.updated_at || null,
-    client_id: project.client_id || null,
-    assigned_to: project.assigned_to || null,
-    professional_id: project.professional_id || null,
-    contract_template_id: project.contract_template_id || null,
-    deadline: project.deadline || null,
-    industry_specific_fields: project.industry_specific_fields || null,
-    location_coordinates: project.location_coordinates || null,
-    project_start_time: project.project_start_time || null,
-    rich_description: project.rich_description || null,
-    scope: project.scope || null,
-    service_contract: project.service_contract || null,
-    sla_terms: project.sla_terms || null,
-    client: project.client || undefined,
-    professional: project.professional || undefined,
-    milestones: Array.isArray(project.milestones) ? project.milestones.map((milestone: any) => ({
-      id: milestone.id,
-      title: milestone.title || '',
-      description: milestone.description || null,
-      due_date: milestone.due_date || null,
-      status: milestone.status || null,
-      tasks: [] // Initialize empty tasks array since we removed the relationship
-    })) : [],
-    deliverables: Array.isArray(project.deliverables) ? project.deliverables.map((deliverable: any) => ({
-      id: deliverable.id,
-      description: deliverable.description || '',
-      deliverable_type: deliverable.deliverable_type || 'file',
-      content: deliverable.content || null,
-      file_url: deliverable.file_url || null,
-      status: deliverable.status || null,
-      created_at: deliverable.created_at || null
-    })) : []
+    title: project.title,
+    description: project.description,
+    category: project.category,
+    budget: project.budget,
+    expected_timeline: project.expected_timeline,
+    location: project.location,
+    urgency: project.urgency,
+    requirements: project.requirements,
+    required_skills: project.required_skills,
+    status: project.status,
+    created_at: project.created_at,
+    updated_at: project.updated_at,
+    client_id: project.client_id,
+    assigned_to: project.assigned_to,
+    professional_id: project.professional_id,
+    contract_template_id: project.contract_template_id,
+    deadline: project.deadline,
+    industry_specific_fields: project.industry_specific_fields,
+    location_coordinates: project.location_coordinates,
+    project_start_time: project.project_start_time,
+    rich_description: project.rich_description,
+    scope: project.scope,
+    service_contract: project.service_contract,
+    sla_terms: project.sla_terms,
+    client: project.client,
+    professional: project.professional,
+    milestones: project.milestones?.map((m: any) => ({
+      id: m.id,
+      title: m.title,
+      description: m.description,
+      due_date: m.due_date,
+      status: m.status,
+      tasks: m.tasks || []
+    })) || [],
+    deliverables: project.deliverables || []
   }));
 };
 
 export const transformApplications = (data: any[]): Application[] => {
-  return (data || []).map(app => ({
+  return data.map(app => ({
     id: app.id,
     project_id: app.project_id,
     professional_id: app.professional_id,
@@ -58,24 +51,19 @@ export const transformApplications = (data: any[]): Application[] => {
     proposal_message: app.proposal_message,
     bid_amount: app.bid_amount,
     availability: app.availability,
-    status: app.status || 'pending',
+    status: app.status,
     created_at: app.created_at,
     updated_at: app.updated_at,
-    project: app.project ? {
-      id: app.project.id,
-      title: app.project.title,
-      status: app.project.status,
-      budget: app.project.budget,
-      created_at: app.project.created_at
-    } : undefined
+    project: app.project,
+    professional: app.professional
   }));
 };
 
 export const transformPayments = (data: any[]): Payment[] => {
-  return (data || []).map(payment => ({
+  return data.map(payment => ({
     id: payment.id,
     amount: payment.amount,
-    status: payment.status || 'pending',
+    status: payment.status,
     payment_method: payment.payment_method,
     transaction_id: payment.transaction_id,
     created_at: payment.created_at,
@@ -89,11 +77,11 @@ export const transformPayments = (data: any[]): Payment[] => {
 };
 
 export const transformReviews = (data: any[]): Review[] => {
-  return (data || []).map(review => ({
+  return data.map(review => ({
     id: review.id,
     rating: review.rating,
     comment: review.comment,
-    status: review.status || 'approved',
+    status: review.status,
     reported_at: review.reported_at,
     reported_by: review.reported_by,
     report_reason: review.report_reason,
@@ -105,7 +93,7 @@ export const transformReviews = (data: any[]): Review[] => {
     quality_rating: review.quality_rating,
     timeliness_rating: review.timeliness_rating,
     professionalism_rating: review.professionalism_rating,
-    is_verified: review.is_verified || false,
+    is_verified: review.is_verified,
     verification_method: review.verification_method,
     moderated_at: review.moderated_at,
     moderated_by: review.moderated_by,
@@ -113,55 +101,51 @@ export const transformReviews = (data: any[]): Review[] => {
   }));
 };
 
-export const transformProfessionals = (data: any[]): Professional[] => {
-  return (data || []).map(prof => ({
-    id: prof.id,
-    first_name: prof.first_name,
-    last_name: prof.last_name,
-    skills: prof.skills,
-    rating: prof.rating,
+export const transformProfessional = (data: any): Professional => {
+  return {
+    id: data.id,
+    first_name: data.first_name,
+    last_name: data.last_name,
+    skills: data.skills,
+    rating: data.rating,
     account_type: 'professional',
-    bio: prof.bio,
-    location: prof.location,
-    phone: prof.phone,
-    email: prof.email,
-    availability: prof.availability,
-    certifications: prof.certifications,
-    completed_projects: prof.completed_projects,
-    response_rate: prof.response_rate,
-    on_time_completion: prof.on_time_completion,
-    profile_visibility: prof.profile_visibility,
-    show_email: prof.show_email,
-    show_phone: prof.show_phone,
-    allow_messages: prof.allow_messages,
-    profile_image: prof.profile_image,
-    verification_status: prof.verification_status,
-    created_at: prof.created_at,
-    updated_at: prof.updated_at
-  }));
+    bio: data.bio,
+    location: data.location,
+    phone: data.phone,
+    email: data.email,
+    availability: data.availability,
+    certifications: data.certifications,
+    completed_projects: data.completed_projects,
+    response_rate: data.response_rate,
+    on_time_completion: data.on_time_completion,
+    profile_visibility: data.profile_visibility,
+    show_email: data.show_email,
+    show_phone: data.show_phone,
+    allow_messages: data.allow_messages,
+    profile_image: data.profile_image,
+    verification_status: data.verification_status,
+    created_at: data.created_at,
+    updated_at: data.updated_at
+  };
 };
 
 export const transformClient = (data: any): Client => {
-  if (!data) {
-    throw new Error('No client data provided');
-  }
-
   return {
     id: data.id,
-    first_name: data.first_name || null,
-    last_name: data.last_name || null,
+    first_name: data.first_name,
+    last_name: data.last_name,
     account_type: 'client',
-    bio: data.bio || null,
-    location: data.location || null,
-    phone: data.phone || null,
-    email: data.email || null,
-    profile_visibility: data.profile_visibility || null,
-    show_email: data.show_email || null,
-    show_phone: data.show_phone || null,
-    allow_messages: data.allow_messages || null,
-    profile_image: data.profile_image || null,
-    verification_status: data.verification_status || 'unverified',
+    bio: data.bio,
+    location: data.location,
+    phone: data.phone,
+    email: data.email,
+    profile_visibility: data.profile_visibility,
+    show_email: data.show_email,
+    show_phone: data.show_phone,
+    allow_messages: data.allow_messages,
+    profile_image: data.profile_image,
+    verification_status: data.verification_status,
     created_at: data.created_at,
-    updated_at: data.updated_at || null
+    updated_at: data.updated_at
   };
 };

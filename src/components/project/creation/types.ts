@@ -1,10 +1,18 @@
+
 export interface Task {
   id: string;
   title: string;
   description?: string;
   completed: boolean;
+  status?: 'todo' | 'in_progress' | 'done' | 'blocked';
+  priority?: 'low' | 'medium' | 'high' | 'urgent';
+  due_date?: string;
+  completion_date?: string;
   created_at?: string;
   updated_at?: string;
+  assignee_id?: string;
+  dependencies?: string[];
+  tags?: string[];
   [key: string]: any; // Add index signature for JSON compatibility
 }
 
@@ -16,6 +24,7 @@ export interface Deliverable {
   file_url?: string;
   file_name?: string;
   milestone_id?: string;
+  project_id?: string;
   uploaded_by?: string;
   created_at?: string;
   status?: 'pending' | 'approved' | 'rejected';
@@ -75,6 +84,7 @@ export interface ProjectData {
   created_at?: string;
   updated_at?: string;
   payment_id?: string;
+  required_skills?: string;
 }
 
 // Database milestone interface for Supabase operations

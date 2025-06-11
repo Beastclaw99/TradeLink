@@ -43,15 +43,7 @@ export type Database = {
           target_type?: string
           user_agent?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "admin_actions_admin_id_fkey"
-            columns: ["admin_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       applications: {
         Row: {
@@ -160,207 +152,7 @@ export type Database = {
           sender_id?: string | null
           sent_at?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "direct_messages_recipient_id_fkey"
-            columns: ["recipient_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "direct_messages_sender_id_fkey"
-            columns: ["sender_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      dispute_documents: {
-        Row: {
-          created_at: string | null
-          description: string | null
-          dispute_id: string
-          file_id: string
-          id: string
-          uploaded_by: string
-        }
-        Insert: {
-          created_at?: string | null
-          description?: string | null
-          dispute_id: string
-          file_id: string
-          id?: string
-          uploaded_by: string
-        }
-        Update: {
-          created_at?: string | null
-          description?: string | null
-          dispute_id?: string
-          file_id?: string
-          id?: string
-          uploaded_by?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "dispute_documents_dispute_id_fkey"
-            columns: ["dispute_id"]
-            isOneToOne: false
-            referencedRelation: "disputes"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "dispute_documents_file_id_fkey"
-            columns: ["file_id"]
-            isOneToOne: false
-            referencedRelation: "work_version_files"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      dispute_messages: {
-        Row: {
-          content: string
-          created_at: string | null
-          dispute_id: string
-          id: string
-          is_internal: boolean | null
-          sender_id: string
-        }
-        Insert: {
-          content: string
-          created_at?: string | null
-          dispute_id: string
-          id?: string
-          is_internal?: boolean | null
-          sender_id: string
-        }
-        Update: {
-          content?: string
-          created_at?: string | null
-          dispute_id?: string
-          id?: string
-          is_internal?: boolean | null
-          sender_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "dispute_messages_dispute_id_fkey"
-            columns: ["dispute_id"]
-            isOneToOne: false
-            referencedRelation: "disputes"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      dispute_status_history: {
-        Row: {
-          changed_by: string
-          created_at: string | null
-          dispute_id: string
-          id: string
-          reason: string | null
-          status: string
-        }
-        Insert: {
-          changed_by: string
-          created_at?: string | null
-          dispute_id: string
-          id?: string
-          reason?: string | null
-          status: string
-        }
-        Update: {
-          changed_by?: string
-          created_at?: string | null
-          dispute_id?: string
-          id?: string
-          reason?: string | null
-          status?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "dispute_status_history_dispute_id_fkey"
-            columns: ["dispute_id"]
-            isOneToOne: false
-            referencedRelation: "disputes"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      disputes: {
-        Row: {
-          created_at: string | null
-          description: string
-          id: string
-          initiator_id: string
-          project_id: string
-          resolution: string | null
-          resolved_at: string | null
-          resolved_by: string | null
-          respondent_id: string
-          status: string
-          title: string
-          type: string
-          updated_at: string | null
-          work_version_id: string
-        }
-        Insert: {
-          created_at?: string | null
-          description: string
-          id?: string
-          initiator_id: string
-          project_id: string
-          resolution?: string | null
-          resolved_at?: string | null
-          resolved_by?: string | null
-          respondent_id: string
-          status: string
-          title: string
-          type: string
-          updated_at?: string | null
-          work_version_id: string
-        }
-        Update: {
-          created_at?: string | null
-          description?: string
-          id?: string
-          initiator_id?: string
-          project_id?: string
-          resolution?: string | null
-          resolved_at?: string | null
-          resolved_by?: string | null
-          respondent_id?: string
-          status?: string
-          title?: string
-          type?: string
-          updated_at?: string | null
-          work_version_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "disputes_project_id_fkey"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "payment_status_history_view"
-            referencedColumns: ["project_id"]
-          },
-          {
-            foreignKeyName: "disputes_project_id_fkey"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "projects"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "disputes_work_version_id_fkey"
-            columns: ["work_version_id"]
-            isOneToOne: false
-            referencedRelation: "work_versions"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       error_logs: {
         Row: {
@@ -389,6 +181,36 @@ export type Database = {
           operation?: string
           record_id?: string | null
           table_name?: string
+        }
+        Relationships: []
+      }
+      file_access_controls: {
+        Row: {
+          allowed_file_types: string[]
+          created_at: string | null
+          id: string
+          max_file_size: number | null
+          max_files_per_submission: number | null
+          project_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          allowed_file_types?: string[]
+          created_at?: string | null
+          id?: string
+          max_file_size?: number | null
+          max_files_per_submission?: number | null
+          project_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          allowed_file_types?: string[]
+          created_at?: string | null
+          id?: string
+          max_file_size?: number | null
+          max_files_per_submission?: number | null
+          project_id?: string | null
+          updated_at?: string | null
         }
         Relationships: []
       }
@@ -444,33 +266,69 @@ export type Database = {
           project_id?: string | null
           status?: string | null
         }
+        Relationships: []
+      }
+      messages: {
+        Row: {
+          content: string
+          created_at: string | null
+          file_url: string | null
+          id: string
+          is_read: boolean | null
+          message_type: string | null
+          project_id: string | null
+          recipient_id: string
+          sender_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string | null
+          file_url?: string | null
+          id?: string
+          is_read?: boolean | null
+          message_type?: string | null
+          project_id?: string | null
+          recipient_id: string
+          sender_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string | null
+          file_url?: string | null
+          id?: string
+          is_read?: boolean | null
+          message_type?: string | null
+          project_id?: string | null
+          recipient_id?: string
+          sender_id?: string
+        }
         Relationships: [
           {
-            foreignKeyName: "invoices_client_id_fkey"
-            columns: ["client_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "invoices_professional_id_fkey"
-            columns: ["professional_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "invoices_project_id_fkey"
+            foreignKeyName: "messages_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "payment_status_history_view"
             referencedColumns: ["project_id"]
           },
           {
-            foreignKeyName: "invoices_project_id_fkey"
+            foreignKeyName: "messages_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_recipient_id_fkey"
+            columns: ["recipient_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_sender_id_fkey"
+            columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -506,15 +364,7 @@ export type Database = {
           updated_at?: string | null
           user_id?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "notifications_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       payment_methods: {
         Row: {
@@ -543,87 +393,6 @@ export type Database = {
         }
         Relationships: []
       }
-      payment_status_history: {
-        Row: {
-          created_at: string | null
-          id: string
-          metadata: Json | null
-          payment_id: string | null
-          status: string
-        }
-        Insert: {
-          created_at?: string | null
-          id?: string
-          metadata?: Json | null
-          payment_id?: string | null
-          status: string
-        }
-        Update: {
-          created_at?: string | null
-          id?: string
-          metadata?: Json | null
-          payment_id?: string | null
-          status?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "payment_status_history_payment_id_fkey"
-            columns: ["payment_id"]
-            isOneToOne: false
-            referencedRelation: "payment_status_history_view"
-            referencedColumns: ["payment_id"]
-          },
-          {
-            foreignKeyName: "payment_status_history_payment_id_fkey"
-            columns: ["payment_id"]
-            isOneToOne: false
-            referencedRelation: "payments"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      payment_webhooks: {
-        Row: {
-          created_at: string | null
-          event_type: string
-          id: string
-          payload: Json
-          payment_id: string | null
-          processed: boolean | null
-        }
-        Insert: {
-          created_at?: string | null
-          event_type: string
-          id?: string
-          payload: Json
-          payment_id?: string | null
-          processed?: boolean | null
-        }
-        Update: {
-          created_at?: string | null
-          event_type?: string
-          id?: string
-          payload?: Json
-          payment_id?: string | null
-          processed?: boolean | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "payment_webhooks_payment_id_fkey"
-            columns: ["payment_id"]
-            isOneToOne: false
-            referencedRelation: "payment_status_history_view"
-            referencedColumns: ["payment_id"]
-          },
-          {
-            foreignKeyName: "payment_webhooks_payment_id_fkey"
-            columns: ["payment_id"]
-            isOneToOne: false
-            referencedRelation: "payments"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       payments: {
         Row: {
           amount: number
@@ -633,6 +402,8 @@ export type Database = {
           id: string
           metadata: Json | null
           paid_at: string | null
+          payment_id: string | null
+          payment_method: string | null
           payment_method_id: string | null
           payment_url: string | null
           professional_id: string | null
@@ -648,6 +419,8 @@ export type Database = {
           id?: string
           metadata?: Json | null
           paid_at?: string | null
+          payment_id?: string | null
+          payment_method?: string | null
           payment_method_id?: string | null
           payment_url?: string | null
           professional_id?: string | null
@@ -663,6 +436,8 @@ export type Database = {
           id?: string
           metadata?: Json | null
           paid_at?: string | null
+          payment_id?: string | null
+          payment_method?: string | null
           payment_method_id?: string | null
           payment_url?: string | null
           professional_id?: string | null
@@ -670,43 +445,7 @@ export type Database = {
           status?: string | null
           transaction_id?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "payments_client_id_fkey"
-            columns: ["client_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "payments_payment_method_id_fkey"
-            columns: ["payment_method_id"]
-            isOneToOne: false
-            referencedRelation: "payment_methods"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "payments_professional_id_fkey"
-            columns: ["professional_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "payments_project_id_fkey"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "payment_status_history_view"
-            referencedColumns: ["project_id"]
-          },
-          {
-            foreignKeyName: "payments_project_id_fkey"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "projects"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       profiles: {
         Row: {
@@ -731,7 +470,6 @@ export type Database = {
           id: string
           insurance_info: string | null
           is_available: boolean | null
-          last_admin_action: string | null
           last_name: string | null
           license_number: string | null
           location: string | null
@@ -753,7 +491,6 @@ export type Database = {
           state: string | null
           updated_at: string | null
           verification_status: string | null
-          years_experience: number | null
           years_of_experience: number | null
           zip_code: string | null
         }
@@ -779,7 +516,6 @@ export type Database = {
           id: string
           insurance_info?: string | null
           is_available?: boolean | null
-          last_admin_action?: string | null
           last_name?: string | null
           license_number?: string | null
           location?: string | null
@@ -801,7 +537,6 @@ export type Database = {
           state?: string | null
           updated_at?: string | null
           verification_status?: string | null
-          years_experience?: number | null
           years_of_experience?: number | null
           zip_code?: string | null
         }
@@ -827,7 +562,6 @@ export type Database = {
           id?: string
           insurance_info?: string | null
           is_available?: boolean | null
-          last_admin_action?: string | null
           last_name?: string | null
           license_number?: string | null
           location?: string | null
@@ -849,7 +583,6 @@ export type Database = {
           state?: string | null
           updated_at?: string | null
           verification_status?: string | null
-          years_experience?: number | null
           years_of_experience?: number | null
           zip_code?: string | null
         }
@@ -889,22 +622,7 @@ export type Database = {
           project_id?: string | null
           updated_at?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "project_archives_project_id_fkey"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "payment_status_history_view"
-            referencedColumns: ["project_id"]
-          },
-          {
-            foreignKeyName: "project_archives_project_id_fkey"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "projects"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       project_completion_checklist: {
         Row: {
@@ -946,22 +664,7 @@ export type Database = {
           project_id?: string | null
           updated_at?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "project_completion_checklist_project_id_fkey"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "payment_status_history_view"
-            referencedColumns: ["project_id"]
-          },
-          {
-            foreignKeyName: "project_completion_checklist_project_id_fkey"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "projects"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       project_deliverables: {
         Row: {
@@ -1006,36 +709,7 @@ export type Database = {
           status?: string | null
           uploaded_by?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "project_deliverables_milestone_id_fkey"
-            columns: ["milestone_id"]
-            isOneToOne: false
-            referencedRelation: "project_milestones"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "project_deliverables_project_id_fkey"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "payment_status_history_view"
-            referencedColumns: ["project_id"]
-          },
-          {
-            foreignKeyName: "project_deliverables_project_id_fkey"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "projects"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "project_deliverables_uploaded_by_fkey"
-            columns: ["uploaded_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       project_history: {
         Row: {
@@ -1062,22 +736,7 @@ export type Database = {
           id?: string
           project_id?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "project_history_project_id_fkey"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "payment_status_history_view"
-            referencedColumns: ["project_id"]
-          },
-          {
-            foreignKeyName: "project_history_project_id_fkey"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "projects"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       project_messages: {
         Row: {
@@ -1104,36 +763,7 @@ export type Database = {
           sender_id?: string | null
           sent_at?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "messages_project_id_fkey"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "payment_status_history_view"
-            referencedColumns: ["project_id"]
-          },
-          {
-            foreignKeyName: "messages_project_id_fkey"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "projects"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "messages_recipient_id_fkey"
-            columns: ["recipient_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "messages_sender_id_fkey"
-            columns: ["sender_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       project_milestones: {
         Row: {
@@ -1175,40 +805,71 @@ export type Database = {
           title?: string
           updated_at?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "project_milestones_created_by_fkey1"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "project_milestones_created_by_fkey2"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "project_milestones_project_id_fkey"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "payment_status_history_view"
-            referencedColumns: ["project_id"]
-          },
-          {
-            foreignKeyName: "project_milestones_project_id_fkey"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "projects"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
+      }
+      project_tasks: {
+        Row: {
+          assignee_id: string | null
+          completed: boolean | null
+          completion_date: string | null
+          created_at: string
+          created_by: string | null
+          dependencies: string[] | null
+          description: string | null
+          due_date: string | null
+          id: string
+          milestone_id: string | null
+          priority: string
+          project_id: string
+          status: string
+          tags: string[] | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          assignee_id?: string | null
+          completed?: boolean | null
+          completion_date?: string | null
+          created_at?: string
+          created_by?: string | null
+          dependencies?: string[] | null
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          milestone_id?: string | null
+          priority?: string
+          project_id: string
+          status?: string
+          tags?: string[] | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          assignee_id?: string | null
+          completed?: boolean | null
+          completion_date?: string | null
+          created_at?: string
+          created_by?: string | null
+          dependencies?: string[] | null
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          milestone_id?: string | null
+          priority?: string
+          project_id?: string
+          status?: string
+          tags?: string[] | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       project_updates: {
         Row: {
           created_at: string | null
+          file_access_level: string | null
+          file_metadata: Json | null
+          file_name: string | null
           file_url: string | null
           id: string
           message: string | null
@@ -1217,9 +878,13 @@ export type Database = {
           project_id: string | null
           status_update: string | null
           update_type: string | null
+          user_id: string | null
         }
         Insert: {
           created_at?: string | null
+          file_access_level?: string | null
+          file_metadata?: Json | null
+          file_name?: string | null
           file_url?: string | null
           id?: string
           message?: string | null
@@ -1228,9 +893,13 @@ export type Database = {
           project_id?: string | null
           status_update?: string | null
           update_type?: string | null
+          user_id?: string | null
         }
         Update: {
           created_at?: string | null
+          file_access_level?: string | null
+          file_metadata?: Json | null
+          file_name?: string | null
           file_url?: string | null
           id?: string
           message?: string | null
@@ -1239,25 +908,12 @@ export type Database = {
           project_id?: string | null
           status_update?: string | null
           update_type?: string | null
+          user_id?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "project_updates_project_id_fkey"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "payment_status_history_view"
-            referencedColumns: ["project_id"]
-          },
-          {
-            foreignKeyName: "project_updates_project_id_fkey"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "projects"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "project_updates_user_id_fkey"
-            columns: ["professional_id"]
+            columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -1279,17 +935,9 @@ export type Database = {
           industry_specific_fields: Json | null
           location: string | null
           location_coordinates: unknown | null
-          payment_due_date: string | null
-          payment_id: string | null
-          payment_required: boolean | null
-          payment_status: string | null
           professional_id: string | null
-          project_start_time: string | null
-          recommended_skills: string | null
           requirements: string[] | null
-          rich_description: string | null
           scope: string | null
-          service_contract: string | null
           sla_terms: Json | null
           status: string | null
           title: string
@@ -1310,17 +958,9 @@ export type Database = {
           industry_specific_fields?: Json | null
           location?: string | null
           location_coordinates?: unknown | null
-          payment_due_date?: string | null
-          payment_id?: string | null
-          payment_required?: boolean | null
-          payment_status?: string | null
           professional_id?: string | null
-          project_start_time?: string | null
-          recommended_skills?: string | null
           requirements?: string[] | null
-          rich_description?: string | null
           scope?: string | null
-          service_contract?: string | null
           sla_terms?: Json | null
           status?: string | null
           title: string
@@ -1341,60 +981,16 @@ export type Database = {
           industry_specific_fields?: Json | null
           location?: string | null
           location_coordinates?: unknown | null
-          payment_due_date?: string | null
-          payment_id?: string | null
-          payment_required?: boolean | null
-          payment_status?: string | null
           professional_id?: string | null
-          project_start_time?: string | null
-          recommended_skills?: string | null
           requirements?: string[] | null
-          rich_description?: string | null
           scope?: string | null
-          service_contract?: string | null
           sla_terms?: Json | null
           status?: string | null
           title?: string
           updated_at?: string | null
           urgency?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "projects_assigned_to_fkey"
-            columns: ["assigned_to"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "projects_client_id_fkey"
-            columns: ["client_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "projects_payment_id_fkey"
-            columns: ["payment_id"]
-            isOneToOne: false
-            referencedRelation: "payment_status_history_view"
-            referencedColumns: ["payment_id"]
-          },
-          {
-            foreignKeyName: "projects_payment_id_fkey"
-            columns: ["payment_id"]
-            isOneToOne: false
-            referencedRelation: "payments"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "projects_professional_id_fkey"
-            columns: ["professional_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       review_helpfulness: {
         Row: {
@@ -1418,22 +1014,7 @@ export type Database = {
           review_id?: string | null
           user_id?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "review_helpfulness_review_id_fkey"
-            columns: ["review_id"]
-            isOneToOne: false
-            referencedRelation: "reviews"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "review_helpfulness_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       review_responses: {
         Row: {
@@ -1460,22 +1041,7 @@ export type Database = {
           review_id?: string | null
           updated_at?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "review_responses_responder_id_fkey"
-            columns: ["responder_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "review_responses_review_id_fkey"
-            columns: ["review_id"]
-            isOneToOne: false
-            referencedRelation: "reviews"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       reviews: {
         Row: {
@@ -1498,7 +1064,7 @@ export type Database = {
           reported_by: string | null
           status: string | null
           timeliness_rating: number | null
-          "updated at": string | null
+          updated_at: string | null
           verification_method: string | null
         }
         Insert: {
@@ -1521,7 +1087,7 @@ export type Database = {
           reported_by?: string | null
           status?: string | null
           timeliness_rating?: number | null
-          "updated at"?: string | null
+          updated_at?: string | null
           verification_method?: string | null
         }
         Update: {
@@ -1544,151 +1110,36 @@ export type Database = {
           reported_by?: string | null
           status?: string | null
           timeliness_rating?: number | null
-          "updated at"?: string | null
+          updated_at?: string | null
           verification_method?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "reviews_client_id_fkey"
-            columns: ["client_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "reviews_moderated_by_fkey"
-            columns: ["moderated_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "reviews_professional_id_fkey"
-            columns: ["professional_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "reviews_project_id_fkey"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "payment_status_history_view"
-            referencedColumns: ["project_id"]
-          },
-          {
-            foreignKeyName: "reviews_project_id_fkey"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "projects"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "reviews_reported_by_fkey"
-            columns: ["reported_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
-      work_version_files: {
+      user_roles: {
         Row: {
           created_at: string | null
-          file_name: string
-          file_size: number | null
-          file_type: string | null
-          file_url: string
           id: string
-          uploaded_at: string | null
-          version_id: string | null
+          role: string
+          user_id: string
         }
         Insert: {
           created_at?: string | null
-          file_name: string
-          file_size?: number | null
-          file_type?: string | null
-          file_url: string
           id?: string
-          uploaded_at?: string | null
-          version_id?: string | null
+          role: string
+          user_id: string
         }
         Update: {
           created_at?: string | null
-          file_name?: string
-          file_size?: number | null
-          file_type?: string | null
-          file_url?: string
           id?: string
-          uploaded_at?: string | null
-          version_id?: string | null
+          role?: string
+          user_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "work_version_files_version_id_fkey"
-            columns: ["version_id"]
+            foreignKeyName: "user_roles_user_id_fkey"
+            columns: ["user_id"]
             isOneToOne: false
-            referencedRelation: "work_versions"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      work_versions: {
-        Row: {
-          created_at: string | null
-          feedback: string | null
-          id: string
-          metadata: Json | null
-          project_id: string | null
-          reviewed_at: string | null
-          reviewed_by: string | null
-          status: string | null
-          submitted_at: string | null
-          submitted_by: string | null
-          updated_at: string | null
-          version_number: number
-        }
-        Insert: {
-          created_at?: string | null
-          feedback?: string | null
-          id?: string
-          metadata?: Json | null
-          project_id?: string | null
-          reviewed_at?: string | null
-          reviewed_by?: string | null
-          status?: string | null
-          submitted_at?: string | null
-          submitted_by?: string | null
-          updated_at?: string | null
-          version_number: number
-        }
-        Update: {
-          created_at?: string | null
-          feedback?: string | null
-          id?: string
-          metadata?: Json | null
-          project_id?: string | null
-          reviewed_at?: string | null
-          reviewed_by?: string | null
-          status?: string | null
-          submitted_at?: string | null
-          submitted_by?: string | null
-          updated_at?: string | null
-          version_number?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "work_versions_project_id_fkey"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "payment_status_history_view"
-            referencedColumns: ["project_id"]
-          },
-          {
-            foreignKeyName: "work_versions_project_id_fkey"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "projects"
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -1707,7 +1158,6 @@ export type Database = {
           professional_first_name: string | null
           professional_last_name: string | null
           project_id: string | null
-          project_payment_status: string | null
           project_status: string | null
           project_title: string | null
         }
@@ -1734,6 +1184,40 @@ export type Database = {
     }
     Enums: {
       account_type_enum: "client" | "professional"
+      dispute_status_enum:
+        | "open"
+        | "under_review"
+        | "resolved"
+        | "closed"
+        | "escalated"
+      file_review_status_enum: "pending" | "approved" | "rejected"
+      milestone_status_enum:
+        | "not_started"
+        | "in_progress"
+        | "completed"
+        | "on_hold"
+        | "overdue"
+      payment_status_enum:
+        | "pending"
+        | "processing"
+        | "completed"
+        | "failed"
+        | "refunded"
+        | "overdue"
+      project_status_enum:
+        | "open"
+        | "assigned"
+        | "in_progress"
+        | "work_submitted"
+        | "work_revision_requested"
+        | "work_approved"
+        | "completed"
+        | "archived"
+        | "cancelled"
+        | "disputed"
+      review_status_enum: "pending" | "approved" | "rejected" | "reported"
+      task_status_enum: "todo" | "in_progress" | "completed"
+      verification_status_enum: "unverified" | "pending" | "verified"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1850,6 +1334,44 @@ export const Constants = {
   public: {
     Enums: {
       account_type_enum: ["client", "professional"],
+      dispute_status_enum: [
+        "open",
+        "under_review",
+        "resolved",
+        "closed",
+        "escalated",
+      ],
+      file_review_status_enum: ["pending", "approved", "rejected"],
+      milestone_status_enum: [
+        "not_started",
+        "in_progress",
+        "completed",
+        "on_hold",
+        "overdue",
+      ],
+      payment_status_enum: [
+        "pending",
+        "processing",
+        "completed",
+        "failed",
+        "refunded",
+        "overdue",
+      ],
+      project_status_enum: [
+        "open",
+        "assigned",
+        "in_progress",
+        "work_submitted",
+        "work_revision_requested",
+        "work_approved",
+        "completed",
+        "archived",
+        "cancelled",
+        "disputed",
+      ],
+      review_status_enum: ["pending", "approved", "rejected", "reported"],
+      task_status_enum: ["todo", "in_progress", "completed"],
+      verification_status_enum: ["unverified", "pending", "verified"],
     },
   },
 } as const
