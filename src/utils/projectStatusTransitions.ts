@@ -27,16 +27,25 @@ const TRANSITION_REQUIREMENTS: Record<ProjectStatus, {
     requiredConditions: (project) => true
   },
   open: {
-    requiredFields: ['title', 'description', 'budget'],
-    requiredConditions: (project) => true
+    requiredFields: ['title', 'description', 'budget', 'category'],
+    requiredConditions: (project) => {
+      return project.budget > 0 && !!project.category;
+    }
   },
   assigned: {
-    requiredFields: ['assigned_to', 'professional_id'],
-    requiredConditions: (project) => !!project.assigned_to && !!project.professional_id
+    requiredFields: ['assigned_to', 'professional_id', 'contract_template_id'],
+    requiredConditions: (project) => {
+      return !!project.assigned_to && 
+             !!project.professional_id && 
+             !!project.contract_template_id;
+    }
   },
   in_progress: {
     requiredFields: ['project_start_time'],
-    requiredConditions: (project) => !!project.project_start_time
+    requiredConditions: (project) => {
+      return !!project.project_start_time && 
+             project.milestones?.length > 0;
+    }
   },
   work_submitted: {
     requiredFields: [],
@@ -49,11 +58,18 @@ const TRANSITION_REQUIREMENTS: Record<ProjectStatus, {
   },
   work_revision_requested: {
     requiredFields: ['revision_notes'],
-    requiredConditions: (project) => !!project.revision_notes
+    requiredConditions: (project) => {
+      return !!project.revision_notes;
+    }
   },
   work_approved: {
     requiredFields: [],
-    requiredConditions: (project) => true
+    requiredConditions: (project) => {
+      // Check if all milestones are completed
+      return project.milestones?.every((milestone: any) => 
+        milestone.status === 'completed'
+      ) ?? false;
+    }
   },
   completed: {
     requiredFields: [],
@@ -85,11 +101,15 @@ const TRANSITION_REQUIREMENTS: Record<ProjectStatus, {
   },
   cancelled: {
     requiredFields: ['cancellation_reason'],
-    requiredConditions: (project) => !!project.cancellation_reason
+    requiredConditions: (project) => {
+      return !!project.cancellation_reason;
+    }
   },
   disputed: {
     requiredFields: ['dispute_reason'],
-    requiredConditions: (project) => !!project.dispute_reason
+    requiredConditions: (project) => {
+      return !!project.dispute_reason;
+    }
   }
 };
 

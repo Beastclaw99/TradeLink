@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { notificationService } from '@/services/notificationService';
+import { ProjectStatus } from '@/types/projectUpdates';
 
 interface ProjectStatusUpdateProps {
   projectId: string;
@@ -24,20 +25,25 @@ const ProjectStatusUpdate: React.FC<ProjectStatusUpdateProps> = ({
   const [isUpdating, setIsUpdating] = useState(false);
   const { toast } = useToast();
 
-  const getNextStatus = (currentStatus: string) => {
-    const statusFlow: Record<string, string> = {
+  const getNextStatus = (currentStatus: ProjectStatus): ProjectStatus | undefined => {
+    const statusFlow: Record<ProjectStatus, ProjectStatus> = {
+      draft: 'open',
       open: 'assigned',
       assigned: 'in_progress',
       in_progress: 'work_submitted',
       work_submitted: 'work_revision_requested',
       work_revision_requested: 'work_approved',
-      work_approved: 'completed'
+      work_approved: 'completed',
+      completed: 'archived',
+      archived: 'archived',
+      cancelled: 'cancelled',
+      disputed: 'disputed'
     };
     return statusFlow[currentStatus];
   };
 
   const updateStatus = async () => {
-    const newStatus = getNextStatus(currentStatus);
+    const newStatus = getNextStatus(currentStatus as ProjectStatus);
     if (!newStatus) return;
 
     setIsUpdating(true);
@@ -76,7 +82,7 @@ const ProjectStatusUpdate: React.FC<ProjectStatusUpdateProps> = ({
     }
   };
 
-  const nextStatus = getNextStatus(currentStatus);
+  const nextStatus = getNextStatus(currentStatus as ProjectStatus);
   if (!nextStatus) return null;
 
   return (

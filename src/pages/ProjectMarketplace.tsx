@@ -69,48 +69,87 @@ const ProjectMarketplace: React.FC = () => {
     try {
       setLoading(true);
       
-      const { data, error } = await supabase
+      let query = supabase
         .from('projects')
         .select(`
           *,
-          client:profiles!projects_client_id_fkey(first_name, last_name)
+          client:profiles!projects_client_id_fkey(
+            first_name,
+            last_name,
+            profile_image,
+            rating,
+            total_reviews
+          ),
+          milestones:project_milestones(*),
+          deliverables:project_deliverables(*),
+          applications:project_applications(*)
         `)
-        .eq('status', 'open')
-        .order('created_at', { ascending: false });
+        .eq('status', 'open');
+
+      // Apply filters if they exist
+      if (categoryFilter && categoryFilter !== 'all') {
+        query = query.eq('category', categoryFilter);
+      }
+
+      if (locationFilter && locationFilter !== 'all') {
+        query = query.ilike('location', `%${locationFilter}%`);
+      }
+
+      if (budgetFilter && budgetFilter !== 'any') {
+        switch (budgetFilter) {
+          case 'under5k':
+            query = query.lt('budget', 5000);
+            break;
+          case '5k-10k':
+            query = query.gte('budget', 5000).lte('budget', 10000);
+            break;
+          case 'over10k':
+            query = query.gt('budget', 10000);
+            break;
+        }
+      }
+
+      // Add sorting
+      query = query.order('created_at', { ascending: false });
+      
+      const { data, error } = await query;
         
       if (error) throw error;
       
       const typedProjects: Project[] = data?.map(project => ({
         id: project.id,
         title: project.title,
-        description: project.description || null,
-        category: project.category || null,
-        budget: project.budget || null,
-        expected_timeline: project.expected_timeline || null,
-        location: project.location || null,
-        urgency: project.urgency || null,
-        requirements: project.requirements || null,
-        required_skills: project.recommended_skills || null,
-        status: project.status || null,
-        created_at: project.created_at || null,
-        updated_at: project.updated_at || null,
-        client_id: project.client_id || null,
-        assigned_to: project.assigned_to || null,
-        professional_id: project.professional_id || null,
-        contract_template_id: project.contract_template_id || null,
-        deadline: project.deadline || null,
-        industry_specific_fields: project.industry_specific_fields || null,
-        location_coordinates: project.location_coordinates || null,
-        project_start_time: project.project_start_time || null,
-        rich_description: project.rich_description || null,
-        scope: project.scope || null,
-        service_contract: project.service_contract || null,
-        sla_terms: project.sla_terms || null,
-        client: project.client || undefined
+        description: project.description,
+        category: project.category,
+        budget: project.budget,
+        expected_timeline: project.expected_timeline,
+        location: project.location,
+        urgency: project.urgency,
+        requirements: project.requirements,
+        recommended_skills: project.recommended_skills,
+        status: project.status,
+        created_at: project.created_at,
+        updated_at: project.updated_at,
+        client_id: project.client_id,
+        assigned_to: project.assigned_to,
+        professional_id: project.professional_id,
+        contract_template_id: project.contract_template_id,
+        deadline: project.deadline,
+        industry_specific_fields: project.industry_specific_fields,
+        location_coordinates: project.location_coordinates,
+        project_start_time: project.project_start_time,
+        rich_description: project.rich_description,
+        scope: project.scope,
+        service_contract: project.service_contract,
+        sla_terms: project.sla_terms,
+        client: project.client,
+        milestones: project.milestones,
+        deliverables: project.deliverables,
+        applications: project.applications
       })) || [];
       
       setProjects(typedProjects);
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error fetching projects:', error);
       toast({
         title: "Error",

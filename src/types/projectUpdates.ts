@@ -1,4 +1,4 @@
-import { ProjectStatus, ProjectUpdate as DBProjectUpdate } from './database';
+import { ProjectStatus as DBProjectStatus, ProjectUpdate as DBProjectUpdate } from './database';
 
 export type UpdateType =
   | 'message'                 // General message
@@ -21,7 +21,7 @@ export type UpdateType =
   | 'custom_field_updated';
 
 export interface StatusMetadata {
-  previous_status?: ProjectStatus;
+  previous_status?: DBProjectStatus;
   cancellation_reason?: string;
   dispute_reason?: string;
   revision_notes?: string;
@@ -36,15 +36,5 @@ export interface ProjectUpdate extends DBProjectUpdate {
   };
 }
 
-export type ProjectStatus =
-  | 'draft'
-  | 'open'
-  | 'assigned'
-  | 'in_progress'
-  | 'work_submitted'
-  | 'work_revision_requested'
-  | 'work_approved'
-  | 'completed'
-  | 'archived'
-  | 'cancelled'
-  | 'disputed';
+// Re-export the ProjectStatus type from database
+export type ProjectStatus = DBProjectStatus;
