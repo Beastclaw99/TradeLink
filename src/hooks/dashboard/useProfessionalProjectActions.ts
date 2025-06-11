@@ -12,81 +12,71 @@ export const useProfessionalProjectActions = (userId: string, fetchDashboardData
   const [availability, setAvailability] = useState('');
 
   const handleApplyToProject = async () => {
-    if (!selectedProject || !coverLetter.trim() || bidAmount === null) {
+    if (!selectedProject || !bidAmount || !coverLetter) {
       toast({
-        title: "Missing information",
-        description: "Please provide both a bid amount and proposal message",
+        title: "Error",
+        description: "Please fill in all required fields",
         variant: "destructive"
       });
       return;
     }
-    
+
     try {
       setIsApplying(true);
-      
-      // Check if project is still open before applying
+
       const { data: projectData, error: projectError } = await supabase
         .from('projects')
-        .select('status, title, client_id')
+        .select('budget, status')
         .eq('id', selectedProject)
         .single();
-        
+
       if (projectError) throw projectError;
-      
+
       if (projectData.status !== 'open') {
         toast({
-          title: "Project Unavailable",
-          description: "This project is no longer accepting applications.",
+          title: "Error",
+          description: "This project is no longer accepting applications",
           variant: "destructive"
         });
-        setSelectedProject(null);
-        setCoverLetter('');
-        setBidAmount(null);
-        setAvailability('');
         return;
       }
-      
-      const { data, error } = await supabase
+
+      if (bidAmount > projectData.budget * 1.5) {
+        toast({
+          title: "Warning",
+          description: "Your bid is significantly higher than the project budget",
+          variant: "warning"
+        });
+      }
+
+      const { error: applicationError } = await supabase
         .from('applications')
-        .insert([
-          {
-            project_id: selectedProject,
-            professional_id: userId,
-            cover_letter: coverLetter,
-            bid_amount: bidAmount,
-            proposal_message: coverLetter,
-            availability: availability,
-            status: 'pending'
-          }
-        ])
-        .select();
-      
-      if (error) throw error;
-      
-      // Create notification for client
-      await notificationService.createNotification({
-        user_id: projectData.client_id,
-        type: 'info',
-        title: 'New Application Received',
-        message: `A new application has been submitted for your project "${projectData.title}".`,
-        action_url: `/projects/${selectedProject}`,
-        action_label: 'View Application'
-      });
-      
+        .insert({
+          project_id: selectedProject,
+          professional_id: userId,
+          bid_amount: bidAmount,
+          cover_letter: coverLetter,
+          availability: availability,
+          status: 'pending',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        });
+
+      if (applicationError) throw applicationError;
+
       toast({
-        title: "Application Submitted",
-        description: "Your application has been submitted successfully!"
+        title: "Success",
+        description: "Your application has been submitted successfully",
       });
-      
+
       // Reset form
-      setCoverLetter('');
       setSelectedProject(null);
       setBidAmount(null);
+      setCoverLetter('');
       setAvailability('');
-      
+
       // Refresh data
-      fetchDashboardData();
-      
+      await fetchDashboardData();
     } catch (error: any) {
       console.error('Error applying to project:', error);
       toast({

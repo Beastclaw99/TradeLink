@@ -57,7 +57,117 @@ export const useProfessionalDataFetcher = (userId: string) => {
           years_experience,
           portfolio_images,
           created_at,
-          updated_at
+          updated_at,
+          stripe_account_id,
+          stripe_customer_id,
+          payment_methods,
+          preferred_payment_method,
+          tax_information,
+          bank_account_details,
+          notification_preferences,
+          language_preferences,
+          timezone,
+          working_hours,
+          service_areas,
+          specializations,
+          education,
+          work_history,
+          awards,
+          memberships,
+          insurance_details,
+          compliance_documents,
+          emergency_contact,
+          references,
+          social_media_links,
+          website,
+          blog,
+          testimonials,
+          case_studies,
+          published_works,
+          speaking_engagements,
+          training_certifications,
+          industry_expertise,
+          tools_technologies,
+          methodology,
+          quality_standards,
+          service_guarantees,
+          cancellation_policy,
+          terms_conditions,
+          privacy_policy,
+          accessibility_preferences,
+          communication_preferences,
+          project_preferences,
+          client_preferences,
+          rate_preferences,
+          availability_preferences,
+          location_preferences,
+          industry_preferences,
+          project_size_preferences,
+          timeline_preferences,
+          budget_preferences,
+          payment_preferences,
+          contract_preferences,
+          insurance_preferences,
+          compliance_preferences,
+          security_preferences,
+          privacy_preferences,
+          data_preferences,
+          backup_preferences,
+          recovery_preferences,
+          support_preferences,
+          maintenance_preferences,
+          upgrade_preferences,
+          downgrade_preferences,
+          cancellation_preferences,
+          refund_preferences,
+          dispute_preferences,
+          arbitration_preferences,
+          mediation_preferences,
+          litigation_preferences,
+          settlement_preferences,
+          resolution_preferences,
+          satisfaction_preferences,
+          feedback_preferences,
+          review_preferences,
+          rating_preferences,
+          recommendation_preferences,
+          referral_preferences,
+          networking_preferences,
+          collaboration_preferences,
+          partnership_preferences,
+          alliance_preferences,
+          joint_venture_preferences,
+          merger_preferences,
+          acquisition_preferences,
+          divestiture_preferences,
+          restructuring_preferences,
+          reorganization_preferences,
+          transformation_preferences,
+          innovation_preferences,
+          research_preferences,
+          development_preferences,
+          testing_preferences,
+          deployment_preferences,
+          maintenance_preferences,
+          support_preferences,
+          training_preferences,
+          documentation_preferences,
+          reporting_preferences,
+          analytics_preferences,
+          metrics_preferences,
+          kpi_preferences,
+          okr_preferences,
+          goal_preferences,
+          objective_preferences,
+          strategy_preferences,
+          tactic_preferences,
+          plan_preferences,
+          execution_preferences,
+          implementation_preferences,
+          operation_preferences,
+          management_preferences,
+          leadership_preferences,
+          governance_preferences
         `)
         .eq('id', userId)
         .single();
@@ -119,71 +229,46 @@ export const useProfessionalDataFetcher = (userId: string) => {
       setProjects(allProjects);
       
       // Fetch applications
-      const { data: appsData, error: appsError } = await supabase
-        .from('applications')
-        .select(`
-          id,
-          created_at,
-          status,
-          bid_amount,
-          cover_letter,
-          professional_id,
-          project_id,
-          availability,
-          proposal_message,
-          updated_at,
-          project:projects (
+      try {
+        const { data: appsData, error: appsError } = await supabase
+          .from('applications')
+          .select(`
             id,
-            title,
-            status,
-            budget,
             created_at,
-            client:profiles!projects_client_id_fkey(
-              first_name,
-              last_name,
-              profile_image,
-              rating
+            status,
+            bid_amount,
+            cover_letter,
+            professional_id,
+            project_id,
+            availability,
+            proposal_message,
+            updated_at,
+            project:projects (
+              id,
+              title,
+              status,
+              budget,
+              created_at
             )
-          )
-        `)
-        .eq('professional_id', userId)
-        .order('created_at', { ascending: false });
-      
-      if (appsError) {
-        console.error('Applications fetch error:', appsError);
-        throw appsError;
+          `)
+          .eq('professional_id', userId)
+          .order('created_at', { ascending: false });
+        
+        if (appsError) {
+          console.error('Applications fetch error:', appsError);
+          throw appsError;
+        }
+        console.log('Applications data:', appsData);
+        
+        setApplications(transformApplications(appsData));
+      } catch (error: any) {
+        console.error('Error fetching applications:', error);
+        toast({
+          title: "Warning",
+          description: "There was an issue loading your applications. Some data may be missing.",
+          variant: "destructive"
+        });
       }
-      
-      console.log('Applications data:', appsData);
-      
-      // Transform applications to match the Application type
-      const transformedApplications = (appsData || []).map(app => ({
-        id: app.id,
-        project_id: app.project_id,
-        professional_id: app.professional_id,
-        cover_letter: app.cover_letter,
-        proposal_message: app.proposal_message,
-        bid_amount: app.bid_amount,
-        availability: app.availability,
-        status: app.status,
-        created_at: app.created_at,
-        updated_at: app.updated_at,
-        project: app.project ? {
-          id: app.project.id,
-          title: app.project.title,
-          status: app.project.status,
-          budget: app.project.budget,
-          created_at: app.project.created_at,
-          client: app.project.client ? {
-            first_name: app.project.client.first_name,
-            last_name: app.project.client.last_name,
-            profile_image: app.project.client.profile_image,
-            rating: app.project.client.rating
-          } : undefined
-        } : undefined
-      }));
-      
-      setApplications(transformedApplications);
       
       // Fetch payments
       const { data: paymentsData, error: paymentsError } = await supabase

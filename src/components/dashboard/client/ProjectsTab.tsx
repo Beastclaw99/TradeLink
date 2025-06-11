@@ -198,15 +198,15 @@ export const ProjectsTab: React.FC<ProjectsTabProps> = ({
       {projects.map((project) => (
         <Card key={project.id}>
           <CardHeader className="pb-4">
-            <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
-                <div className="flex-1">
-                  <CardTitle className="text-xl">{project.title}</CardTitle>
+                  <div className="flex-1">
+                      <CardTitle className="text-xl">{project.title}</CardTitle>
                   <CardDescription className="mt-1">
                     {project.description}
                   </CardDescription>
-                </div>
-              </div>
+                      </div>
+                    </div>
               <div className="flex items-center gap-2">
                 <Button
                   variant="outline"
@@ -216,19 +216,19 @@ export const ProjectsTab: React.FC<ProjectsTabProps> = ({
                   <Edit className="h-4 w-4 mr-2" />
                   Edit
                 </Button>
-                <Button
+                  <Button
                   variant="outline"
                   size="sm"
                   onClick={() => setSelectedProject(project)}
                 >
                   <Eye className="h-4 w-4 mr-2" />
                   View Details
-                </Button>
+                  </Button>
               </div>
-            </div>
-          </CardHeader>
+                </div>
+              </CardHeader>
 
-          <CardContent>
+                <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
               <div className="flex items-center gap-2">
                 <DollarSign className="h-4 w-4 text-gray-500" />
@@ -245,16 +245,16 @@ export const ProjectsTab: React.FC<ProjectsTabProps> = ({
             </div>
 
             <div className="mt-4">
-              <div className="flex items-center justify-between text-sm">
-                <span className="font-medium">Project Progress</span>
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="font-medium">Project Progress</span>
                 <span className="text-gray-600">{getProjectProgress(project)}%</span>
-              </div>
+                    </div>
               <Progress value={getProjectProgress(project)} className="h-2 mt-2" />
-              <ProgressIndicator 
+                    <ProgressIndicator 
                 steps={getProjectSteps(project)}
-                orientation="horizontal"
-              />
-            </div>
+                      orientation="horizontal"
+                    />
+                  </div>
           </CardContent>
 
           {expandedProjectId === project.id && selectedProject && (
@@ -264,54 +264,54 @@ export const ProjectsTab: React.FC<ProjectsTabProps> = ({
                   <TabsTrigger value="timeline">Timeline</TabsTrigger>
                   <TabsTrigger value="milestones">Milestones</TabsTrigger>
                   <TabsTrigger value="deliverables">Deliverables</TabsTrigger>
-                </TabsList>
+                    </TabsList>
 
-                <TabsContent value="timeline">
-                  <ProjectUpdateTimeline 
+                    <TabsContent value="timeline">
+                      <ProjectUpdateTimeline 
                     projectId={project.id} 
-                    isProfessional={false}
+                        isProfessional={false}
                     projectStatus={selectedProject.status || 'open'}
-                  />
-                </TabsContent>
+                      />
+                    </TabsContent>
 
-                <TabsContent value="milestones">
-                  <ProjectMilestones
+                    <TabsContent value="milestones">
+                      <ProjectMilestones 
                     milestones={selectedProject.milestones?.map(convertToMilestone) || []}
-                    isClient={true}
-                    onAddMilestone={async (milestone) => {
+                        isClient={true}
+                        onAddMilestone={async (milestone) => {
                       if (!selectedProject) return;
                       await handleAddMilestone(selectedProject.id, {
                         ...milestone,
                         due_date: milestone.due_date || null,
                         created_by: selectedProject.client_id || null
                       });
-                    }}
-                    onEditMilestone={async (milestoneId, updates) => {
+                        }}
+                        onEditMilestone={async (milestoneId, updates) => {
                       if (!selectedProject) return;
                       await handleEditMilestone(selectedProject.id, milestoneId, {
                         ...updates,
                         due_date: updates.due_date || null
                       });
-                    }}
-                    onDeleteMilestone={async (milestoneId) => {
+                        }}
+                        onDeleteMilestone={async (milestoneId) => {
                       if (!selectedProject) return;
-                      await handleDeleteMilestone(selectedProject.id, milestoneId);
-                    }}
-                    onUpdateTaskStatus={async (milestoneId, taskId, completed) => {
+                          await handleDeleteMilestone(selectedProject.id, milestoneId);
+                        }}
+                        onUpdateTaskStatus={async (milestoneId, taskId, completed) => {
                       // Implement task status update logic here
-                    }}
+                        }}
                     projectId={selectedProject.id}
                     projectStatus={selectedProject.status || 'open'}
-                  />
-                </TabsContent>
+                      />
+                    </TabsContent>
 
-                <TabsContent value="deliverables">
+                    <TabsContent value="deliverables">
                   <ProjectDeliverables projectId={project.id} />
-                </TabsContent>
-              </Tabs>
-            </CardContent>
-          )}
-        </Card>
+                    </TabsContent>
+                  </Tabs>
+                </CardContent>
+              )}
+            </Card>
       ))}
     </div>
   );
