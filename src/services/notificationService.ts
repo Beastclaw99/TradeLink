@@ -1,28 +1,133 @@
 import { supabase } from '@/integrations/supabase/client';
 
-interface NotificationData {
+interface Notification {
+  id: string;
   user_id: string;
-  type: 'info' | 'success' | 'warning' | 'error';
+  type: 'success' | 'warning' | 'error' | 'info';
   title: string;
   message: string;
   action_url?: string;
   action_label?: string;
+  read: boolean;
+  created_at: string;
+  updated_at: string;
+  metadata?: {
+    project_id?: string;
+    professional_id?: string;
+    client_id?: string;
+    application_id?: string;
+    milestone_id?: string;
+    deliverable_id?: string;
+    payment_id?: string;
+    review_id?: string;
+    [key: string]: any;
+  };
 }
 
 export const notificationService = {
-  // Create a notification
-  async createNotification(data: NotificationData) {
+  // Create a new notification
+  async createNotification(notification: Omit<Notification, 'id' | 'read' | 'created_at' | 'updated_at'>) {
     try {
       const { error } = await supabase
         .from('notifications')
-        .insert([{
-          ...data,
-          created_at: new Date().toISOString()
-        }]);
+        .insert({
+          ...notification,
+          read: false,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        });
 
       if (error) throw error;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating notification:', error);
+      throw error;
+    }
+  },
+
+  // Mark notification as read
+  async markAsRead(notificationId: string) {
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .update({
+          read: true,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', notificationId);
+
+      if (error) throw error;
+    } catch (error: any) {
+      console.error('Error marking notification as read:', error);
+      throw error;
+    }
+  },
+
+  // Mark all notifications as read
+  async markAllAsRead(userId: string) {
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .update({
+          read: true,
+          updated_at: new Date().toISOString()
+        })
+        .eq('user_id', userId)
+        .eq('read', false);
+
+      if (error) throw error;
+    } catch (error: any) {
+      console.error('Error marking all notifications as read:', error);
+      throw error;
+    }
+  },
+
+  // Delete notification
+  async deleteNotification(notificationId: string) {
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .delete()
+        .eq('id', notificationId);
+
+      if (error) throw error;
+    } catch (error: any) {
+      console.error('Error deleting notification:', error);
+      throw error;
+    }
+  },
+
+  // Get unread notifications count
+  async getUnreadCount(userId: string): Promise<number> {
+    try {
+      const { count, error } = await supabase
+        .from('notifications')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', userId)
+        .eq('read', false);
+
+      if (error) throw error;
+      return count || 0;
+    } catch (error: any) {
+      console.error('Error getting unread notifications count:', error);
+      throw error;
+    }
+  },
+
+  // Get notifications for user
+  async getNotifications(userId: string, limit = 50, offset = 0): Promise<Notification[]> {
+    try {
+      const { data, error } = await supabase
+        .from('notifications')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .range(offset, offset + limit - 1);
+
+      if (error) throw error;
+      return data || [];
+    } catch (error: any) {
+      console.error('Error getting notifications:', error);
+      throw error;
     }
   },
 

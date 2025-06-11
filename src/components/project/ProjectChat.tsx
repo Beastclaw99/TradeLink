@@ -219,26 +219,29 @@ const ProjectChat: React.FC<ProjectChatProps> = ({
   };
 
   const sendMessage = async () => {
-    if (!newMessage.trim() || !user || isChatDisabled) return;
+    if (!newMessage.trim() || !user?.id) return;
 
     try {
+      const messageData = {
+        project_id: projectId,
+        sender_id: user.id,
+        recipient_id: user.id === clientId ? professionalId : clientId,
+        content: newMessage.trim(),
+        sent_at: new Date().toISOString(),
+        metadata: {
+          type: 'message',
+          title: 'New Message'
+        }
+      };
+
       const { error } = await supabase
         .from('project_messages')
-        .insert({
-          project_id: projectId,
-          sender_id: user.id,
-          recipient_id: user.id === clientId ? professionalId : clientId,
-          content: newMessage.trim(),
-          sent_at: new Date().toISOString(),
-          metadata: {
-            type: 'chat_message',
-            title: 'Chat Message'
-          }
-        });
+        .insert(messageData);
 
       if (error) throw error;
 
       setNewMessage('');
+      scrollToBottom();
     } catch (error: any) {
       console.error('Error sending message:', error);
       toast({
@@ -256,6 +259,75 @@ const ProjectChat: React.FC<ProjectChatProps> = ({
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // Add message validation
+  const validateMessage = (content: string) => {
+    if (!content.trim()) {
+      toast({
+        title: "Error",
+        description: "Message cannot be empty",
+        variant: "destructive"
+      });
+      return false;
+    }
+
+    if (content.length > 1000) {
+      toast({
+        title: "Error",
+        description: "Message is too long (maximum 1000 characters)",
+        variant: "destructive"
+      });
+      return false;
+    }
+
+    return true;
+  };
+
+  // Add message sanitization
+  const sanitizeMessage = (content: string) => {
+    // Remove any HTML tags
+    const sanitized = content.replace(/<[^>]*>/g, '');
+    // Remove any script tags
+    return sanitized.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
+  };
+
+  // Update sendMessage to use validation and sanitization
+  const handleSendMessage = async () => {
+    if (!user?.id) return;
+
+    const sanitizedMessage = sanitizeMessage(newMessage);
+    if (!validateMessage(sanitizedMessage)) return;
+
+    try {
+      const messageData = {
+        project_id: projectId,
+        sender_id: user.id,
+        recipient_id: user.id === clientId ? professionalId : clientId,
+        content: sanitizedMessage,
+        sent_at: new Date().toISOString(),
+        metadata: {
+          type: 'message',
+          title: 'New Message'
+        }
+      };
+
+      const { error } = await supabase
+        .from('project_messages')
+        .insert(messageData);
+
+      if (error) throw error;
+
+      setNewMessage('');
+      scrollToBottom();
+    } catch (error: any) {
+      console.error('Error sending message:', error);
+      toast({
+        title: "Error",
+        description: "Failed to send message. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
 
   if (isLoading) {
     return (
@@ -352,9 +424,9 @@ const ProjectChat: React.FC<ProjectChatProps> = ({
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
               placeholder="Type a message..."
-              onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
+              onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
             />
-            <Button onClick={sendMessage} disabled={!newMessage.trim()}>
+            <Button onClick={handleSendMessage} disabled={!newMessage.trim()}>
               <Send className="h-4 w-4" />
             </Button>
           </div>
