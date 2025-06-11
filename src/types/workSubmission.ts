@@ -1,4 +1,4 @@
-import { ProjectStatus } from './projectUpdates';
+import { ProjectStatus, FileReviewStatus } from './database';
 
 export interface WorkVersion {
   id: string;
@@ -6,7 +6,7 @@ export interface WorkVersion {
   version_number: number;
   submitted_by: string;
   submitted_at: string;
-  status: 'pending' | 'approved' | 'revision_requested';
+  status: FileReviewStatus;
   feedback: string | null;
   reviewed_at: string | null;
   reviewed_by: string | null;
@@ -31,10 +31,10 @@ export interface WorkRevisionRequest {
   version_id: string;
   requested_by: string;
   requested_at: string;
-  due_date: string | null;
-  status: 'pending' | 'in_progress' | 'completed' | 'overdue';
-  feedback: string;
-  completed_at: string | null;
+  reason: string;
+  status: 'pending' | 'resolved';
+  resolved_at: string | null;
+  resolved_by: string | null;
   created_at: string;
   updated_at: string;
 }

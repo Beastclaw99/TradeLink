@@ -25,16 +25,9 @@ import {
   Check
 } from 'lucide-react';
 import { format } from 'date-fns';
+import { ProjectExpense, ExpenseStatus } from '@/types/database';
 
-interface Expense {
-  id: string;
-  description: string;
-  amount: number;
-  category: string;
-  date: string;
-  status: 'pending' | 'approved' | 'rejected';
-  receipt?: string;
-  notes?: string;
+interface ExtendedProjectExpense extends ProjectExpense {
   addedBy: {
     id: string;
     name: string;
@@ -46,7 +39,7 @@ interface ProjectBudget {
   totalBudget: number;
   spent: number;
   remaining: number;
-  expenses: Expense[];
+  expenses: ExtendedProjectExpense[];
   categories: {
     name: string;
     budget: number;
@@ -57,8 +50,8 @@ interface ProjectBudget {
 interface ProjectBudgetProps {
   budget: ProjectBudget;
   isClient: boolean;
-  onAddExpense: (expense: Omit<Expense, 'id'>) => Promise<void>;
-  onUpdateExpense: (expenseId: string, expense: Partial<Expense>) => Promise<void>;
+  onAddExpense: (expense: Omit<ExtendedProjectExpense, 'id' | 'created_at' | 'updated_at'>) => Promise<void>;
+  onUpdateExpense: (expenseId: string, expense: Partial<ExtendedProjectExpense>) => Promise<void>;
   onDeleteExpense: (expenseId: string) => Promise<void>;
   onUpdateBudget: (newBudget: number) => Promise<void>;
   isEditable?: boolean;
@@ -97,7 +90,7 @@ const ProjectBudget: React.FC<ProjectBudgetProps> = ({
         amount: parseFloat(newExpense.amount),
         category: newExpense.category,
         date: newExpense.date,
-        status: 'pending',
+        status: 'pending' as ExpenseStatus,
         notes: newExpense.notes.trim() || undefined,
         receipt: newExpense.receipt.trim() || undefined,
         addedBy: {
@@ -127,7 +120,7 @@ const ProjectBudget: React.FC<ProjectBudgetProps> = ({
     }
   };
 
-  const handleUpdateExpense = async (expenseId: string, updates: Partial<Expense>) => {
+  const handleUpdateExpense = async (expenseId: string, updates: Partial<ExtendedProjectExpense>) => {
     try {
       await onUpdateExpense(expenseId, updates);
       setEditingExpense(null);
@@ -192,8 +185,8 @@ const ProjectBudget: React.FC<ProjectBudgetProps> = ({
     }).format(amount);
   };
 
-  const getStatusBadge = (status: Expense['status']) => {
-    const statusConfig: Record<Expense['status'], { color: string; icon: React.ReactNode }> = {
+  const getStatusBadge = (status: ExpenseStatus) => {
+    const statusConfig: Record<ExpenseStatus, { color: string; icon: React.ReactNode }> = {
       pending: {
         color: 'bg-yellow-100 text-yellow-800 border-yellow-200',
         icon: <Clock className="h-4 w-4" />

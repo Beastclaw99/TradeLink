@@ -18,14 +18,10 @@ import {
   Trash2,
   UserPlus
 } from 'lucide-react';
+import { Profile } from '@/types/database';
 
-interface TeamMember {
-  id: string;
-  name: string;
-  email: string;
-  phone?: string;
+interface TeamMember extends Profile {
   role: string;
-  avatar?: string;
   joinDate: string;
   status: 'active' | 'inactive';
   skills: string[];
@@ -38,7 +34,7 @@ interface TeamMember {
 interface ProjectTeamProps {
   team: TeamMember[];
   isClient: boolean;
-  onAddMember: (member: Omit<TeamMember, 'id'>) => Promise<void>;
+  onAddMember: (member: Omit<TeamMember, 'id' | 'created_at' | 'updated_at'>) => Promise<void>;
   onUpdateMember: (memberId: string, member: Partial<TeamMember>) => Promise<void>;
   onRemoveMember: (memberId: string) => Promise<void>;
   availableRoles: string[];
@@ -56,7 +52,8 @@ const ProjectTeam: React.FC<ProjectTeamProps> = ({
   const [isAddingMember, setIsAddingMember] = useState(false);
   const [editingMember, setEditingMember] = useState<string | null>(null);
   const [newMember, setNewMember] = useState({
-    name: '',
+    first_name: '',
+    last_name: '',
     email: '',
     phone: '',
     role: '',
@@ -69,7 +66,7 @@ const ProjectTeam: React.FC<ProjectTeamProps> = ({
   const [newSkill, setNewSkill] = useState('');
 
   const handleAddMember = async () => {
-    if (!newMember.name.trim() || !newMember.email.trim() || !newMember.role) return;
+    if (!newMember.first_name.trim() || !newMember.last_name.trim() || !newMember.email.trim() || !newMember.role) return;
 
     try {
       await onAddMember({
@@ -78,7 +75,8 @@ const ProjectTeam: React.FC<ProjectTeamProps> = ({
         status: 'active'
       });
       setNewMember({
-        name: '',
+        first_name: '',
+        last_name: '',
         email: '',
         phone: '',
         role: '',
@@ -179,12 +177,21 @@ const ProjectTeam: React.FC<ProjectTeamProps> = ({
                 </DialogHeader>
                 <div className="space-y-4 py-4">
                   <div className="space-y-2">
-                    <Label htmlFor="name">Name</Label>
+                    <Label htmlFor="first_name">First Name</Label>
                     <Input
-                      id="name"
-                      value={newMember.name}
-                      onChange={(e) => setNewMember(prev => ({ ...prev, name: e.target.value }))}
-                      placeholder="Enter team member's name"
+                      id="first_name"
+                      value={newMember.first_name}
+                      onChange={(e) => setNewMember(prev => ({ ...prev, first_name: e.target.value }))}
+                      placeholder="Enter team member's first name"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="last_name">Last Name</Label>
+                    <Input
+                      id="last_name"
+                      value={newMember.last_name}
+                      onChange={(e) => setNewMember(prev => ({ ...prev, last_name: e.target.value }))}
+                      placeholder="Enter team member's last name"
                     />
                   </div>
                   <div className="space-y-2">
@@ -198,7 +205,7 @@ const ProjectTeam: React.FC<ProjectTeamProps> = ({
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="phone">Phone (Optional)</Label>
+                    <Label htmlFor="phone">Phone</Label>
                     <Input
                       id="phone"
                       type="tel"
@@ -232,57 +239,84 @@ const ProjectTeam: React.FC<ProjectTeamProps> = ({
                         value={newSkill}
                         onChange={(e) => setNewSkill(e.target.value)}
                         placeholder="Add a skill"
+                        onKeyPress={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            handleAddSkill();
+                          }
+                        }}
                       />
-                      <Button onClick={handleAddSkill}>Add</Button>
+                      <Button type="button" onClick={handleAddSkill}>
+                        <Plus className="h-4 w-4" />
+                      </Button>
                     </div>
                     <div className="flex flex-wrap gap-2 mt-2">
                       {newMember.skills.map((skill) => (
-                        <div
-                          key={skill}
-                          className="flex items-center gap-1 px-2 py-1 bg-gray-100 rounded-full text-sm"
-                        >
-                          <span>{skill}</span>
+                        <Badge key={skill} variant="secondary">
+                          {skill}
                           <button
+                            type="button"
                             onClick={() => handleRemoveSkill(skill)}
-                            className="text-gray-500 hover:text-gray-700"
+                            className="ml-1 hover:text-destructive"
                           >
                             ×
                           </button>
-                        </div>
+                        </Badge>
                       ))}
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="hoursPerWeek">Hours per Week</Label>
-                    <Input
-                      id="hoursPerWeek"
-                      type="number"
-                      value={newMember.availability.hoursPerWeek}
-                      onChange={(e) => setNewMember(prev => ({
-                        ...prev,
-                        availability: {
-                          ...prev.availability,
-                          hoursPerWeek: parseInt(e.target.value) || 0
-                        }
-                      }))}
-                      min="0"
-                      max="168"
-                    />
+                    <Label>Availability</Label>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="hoursPerWeek">Hours per Week</Label>
+                        <Input
+                          id="hoursPerWeek"
+                          type="number"
+                          min="0"
+                          max="168"
+                          value={newMember.availability.hoursPerWeek}
+                          onChange={(e) => setNewMember(prev => ({
+                            ...prev,
+                            availability: {
+                              ...prev.availability,
+                              hoursPerWeek: parseInt(e.target.value) || 0
+                            }
+                          }))}
+                        />
+                      </div>
+                      <div>
+                        <Label>Preferred Schedule</Label>
+                        <Select
+                          value={newMember.availability.preferredSchedule[0]}
+                          onValueChange={(value) => setNewMember(prev => ({
+                            ...prev,
+                            availability: {
+                              ...prev.availability,
+                              preferredSchedule: [value]
+                            }
+                          }))}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select schedule" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Monday-Friday">Monday - Friday</SelectItem>
+                            <SelectItem value="Weekends">Weekends</SelectItem>
+                            <SelectItem value="Flexible">Flexible</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex justify-end gap-2">
-                    <Button
-                      variant="outline"
-                      onClick={() => setIsAddingMember(false)}
-                    >
-                      Cancel
-                    </Button>
-                    <Button
-                      onClick={handleAddMember}
-                      disabled={!newMember.name.trim() || !newMember.email.trim() || !newMember.role}
-                    >
-                      Add Team Member
-                    </Button>
-                  </div>
+                </div>
+                <div className="flex justify-end gap-2">
+                  <Button variant="outline" onClick={() => setIsAddingMember(false)}>
+                    Cancel
+                  </Button>
+                  <Button onClick={handleAddMember}>
+                    Add Member
+                  </Button>
                 </div>
               </DialogContent>
             </Dialog>
@@ -290,85 +324,78 @@ const ProjectTeam: React.FC<ProjectTeamProps> = ({
         </div>
       </CardHeader>
       <CardContent className="p-6">
-        {team.length === 0 ? (
-          <div className="text-center py-8 text-gray-500">
-            <Users className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-            <p>No team members have been added yet.</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {team.map((member) => (
-              <div
-                key={member.id}
-                className="p-4 border rounded-lg space-y-4"
-              >
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-3">
-                    <Avatar>
-                      <AvatarImage src={member.avatar} />
-                      <AvatarFallback>{getInitials(member.name)}</AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <h3 className="font-medium">{member.name}</h3>
-                      <p className="text-sm text-gray-500">{member.role}</p>
-                    </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {team.map((member) => (
+            <Card key={member.id} className="p-4">
+              <div className="flex items-start justify-between">
+                <div className="flex items-center gap-3">
+                  <Avatar>
+                    <AvatarImage src={member.avatar_url} />
+                    <AvatarFallback>{getInitials(`${member.first_name} ${member.last_name}`)}</AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <h3 className="font-semibold">{`${member.first_name} ${member.last_name}`}</h3>
+                    <p className="text-sm text-muted-foreground">{member.role}</p>
                   </div>
-                  {isClient && (
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setEditingMember(member.id)}
-                      >
-                        <Edit2 className="h-4 w-4" />
+                </div>
+                {isClient && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon">
+                        <MoreVertical className="h-4 w-4" />
                       </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => setEditingMember(member.id)}>
+                        <Edit2 className="h-4 w-4 mr-2" />
+                        Edit
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        className="text-destructive"
                         onClick={() => handleRemoveMember(member.id)}
-                        className="text-red-600 hover:text-red-700"
                       >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  )}
-                </div>
-                <div className="space-y-2 text-sm">
-                  <div className="flex items-center gap-2 text-gray-500">
-                    <Mail className="h-4 w-4" />
-                    <span>{member.email}</span>
-                  </div>
-                  {member.phone && (
-                    <div className="flex items-center gap-2 text-gray-500">
-                      <Phone className="h-4 w-4" />
-                      <span>{member.phone}</span>
-                    </div>
-                  )}
-                  <div className="flex items-center gap-2 text-gray-500">
-                    <Calendar className="h-4 w-4" />
-                    <span>Joined {new Date(member.joinDate).toLocaleDateString()}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-gray-500">
-                    <Briefcase className="h-4 w-4" />
-                    <span>{member.availability.hoursPerWeek} hours/week</span>
-                  </div>
-                </div>
-                {member.skills.length > 0 && (
-                  <div className="flex flex-wrap gap-2">
-                    {member.skills.map((skill) => (
-                      <span
-                        key={skill}
-                        className="px-2 py-1 bg-gray-100 rounded-full text-sm"
-                      >
-                        {skill}
-                      </span>
-                    ))}
-                  </div>
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Remove
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 )}
               </div>
-            ))}
-          </div>
-        )}
+              <div className="mt-4 space-y-2">
+                <div className="flex items-center gap-2 text-sm">
+                  <Mail className="h-4 w-4" />
+                  <span>{member.email}</span>
+                </div>
+                {member.phone && (
+                  <div className="flex items-center gap-2 text-sm">
+                    <Phone className="h-4 w-4" />
+                    <span>{member.phone}</span>
+                  </div>
+                )}
+                <div className="flex items-center gap-2 text-sm">
+                  <Calendar className="h-4 w-4" />
+                  <span>Joined {format(new Date(member.joinDate), 'MMM d, yyyy')}</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  <Briefcase className="h-4 w-4" />
+                  <span>{member.availability.hoursPerWeek} hours/week</span>
+                </div>
+              </div>
+              {member.skills.length > 0 && (
+                <div className="mt-4">
+                  <h4 className="text-sm font-medium mb-2">Skills</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {member.skills.map((skill) => (
+                      <Badge key={skill} variant="secondary">
+                        {skill}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </Card>
+          ))}
+        </div>
       </CardContent>
     </Card>
   );

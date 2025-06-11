@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Project } from '../../types';
+import { Project, ProjectStatus } from '@/types/database';
 import ProjectStatusBadge from '@/components/shared/ProjectStatusBadge';
 import { Edit, Trash2, Send, Eye, Users } from 'lucide-react';
 
@@ -40,7 +40,7 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
         <div className="flex items-start justify-between">
           <div className="flex-1">
             <CardTitle className="text-lg mb-2">{project.title}</CardTitle>
-            <ProjectStatusBadge status={project.status} showIcon={true} />
+            <ProjectStatusBadge status={project.status || 'open'} showIcon={true} />
           </div>
         </div>
       </CardHeader>

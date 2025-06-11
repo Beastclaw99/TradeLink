@@ -41,26 +41,20 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { ProjectFile } from '@/types/database';
 
-interface ProjectFile {
-  id: string;
-  name: string;
-  type: string;
-  size: number;
+interface ExtendedProjectFile extends ProjectFile {
   uploadedBy: {
     id: string;
     name: string;
     avatar?: string;
   };
-  uploadedAt: string;
-  lastModified?: string;
-  downloadUrl: string;
   thumbnailUrl?: string;
   tags: string[];
 }
 
 interface ProjectFilesProps {
-  files: ProjectFile[];
+  files: ExtendedProjectFile[];
   isAdmin: boolean;
   onUploadFile: (file: File) => Promise<void>;
   onDeleteFile: (fileId: string) => Promise<void>;

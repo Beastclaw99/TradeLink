@@ -28,29 +28,19 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { format, formatDistanceToNow } from 'date-fns';
+import { ProjectComment, Profile } from '@/types/database';
 
-interface CommentUser {
-  id: string;
-  name: string;
-  avatar?: string;
-  role: string;
-}
-
-interface ProjectComment {
-  id: string;
-  content: string;
-  user: CommentUser;
-  createdAt: string;
-  updatedAt?: string;
+interface ExtendedProjectComment extends ProjectComment {
+  user: Profile & { role: string };
   likes: number;
   isLiked: boolean;
-  replies: ProjectComment[];
+  replies: ExtendedProjectComment[];
   isEdited: boolean;
 }
 
 interface ProjectCommentsProps {
-  comments: ProjectComment[];
-  currentUser: CommentUser;
+  comments: ExtendedProjectComment[];
+  currentUser: Profile & { role: string };
   isAdmin: boolean;
   onCreateComment: (content: string, parentId?: string) => Promise<void>;
   onUpdateComment: (commentId: string, content: string) => Promise<void>;
@@ -183,7 +173,7 @@ const ProjectComments: React.FC<ProjectCommentsProps> = ({
       .toUpperCase();
   };
 
-  const renderComment = (comment: ProjectComment, isReply = false) => {
+  const renderComment = (comment: ExtendedProjectComment, isReply = false) => {
     const isEditing = editingComment === comment.id;
     const isReplying = replyingTo === comment.id;
 
@@ -191,26 +181,22 @@ const ProjectComments: React.FC<ProjectCommentsProps> = ({
       <div key={comment.id} className={`space-y-4 ${isReply ? 'ml-12' : ''}`}>
         <div className="flex gap-4">
           <Avatar>
-            <AvatarImage src={comment.user.avatar} />
-            <AvatarFallback>{getInitials(comment.user.name)}</AvatarFallback>
+            <AvatarImage src={comment.user.avatar_url} />
+            <AvatarFallback>{getInitials(`${comment.user.first_name} ${comment.user.last_name}`)}</AvatarFallback>
           </Avatar>
           <div className="flex-1 space-y-2">
             <div className="flex items-center justify-between">
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
-                  <span className="font-medium">{comment.user.name}</span>
-                  <Badge variant="outline" className="text-xs">
-                    {comment.user.role}
-                  </Badge>
+                  <span className="font-medium">{`${comment.user.first_name} ${comment.user.last_name}`}</span>
+                  <Badge variant="outline">{comment.user.role}</Badge>
                 </div>
-                <div className="flex items-center gap-2 text-sm text-gray-500">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Clock className="h-4 w-4" />
                   <span>
-                    {formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true })}
+                    {formatDistanceToNow(new Date(comment.created_at), { addSuffix: true })}
+                    {comment.isEdited && ' (edited)'}
                   </span>
-                  {comment.isEdited && (
-                    <span className="text-gray-400">(edited)</span>
-                  )}
                 </div>
               </div>
               <DropdownMenu>
@@ -220,45 +206,33 @@ const ProjectComments: React.FC<ProjectCommentsProps> = ({
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  {(currentUser.id === comment.user.id || isAdmin) && (
+                  {currentUser.id === comment.user.id && (
                     <>
-                      <DropdownMenuItem
-                        onClick={() => {
-                          setEditingComment(comment.id);
-                          setEditContent(comment.content);
-                        }}
-                        disabled={isProcessing}
-                      >
+                      <DropdownMenuItem onClick={() => {
+                        setEditingComment(comment.id);
+                        setEditContent(comment.content);
+                      }}>
                         <Edit2 className="h-4 w-4 mr-2" />
                         Edit
                       </DropdownMenuItem>
                       <DropdownMenuItem
+                        className="text-destructive"
                         onClick={() => handleDeleteComment(comment.id)}
-                        disabled={isProcessing}
-                        className="text-red-600"
                       >
                         <Trash2 className="h-4 w-4 mr-2" />
                         Delete
                       </DropdownMenuItem>
-                      <DropdownMenuSeparator />
                     </>
                   )}
-                  <DropdownMenuItem
-                    onClick={() => setReplyingTo(comment.id)}
-                    disabled={isProcessing}
-                  >
-                    <Reply className="h-4 w-4 mr-2" />
-                    Reply
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() => handleReportComment(comment.id)}
-                    disabled={isProcessing}
-                  >
-                    <Flag className="h-4 w-4 mr-2" />
-                    Report
-                  </DropdownMenuItem>
+                  {currentUser.id !== comment.user.id && (
+                    <DropdownMenuItem
+                      className="text-destructive"
+                      onClick={() => handleReportComment(comment.id)}
+                    >
+                      <Flag className="h-4 w-4 mr-2" />
+                      Report
+                    </DropdownMenuItem>
+                  )}
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
@@ -267,8 +241,7 @@ const ProjectComments: React.FC<ProjectCommentsProps> = ({
                 <Textarea
                   value={editContent}
                   onChange={(e) => setEditContent(e.target.value)}
-                  placeholder="Edit your comment"
-                  rows={3}
+                  placeholder="Edit your comment..."
                 />
                 <div className="flex justify-end gap-2">
                   <Button
@@ -280,39 +253,32 @@ const ProjectComments: React.FC<ProjectCommentsProps> = ({
                   >
                     Cancel
                   </Button>
-                  <Button
-                    onClick={() => handleUpdateComment(comment.id)}
-                    disabled={isProcessing || !editContent.trim()}
-                  >
-                    Save Changes
+                  <Button onClick={() => handleUpdateComment(comment.id)}>
+                    Save
                   </Button>
                 </div>
               </div>
             ) : (
-              <p className="text-gray-700">{comment.content}</p>
+              <p className="text-sm">{comment.content}</p>
             )}
             <div className="flex items-center gap-4">
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => handleLikeComment(comment.id)}
-                disabled={isProcessing}
-                className={comment.isLiked ? 'text-blue-600' : ''}
+                className={comment.isLiked ? 'text-primary' : ''}
               >
                 <ThumbsUp className="h-4 w-4 mr-2" />
                 {comment.likes}
               </Button>
-              {!isReply && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setReplyingTo(comment.id)}
-                  disabled={isProcessing}
-                >
-                  <Reply className="h-4 w-4 mr-2" />
-                  Reply
-                </Button>
-              )}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setReplyingTo(comment.id)}
+              >
+                <Reply className="h-4 w-4 mr-2" />
+                Reply
+              </Button>
             </div>
             {isReplying && (
               <div className="space-y-2">
@@ -320,7 +286,6 @@ const ProjectComments: React.FC<ProjectCommentsProps> = ({
                   value={newComment}
                   onChange={(e) => setNewComment(e.target.value)}
                   placeholder="Write a reply..."
-                  rows={3}
                 />
                 <div className="flex justify-end gap-2">
                   <Button
@@ -332,11 +297,7 @@ const ProjectComments: React.FC<ProjectCommentsProps> = ({
                   >
                     Cancel
                   </Button>
-                  <Button
-                    onClick={() => handleCreateComment(comment.id)}
-                    disabled={isProcessing || !newComment.trim()}
-                  >
-                    <Send className="h-4 w-4 mr-2" />
+                  <Button onClick={() => handleCreateComment(comment.id)}>
                     Reply
                   </Button>
                 </div>

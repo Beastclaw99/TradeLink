@@ -1,6 +1,24 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { notificationService } from './notificationService';
+import { Dispute, DisputeCategory, DisputeStatus } from '@/types/database';
+
+export interface ExtendedDispute extends Dispute {
+  initiator?: {
+    first_name?: string;
+    last_name?: string;
+  };
+  respondent?: {
+    first_name?: string;
+    last_name?: string;
+  };
+  project?: {
+    title?: string;
+  };
+  mediator?: {
+    first_name?: string;
+    last_name?: string;
+  };
+}
 
 export interface Dispute {
   id: string;

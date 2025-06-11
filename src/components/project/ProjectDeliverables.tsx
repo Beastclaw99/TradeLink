@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -18,17 +17,10 @@ import {
   Plus,
   Calendar
 } from "lucide-react";
+import { ProjectDeliverable } from '@/types/database';
 
-interface Deliverable {
-  id: string;
-  file_url: string;
-  description?: string;
-  deliverable_type: string;
-  content?: string;
-  created_at: string;
+interface ExtendedProjectDeliverable extends ProjectDeliverable {
   uploaded_by?: string;
-  milestone_id?: string;
-  project_id: string;
 }
 
 interface ProjectDeliverablesProps {
@@ -41,7 +33,7 @@ const ProjectDeliverables: React.FC<ProjectDeliverablesProps> = ({
   canUpload = false 
 }) => {
   const { toast } = useToast();
-  const [deliverables, setDeliverables] = useState<Deliverable[]>([]);
+  const [deliverables, setDeliverables] = useState<ExtendedProjectDeliverable[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -115,7 +107,7 @@ const ProjectDeliverables: React.FC<ProjectDeliverablesProps> = ({
         fileUrl = publicUrl;
       }
 
-      const deliverableData = {
+      const deliverableData: Omit<ExtendedProjectDeliverable, 'id' | 'created_at' | 'updated_at'> = {
         project_id: projectId,
         file_url: fileUrl || formData.content,
         description: formData.description,

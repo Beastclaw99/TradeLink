@@ -1,15 +1,4 @@
-export type ProjectStatus =
-  | 'draft'                   // Project is in draft mode
-  | 'open'                    // Project is open for applications
-  | 'assigned'                // Project has been assigned to a professional
-  | 'in_progress'             // Work is in progress
-  | 'work_submitted'          // Professional has submitted work for review
-  | 'work_revision_requested' // Client has requested revisions
-  | 'work_approved'           // Client has approved the work
-  | 'completed'               // Project is completed but pending mutual reviews
-  | 'archived'                // Project is archived after mutual reviews
-  | 'cancelled'               // Project was cancelled
-  | 'disputed';               // Project is in dispute
+import { ProjectStatus, ProjectUpdate as DBProjectUpdate } from './database';
 
 export type UpdateType =
   | 'message'                 // General message
@@ -29,7 +18,7 @@ export type UpdateType =
   | 'payment_processed'      // Payment processed
   | 'schedule_updated'       // Schedule updated
   | 'task_completed'         // Task completed
-  | 'custom_field_updated';  // Custom field updated
+  | 'custom_field_updated';
 
 export interface StatusMetadata {
   previous_status?: ProjectStatus;
@@ -39,17 +28,7 @@ export interface StatusMetadata {
   [key: string]: any;
 }
 
-export interface ProjectUpdate {
-  id: string;
-  project_id: string;
-  update_type: UpdateType;
-  message?: string;
-  status_update?: ProjectStatus;
-  file_url?: string;
-  file_name?: string;
-  created_at: string;
-  professional_id: string;
-  metadata?: StatusMetadata;
+export interface ProjectUpdate extends DBProjectUpdate {
   profiles?: {
     first_name: string | null;
     last_name: string | null;

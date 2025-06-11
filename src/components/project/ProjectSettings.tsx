@@ -21,13 +21,13 @@ import {
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useProjectStatus } from '@/hooks/useProjectStatus';
-import { ProjectStatus } from '@/types/projectUpdates';
+import { Project, ProjectStatus } from '@/types/database';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 
 interface ProjectSettings {
   name: string;
   description: string;
-  status: 'open' | 'assigned' | 'in_progress' | 'work_submitted' | 'work_revision_requested' | 'work_approved' | 'completed' | 'archived' | 'cancelled' | 'disputed';
+  status: ProjectStatus;
   visibility: 'public' | 'private' | 'team';
   notifications: {
     email: boolean;
@@ -48,7 +48,7 @@ interface ProjectSettings {
 }
 
 interface ProjectSettingsProps {
-  project: any;
+  project: Project;
   onUpdate: () => void;
 }
 
@@ -125,7 +125,7 @@ const ProjectSettings: React.FC<ProjectSettingsProps> = ({ project, onUpdate }) 
       ...(editedSettings.status === 'work_revision_requested' && { revision_notes: statusMetadata.revision_notes })
     };
 
-    const result = await updateProjectStatus(editedSettings.status as ProjectStatus, metadata);
+    const result = await updateProjectStatus(editedSettings.status, metadata);
     if (result.success) {
       setShowStatusDialog(false);
       setStatusMetadata({
@@ -467,68 +467,60 @@ const ProjectSettings: React.FC<ProjectSettingsProps> = ({ project, onUpdate }) 
       <Dialog open={showStatusDialog} onOpenChange={setShowStatusDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Status Change Details</DialogTitle>
+            <DialogTitle>Status Change Confirmation</DialogTitle>
             <DialogDescription>
-              Please provide additional information required for this status change.
+              Please provide additional information for this status change.
             </DialogDescription>
           </DialogHeader>
-
-          {editedSettings.status === 'cancelled' && (
-            <div className="space-y-4">
-              <Label htmlFor="cancellation_reason">Reason for Cancellation</Label>
-              <Textarea
-                id="cancellation_reason"
-                value={statusMetadata.cancellation_reason}
-                onChange={(e) => setStatusMetadata(prev => ({
-                  ...prev,
-                  cancellation_reason: e.target.value
-                }))}
-                placeholder="Please provide a reason for cancelling the project"
-              />
-            </div>
-          )}
-
-          {editedSettings.status === 'disputed' && (
-            <div className="space-y-4">
-              <Label htmlFor="dispute_reason">Reason for Dispute</Label>
-              <Textarea
-                id="dispute_reason"
-                value={statusMetadata.dispute_reason}
-                onChange={(e) => setStatusMetadata(prev => ({
-                  ...prev,
-                  dispute_reason: e.target.value
-                }))}
-                placeholder="Please provide details about the dispute"
-              />
-            </div>
-          )}
-
-          {editedSettings.status === 'work_revision_requested' && (
-            <div className="space-y-4">
-              <Label htmlFor="revision_notes">Revision Notes</Label>
-              <Textarea
-                id="revision_notes"
-                value={statusMetadata.revision_notes}
-                onChange={(e) => setStatusMetadata(prev => ({
-                  ...prev,
-                  revision_notes: e.target.value
-                }))}
-                placeholder="Please provide details about the required revisions"
-              />
-            </div>
-          )}
-
+          <div className="space-y-4 py-4">
+            {editedSettings.status === 'cancelled' && (
+              <div className="space-y-2">
+                <Label htmlFor="cancellation_reason">Cancellation Reason</Label>
+                <Textarea
+                  id="cancellation_reason"
+                  value={statusMetadata.cancellation_reason}
+                  onChange={(e) => setStatusMetadata(prev => ({
+                    ...prev,
+                    cancellation_reason: e.target.value
+                  }))}
+                  placeholder="Please provide a reason for cancelling the project..."
+                />
+              </div>
+            )}
+            {editedSettings.status === 'disputed' && (
+              <div className="space-y-2">
+                <Label htmlFor="dispute_reason">Dispute Reason</Label>
+                <Textarea
+                  id="dispute_reason"
+                  value={statusMetadata.dispute_reason}
+                  onChange={(e) => setStatusMetadata(prev => ({
+                    ...prev,
+                    dispute_reason: e.target.value
+                  }))}
+                  placeholder="Please provide details about the dispute..."
+                />
+              </div>
+            )}
+            {editedSettings.status === 'work_revision_requested' && (
+              <div className="space-y-2">
+                <Label htmlFor="revision_notes">Revision Notes</Label>
+                <Textarea
+                  id="revision_notes"
+                  value={statusMetadata.revision_notes}
+                  onChange={(e) => setStatusMetadata(prev => ({
+                    ...prev,
+                    revision_notes: e.target.value
+                  }))}
+                  placeholder="Please provide feedback and revision requests..."
+                />
+              </div>
+            )}
+          </div>
           <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setShowStatusDialog(false)}
-            >
+            <Button variant="outline" onClick={() => setShowStatusDialog(false)}>
               Cancel
             </Button>
-            <Button
-              onClick={handleStatusDialogConfirm}
-              disabled={isUpdating}
-            >
+            <Button onClick={handleStatusDialogConfirm}>
               Confirm Status Change
             </Button>
           </DialogFooter>

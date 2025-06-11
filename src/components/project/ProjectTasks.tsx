@@ -39,6 +39,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { format, formatDistanceToNow } from 'date-fns';
+import { ProjectTask, TaskStatus } from '@/types/database';
 
 interface TaskAssignee {
   id: string;
@@ -46,24 +47,16 @@ interface TaskAssignee {
   avatar?: string;
 }
 
-interface ProjectTask {
-  id: string;
-  title: string;
-  description?: string;
-  status: 'todo' | 'in_progress' | 'review' | 'done';
-  priority: 'low' | 'medium' | 'high';
+interface ExtendedProjectTask extends ProjectTask {
   assignee?: TaskAssignee;
-  dueDate?: string;
   tags: string[];
-  createdAt: string;
-  updatedAt: string;
 }
 
 interface ProjectTasksProps {
-  tasks: ProjectTask[];
+  tasks: ExtendedProjectTask[];
   isAdmin: boolean;
-  onCreateTask: (task: Omit<ProjectTask, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
-  onUpdateTask: (taskId: string, updates: Partial<ProjectTask>) => Promise<void>;
+  onCreateTask: (task: Omit<ExtendedProjectTask, 'id' | 'created_at' | 'updated_at'>) => Promise<void>;
+  onUpdateTask: (taskId: string, updates: Partial<ExtendedProjectTask>) => Promise<void>;
   onDeleteTask: (taskId: string) => Promise<void>;
   availableAssignees: TaskAssignee[];
 }
@@ -79,19 +72,19 @@ const ProjectTasks: React.FC<ProjectTasksProps> = ({
   const { toast } = useToast();
   const [isCreating, setIsCreating] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedStatus, setSelectedStatus] = useState<ProjectTask['status'] | 'all'>('all');
-  const [selectedPriority, setSelectedPriority] = useState<ProjectTask['priority'] | 'all'>('all');
-  const [sortBy, setSortBy] = useState<'dueDate' | 'priority' | 'status'>('dueDate');
+  const [selectedStatus, setSelectedStatus] = useState<TaskStatus | 'all'>('all');
+  const [selectedPriority, setSelectedPriority] = useState<ExtendedProjectTask['priority'] | 'all'>('all');
+  const [sortBy, setSortBy] = useState<'due_date' | 'priority' | 'status'>('due_date');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [isProcessing, setIsProcessing] = useState(false);
 
   const [newTask, setNewTask] = useState({
     title: '',
     description: '',
-    status: 'todo' as ProjectTask['status'],
-    priority: 'medium' as ProjectTask['priority'],
+    status: 'todo' as TaskStatus,
+    priority: 'medium' as ExtendedProjectTask['priority'],
     assigneeId: '',
-    dueDate: '',
+    due_date: '',
     tags: [] as string[]
   });
 
@@ -106,7 +99,7 @@ const ProjectTasks: React.FC<ProjectTasksProps> = ({
         status: newTask.status,
         priority: newTask.priority,
         assignee: newTask.assigneeId ? availableAssignees.find(a => a.id === newTask.assigneeId) : undefined,
-        dueDate: newTask.dueDate || undefined,
+        due_date: newTask.due_date || undefined,
         tags: newTask.tags
       });
       setNewTask({
@@ -115,7 +108,7 @@ const ProjectTasks: React.FC<ProjectTasksProps> = ({
         status: 'todo',
         priority: 'medium',
         assigneeId: '',
-        dueDate: '',
+        due_date: '',
         tags: []
       });
       setIsCreating(false);
@@ -134,7 +127,7 @@ const ProjectTasks: React.FC<ProjectTasksProps> = ({
     }
   };
 
-  const handleUpdateTask = async (taskId: string, updates: Partial<ProjectTask>) => {
+  const handleUpdateTask = async (taskId: string, updates: Partial<ExtendedProjectTask>) => {
     setIsProcessing(true);
     try {
       await onUpdateTask(taskId, updates);
@@ -172,8 +165,8 @@ const ProjectTasks: React.FC<ProjectTasksProps> = ({
     }
   };
 
-  const getStatusBadge = (status: ProjectTask['status']) => {
-    const statusConfig: Record<ProjectTask['status'], { color: string; icon: React.ReactNode }> = {
+  const getStatusBadge = (status: TaskStatus) => {
+    const statusConfig: Record<TaskStatus, { color: string; icon: React.ReactNode }> = {
       todo: {
         color: 'bg-gray-100 text-gray-800 border-gray-200',
         icon: <Clock className="h-4 w-4" />
@@ -186,7 +179,7 @@ const ProjectTasks: React.FC<ProjectTasksProps> = ({
         color: 'bg-yellow-100 text-yellow-800 border-yellow-200',
         icon: <AlertTriangle className="h-4 w-4" />
       },
-      done: {
+      completed: {
         color: 'bg-green-100 text-green-800 border-green-200',
         icon: <CheckCircle2 className="h-4 w-4" />
       }
@@ -203,8 +196,8 @@ const ProjectTasks: React.FC<ProjectTasksProps> = ({
     );
   };
 
-  const getPriorityBadge = (priority: ProjectTask['priority']) => {
-    const priorityConfig: Record<ProjectTask['priority'], { color: string }> = {
+  const getPriorityBadge = (priority: ExtendedProjectTask['priority']) => {
+    const priorityConfig: Record<ExtendedProjectTask['priority'], { color: string }> = {
       low: {
         color: 'bg-green-100 text-green-800 border-green-200'
       },
@@ -236,16 +229,16 @@ const ProjectTasks: React.FC<ProjectTasksProps> = ({
     .sort((a, b) => {
       const order = sortOrder === 'asc' ? 1 : -1;
       switch (sortBy) {
-        case 'dueDate':
-          if (!a.dueDate) return 1;
-          if (!b.dueDate) return -1;
-          return order * (new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
+        case 'due_date':
+          if (!a.due_date) return 1;
+          if (!b.due_date) return -1;
+          return order * (new Date(a.due_date).getTime() - new Date(b.due_date).getTime());
         case 'priority': {
           const priorityOrder = { high: 0, medium: 1, low: 2 };
           return order * (priorityOrder[a.priority] - priorityOrder[b.priority]);
         }
         case 'status': {
-          const statusOrder = { todo: 0, in_progress: 1, review: 2, done: 3 };
+          const statusOrder = { todo: 0, in_progress: 1, review: 2, completed: 3 };
           return order * (statusOrder[a.status] - statusOrder[b.status]);
         }
         default:
@@ -297,7 +290,7 @@ const ProjectTasks: React.FC<ProjectTasksProps> = ({
                   <Label htmlFor="task-status">Status</Label>
                   <Select
                     value={newTask.status}
-                    onValueChange={(value) => setNewTask(prev => ({ ...prev, status: value as ProjectTask['status'] }))}
+                    onValueChange={(value) => setNewTask(prev => ({ ...prev, status: value as TaskStatus }))}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select status" />
@@ -306,7 +299,7 @@ const ProjectTasks: React.FC<ProjectTasksProps> = ({
                       <SelectItem value="todo">To Do</SelectItem>
                       <SelectItem value="in_progress">In Progress</SelectItem>
                       <SelectItem value="review">In Review</SelectItem>
-                      <SelectItem value="done">Done</SelectItem>
+                      <SelectItem value="completed">Done</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -314,7 +307,7 @@ const ProjectTasks: React.FC<ProjectTasksProps> = ({
                   <Label htmlFor="task-priority">Priority</Label>
                   <Select
                     value={newTask.priority}
-                    onValueChange={(value) => setNewTask(prev => ({ ...prev, priority: value as ProjectTask['priority'] }))}
+                    onValueChange={(value) => setNewTask(prev => ({ ...prev, priority: value as ExtendedProjectTask['priority'] }))}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select priority" />
@@ -352,8 +345,8 @@ const ProjectTasks: React.FC<ProjectTasksProps> = ({
                   <Input
                     id="task-due-date"
                     type="date"
-                    value={newTask.dueDate}
-                    onChange={(e) => setNewTask(prev => ({ ...prev, dueDate: e.target.value }))}
+                    value={newTask.due_date}
+                    onChange={(e) => setNewTask(prev => ({ ...prev, due_date: e.target.value }))}
                   />
                 </div>
               </div>
@@ -368,7 +361,7 @@ const ProjectTasks: React.FC<ProjectTasksProps> = ({
                       status: 'todo',
                       priority: 'medium',
                       assigneeId: '',
-                      dueDate: '',
+                      due_date: '',
                       tags: []
                     });
                   }}
@@ -401,7 +394,7 @@ const ProjectTasks: React.FC<ProjectTasksProps> = ({
           <div className="flex gap-2">
             <Select
               value={selectedStatus}
-              onValueChange={(value) => setSelectedStatus(value as ProjectTask['status'] | 'all')}
+              onValueChange={(value) => setSelectedStatus(value as TaskStatus | 'all')}
             >
               <SelectTrigger className="w-[180px]">
                 <SelectValue placeholder="Filter by status" />
@@ -411,12 +404,12 @@ const ProjectTasks: React.FC<ProjectTasksProps> = ({
                 <SelectItem value="todo">To Do</SelectItem>
                 <SelectItem value="in_progress">In Progress</SelectItem>
                 <SelectItem value="review">In Review</SelectItem>
-                <SelectItem value="done">Done</SelectItem>
+                <SelectItem value="completed">Done</SelectItem>
               </SelectContent>
             </Select>
             <Select
               value={selectedPriority}
-              onValueChange={(value) => setSelectedPriority(value as ProjectTask['priority'] | 'all')}
+              onValueChange={(value) => setSelectedPriority(value as ExtendedProjectTask['priority'] | 'all')}
             >
               <SelectTrigger className="w-[180px]">
                 <SelectValue placeholder="Filter by priority" />
@@ -469,18 +462,18 @@ const ProjectTasks: React.FC<ProjectTasksProps> = ({
                         <span>{task.assignee.name}</span>
                       </div>
                     )}
-                    {task.dueDate && (
+                    {task.due_date && (
                       <div className="flex items-center gap-1">
                         <Calendar className="h-4 w-4" />
                         <span>
-                          Due {format(new Date(task.dueDate), 'MMM d, yyyy')}
+                          Due {format(new Date(task.due_date), 'MMM d, yyyy')}
                         </span>
                       </div>
                     )}
                     <div className="flex items-center gap-1">
                       <Clock className="h-4 w-4" />
                       <span>
-                        Updated {formatDistanceToNow(new Date(task.updatedAt), { addSuffix: true })}
+                        Updated {formatDistanceToNow(new Date(task.updated_at), { addSuffix: true })}
                       </span>
                     </div>
                   </div>
@@ -527,8 +520,8 @@ const ProjectTasks: React.FC<ProjectTasksProps> = ({
                         Mark as In Review
                       </DropdownMenuItem>
                       <DropdownMenuItem
-                        onClick={() => handleUpdateTask(task.id, { status: 'done' })}
-                        disabled={isProcessing || task.status === 'done'}
+                        onClick={() => handleUpdateTask(task.id, { status: 'completed' })}
+                        disabled={isProcessing || task.status === 'completed'}
                       >
                         Mark as Done
                       </DropdownMenuItem>

@@ -1,3 +1,10 @@
+import {
+  ProjectMilestone,
+  ProjectDeliverable,
+  MilestoneStatus,
+  DeliverableStatus
+} from '@/types/database';
+
 export interface Task {
   id: string;
   title: string;
@@ -8,37 +15,20 @@ export interface Task {
   [key: string]: any; // Add index signature for JSON compatibility
 }
 
-export interface Deliverable {
-  id?: string;
-  description: string;
-  deliverable_type: 'file' | 'note' | 'link';
-  content?: string;
-  file_url?: string;
+export interface Deliverable extends Omit<ProjectDeliverable, 'created_at'> {
   file_name?: string;
   milestone_id?: string;
   uploaded_by?: string;
-  created_at?: string;
-  status?: 'pending' | 'approved' | 'rejected';
+  created_at?: string | null;
+  status?: DeliverableStatus;
   feedback?: string;
   reviewed_at?: string;
 }
 
-export type MilestoneStatus = 'not_started' | 'in_progress' | 'completed' | 'on_hold' | 'overdue';
-
-export interface Milestone {
-  id?: string;
-  title: string;
-  description?: string;
-  dueDate?: string;
-  status: MilestoneStatus;
-  requires_deliverable?: boolean;
+export interface Milestone extends Omit<ProjectMilestone, 'due_date'> {
+  due_date?: string | null;
   progress?: number;
   deliverables: Deliverable[];
-  project_id?: string;
-  created_by?: string;
-  created_at?: string;
-  updated_at?: string;
-  is_complete?: boolean;
   tasks?: Task[];
 }
 
