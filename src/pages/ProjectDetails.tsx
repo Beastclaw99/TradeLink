@@ -173,6 +173,10 @@ const ProjectDetails: React.FC = () => {
     ? project.required_skills.split(',').map(skill => skill.trim())
     : [];
 
+  const recommendedSkills = project.recommended_skills && typeof project.recommended_skills === 'string'
+    ? project.recommended_skills.split(',').map(skill => skill.trim())
+    : [];
+
   return (
     <Layout>
       <div className="bg-gray-50 py-8">
@@ -224,11 +228,11 @@ const ProjectDetails: React.FC = () => {
                       </div>
                     )}
 
-                    {requiredSkills.length > 0 && (
+                    {recommendedSkills.length > 0 && (
                       <div>
-                        <h3 className="font-semibold mb-2">Required Skills</h3>
+                        <h3 className="font-semibold mb-2">Recommended Skills</h3>
                         <div className="flex flex-wrap gap-2">
-                          {requiredSkills.map((skill, index) => (
+                          {recommendedSkills.map((skill, index) => (
                             <Badge key={index} variant="outline">
                               {skill}
                             </Badge>

@@ -21,7 +21,7 @@ interface ProjectFormData {
   location: string;
   urgency: string;
   requirements: string[];
-  required_skills: string[];
+  recommended_skills: string[];
 }
 
 interface ProjectFormProps {
@@ -97,7 +97,7 @@ const ProjectForm: React.FC<ProjectFormProps> = ({
     location: '',
     urgency: '',
     requirements: [],
-    required_skills: [],
+    recommended_skills: [],
     ...initialData
   });
 
@@ -122,10 +122,10 @@ const ProjectForm: React.FC<ProjectFormProps> = ({
   };
 
   const handleAddSkill = (skill: string) => {
-    if (skill && !formData.required_skills.includes(skill)) {
+    if (skill && !formData.recommended_skills.includes(skill)) {
       setFormData(prev => ({
         ...prev,
-        required_skills: [...prev.required_skills, skill]
+        recommended_skills: [...prev.recommended_skills, skill]
       }));
       setNewSkill('');
     }
@@ -134,7 +134,7 @@ const ProjectForm: React.FC<ProjectFormProps> = ({
   const handleRemoveSkill = (skill: string) => {
     setFormData(prev => ({
       ...prev,
-      required_skills: prev.required_skills.filter(s => s !== skill)
+      recommended_skills: prev.recommended_skills.filter(s => s !== skill)
     }));
   };
 
@@ -281,7 +281,7 @@ const ProjectForm: React.FC<ProjectFormProps> = ({
                 </Button>
               </div>
               <div className="flex flex-wrap gap-2 mt-2">
-                {formData.required_skills.map((skill) => (
+                {formData.recommended_skills.map((skill) => (
                   <Badge key={skill} variant="secondary" className="flex items-center gap-1">
                     {skill}
                     <X

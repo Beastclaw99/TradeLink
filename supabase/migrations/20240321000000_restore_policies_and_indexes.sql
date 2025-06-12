@@ -136,7 +136,10 @@ DROP POLICY IF EXISTS "Users can update their own profile" ON public.profiles;
 DROP POLICY IF EXISTS "Anyone can view active projects" ON public.projects;
 DROP POLICY IF EXISTS "Clients can view their own projects" ON public.projects;
 DROP POLICY IF EXISTS "Professionals can view assigned projects" ON public.projects;
+DROP POLICY IF EXISTS "Professionals can view completed projects" ON public.projects;
 DROP POLICY IF EXISTS "Clients can create projects" ON public.projects;
+DROP POLICY IF EXISTS "Clients can update their own projects" ON public.projects;
+DROP POLICY IF EXISTS "Professionals can update assigned projects" ON public.projects;
 DROP POLICY IF EXISTS "Professionals can view their applications" ON public.applications;
 DROP POLICY IF EXISTS "Clients can view applications for their projects" ON public.applications;
 DROP POLICY IF EXISTS "Users can view their own payments" ON public.payments;
@@ -161,7 +164,7 @@ CREATE POLICY "Users can update their own profile"
 CREATE POLICY "Anyone can view active projects"
     ON public.projects
     FOR SELECT
-    USING (status IN ('open', 'assigned', 'in_progress'));
+    USING (status = 'open');
 
 CREATE POLICY "Clients can view their own projects"
     ON public.projects
@@ -172,6 +175,18 @@ CREATE POLICY "Professionals can view assigned projects"
     ON public.projects
     FOR SELECT
     USING (auth.uid() = professional_id);
+
+CREATE POLICY "Professionals can view completed projects"
+    ON public.projects
+    FOR SELECT
+    USING (
+        status = 'completed' AND
+        EXISTS (
+            SELECT 1 FROM public.profiles
+            WHERE id = auth.uid()
+            AND account_type = 'professional'
+        )
+    );
 
 CREATE POLICY "Clients can create projects"
     ON public.projects
@@ -184,6 +199,16 @@ CREATE POLICY "Clients can create projects"
             AND account_type = 'client'
         )
     );
+
+CREATE POLICY "Clients can update their own projects"
+    ON public.projects
+    FOR UPDATE
+    USING (auth.uid() = client_id);
+
+CREATE POLICY "Professionals can update assigned projects"
+    ON public.projects
+    FOR UPDATE
+    USING (auth.uid() = professional_id);
 
 -- Create RLS policies for applications
 CREATE POLICY "Professionals can view their applications"

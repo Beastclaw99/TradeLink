@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { 
   Card, 
@@ -58,10 +57,10 @@ const ProjectApplicationForm: React.FC<ProjectApplicationFormProps> = ({
   if (!selectedProject) return null;
   
   const project = projects.find(p => p.id === selectedProject);
-  const requiredSkills = Array.isArray(project?.required_skills) ? project.required_skills : [];
-  const matchingSkills = userSkills.filter(skill => requiredSkills.includes(skill));
-  const missingSkills = requiredSkills.filter(skill => !userSkills.includes(skill));
-  const skillMatchPercentage = requiredSkills.length > 0 ? Math.round((matchingSkills.length / requiredSkills.length) * 100) : 100;
+  const recommendedSkills = Array.isArray(project?.recommended_skills) ? project.recommended_skills : [];
+  const matchingSkills = userSkills.filter(skill => recommendedSkills.includes(skill));
+  const missingSkills = recommendedSkills.filter(skill => !userSkills.includes(skill));
+  const skillMatchPercentage = recommendedSkills.length > 0 ? Math.round((matchingSkills.length / recommendedSkills.length) * 100) : 100;
 
   const getBudgetGuidance = () => {
     const clientBudget = project?.budget;

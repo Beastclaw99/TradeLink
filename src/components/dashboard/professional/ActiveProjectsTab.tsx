@@ -622,11 +622,11 @@ const ActiveProjectsTab: React.FC<ActiveProjectsTabProps> = ({
                               </div>
                             )}
                             
-                            {project.required_skills && (
+                            {project.recommended_skills && (
                               <div>
-                                <h4 className="font-medium mb-2">Required Skills</h4>
+                                <h4 className="font-medium mb-2">Recommended Skills</h4>
                                 <div className="flex flex-wrap gap-2">
-                                  {project.required_skills.split(',').map((skill, index) => (
+                                  {project.recommended_skills.split(',').map((skill, index) => (
                                     <Badge key={index} variant="outline" className="text-xs">
                                       {skill.trim()}
                                     </Badge>

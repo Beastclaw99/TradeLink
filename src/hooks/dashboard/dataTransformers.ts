@@ -11,7 +11,7 @@ export const transformProjects = (data: any[]): Project[] => {
     location: project.location || null,
     urgency: project.urgency || null,
     requirements: project.requirements || null,
-    required_skills: project.required_skills || null,
+    required_skills: project.skills_needed || null,
     status: project.status || null,
     created_at: project.created_at || null,
     updated_at: project.updated_at || null,

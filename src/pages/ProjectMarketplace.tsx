@@ -74,6 +74,15 @@ const ProjectMarketplace: React.FC = () => {
         .select(`
           *,
           client:profiles!projects_client_id_fkey(
+            id,
+            first_name,
+            last_name,
+            profile_image,
+            rating,
+            total_reviews
+          ),
+          professional:profiles!projects_professional_id_fkey(
+            id,
             first_name,
             last_name,
             profile_image,
@@ -126,7 +135,7 @@ const ProjectMarketplace: React.FC = () => {
         location: project.location,
         urgency: project.urgency,
         requirements: project.requirements,
-        recommended_skills: project.recommended_skills,
+        recommended_skills: project.skills_needed,
         status: project.status,
         created_at: project.created_at,
         updated_at: project.updated_at,
@@ -143,6 +152,7 @@ const ProjectMarketplace: React.FC = () => {
         service_contract: project.service_contract,
         sla_terms: project.sla_terms,
         client: project.client,
+        professional: project.professional,
         milestones: project.milestones,
         deliverables: project.deliverables,
         applications: project.applications

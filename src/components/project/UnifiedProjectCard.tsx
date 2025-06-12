@@ -119,7 +119,7 @@ const UnifiedProjectCard: React.FC<UnifiedProjectCardProps> = ({
                 {project.category}
               </Badge>
             )}
-            {project.required_skills && project.required_skills.split(',').map((skill, index) => (
+            {project.recommended_skills && project.recommended_skills.split(',').map((skill, index) => (
               <Badge key={index} variant="outline" className="text-xs">
                 {skill.trim()}
               </Badge>

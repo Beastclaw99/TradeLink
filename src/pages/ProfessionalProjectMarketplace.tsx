@@ -134,9 +134,10 @@ const ProfessionalProjectMarketplace: React.FC = () => {
 
     // Filter by matching skills if user has skills
     let matchesSkills = true;
-    if (userSkills.length > 0 && project.required_skills) {
-      const projectSkills = JSON.parse(project.required_skills) as string[];
-      matchesSkills = projectSkills.some(skill => userSkills.includes(skill));
+    if (userSkills.length > 0 && project.recommended_skills) {
+      const projectSkills = JSON.parse(project.recommended_skills) as string[];
+      const hasMatchingSkills = projectSkills.some(skill => userSkills.includes(skill));
+      if (!hasMatchingSkills) return false;
     }
     
     return matchesSearch && matchesCategory && matchesLocation && matchesBudget && matchesSkills;
@@ -205,7 +206,7 @@ const ProfessionalProjectMarketplace: React.FC = () => {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredProjects.map((project) => {
-                const projectSkills = project.required_skills ? JSON.parse(project.required_skills) as string[] : [];
+                const projectSkills = project.recommended_skills ? JSON.parse(project.recommended_skills) as string[] : [];
                 
                 return (
                   <Card key={project.id} className="flex flex-col">

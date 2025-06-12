@@ -31,7 +31,7 @@ export const AvailableProjectsTab: React.FC<AvailableProjectsTabProps> = ({
     
     // If user has skills, filter projects that match at least one required skill
     if (skills && skills.length > 0) {
-      const projectSkills = project.required_skills ? JSON.parse(project.required_skills) as string[] : [];
+      const projectSkills = project.recommended_skills ? JSON.parse(project.recommended_skills) as string[] : [];
       if (projectSkills.length === 0) return false; // Skip projects with no required skills
       
       // Check if at least one skill matches
@@ -64,7 +64,7 @@ export const AvailableProjectsTab: React.FC<AvailableProjectsTabProps> = ({
       ) : (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {filteredProjects.map((project) => {
-            const projectSkills = project.required_skills ? JSON.parse(project.required_skills) as string[] : [];
+            const projectSkills = project.recommended_skills ? JSON.parse(project.recommended_skills) as string[] : [];
             const matchingSkills = projectSkills.filter(skill => skills?.includes(skill));
             
             return (
@@ -84,7 +84,7 @@ export const AvailableProjectsTab: React.FC<AvailableProjectsTabProps> = ({
                     {projectSkills.length > 0 && (
                       <div className="space-y-2">
                         <div className="flex items-center justify-between">
-                          <span className="text-sm font-medium">Required Skills</span>
+                          <span className="text-sm font-medium">Recommended Skills</span>
                           <span className="text-sm text-ttc-green-600 font-medium">
                             {matchingSkills.length} matching skill{matchingSkills.length !== 1 ? 's' : ''}
                           </span>
