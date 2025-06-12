@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from "@/integrations/supabase/client";
@@ -6,6 +5,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ProfileData } from '@/components/profile/types';
 import { Project } from '../types';
+import { useToast } from "@/components/ui/use-toast";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { AlertCircle } from "lucide-react";
 
 interface ProfileTabProps {
   navigate?: (path: string) => void;
@@ -19,11 +21,13 @@ const ProfileTab: React.FC<ProfileTabProps> = ({
   projects: propProjects, 
   navigate: propNavigate,
   userId
-}) => {
+}: ProfileTabProps) => {
   const navigateHook = useNavigate();
   const navigate = propNavigate || navigateHook;
+  const { toast } = useToast();
   
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [profileData, setProfileData] = useState<ProfileData | null>(propProfileData || null);
   const [projects, setProjects] = useState<Project[]>(propProjects || []);
   
@@ -33,7 +37,10 @@ const ProfileTab: React.FC<ProfileTabProps> = ({
   }, [propProfileData, propProjects]);
   
   useEffect(() => {
-    if (!userId) return;
+    if (!userId) {
+      setError('User ID is required to load profile information');
+      return;
+    }
     if (!propProfileData || !propProjects) {
       fetchData();
     }
@@ -44,6 +51,7 @@ const ProfileTab: React.FC<ProfileTabProps> = ({
     
     try {
       setLoading(true);
+      setError(null);
       
       // Fetch profile data
       const { data: profileData, error: profileError } = await supabase
@@ -52,7 +60,14 @@ const ProfileTab: React.FC<ProfileTabProps> = ({
         .eq('id', userId)
         .single();
       
-      if (profileError) throw profileError;
+      if (profileError) {
+        console.error('Profile fetch error:', profileError);
+        throw new Error('Failed to load profile information. Please try again.');
+      }
+      
+      if (!profileData) {
+        throw new Error('Profile not found. Please complete your profile setup.');
+      }
       
       // Cast the database profile to our ProfileData type with proper type casting
       const typedProfileData: ProfileData = {
@@ -88,10 +103,13 @@ const ProfileTab: React.FC<ProfileTabProps> = ({
           .select('*')
           .eq('client_id', userId);
         
-        if (projectsError) throw projectsError;
+        if (projectsError) {
+          console.error('Projects fetch error:', projectsError);
+          throw new Error('Failed to load projects information. Please try again.');
+        }
         
         // Transform projects to match Project interface
-        const transformedProjects: Project[] = (projectsData || []).map(project => ({
+        const transformedProjects: Project[] = (projectsData || []).map((project: any) => ({
           id: project.id,
           title: project.title,
           description: project.description,
@@ -101,7 +119,7 @@ const ProfileTab: React.FC<ProfileTabProps> = ({
           location: project.location,
           urgency: project.urgency,
           requirements: project.requirements,
-          required_skills: project.recommended_skills || null, // Map recommended_skills to required_skills
+          required_skills: project.recommended_skills || null,
           status: project.status,
           created_at: project.created_at,
           updated_at: project.updated_at,
@@ -122,15 +140,42 @@ const ProfileTab: React.FC<ProfileTabProps> = ({
         setProjects(transformedProjects);
       }
       
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching profile data:', error);
+      setError(error.message || 'An unexpected error occurred while loading profile information');
+      toast({
+        title: "Error",
+        description: error.message || 'An unexpected error occurred while loading profile information',
+        variant: "destructive"
+      });
     } finally {
       setLoading(false);
     }
   };
   
   if (loading) {
-    return <p>Loading profile information...</p>;
+    return (
+      <div className="flex items-center justify-center p-4">
+        <p className="text-gray-600">Loading profile information...</p>
+      </div>
+    );
+  }
+  
+  if (error) {
+    return (
+      <Alert variant="destructive" className="mb-4">
+        <AlertCircle className="h-4 w-4" />
+        <AlertTitle>Error</AlertTitle>
+        <AlertDescription>{error}</AlertDescription>
+        <Button 
+          onClick={fetchData} 
+          variant="outline" 
+          className="mt-2"
+        >
+          Try Again
+        </Button>
+      </Alert>
+    );
   }
   
   return (
@@ -192,7 +237,20 @@ const ProfileTab: React.FC<ProfileTabProps> = ({
           </Card>
         </div>
       ) : (
-        <p>No profile information available.</p>
+        <Alert>
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>No Profile Information</AlertTitle>
+          <AlertDescription>
+            Your profile information could not be found. Please complete your profile setup.
+          </AlertDescription>
+          <Button 
+            onClick={() => navigate('/profile/edit')} 
+            variant="outline" 
+            className="mt-2"
+          >
+            Complete Profile
+          </Button>
+        </Alert>
       )}
     </>
   );
