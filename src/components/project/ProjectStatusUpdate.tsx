@@ -1,33 +1,32 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
-import { supabase } from '@/integrations/supabase/client';
-import { notificationService } from '@/services/notificationService';
 import { ProjectStatus } from '@/types/database';
-import { isValidTransition, validateTransitionRequirements } from '@/utils/projectStatusTransitions';
+import { isValidTransition } from '@/utils/projectStatusTransitions';
+import { supabase } from '@/integrations/supabase/client';
 
 interface ProjectStatusUpdateProps {
   projectId: string;
   projectTitle: string;
-  currentStatus: string;
+  currentStatus: ProjectStatus;
   clientId: string;
   professionalId: string;
-  onStatusUpdate: (newStatus: string) => void;
+  onStatusUpdate: () => void;
 }
 
-const ProjectStatusUpdate: React.FC<ProjectStatusUpdateProps> = ({
+const ProjectStatusUpdate = ({
   projectId,
   projectTitle,
   currentStatus,
   clientId,
   professionalId,
   onStatusUpdate
-}) => {
+}: ProjectStatusUpdateProps) => {
   const [isUpdating, setIsUpdating] = useState(false);
   const { toast } = useToast();
 
   const getNextStatus = (currentStatus: ProjectStatus): ProjectStatus | undefined => {
-    const validTransitions = {
+    const validTransitions: Record<ProjectStatus, ProjectStatus[]> = {
       draft: ['open', 'archived'],
       open: ['assigned', 'archived', 'cancelled'],
       assigned: ['in_progress', 'archived', 'cancelled'],
@@ -44,61 +43,43 @@ const ProjectStatusUpdate: React.FC<ProjectStatusUpdateProps> = ({
     return validTransitions[currentStatus]?.[0];
   };
 
-  const updateStatus = async () => {
-    const newStatus = getNextStatus(currentStatus as ProjectStatus);
-    if (!newStatus) return;
+  const handleStatusUpdate = async () => {
+    const nextStatus = getNextStatus(currentStatus);
+    if (!nextStatus) {
+      toast({
+        title: 'Error',
+        description: 'No valid next status available.',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    if (!isValidTransition(currentStatus, nextStatus)) {
+      toast({
+        title: 'Error',
+        description: 'Invalid status transition.',
+        variant: 'destructive'
+      });
+      return;
+    }
 
     setIsUpdating(true);
     try {
-      // Get current project data
-      const { data: project, error: fetchError } = await supabase
-        .from('projects')
-        .select('*')
-        .eq('id', projectId)
-        .single();
-
-      if (fetchError) throw fetchError;
-
-      // Validate transition
-      const validation = validateTransitionRequirements(
-        currentStatus as ProjectStatus,
-        newStatus,
-        project
-      );
-
-      if (!validation.isValid) {
-        toast({
-          title: 'Cannot Update Status',
-          description: `Missing required fields: ${validation.missingFields.join(', ')}`,
-          variant: 'destructive'
-        });
-        return;
-      }
-
       const { error } = await supabase
         .from('projects')
-        .update({ status: newStatus })
+        .update({ status: nextStatus })
         .eq('id', projectId);
 
       if (error) throw error;
 
-      // Create status change notification
-      await notificationService.createStatusChangeNotification(
-        projectId,
-        projectTitle,
-        currentStatus,
-        newStatus,
-        clientId,
-        professionalId
-      );
-
-      onStatusUpdate(newStatus);
       toast({
-        title: 'Status Updated',
-        description: `Project status has been updated to ${newStatus.replace('_', ' ')}.`
+        title: 'Success',
+        description: `Project status updated to ${nextStatus}.`
       });
+
+      onStatusUpdate();
     } catch (error) {
-      console.error('Error updating status:', error);
+      console.error('Error updating project status:', error);
       toast({
         title: 'Error',
         description: 'Failed to update project status.',
@@ -109,16 +90,34 @@ const ProjectStatusUpdate: React.FC<ProjectStatusUpdateProps> = ({
     }
   };
 
-  const nextStatus = getNextStatus(currentStatus as ProjectStatus);
-  if (!nextStatus) return null;
+  const getStatusButtonText = (currentStatus: ProjectStatus): string => {
+    switch (currentStatus) {
+      case 'draft':
+        return 'Publish Project';
+      case 'open':
+        return 'Assign Professional';
+      case 'assigned':
+        return 'Start Work';
+      case 'in_progress':
+        return 'Submit Work';
+      case 'work_submitted':
+        return 'Review Work';
+      case 'work_revision_requested':
+        return 'Submit Revision';
+      case 'work_approved':
+        return 'Complete Project';
+      default:
+        return 'Update Status';
+    }
+  };
 
   return (
     <Button
-      onClick={updateStatus}
-      disabled={isUpdating}
+      onClick={handleStatusUpdate}
+      disabled={isUpdating || !getNextStatus(currentStatus)}
       className="w-full"
     >
-      {isUpdating ? 'Updating...' : `Mark as ${nextStatus.replace('_', ' ')}`}
+      {isUpdating ? 'Updating...' : getStatusButtonText(currentStatus)}
     </Button>
   );
 };

@@ -12,7 +12,7 @@ import {
   DollarSign
 } from 'lucide-react';
 import { Milestone } from './creation/types';
-import { ProjectStatus } from '@/types/projectUpdates';
+import { ProjectStatus } from '@/types/database';
 
 interface ProjectProgressOverviewProps {
   milestones: Milestone[];
@@ -63,22 +63,28 @@ const ProjectProgressOverview: React.FC<ProjectProgressOverviewProps> = ({
 
   const getStatusBadge = (status: ProjectStatus) => {
     switch (status) {
-      case 'completed':
-        return <Badge className="bg-green-100 text-green-800">Completed</Badge>;
+      case 'draft':
+        return <Badge className="bg-gray-100 text-gray-800">Draft</Badge>;
+      case 'open':
+        return <Badge className="bg-blue-100 text-blue-800">Open</Badge>;
+      case 'assigned':
+        return <Badge className="bg-purple-100 text-purple-800">Assigned</Badge>;
       case 'in_progress':
-        return <Badge className="bg-blue-100 text-blue-800">In Progress</Badge>;
+        return <Badge className="bg-yellow-100 text-yellow-800">In Progress</Badge>;
       case 'work_submitted':
-        return <Badge className="bg-purple-100 text-purple-800">Work Submitted</Badge>;
+        return <Badge className="bg-indigo-100 text-indigo-800">Work Submitted</Badge>;
       case 'work_revision_requested':
         return <Badge className="bg-orange-100 text-orange-800">Revision Requested</Badge>;
       case 'work_approved':
         return <Badge className="bg-green-100 text-green-800">Work Approved</Badge>;
+      case 'completed':
+        return <Badge className="bg-emerald-100 text-emerald-800">Completed</Badge>;
+      case 'archived':
+        return <Badge className="bg-gray-100 text-gray-800">Archived</Badge>;
       case 'cancelled':
         return <Badge className="bg-red-100 text-red-800">Cancelled</Badge>;
       case 'disputed':
-        return <Badge className="bg-red-100 text-red-800">Disputed</Badge>;
-      case 'archived':
-        return <Badge className="bg-gray-100 text-gray-800">Archived</Badge>;
+        return <Badge className="bg-rose-100 text-rose-800">Disputed</Badge>;
       default:
         return <Badge className="bg-gray-100 text-gray-800">{status}</Badge>;
     }

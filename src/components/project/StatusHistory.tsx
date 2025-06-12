@@ -8,12 +8,21 @@ import { useQuery } from '@tanstack/react-query';
 import { Clock } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { ProjectStatusUpdate } from '@/types/database';
 
 interface StatusHistoryProps {
   projectId: string;
 }
 
-interface StatusUpdate extends Omit<ProjectUpdate, 'profiles'> {
+interface StatusMetadata {
+  previous_status?: ProjectStatus;
+  cancellation_reason?: string;
+  dispute_reason?: string;
+  revision_notes?: string;
+}
+
+interface StatusUpdate extends Omit<ProjectStatusUpdate, 'metadata'> {
+  metadata: StatusMetadata;
   profiles?: {
     first_name: string | null;
     last_name: string | null;
@@ -21,25 +30,8 @@ interface StatusUpdate extends Omit<ProjectUpdate, 'profiles'> {
   };
 }
 
-interface DatabaseUpdate {
-  id: string;
-  project_id: string;
-  update_type: string;
-  message: string | null;
-  status_update: string | null;
-  file_url: string | null;
-  file_name: string | null;
-  created_at: string;
-  professional_id: string;
-  metadata: any;
-  profiles?: {
-    first_name: string | null;
-    last_name: string | null;
-    profile_image: string | null;
-  };
-}
-
-const statusColors: Record<string, string> = {
+const statusColors: Record<ProjectStatus, string> = {
+  draft: 'bg-gray-100 text-gray-800',
   open: 'bg-blue-100 text-blue-800',
   assigned: 'bg-purple-100 text-purple-800',
   in_progress: 'bg-yellow-100 text-yellow-800',
@@ -71,13 +63,10 @@ export function StatusHistory({ projectId }: StatusHistoryProps) {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-
-      // Convert the response to match our StatusUpdate type
-      return (data as DatabaseUpdate[]).map(update => ({
+      return (data || []).map(update => ({
         ...update,
-        update_type: update.update_type as UpdateType,
-        status_update: update.status_update as ProjectStatus | undefined,
-        metadata: update.metadata as StatusUpdate['metadata']
+        metadata: update.metadata as StatusMetadata,
+        profiles: update.profiles as StatusUpdate['profiles']
       }));
     }
   });
@@ -89,17 +78,7 @@ export function StatusHistory({ projectId }: StatusHistoryProps) {
           <CardTitle>Status History</CardTitle>
         </CardHeader>
         <CardContent className="p-6">
-          <div className="space-y-4">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="flex items-start space-x-4">
-                <Skeleton className="h-10 w-10 rounded-full" />
-                <div className="space-y-2">
-                  <Skeleton className="h-4 w-[200px]" />
-                  <Skeleton className="h-4 w-[300px]" />
-                </div>
-              </div>
-            ))}
-          </div>
+          <div className="text-center py-4 text-gray-500">Loading...</div>
         </CardContent>
       </Card>
     );
@@ -112,10 +91,7 @@ export function StatusHistory({ projectId }: StatusHistoryProps) {
           <CardTitle>Status History</CardTitle>
         </CardHeader>
         <CardContent className="p-6">
-          <div className="text-center py-8 text-gray-500">
-            <Clock className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-            <p>No status changes recorded yet.</p>
-          </div>
+          <div className="text-center py-4 text-gray-500">No status updates yet</div>
         </CardContent>
       </Card>
     );
@@ -127,57 +103,45 @@ export function StatusHistory({ projectId }: StatusHistoryProps) {
         <CardTitle>Status History</CardTitle>
       </CardHeader>
       <CardContent className="p-6">
-        <div className="space-y-6">
+        <div className="space-y-4">
           {statusUpdates.map((update) => (
             <div key={update.id} className="flex items-start space-x-4">
-              <Avatar>
-                <AvatarImage src={update.profiles?.profile_image || undefined} />
-                <AvatarFallback>
-                  {update.profiles?.first_name?.[0] || 'U'}
-                </AvatarFallback>
-              </Avatar>
-              <div className="flex-1 space-y-1">
+              <div className="flex-1">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-2">
-                    <span className="font-medium">
-                      {update.profiles?.first_name && update.profiles?.last_name
-                        ? `${update.profiles.first_name} ${update.profiles.last_name}`
-                        : 'Unknown User'}
-                    </span>
-                    <Badge variant="secondary" className={statusColors[update.status_update || '']}>
-                      {update.status_update?.replace('_', ' ')}
+                    <Badge className={statusColors[update.status_update as ProjectStatus]}>
+                      {update.status_update}
                     </Badge>
-                  </div>
-                  <span className="text-sm text-gray-500">
-                    {formatDistanceToNow(new Date(update.created_at), { addSuffix: true })}
-                  </span>
-                </div>
-                {update.metadata?.previous_status && (
-                  <p className="text-sm text-gray-600">
-                    Changed from{' '}
-                    <span className="font-medium">
-                      {update.metadata.previous_status.replace('_', ' ')}
+                    <span className="text-sm text-gray-500">
+                      {format(new Date(update.created_at || ''), 'PPP')}
                     </span>
-                  </p>
-                )}
-                {update.metadata?.cancellation_reason && (
-                  <p className="text-sm text-gray-600">
-                    Cancellation reason: {update.metadata.cancellation_reason}
-                  </p>
-                )}
-                {update.metadata?.dispute_reason && (
-                  <p className="text-sm text-gray-600">
-                    Dispute reason: {update.metadata.dispute_reason}
-                  </p>
-                )}
-                {update.metadata?.revision_notes && (
-                  <p className="text-sm text-gray-600">
-                    Revision notes: {update.metadata.revision_notes}
-                  </p>
-                )}
-                {update.message && (
-                  <p className="text-sm text-gray-600">{update.message}</p>
-                )}
+                  </div>
+                  {update.profiles && (
+                    <span className="text-sm text-gray-600">
+                      by {update.profiles.first_name} {update.profiles.last_name}
+                    </span>
+                  )}
+                </div>
+                <div className="mt-2 space-y-1">
+                  {update.metadata?.cancellation_reason && (
+                    <p className="text-sm text-gray-600">
+                      Cancellation reason: {update.metadata.cancellation_reason}
+                    </p>
+                  )}
+                  {update.metadata?.dispute_reason && (
+                    <p className="text-sm text-gray-600">
+                      Dispute reason: {update.metadata.dispute_reason}
+                    </p>
+                  )}
+                  {update.metadata?.revision_notes && (
+                    <p className="text-sm text-gray-600">
+                      Revision notes: {update.metadata.revision_notes}
+                    </p>
+                  )}
+                  {update.message && (
+                    <p className="text-sm text-gray-600">{update.message}</p>
+                  )}
+                </div>
               </div>
             </div>
           ))}

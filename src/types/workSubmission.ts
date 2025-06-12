@@ -10,7 +10,11 @@ export interface WorkVersion {
   feedback: string | null;
   reviewed_at: string | null;
   reviewed_by: string | null;
-  metadata: Record<string, any>;
+  metadata: {
+    notes?: string;
+    changes?: string;
+    [key: string]: unknown;
+  };
   created_at: string;
   updated_at: string;
 }
@@ -26,17 +30,17 @@ export interface WorkVersionFile {
   created_at: string;
 }
 
+export type RevisionRequestStatus = 'pending' | 'resolved';
+
 export interface WorkRevisionRequest {
   id: string;
   version_id: string;
   requested_by: string;
   requested_at: string;
-  reason: string;
-  status: 'pending' | 'resolved';
+  feedback: string;
+  status: RevisionRequestStatus;
   resolved_at: string | null;
-  resolved_by: string | null;
   created_at: string;
-  updated_at: string;
 }
 
 export interface WorkSubmissionState {
@@ -68,5 +72,5 @@ export interface WorkVersionProps {
 export interface WorkRevisionRequestProps {
   request: WorkRevisionRequest;
   onComplete: (requestId: string) => Promise<void>;
-  onUpdate: (requestId: string, status: WorkRevisionRequest['status']) => Promise<void>;
+  onUpdate: (requestId: string, status: RevisionRequestStatus) => Promise<void>;
 } 

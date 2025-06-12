@@ -1,8 +1,8 @@
 import { supabase } from '@/integrations/supabase/client';
 import { notificationService } from './notificationService';
-import { Dispute, DisputeCategory, DisputeStatus } from '@/types/database';
+import { DisputeCategory, DisputeStatus, Dispute as DBDispute } from '@/types/database';
 
-export interface ExtendedDispute extends Dispute {
+export interface ExtendedDispute extends DBDispute {
   initiator?: {
     first_name?: string;
     last_name?: string;
@@ -20,32 +20,6 @@ export interface ExtendedDispute extends Dispute {
   };
 }
 
-export interface Dispute {
-  id: string;
-  project_id: string;
-  initiator_id: string;
-  respondent_id: string;
-  title: string;
-  description: string;
-  type: 'quality' | 'timeline' | 'payment' | 'communication' | 'scope' | 'other';
-  status: 'open' | 'in_review' | 'resolved' | 'escalated' | 'closed';
-  work_version_id?: string;
-  resolution?: string;
-  resolved_by?: string;
-  resolved_at?: string;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface DisputeMessage {
-  id: string;
-  dispute_id: string;
-  sender_id: string;
-  content: string;
-  is_internal: boolean;
-  created_at: string;
-}
-
 export interface DisputeDocument {
   id: string;
   dispute_id: string;
@@ -55,10 +29,22 @@ export interface DisputeDocument {
   created_at: string;
 }
 
+// Re-export the database Dispute type
+export type { DBDispute as Dispute };
+
+export interface DisputeMessage {
+  id: string;
+  dispute_id: string;
+  sender_id: string;
+  content: string;
+  created_at: string;
+}
+
 export interface DisputeStatusHistory {
   id: string;
   dispute_id: string;
-  status: Dispute['status'];
+  old_status: DisputeStatus;
+  new_status: DisputeStatus;
   changed_by: string;
   reason?: string;
   created_at: string;
@@ -66,67 +52,62 @@ export interface DisputeStatusHistory {
 
 export const disputeService = {
   // Create a new dispute
-  async createDispute(disputeData: Omit<Dispute, 'id' | 'created_at' | 'updated_at'>): Promise<Dispute> {
+  async createDispute(disputeData: Omit<DBDispute, 'id' | 'created_at' | 'updated_at'>): Promise<DBDispute> {
     const { data, error } = await supabase
       .from('disputes')
-      .insert({
-        ...disputeData,
-        work_version_id: disputeData.work_version_id || null
-      })
+      .insert(disputeData)
       .select()
       .single();
 
     if (error) throw error;
 
-    // Create notification for respondent
+    // Create notification for the respondent
     await notificationService.createNotification({
-      user_id: disputeData.respondent_id,
+      user_id: data.respondent_id,
       title: 'New Dispute Filed',
-      message: `A dispute has been filed against project: ${disputeData.title}`,
-      type: 'info'
+      message: `A dispute has been filed against project: ${data.title}`,
+      type: 'warning'
     });
 
-    return data as Dispute;
+    return data as DBDispute;
   },
 
   // Get dispute by ID
-  async getDispute(disputeId: string): Promise<Dispute | null> {
+  async getDispute(disputeId: string): Promise<DBDispute | null> {
     const { data, error } = await supabase
       .from('disputes')
-      .select('*')
+      .select()
       .eq('id', disputeId)
       .single();
 
     if (error && error.code !== 'PGRST116') throw error;
-    return data as Dispute;
+    return data as DBDispute;
   },
 
   // Get disputes for a user
-  async getUserDisputes(userId: string): Promise<Dispute[]> {
+  async getUserDisputes(userId: string): Promise<DBDispute[]> {
     const { data, error } = await supabase
       .from('disputes')
-      .select('*')
-      .or(`initiator_id.eq.${userId},respondent_id.eq.${userId}`)
-      .order('created_at', { ascending: false });
+      .select()
+      .or(`initiator_id.eq.${userId},respondent_id.eq.${userId}`);
 
     if (error) throw error;
-    return (data || []) as Dispute[];
+    return (data || []) as DBDispute[];
   },
 
   // Get disputes for a project
-  async getProjectDisputes(projectId: string): Promise<Dispute[]> {
+  async getProjectDisputes(projectId: string): Promise<DBDispute[]> {
     const { data, error } = await supabase
       .from('disputes')
-      .select('*')
-      .eq('project_id', projectId)
-      .order('created_at', { ascending: false });
+      .select()
+      .eq('project_id', projectId);
 
     if (error) throw error;
-    return (data || []) as Dispute[];
+    return (data || []) as DBDispute[];
   },
 
   // Update dispute status
-  async updateDisputeStatus(disputeId: string, status: Dispute['status'], resolution?: string): Promise<Dispute> {
+  async updateDisputeStatus(disputeId: string, status: DisputeStatus, resolution?: string): Promise<DBDispute> {
     const updateData: any = { status };
     if (resolution) {
       updateData.resolution = resolution;
@@ -142,16 +123,22 @@ export const disputeService = {
 
     if (error) throw error;
 
-    // Record status change in history
-    await supabase
-      .from('dispute_status_history')
-      .insert({
-        dispute_id: disputeId,
-        status,
-        changed_by: (await supabase.auth.getUser()).data.user?.id
-      });
+    // Create status change notification
+    await notificationService.createNotification({
+      user_id: data.initiator_id,
+      title: 'Dispute Status Updated',
+      message: `The status of dispute "${data.title}" has been updated to ${status}`,
+      type: 'info'
+    });
 
-    return data as Dispute;
+    await notificationService.createNotification({
+      user_id: data.respondent_id,
+      title: 'Dispute Status Updated',
+      message: `The status of dispute "${data.title}" has been updated to ${status}`,
+      type: 'info'
+    });
+
+    return data as DBDispute;
   },
 
   // Add message to dispute
@@ -235,7 +222,7 @@ export const disputeService = {
   },
 
   // Add resolution
-  async addResolution(disputeId: string, resolution: string): Promise<Dispute> {
+  async addResolution(disputeId: string, resolution: string): Promise<DBDispute> {
     return this.updateDisputeStatus(disputeId, 'resolved', resolution);
   }
 };

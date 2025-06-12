@@ -1,6 +1,6 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { notificationService } from './notificationService';
+import { FileReviewStatus } from '@/types/database';
 
 export interface FileVersion {
   id: string;
@@ -23,7 +23,7 @@ export interface FileReview {
   id: string;
   file_id: string;
   reviewer_id: string;
-  status: 'pending' | 'approved' | 'rejected';
+  status: FileReviewStatus;
   feedback: string | null;
   reviewed_at: string | null;
   created_at: string;
@@ -48,75 +48,113 @@ export interface FileStatusRestriction {
 }
 
 export const fileService = {
-  // Upload a new file version - simplified implementation
-  async uploadFileVersion(
-    projectId: string,
-    versionId: string,
-    file: File,
-    changeDescription: string,
-    accessLevel: FileVersion['access_level'] = 'private',
-    metadata: Record<string, any> = {}
-  ): Promise<any> {
-    // Upload file to storage
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${crypto.randomUUID()}.${fileExt}`;
-    const filePath = `project-files/${projectId}/${versionId}/${fileName}`;
-
-    const { error: uploadError } = await supabase.storage
-      .from('project-files')
-      .upload(filePath, file);
-
-    if (uploadError) throw uploadError;
-
-    // Get public URL
-    const { data: { publicUrl } } = supabase.storage
-      .from('project-files')
-      .getPublicUrl(filePath);
-
-    // Create file version record using existing work_version_files table
-    const { data: fileVersion, error: insertError } = await supabase
-      .from('work_version_files')
-      .insert({
-        version_id: versionId,
-        file_name: file.name,
-        file_url: publicUrl,
-        file_type: file.type,
-        file_size: file.size
-      })
+  // Create a new file version
+  async createFileVersion(fileData: Omit<FileVersion, 'id' | 'created_at'>): Promise<FileVersion> {
+    const { data, error } = await supabase
+      .from('file_versions')
+      .insert(fileData)
       .select()
       .single();
 
-    if (insertError) throw insertError;
-
-    return fileVersion;
+    if (error) throw error;
+    return data as FileVersion;
   },
 
-  // Get file versions - simplified
-  async getFileVersions(versionId: string): Promise<any[]> {
+  // Get file version by ID
+  async getFileVersion(fileId: string): Promise<FileVersion | null> {
     const { data, error } = await supabase
-      .from('work_version_files')
-      .select('*')
-      .eq('version_id', versionId)
-      .order('created_at', { ascending: false });
+      .from('file_versions')
+      .select()
+      .eq('id', fileId)
+      .single();
+
+    if (error && error.code !== 'PGRST116') throw error;
+    return data as FileVersion;
+  },
+
+  // Get file versions for a project
+  async getProjectFileVersions(projectId: string): Promise<FileVersion[]> {
+    const { data, error } = await supabase
+      .from('file_versions')
+      .select()
+      .eq('project_id', projectId);
 
     if (error) throw error;
-    return data || [];
+    return (data || []) as FileVersion[];
   },
 
-  // Placeholder functions for file reviews and comments
-  // These would need proper database tables to be implemented
+  // Create a file review
+  async createFileReview(reviewData: Omit<FileReview, 'id' | 'created_at'>): Promise<FileReview> {
+    const { data, error } = await supabase
+      .from('file_reviews')
+      .insert(reviewData)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    // Create notification for the file owner
+    await notificationService.createNotification({
+      user_id: data.uploaded_by,
+      title: 'New File Review',
+      message: `A new review has been submitted for your file`,
+      type: 'info'
+    });
+
+    return data as FileReview;
+  },
+
+  // Update file review status
+  async updateFileReviewStatus(reviewId: string, status: FileReviewStatus, feedback?: string): Promise<FileReview> {
+    const { data, error } = await supabase
+      .from('file_reviews')
+      .update({ 
+        status,
+        feedback,
+        reviewed_at: new Date().toISOString()
+      })
+      .eq('id', reviewId)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    // Create status change notification
+    await notificationService.createNotification({
+      user_id: data.uploaded_by,
+      title: 'File Review Status Updated',
+      message: `The status of your file review has been updated to ${status}`,
+      type: 'info'
+    });
+
+    return data as FileReview;
+  },
+
+  // Add a file comment
+  async addFileComment(commentData: Omit<FileComment, 'id' | 'created_at'>): Promise<FileComment> {
+    const { data, error } = await supabase
+      .from('file_comments')
+      .insert(commentData)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    // Create notification for the file owner
+    await notificationService.createNotification({
+      user_id: data.uploaded_by,
+      title: 'New File Comment',
+      message: `A new comment has been added to your file`,
+      type: 'info'
+    });
+
+    return data as FileComment;
+  },
+
+  // Get file reviews - simplified
   async getFileReviews(fileId: string): Promise<FileReview[]> {
     console.warn('File reviews functionality requires database migration');
     return [];
-  },
-
-  async createFileReview(
-    fileId: string,
-    status: FileReview['status'],
-    feedback: string | null = null
-  ): Promise<any> {
-    console.warn('File reviews functionality requires database migration');
-    return null;
   },
 
   async getFileComments(fileId: string): Promise<FileComment[]> {

@@ -1,22 +1,32 @@
 import React from 'react';
 import { Badge } from '@/components/ui/badge';
-import { Clock, CheckCircle, AlertCircle, Users, Play, Pause, FileText, Upload, RefreshCw, Archive, AlertTriangle } from 'lucide-react';
+import { ProjectStatus } from '@/types/database';
+import {
+  FileText,
+  Clock,
+  Users,
+  Play,
+  Upload,
+  RefreshCw,
+  CheckCircle,
+  Archive,
+  AlertCircle,
+  AlertTriangle
+} from 'lucide-react';
 
 interface ProjectStatusBadgeProps {
-  status: string;
+  status: ProjectStatus;
   variant?: 'default' | 'large';
   showIcon?: boolean;
 }
 
-const ProjectStatusBadge: React.FC<ProjectStatusBadgeProps> = ({ 
+const ProjectStatusBadge = ({ 
   status, 
   variant = 'default',
   showIcon = true 
-}) => {
-  const getStatusConfig = (status: string) => {
-    const normalizedStatus = status.toLowerCase();
-    
-    switch (normalizedStatus) {
+}: ProjectStatusBadgeProps) => {
+  const getStatusConfig = (status: ProjectStatus) => {
+    switch (status) {
       case 'draft':
         return {
           variant: 'outline' as const,

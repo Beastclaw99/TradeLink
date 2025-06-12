@@ -7,6 +7,31 @@ export type Json =
   | Json[]
 
 export type Database = {
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          operationName?: string
+          query?: string
+          variables?: Json
+          extensions?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
       admin_actions: {
@@ -88,6 +113,13 @@ export type Database = {
             columns: ["professional_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "applications_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "payment_status_history_view"
             referencedColumns: ["id"]
           },
           {
@@ -409,6 +441,13 @@ export type Database = {
             foreignKeyName: "disputes_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
+            referencedRelation: "payment_status_history_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "disputes_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
             referencedRelation: "projects"
             referencedColumns: ["id"]
           },
@@ -486,7 +525,22 @@ export type Database = {
           project_id?: string | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "file_access_controls_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "payment_status_history_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "file_access_controls_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       industry_fields: {
         Row: {
@@ -540,7 +594,36 @@ export type Database = {
           project_id?: string | null
           status?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "invoices_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_professional_id_fkey"
+            columns: ["professional_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "payment_status_history_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       messages: {
         Row: {
@@ -577,6 +660,13 @@ export type Database = {
           sender_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "messages_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "payment_status_history_view"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "messages_project_id_fkey"
             columns: ["project_id"]
@@ -712,7 +802,43 @@ export type Database = {
           status?: Database["public"]["Enums"]["payment_status"] | null
           transaction_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "payments_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_payment_method_id_fkey"
+            columns: ["payment_method_id"]
+            isOneToOne: false
+            referencedRelation: "payment_methods"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_professional_id_fkey"
+            columns: ["professional_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "payment_status_history_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
@@ -886,7 +1012,29 @@ export type Database = {
           project_id?: string | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "project_archives_archived_by_fkey"
+            columns: ["archived_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_archives_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "payment_status_history_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_archives_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       project_deliverables: {
         Row: {
@@ -931,7 +1079,36 @@ export type Database = {
           status?: Database["public"]["Enums"]["deliverable_status"] | null
           uploaded_by?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "project_deliverables_milestone_id_fkey"
+            columns: ["milestone_id"]
+            isOneToOne: false
+            referencedRelation: "project_milestones"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_deliverables_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "payment_status_history_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_deliverables_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_deliverables_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       project_files: {
         Row: {
@@ -975,6 +1152,13 @@ export type Database = {
             foreignKeyName: "project_files_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
+            referencedRelation: "payment_status_history_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_files_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
             referencedRelation: "projects"
             referencedColumns: ["id"]
           },
@@ -1012,7 +1196,29 @@ export type Database = {
           id?: string
           project_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "project_history_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_history_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "payment_status_history_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_history_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       project_messages: {
         Row: {
@@ -1039,7 +1245,36 @@ export type Database = {
           sender_id?: string | null
           sent_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "project_messages_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "payment_status_history_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_messages_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_messages_recipient_id_fkey"
+            columns: ["recipient_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_messages_sender_id_fkey"
+            columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       project_milestones: {
         Row: {
@@ -1081,7 +1316,29 @@ export type Database = {
           title?: string
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "project_milestones_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_milestones_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "payment_status_history_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_milestones_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       project_tasks: {
         Row: {
@@ -1138,7 +1395,43 @@ export type Database = {
           title?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "project_tasks_assignee_id_fkey"
+            columns: ["assignee_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_tasks_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_tasks_milestone_id_fkey"
+            columns: ["milestone_id"]
+            isOneToOne: false
+            referencedRelation: "project_milestones"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_tasks_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "payment_status_history_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_tasks_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       project_updates: {
         Row: {
@@ -1216,7 +1509,7 @@ export type Database = {
           scope: string | null
           sla_terms: Json | null
           spent: number | null
-          status: Database["public"]["Enums"]["project_status"] | null
+          status: Database["public"]["Enums"]["project_status_enum"] | null
           title: string
           updated_at: string | null
           urgency: string | null
@@ -1240,7 +1533,7 @@ export type Database = {
           scope?: string | null
           sla_terms?: Json | null
           spent?: number | null
-          status?: Database["public"]["Enums"]["project_status"] | null
+          status?: Database["public"]["Enums"]["project_status_enum"] | null
           title: string
           updated_at?: string | null
           urgency?: string | null
@@ -1264,12 +1557,41 @@ export type Database = {
           scope?: string | null
           sla_terms?: Json | null
           spent?: number | null
-          status?: Database["public"]["Enums"]["project_status"] | null
+          status?: Database["public"]["Enums"]["project_status_enum"] | null
           title?: string
           updated_at?: string | null
           urgency?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "projects_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projects_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projects_contract_template_id_fkey"
+            columns: ["contract_template_id"]
+            isOneToOne: false
+            referencedRelation: "contract_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projects_professional_id_fkey"
+            columns: ["professional_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       review_responses: {
         Row: {
@@ -1296,7 +1618,22 @@ export type Database = {
           review_id?: string | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "review_responses_responder_id_fkey"
+            columns: ["responder_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "review_responses_review_id_fkey"
+            columns: ["review_id"]
+            isOneToOne: false
+            referencedRelation: "reviews"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       reviews: {
         Row: {
@@ -1368,24 +1705,68 @@ export type Database = {
           updated_at?: string | null
           verification_method?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "reviews_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reviews_moderated_by_fkey"
+            columns: ["moderated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reviews_professional_id_fkey"
+            columns: ["professional_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reviews_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "payment_status_history_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reviews_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reviews_reported_by_fkey"
+            columns: ["reported_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
       payment_status_history_view: {
         Row: {
-          amount: number | null
-          client_first_name: string | null
-          client_last_name: string | null
-          paid_at: string | null
-          payment_created_at: string | null
-          payment_id: string | null
-          payment_status: Database["public"]["Enums"]["payment_status"] | null
-          professional_first_name: string | null
-          professional_last_name: string | null
-          project_id: string | null
-          project_status: Database["public"]["Enums"]["project_status"] | null
-          project_title: string | null
+          id: string | null
+          status: Database["public"]["Enums"]["project_status_enum"] | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string | null
+          status?: Database["public"]["Enums"]["project_status_enum"] | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string | null
+          status?: Database["public"]["Enums"]["project_status_enum"] | null
+          updated_at?: string | null
         }
         Relationships: []
       }
@@ -1399,7 +1780,15 @@ export type Database = {
         Args: { project_id: string }
         Returns: boolean
       }
+      get_user_role: {
+        Args: { user_id: string }
+        Returns: Database["public"]["Enums"]["user_role"]
+      }
       rollback_policies_and_indexes: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      rollback_project_status_trigger: {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
@@ -1481,6 +1870,7 @@ export type Database = {
         | "cancelled"
         | "disputed"
       project_status_enum:
+        | "draft"
         | "open"
         | "assigned"
         | "in_progress"
@@ -1493,6 +1883,7 @@ export type Database = {
         | "disputed"
       review_status_enum: "pending" | "approved" | "rejected" | "reported"
       task_status_enum: "todo" | "in_progress" | "completed"
+      user_role: "client" | "professional" | "admin"
       verification_status_enum: "unverified" | "pending" | "verified"
     }
     CompositeTypes: {
@@ -1607,6 +1998,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {
       account_type_enum: ["client", "professional"],
@@ -1686,6 +2080,7 @@ export const Constants = {
         "disputed",
       ],
       project_status_enum: [
+        "draft",
         "open",
         "assigned",
         "in_progress",
@@ -1699,6 +2094,7 @@ export const Constants = {
       ],
       review_status_enum: ["pending", "approved", "rejected", "reported"],
       task_status_enum: ["todo", "in_progress", "completed"],
+      user_role: ["client", "professional", "admin"],
       verification_status_enum: ["unverified", "pending", "verified"],
     },
   },

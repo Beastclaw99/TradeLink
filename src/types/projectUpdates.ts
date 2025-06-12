@@ -1,4 +1,4 @@
-import { ProjectStatus as DBProjectStatus, ProjectUpdate as DBProjectUpdate } from './database';
+import { ProjectStatus, ProjectStatusUpdate } from './database';
 
 export type UpdateType =
   | 'message'                 // General message
@@ -18,23 +18,20 @@ export type UpdateType =
   | 'payment_processed'      // Payment processed
   | 'schedule_updated'       // Schedule updated
   | 'task_completed'         // Task completed
-  | 'custom_field_updated';
+  | 'custom_field_updated';  // Custom field updated
 
 export interface StatusMetadata {
-  previous_status?: DBProjectStatus;
+  previous_status?: ProjectStatus;
   cancellation_reason?: string;
   dispute_reason?: string;
   revision_notes?: string;
-  [key: string]: any;
 }
 
-export interface ProjectUpdate extends DBProjectUpdate {
+export interface ExtendedProjectUpdate extends Omit<ProjectStatusUpdate, 'metadata'> {
+  metadata: StatusMetadata;
   profiles?: {
     first_name: string | null;
     last_name: string | null;
     profile_image: string | null;
   };
 }
-
-// Re-export the ProjectStatus type from database
-export type ProjectStatus = DBProjectStatus;

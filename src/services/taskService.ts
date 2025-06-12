@@ -1,198 +1,120 @@
 import { supabase } from '@/integrations/supabase/client';
 import { notificationService } from './notificationService';
-import { Milestone } from '@/components/project/creation/types';
+import { TaskStatus } from '@/types/database';
 
-interface Task {
+export interface Task {
   id: string;
-  title: string;
-  completed: boolean;
-  deadline?: string;
-  dependencies: string[];
-  status: 'todo' | 'in_progress' | 'completed';
-  priority: 'low' | 'medium' | 'high';
-  [key: string]: any; // Add index signature for Json compatibility
-}
-
-interface MilestoneWithTasks {
-  id: string;
+  project_id: string;
   title: string;
   description: string;
-  due_date: string;
-  status: string;
-  progress: number;
-  tasks: any[]; // Change to any[] for Json compatibility
-  project_id: string;
+  status: TaskStatus;
+  assigned_to?: string;
+  due_date?: string;
   created_at: string;
   updated_at: string;
 }
 
-// Helper function to convert Task to Json-compatible format
-const taskToJson = (task: Task): any => {
-  return {
-    id: task.id,
-    title: task.title,
-    completed: task.completed,
-    deadline: task.deadline,
-    dependencies: task.dependencies,
-    status: task.status,
-    priority: task.priority
-  };
-};
-
-// Helper function to convert Json to Task format
-const jsonToTask = (json: any): Task => {
-  return {
-    id: json.id || crypto.randomUUID(),
-    title: json.title || '',
-    completed: Boolean(json.completed),
-    deadline: json.deadline,
-    dependencies: Array.isArray(json.dependencies) ? json.dependencies : [],
-    status: json.status || 'todo',
-    priority: json.priority || 'medium'
-  };
-};
-
 export const taskService = {
   // Create a new task
-  async createTask(
-    milestoneId: string, 
-    title: string, 
-    deadline?: string,
-    dependencies: string[] = [],
-    priority: Task['priority'] = 'medium'
-  ): Promise<Task> {
+  async createTask(taskData: Omit<Task, 'id' | 'created_at' | 'updated_at'>): Promise<Task> {
     const { data, error } = await supabase
-      .from('project_tasks')
-      .insert([
-        {
-          title,
-          completed: false,
-          deadline,
-          dependencies,
-          status: 'todo',
-          priority,
-          milestone_id: milestoneId
-        }
-      ])
+      .from('tasks')
+      .insert(taskData)
       .select()
       .single();
+
     if (error) throw error;
-    return data;
+
+    // Create notification for assignee if assigned
+    if (data.assigned_to) {
+      await notificationService.createNotification({
+        user_id: data.assigned_to,
+        title: 'New Task Assigned',
+        message: `You have been assigned a new task: ${data.title}`,
+        type: 'info'
+      });
+    }
+
+    return data as Task;
+  },
+
+  // Get task by ID
+  async getTask(taskId: string): Promise<Task | null> {
+    const { data, error } = await supabase
+      .from('tasks')
+      .select()
+      .eq('id', taskId)
+      .single();
+
+    if (error && error.code !== 'PGRST116') throw error;
+    return data as Task;
+  },
+
+  // Get tasks for a project
+  async getProjectTasks(projectId: string): Promise<Task[]> {
+    const { data, error } = await supabase
+      .from('tasks')
+      .select()
+      .eq('project_id', projectId);
+
+    if (error) throw error;
+    return (data || []) as Task[];
+  },
+
+  // Get tasks assigned to a user
+  async getUserTasks(userId: string): Promise<Task[]> {
+    const { data, error } = await supabase
+      .from('tasks')
+      .select()
+      .eq('assigned_to', userId);
+
+    if (error) throw error;
+    return (data || []) as Task[];
   },
 
   // Update task status
-  async updateTaskStatus(
-    milestoneId: string,
-    taskId: string,
-    completed: boolean,
-    projectId: string,
-    projectTitle: string,
-    milestoneTitle: string,
-    clientId: string,
-    professionalId: string
-  ): Promise<void> {
-    // Fetch the task to check dependencies
-    const { data: task, error: fetchError } = await supabase
-      .from('project_tasks')
-      .select('*')
-      .eq('id', taskId)
-      .single();
-    if (fetchError) throw fetchError;
-    if (completed && task.dependencies && task.dependencies.length > 0) {
-      // Fetch all tasks for this milestone
-      const { data: allTasks, error: allTasksError } = await supabase
-        .from('project_tasks')
-        .select('*')
-        .eq('milestone_id', milestoneId);
-      if (allTasksError) throw allTasksError;
-      const incompleteDependencies = task.dependencies.filter((depId: string) => {
-        const depTask = allTasks.find((t: any) => t.id === depId);
-        return !depTask?.completed;
-      });
-      if (incompleteDependencies.length > 0) {
-        throw new Error('Cannot complete task: dependencies are not completed');
-      }
-    }
-    // Update the task
-    const { error: updateError } = await supabase
-      .from('project_tasks')
-      .update({
-        completed,
-        status: completed ? 'completed' : 'in_progress',
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', taskId);
-    if (updateError) throw updateError;
-    // Optionally: update milestone progress here if needed
-    // Send notifications as before
-    // ... (notification logic unchanged)
-  },
-
-  // Add a new task to a milestone (alias for createTask)
-  async addTask(
-    milestoneId: string,
-    title: string,
-    projectId: string,
-    projectTitle: string,
-    milestoneTitle: string,
-    clientId: string,
-    professionalId: string,
-    deadline?: string,
-    dependencies: string[] = [],
-    priority: Task['priority'] = 'medium'
-  ): Promise<void> {
-    await taskService.createTask(milestoneId, title, deadline, dependencies, priority);
-    // Optionally: send notification
-  },
-
-  // Remove a task from a milestone
-  async removeTask(
-    milestoneId: string,
-    taskId: string,
-    projectId: string,
-    projectTitle: string,
-    milestoneTitle: string,
-    clientId: string,
-    professionalId: string
-  ): Promise<void> {
-    // Check if task is a dependency of any other task
-    const { data: allTasks, error: allTasksError } = await supabase
-      .from('project_tasks')
-      .select('*')
-      .eq('milestone_id', milestoneId);
-    if (allTasksError) throw allTasksError;
-    const isDependency = allTasks.some((task: any) => 
-      task.dependencies && task.dependencies.includes(taskId)
-    );
-    if (isDependency) {
-      throw new Error('Cannot remove task: it is a dependency of other tasks');
-    }
-    const { error } = await supabase
-      .from('project_tasks')
-      .delete()
-      .eq('id', taskId);
-    if (error) throw error;
-  },
-
-  // Get all tasks for a milestone
-  async getMilestoneTasks(milestoneId: string): Promise<Task[]> {
+  async updateTaskStatus(taskId: string, status: TaskStatus): Promise<Task> {
     const { data, error } = await supabase
-      .from('project_tasks')
-      .select('*')
-      .eq('milestone_id', milestoneId);
+      .from('tasks')
+      .update({ status })
+      .eq('id', taskId)
+      .select()
+      .single();
+
     if (error) throw error;
-    return data || [];
+
+    // Create status change notification
+    if (data.assigned_to) {
+      await notificationService.createNotification({
+        user_id: data.assigned_to,
+        title: 'Task Status Updated',
+        message: `The status of task "${data.title}" has been updated to ${status}`,
+        type: 'info'
+      });
+    }
+
+    return data as Task;
   },
 
-  // Check for overdue tasks
-  async checkOverdueTasks(milestoneId: string): Promise<Task[]> {
-    const tasks = await this.getMilestoneTasks(milestoneId);
-    const now = new Date();
-    
-    return tasks.filter(task => 
-      task.deadline && 
-      !task.completed && 
-      new Date(task.deadline) < now
-    );
+  // Assign task to user
+  async assignTask(taskId: string, userId: string): Promise<Task> {
+    const { data, error } = await supabase
+      .from('tasks')
+      .update({ assigned_to: userId })
+      .eq('id', taskId)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    // Create assignment notification
+    await notificationService.createNotification({
+      user_id: userId,
+      title: 'Task Assigned',
+      message: `You have been assigned to task: ${data.title}`,
+      type: 'info'
+    });
+
+    return data as Task;
   }
 };
