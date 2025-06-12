@@ -15,7 +15,11 @@ export interface FileVersion {
   change_description: string | null;
   access_level: 'private' | 'project_members' | 'public';
   uploaded_by: string;
-  metadata: Record<string, any>;
+  metadata: {
+    description?: string;
+    tags?: string[];
+    [key: string]: unknown;
+  };
   created_at: string;
 }
 
@@ -47,9 +51,39 @@ export interface FileStatusRestriction {
   max_files_per_submission: number | null;
 }
 
+export interface FileVersionInsert {
+  version_id: string;
+  file_name: string;
+  file_url: string;
+  file_type?: string;
+  file_size?: number;
+  version_number: number;
+  parent_file_id?: string;
+  is_latest: boolean;
+  change_description?: string;
+  access_level: 'private' | 'project_members' | 'public';
+  uploaded_by: string;
+  metadata?: FileVersion['metadata'];
+}
+
+export interface FileReviewInsert {
+  file_id: string;
+  reviewer_id: string;
+  status: FileReviewStatus;
+  feedback?: string;
+  reviewed_at?: string;
+}
+
+export interface FileCommentInsert {
+  file_id: string;
+  commenter_id: string;
+  content: string;
+  parent_comment_id?: string;
+}
+
 export const fileService = {
   // Create a new file version
-  async createFileVersion(fileData: Omit<FileVersion, 'id' | 'created_at'>): Promise<FileVersion> {
+  async createFileVersion(fileData: FileVersionInsert): Promise<FileVersion> {
     const { data, error } = await supabase
       .from('file_versions')
       .insert(fileData)
@@ -84,7 +118,7 @@ export const fileService = {
   },
 
   // Create a file review
-  async createFileReview(reviewData: Omit<FileReview, 'id' | 'created_at'>): Promise<FileReview> {
+  async createFileReview(reviewData: FileReviewInsert): Promise<FileReview> {
     const { data, error } = await supabase
       .from('file_reviews')
       .insert(reviewData)
@@ -131,7 +165,7 @@ export const fileService = {
   },
 
   // Add a file comment
-  async addFileComment(commentData: Omit<FileComment, 'id' | 'created_at'>): Promise<FileComment> {
+  async addFileComment(commentData: FileCommentInsert): Promise<FileComment> {
     const { data, error } = await supabase
       .from('file_comments')
       .insert(commentData)

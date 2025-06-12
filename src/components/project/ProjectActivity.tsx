@@ -15,6 +15,12 @@ import {
   ArrowRight
 } from 'lucide-react';
 import { format, formatDistanceToNow } from 'date-fns';
+import { TaskStatus } from '@/types/database';
+
+// Activity types
+export type ActivityType = 'message' | 'milestone' | 'task' | 'file' | 'member' | 'expense' | 'other';
+export type ActivityStatus = TaskStatus;
+export type ActivityPriority = 'high' | 'medium' | 'low';
 
 interface ActivityUser {
   id: string;
@@ -25,14 +31,14 @@ interface ActivityUser {
 
 interface ActivityItem {
   id: string;
-  type: 'message' | 'milestone' | 'task' | 'file' | 'member' | 'expense' | 'other';
+  type: ActivityType;
   title: string;
   description?: string;
   timestamp: string;
   user: ActivityUser;
   metadata?: {
-    status?: 'completed' | 'in_progress' | 'overdue';
-    priority?: 'high' | 'medium' | 'low';
+    status?: ActivityStatus;
+    priority?: ActivityPriority;
     amount?: number;
     fileType?: string;
     fileSize?: number;
@@ -45,8 +51,8 @@ interface ProjectActivityProps {
 }
 
 const ProjectActivity: React.FC<ProjectActivityProps> = ({ activities }) => {
-  const getActivityIcon = (type: ActivityItem['type']) => {
-    const icons: Record<ActivityItem['type'], React.ReactNode> = {
+  const getActivityIcon = (type: ActivityType) => {
+    const icons: Record<ActivityType, React.ReactNode> = {
       message: <MessageSquare className="h-4 w-4" />,
       milestone: <Calendar className="h-4 w-4" />,
       task: <CheckCircle2 className="h-4 w-4" />,
@@ -58,8 +64,8 @@ const ProjectActivity: React.FC<ProjectActivityProps> = ({ activities }) => {
     return icons[type];
   };
 
-  const getActivityColor = (type: ActivityItem['type']) => {
-    const colors: Record<ActivityItem['type'], string> = {
+  const getActivityColor = (type: ActivityType) => {
+    const colors: Record<ActivityType, string> = {
       message: 'bg-blue-100 text-blue-800 border-blue-200',
       milestone: 'bg-purple-100 text-purple-800 border-purple-200',
       task: 'bg-green-100 text-green-800 border-green-200',
@@ -71,16 +77,24 @@ const ProjectActivity: React.FC<ProjectActivityProps> = ({ activities }) => {
     return colors[type];
   };
 
-  const getStatusBadge = (status: ActivityItem['metadata']['status']) => {
+  const getStatusBadge = (status: ActivityStatus) => {
     if (!status) return null;
 
-    const statusConfig: Record<NonNullable<ActivityItem['metadata']['status']>, { color: string; icon: React.ReactNode }> = {
+    const statusConfig: Record<ActivityStatus, { color: string; icon: React.ReactNode }> = {
+      not_started: {
+        color: 'bg-gray-100 text-gray-800 border-gray-200',
+        icon: <Clock className="h-4 w-4" />
+      },
+      in_progress: {
+        color: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+        icon: <Clock className="h-4 w-4" />
+      },
       completed: {
         color: 'bg-green-100 text-green-800 border-green-200',
         icon: <CheckCircle2 className="h-4 w-4" />
       },
-      in_progress: {
-        color: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+      on_hold: {
+        color: 'bg-gray-100 text-gray-800 border-gray-200',
         icon: <Clock className="h-4 w-4" />
       },
       overdue: {
@@ -94,16 +108,16 @@ const ProjectActivity: React.FC<ProjectActivityProps> = ({ activities }) => {
       <Badge variant="outline" className={color}>
         {icon}
         <span className="ml-1">
-          {status.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
+          {status.split('_').map((word: string) => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
         </span>
       </Badge>
     );
   };
 
-  const getPriorityBadge = (priority: ActivityItem['metadata']['priority']) => {
+  const getPriorityBadge = (priority: ActivityPriority) => {
     if (!priority) return null;
 
-    const priorityConfig: Record<NonNullable<ActivityItem['metadata']['priority']>, { color: string }> = {
+    const priorityConfig: Record<ActivityPriority, { color: string }> = {
       high: {
         color: 'bg-red-100 text-red-800 border-red-200'
       },

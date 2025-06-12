@@ -1,22 +1,20 @@
-
 import React from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ClockIcon, TagIcon, DocumentIcon, EyeIcon } from '@heroicons/react/24/outline';
-import { Project } from '@/components/dashboard/types';
-import { Milestone } from '@/components/project/creation/types';
+import { Project, ProjectStatus, ProjectMilestone } from '@/types/database';
+import { Milestone, convertDBMilestoneToMilestone } from '@/components/project/creation/types';
 import ProjectUpdateTimeline from '../../project/ProjectUpdateTimeline';
 import ProjectMilestones from '../../project/ProjectMilestones';
 import ProjectDeliverables from '../../project/ProjectDeliverables';
-import { ProjectStatus } from '@/types/projectUpdates';
 
 interface ProjectCardTabsProps {
   project: Project;
-  milestones: Milestone[];
+  milestones: ProjectMilestone[];
   activeTab: string;
   setActiveTab: (tab: string) => void;
   isProfessional: boolean;
   isClient: boolean;
-  onMilestoneUpdate?: (milestoneId: string, updates: Partial<Milestone>) => Promise<void>;
+  onMilestoneUpdate?: (milestoneId: string, updates: Partial<ProjectMilestone>) => Promise<void>;
   onMilestoneDelete?: (milestoneId: string) => Promise<void>;
   onTaskStatusUpdate?: (milestoneId: string, taskId: string, completed: boolean) => Promise<void>;
 }
@@ -35,6 +33,7 @@ export const ProjectCardTabs: React.FC<ProjectCardTabsProps> = ({
   const getValidProjectStatus = (status: string | null): ProjectStatus => {
     if (!status) return 'open';
     const validStatuses: ProjectStatus[] = [
+      'draft',
       'open',
       'assigned',
       'in_progress',
@@ -50,9 +49,12 @@ export const ProjectCardTabs: React.FC<ProjectCardTabsProps> = ({
   };
 
   const defaultMilestoneHandler = async (): Promise<void> => {};
-  const defaultMilestoneUpdateHandler = async (_milestoneId: string, _updates: Partial<Milestone>): Promise<void> => {};
+  const defaultMilestoneUpdateHandler = async (_milestoneId: string, _updates: Partial<ProjectMilestone>): Promise<void> => {};
   const defaultMilestoneDeleteHandler = async (_milestoneId: string): Promise<void> => {};
   const defaultTaskStatusHandler = async (_milestoneId: string, _taskId: string, _completed: boolean): Promise<void> => {};
+
+  // Convert ProjectMilestone[] to Milestone[]
+  const convertedMilestones: Milestone[] = milestones.map(milestone => convertDBMilestoneToMilestone(milestone));
 
   return (
     <div className="mt-6 border-t pt-6">
@@ -92,7 +94,7 @@ export const ProjectCardTabs: React.FC<ProjectCardTabsProps> = ({
           <ProjectMilestones 
             projectId={project.id}
             projectStatus={getValidProjectStatus(project.status)}
-            milestones={milestones}
+            milestones={convertedMilestones}
             isClient={isClient}
             onAddMilestone={defaultMilestoneHandler}
             onEditMilestone={onMilestoneUpdate || defaultMilestoneUpdateHandler}

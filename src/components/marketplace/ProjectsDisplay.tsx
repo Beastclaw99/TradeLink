@@ -2,14 +2,14 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import ProjectCard from './ProjectCard';
 import ProjectListItem from './ProjectListItem';
-import { Project } from '@/components/dashboard/types';
+import { Project, ExtendedProject } from '@/types/database';
 import { Loader2 } from 'lucide-react';
 
 interface ProjectsDisplayProps {
-  projects: Project[];
+  projects: Project[] | ExtendedProject[];
   loading: boolean;
   viewMode: 'grid' | 'list';
-  userType: 'professional' | 'client' | null;
+  userType: 'professional' | 'client';
   userSkills?: string[];
 }
 
@@ -61,25 +61,39 @@ const ProjectsDisplay: React.FC<ProjectsDisplayProps> = ({
       {viewMode === 'grid' ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {projects.map(project => (
-            <ProjectCard 
-              key={project.id} 
-              project={project} 
-              onClick={() => handleProjectClick(project.id)}
-              userType={userType}
-              userSkills={userSkills}
-            />
+            userType === 'client' ? (
+              <ProjectCard 
+                key={project.id} 
+                project={project as Project} 
+                onClick={() => handleProjectClick(project.id)}
+              />
+            ) : (
+              <ProjectListItem 
+                key={project.id} 
+                project={project as ExtendedProject}
+                onClick={() => handleProjectClick(project.id)}
+                userSkills={userSkills}
+              />
+            )
           ))}
         </div>
       ) : (
         <div className="space-y-4">
           {projects.map(project => (
-            <ProjectListItem 
-              key={project.id} 
-              project={project}
-              onClick={() => handleProjectClick(project.id)}
-              userType={userType}
-              userSkills={userSkills}
-            />
+            userType === 'client' ? (
+              <ProjectCard 
+                key={project.id} 
+                project={project as Project} 
+                onClick={() => handleProjectClick(project.id)}
+              />
+            ) : (
+              <ProjectListItem 
+                key={project.id} 
+                project={project as ExtendedProject}
+                onClick={() => handleProjectClick(project.id)}
+                userSkills={userSkills}
+              />
+            )
           ))}
         </div>
       )}

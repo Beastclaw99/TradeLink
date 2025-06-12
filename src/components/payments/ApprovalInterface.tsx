@@ -1,10 +1,10 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { CheckCircle, XCircle, Clock, DollarSign, MapPin, Calendar } from 'lucide-react';
+import { ProjectStatus } from '@/types/database';
 
 interface ProjectSummary {
   id: string;
@@ -15,7 +15,7 @@ interface ProjectSummary {
   location: string;
   estimatedDuration: string;
   submittedDate: string;
-  status: 'pending' | 'approved' | 'rejected';
+  status: ProjectStatus;
 }
 
 interface ApprovalInterfaceProps {
@@ -36,7 +36,7 @@ const ApprovalInterface: React.FC<ApprovalInterfaceProps> = ({ project }) => {
     location: 'Port of Spain, Trinidad',
     estimatedDuration: '2-3 days',
     submittedDate: '2024-01-15',
-    status: 'pending'
+    status: 'open'
   };
 
   const projectData = project || mockProject;
@@ -57,10 +57,18 @@ const ApprovalInterface: React.FC<ApprovalInterfaceProps> = ({ project }) => {
     setIsProcessing(false);
   };
 
-  const statusConfig = {
-    pending: { icon: Clock, color: 'bg-yellow-100 text-yellow-800', text: 'Pending Review' },
-    approved: { icon: CheckCircle, color: 'bg-green-100 text-green-800', text: 'Approved' },
-    rejected: { icon: XCircle, color: 'bg-red-100 text-red-800', text: 'Rejected' }
+  const statusConfig: Record<ProjectStatus, { icon: typeof Clock; color: string; text: string }> = {
+    draft: { icon: Clock, color: 'bg-gray-100 text-gray-800', text: 'Draft' },
+    open: { icon: Clock, color: 'bg-yellow-100 text-yellow-800', text: 'Pending Review' },
+    assigned: { icon: CheckCircle, color: 'bg-green-100 text-green-800', text: 'Assigned' },
+    in_progress: { icon: Clock, color: 'bg-blue-100 text-blue-800', text: 'In Progress' },
+    work_submitted: { icon: CheckCircle, color: 'bg-purple-100 text-purple-800', text: 'Work Submitted' },
+    work_revision_requested: { icon: XCircle, color: 'bg-orange-100 text-orange-800', text: 'Revision Requested' },
+    work_approved: { icon: CheckCircle, color: 'bg-green-100 text-green-800', text: 'Work Approved' },
+    completed: { icon: CheckCircle, color: 'bg-green-100 text-green-800', text: 'Completed' },
+    archived: { icon: Clock, color: 'bg-gray-100 text-gray-800', text: 'Archived' },
+    cancelled: { icon: XCircle, color: 'bg-red-100 text-red-800', text: 'Cancelled' },
+    disputed: { icon: XCircle, color: 'bg-red-100 text-red-800', text: 'Disputed' }
   };
 
   const StatusIcon = statusConfig[projectData.status].icon;
@@ -122,7 +130,7 @@ const ApprovalInterface: React.FC<ApprovalInterfaceProps> = ({ project }) => {
           </div>
 
           {/* Approval Section */}
-          {projectData.status === 'pending' && (
+          {projectData.status === 'open' && (
             <div className="border-t pt-6">
               <h4 className="font-medium mb-4">Approval Decision</h4>
               
@@ -163,15 +171,15 @@ const ApprovalInterface: React.FC<ApprovalInterfaceProps> = ({ project }) => {
           )}
 
           {/* Already Processed */}
-          {projectData.status !== 'pending' && (
+          {projectData.status !== 'open' && (
             <div className="border-t pt-6">
               <div className={`p-4 rounded-lg ${
-                projectData.status === 'approved' ? 'bg-green-50' : 'bg-red-50'
+                projectData.status === 'assigned' ? 'bg-green-50' : 'bg-red-50'
               }`}>
                 <p className="font-medium">
-                  This project has been {projectData.status}.
+                  This project has been {projectData.status.replace('_', ' ')}.
                 </p>
-                {projectData.status === 'approved' && (
+                {projectData.status === 'assigned' && (
                   <p className="text-sm text-gray-600 mt-1">
                     Payment processing will begin automatically.
                   </p>

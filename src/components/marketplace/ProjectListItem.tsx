@@ -1,15 +1,19 @@
-
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import UnifiedProjectCard from '@/components/shared/UnifiedProjectCard';
-import { Project } from '@/components/dashboard/types';
+import { ExtendedProject } from '@/types/database';
 
 interface ProjectListItemProps {
-  project: Project;
+  project: ExtendedProject;
   onClick?: () => void;
+  userSkills?: string[];
 }
 
-const ProjectListItem: React.FC<ProjectListItemProps> = ({ project, onClick }) => {
+const ProjectListItem: React.FC<ProjectListItemProps> = ({ 
+  project, 
+  onClick,
+  userSkills = []
+}) => {
   const navigate = useNavigate();
   
   const handleClick = () => {
@@ -26,6 +30,8 @@ const ProjectListItem: React.FC<ProjectListItemProps> = ({ project, onClick }) =
       variant="list"
       onClick={handleClick}
       actionLabel="View Details"
+      userType="professional"
+      userSkills={userSkills}
     />
   );
 };

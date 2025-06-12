@@ -4,7 +4,7 @@ import Layout from '@/components/layout/Layout';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Project } from '@/components/dashboard/types';
+import { Project, ExtendedProject } from '@/types/database';
 
 // Import the refactored components
 import HeroSection from '@/components/marketplace/HeroSection';
@@ -23,7 +23,7 @@ const ProjectMarketplace: React.FC = () => {
   const [locationFilter, setLocationFilter] = useState("");
   const [budgetFilter, setBudgetFilter] = useState("");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-  const [projects, setProjects] = useState<Project[]>([]);
+  const [projects, setProjects] = useState<(Project | ExtendedProject)[]>([]);
   const [loading, setLoading] = useState(true);
   const [userType, setUserType] = useState<'professional' | 'client' | null>(null);
   const [userSkills, setUserSkills] = useState<string[]>([]);
@@ -125,38 +125,56 @@ const ProjectMarketplace: React.FC = () => {
         
       if (error) throw error;
       
-      const typedProjects: Project[] = data?.map(project => ({
-        id: project.id,
-        title: project.title,
-        description: project.description,
-        category: project.category,
-        budget: project.budget,
-        expected_timeline: project.expected_timeline,
-        location: project.location,
-        urgency: project.urgency,
-        requirements: project.requirements,
-        recommended_skills: project.skills_needed,
-        status: project.status,
-        created_at: project.created_at,
-        updated_at: project.updated_at,
-        client_id: project.client_id,
-        assigned_to: project.assigned_to,
-        professional_id: project.professional_id,
-        contract_template_id: project.contract_template_id,
-        deadline: project.deadline,
-        industry_specific_fields: project.industry_specific_fields,
-        location_coordinates: project.location_coordinates,
-        project_start_time: project.project_start_time,
-        rich_description: project.rich_description,
-        scope: project.scope,
-        service_contract: project.service_contract,
-        sla_terms: project.sla_terms,
-        client: project.client,
-        professional: project.professional,
-        milestones: project.milestones,
-        deliverables: project.deliverables,
-        applications: project.applications
-      })) || [];
+      const typedProjects = data?.map(project => {
+        // Ensure urgency is one of the allowed values
+        const urgency = project.urgency === 'low' || project.urgency === 'normal' || project.urgency === 'high' 
+          ? project.urgency 
+          : null;
+
+        // Create base project object
+        const baseProject = {
+          id: project.id,
+          title: project.title,
+          description: project.description,
+          category: project.category,
+          budget: project.budget,
+          expected_timeline: project.expected_timeline,
+          location: project.location,
+          urgency,
+          requirements: project.requirements,
+          status: project.status,
+          created_at: project.created_at,
+          updated_at: project.updated_at,
+          client_id: project.client_id,
+          assigned_to: project.assigned_to,
+          professional_id: project.professional_id,
+          contract_template_id: project.contract_template_id,
+          deadline: project.deadline,
+          industry_specific_fields: project.industry_specific_fields,
+          location_coordinates: project.location_coordinates,
+          scope: project.scope,
+          sla_terms: project.sla_terms,
+          client: project.client,
+          professional: project.professional,
+          milestones: project.milestones,
+          deliverables: project.deliverables,
+          applications: project.applications
+        };
+
+        // If user is a professional, add extended fields
+        if (userType === 'professional') {
+          return {
+            ...baseProject,
+            spent: 0,
+            recommended_skills: [],
+            project_start_time: null,
+            rich_description: null,
+            service_contract: null
+          } as unknown as ExtendedProject;
+        }
+
+        return baseProject as unknown as Project;
+      }) || [];
       
       setProjects(typedProjects);
     } catch (error) {
@@ -198,68 +216,45 @@ const ProjectMarketplace: React.FC = () => {
   });
 
   const handlePostProject = () => {
-    if (!user) {
-      navigate('/login');
-      return;
-    }
-
-    if (userType === 'client') {
-      navigate('/client/create-project');
-    } else {
-      toast({
-        title: "Access Denied",
-        description: "Only clients can post new projects.",
-        variant: "destructive"
-      });
-    }
+    navigate('/projects/new');
   };
-  
+
   return (
     <Layout>
-      <HeroSection 
-        onPostProject={handlePostProject}
-        title={userType === 'professional' ? "Find Projects" : "Project Marketplace"}
-        description={userType === 'professional' 
-          ? "Browse and apply to projects that match your skills and expertise"
-          : "Browse available projects or post your own project to find the right professional"
-        }
-        showPostButton={userType === 'client'}
-      />
-      
-      <section className="py-8 bg-gray-50">
-        <div className="container-custom">
-          <SearchFilters 
-            searchTerm={searchTerm}
-            setSearchTerm={setSearchTerm}
-            categoryFilter={categoryFilter}
-            setCategoryFilter={setCategoryFilter}
-            locationFilter={locationFilter}
-            setLocationFilter={setLocationFilter}
-            budgetFilter={budgetFilter}
-            setBudgetFilter={setBudgetFilter}
-            onFilterApply={fetchProjects}
-            userType={userType}
-          />
+      <div className="container mx-auto px-4 py-8">
+        <HeroSection onPostProject={handlePostProject} />
+        
+        <div className="mt-8">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+            <SearchFilters
+              searchTerm={searchTerm}
+              setSearchTerm={setSearchTerm}
+              categoryFilter={categoryFilter}
+              setCategoryFilter={setCategoryFilter}
+              locationFilter={locationFilter}
+              setLocationFilter={setLocationFilter}
+              budgetFilter={budgetFilter}
+              setBudgetFilter={setBudgetFilter}
+              onFilterApply={fetchProjects}
+            />
+            <ViewModeToggle 
+              viewMode={viewMode} 
+              setViewMode={setViewMode}
+              projectCount={filteredProjects.length}
+            />
+          </div>
           
-          <ViewModeToggle 
-            viewMode={viewMode} 
-            setViewMode={setViewMode} 
-            projectCount={filteredProjects.length} 
-          />
-          
-          <ProjectsDisplay 
-            projects={filteredProjects} 
-            loading={loading} 
+          <ProjectsDisplay
+            projects={filteredProjects}
+            loading={loading}
             viewMode={viewMode}
-            userType={userType}
+            userType={userType || 'client'}
             userSkills={userSkills}
           />
         </div>
-      </section>
-
-      {userType === 'client' && (
+        
         <CTASection onPostProject={handlePostProject} />
-      )}
+      </div>
     </Layout>
   );
 };

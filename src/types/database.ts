@@ -46,4 +46,55 @@ export interface ExtendedProject extends Project {
   invoices?: Invoice[];
   messages?: Message[];
   notifications?: Notification[];
+}
+
+// Task types
+export interface Task {
+  id: string;
+  project_id: string;
+  title: string;
+  description: string | null;
+  status: TaskStatus;
+  assignee_id: string | null;
+  due_date: string | null;
+  created_at: string;
+  updated_at: string;
+  completed: boolean | null;
+  completion_date: string | null;
+  created_by: string | null;
+  dependencies: string[] | null;
+  milestone_id: string | null;
+  priority: string;
+  tags: string[] | null;
+}
+
+export interface TaskInsert {
+  project_id: string;
+  title: string;
+  description?: string;
+  status: TaskStatus;
+  assignee_id?: string;
+  due_date?: string;
+  completed?: boolean;
+  completion_date?: string;
+  created_by?: string;
+  dependencies?: string[];
+  milestone_id?: string;
+  priority: string;
+  tags?: string[];
+}
+
+export interface TaskUpdate {
+  title?: string;
+  description?: string;
+  status?: TaskStatus;
+  assignee_id?: string;
+  due_date?: string;
+  completed?: boolean;
+  completion_date?: string;
+  created_by?: string;
+  dependencies?: string[];
+  milestone_id?: string;
+  priority?: string;
+  tags?: string[];
 } 

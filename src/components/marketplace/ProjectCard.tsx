@@ -2,34 +2,26 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Project } from '@/components/dashboard/types';
+import { Project, ProjectStatus } from '@/types/database';
 import { format } from 'date-fns';
-import { CalendarIcon, MapPinIcon, BanknotesIcon } from '@heroicons/react/24/outline';
 import { Badge } from '@/components/ui/badge';
-import { Star } from 'lucide-react';
 
 interface ProjectCardProps {
   project: Project;
   onClick?: () => void;
-  userType: 'professional' | 'client' | null;
-  userSkills?: string[];
 }
 
 const ProjectCard: React.FC<ProjectCardProps> = ({ 
   project, 
-  onClick, 
-  userType,
-  userSkills = []
+  onClick
 }) => {
   const navigate = useNavigate();
   
   const handleClick = () => {
-    if (userType === 'professional') {
-      if (onClick) {
-        onClick();
-      } else {
-        navigate(`/projects/${project.id}`);
-      }
+    if (onClick) {
+      onClick();
+    } else {
+      navigate(`/projects/${project.id}`);
     }
   };
 
@@ -50,13 +42,9 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
     });
   };
 
-  const projectSkills = project.recommended_skills ? JSON.parse(project.recommended_skills) as string[] : [];
-  const matchingSkills = projectSkills.filter(skill => userSkills.includes(skill));
-  const hasMatchingSkills = matchingSkills.length > 0;
-
   return (
     <Card 
-      className={`cursor-pointer transition-all hover:shadow-md ${userType === 'professional' ? '' : 'opacity-50'}`}
+      className="cursor-pointer transition-all hover:shadow-md"
       onClick={handleClick}
     >
       <CardHeader>
@@ -64,7 +52,7 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
           <div>
             <CardTitle className="line-clamp-2">{project.title}</CardTitle>
             <CardDescription className="mt-1">
-              Posted by {project.client?.first_name} {project.client?.last_name}
+              Posted {formatDate(project.created_at)}
             </CardDescription>
           </div>
           <Badge variant={project.urgency === 'high' ? 'destructive' : 'default'}>
@@ -92,19 +80,19 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
               <p className="text-gray-600">{project.location || 'Remote'}</p>
             </div>
             <div>
-              <span className="font-medium">Posted:</span>
-              <p className="text-gray-600">{formatDate(project.created_at)}</p>
+              <span className="font-medium">Status:</span>
+              <p className="text-gray-600">{project.status || 'Open'}</p>
             </div>
           </div>
 
-          {projectSkills.length > 0 && (
+          {project.requirements && project.requirements.length > 0 && (
             <div>
               <span className="text-sm font-medium">Required Skills:</span>
               <div className="flex flex-wrap gap-2 mt-2">
-                {projectSkills.map((skill, index) => (
+                {project.requirements.map((skill, index) => (
                   <Badge 
                     key={index}
-                    variant={userSkills.includes(skill) ? 'default' : 'outline'}
+                    variant="outline"
                   >
                     {skill}
                   </Badge>
@@ -112,45 +100,12 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
               </div>
             </div>
           )}
-
-          {project.milestones && project.milestones.length > 0 && (
-            <div>
-              <span className="text-sm font-medium">Milestones:</span>
-              <div className="mt-2 space-y-2">
-                {project.milestones.slice(0, 2).map((milestone: any) => (
-                  <div key={milestone.id} className="text-sm text-gray-600">
-                    • {milestone.title}
-                  </div>
-                ))}
-                {project.milestones.length > 2 && (
-                  <div className="text-sm text-gray-500">
-                    +{project.milestones.length - 2} more milestones
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
         </div>
       </CardContent>
-      <CardFooter className="flex justify-between items-center">
-        <div className="flex items-center gap-2">
-          {project.client?.rating && (
-            <div className="flex items-center gap-1">
-              <Star className="h-4 w-4 text-yellow-400" />
-              <span className="text-sm">{project.client.rating.toFixed(1)}</span>
-            </div>
-          )}
-          {project.client?.total_reviews && (
-            <span className="text-sm text-gray-500">
-              ({project.client.total_reviews} reviews)
-            </span>
-          )}
-        </div>
-        {userType === 'professional' && (
-          <Button variant="default" size="sm">
-            View Details
-          </Button>
-        )}
+      <CardFooter className="flex justify-end">
+        <Button variant="default" size="sm">
+          View Details
+        </Button>
       </CardFooter>
     </Card>
   );

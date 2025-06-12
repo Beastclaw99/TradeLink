@@ -3,15 +3,16 @@ import { Card, CardContent, CardFooter } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { CalendarDays, CheckCircle2, Link2, ListChecks, MessageSquare, User2 } from 'lucide-react';
+import { CalendarDays, CheckCircle2, Link2, ListChecks, User2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
-import { Task, Milestone } from '@/components/project/creation/types';
+import { ExtendedProject, ProjectStatus } from '@/types/database';
 
 interface UnifiedProjectCardProps {
-  project: any;
+  project: ExtendedProject;
   variant?: 'card' | 'list';
-  isProfessional?: boolean;
+  userType: 'professional';
+  userSkills?: string[];
   actionLabel?: string;
   onClick?: () => void;
 }
@@ -21,20 +22,30 @@ interface StatusConfig {
   variant: "default" | "secondary" | "destructive" | "outline";
 }
 
-interface Json {
-  [key: string]: string | number | boolean | Json | Json[] | null;
-}
-
-const getStatusConfig = (status: string): StatusConfig => {
+const getStatusConfig = (status: ProjectStatus | null): StatusConfig => {
   switch (status) {
     case 'open':
       return { label: 'Open', variant: 'default' };
     case 'assigned':
       return { label: 'Assigned', variant: 'secondary' };
     case 'completed':
-      return { label: 'Completed', variant: 'default' }; // Changed from 'success' to 'default'
+      return { label: 'Completed', variant: 'default' };
     case 'cancelled':
       return { label: 'Cancelled', variant: 'destructive' };
+    case 'disputed':
+      return { label: 'Disputed', variant: 'destructive' };
+    case 'draft':
+      return { label: 'Draft', variant: 'outline' };
+    case 'in_progress':
+      return { label: 'In Progress', variant: 'secondary' };
+    case 'work_submitted':
+      return { label: 'Work Submitted', variant: 'secondary' };
+    case 'work_revision_requested':
+      return { label: 'Revision Requested', variant: 'destructive' };
+    case 'work_approved':
+      return { label: 'Work Approved', variant: 'default' };
+    case 'archived':
+      return { label: 'Archived', variant: 'outline' };
     default:
       return { label: 'Unknown', variant: 'outline' };
   }
@@ -43,7 +54,8 @@ const getStatusConfig = (status: string): StatusConfig => {
 const UnifiedProjectCard: React.FC<UnifiedProjectCardProps> = ({ 
   project, 
   variant = 'card',
-  isProfessional = false,
+  userType,
+  userSkills = [],
   actionLabel = "View Project",
   onClick
 }) => {
@@ -67,6 +79,10 @@ const UnifiedProjectCard: React.FC<UnifiedProjectCardProps> = ({
   };
 
   const projectType = getProjectType();
+
+  const projectSkills = project.requirements || [];
+  const matchingSkills = projectSkills.filter(skill => userSkills.includes(skill));
+  const hasMatchingSkills = matchingSkills.length > 0;
 
   return (
     <Card onClick={handleCardClick} className="hover:cursor-pointer">
@@ -93,27 +109,44 @@ const UnifiedProjectCard: React.FC<UnifiedProjectCardProps> = ({
         <div className="mt-4 space-y-2">
           <div className="flex items-center text-gray-600 text-sm">
             <CalendarDays className="w-4 h-4 mr-2" />
-            <span>{format(new Date(project.created_at), 'PPP')}</span>
+            <span>{project.created_at ? format(new Date(project.created_at), 'PPP') : 'N/A'}</span>
           </div>
           <div className="flex items-center text-gray-600 text-sm">
             <User2 className="w-4 h-4 mr-2" />
-            <span>{project.client_id}</span>
+            <span>{project.client?.first_name} {project.client?.last_name}</span>
           </div>
           <div className="flex items-center text-gray-600 text-sm">
             <Link2 className="w-4 h-4 mr-2" />
-            <span>{project.location}</span>
+            <span>{project.location || 'Remote'}</span>
           </div>
-          {project.comments && project.comments.length > 0 && (
+          {project.milestones && project.milestones.length > 0 && (
             <div className="flex items-center text-gray-600 text-sm">
-              <MessageSquare className="w-4 h-4 mr-2" />
-              <span>{project.comments.length} Comments</span>
+              <ListChecks className="w-4 h-4 mr-2" />
+              <span>{project.milestones.length} Milestones</span>
             </div>
           )}
         </div>
+        {projectSkills.length > 0 && (
+          <div className="mt-4">
+            <span className="text-sm font-medium">Required Skills:</span>
+            <div className="flex flex-wrap gap-2 mt-2">
+              {projectSkills.map((skill, index) => (
+                <Badge 
+                  key={index}
+                  variant={userSkills.includes(skill) ? 'default' : 'outline'}
+                >
+                  {skill}
+                </Badge>
+              ))}
+            </div>
+          </div>
+        )}
       </CardContent>
       <CardFooter className="px-4 py-2 bg-gray-50 border-t">
         <div className="flex items-center justify-between w-full">
-          <span className="text-sm text-gray-700 font-medium">${project.budget?.toLocaleString()}</span>
+          <span className="text-sm text-gray-700 font-medium">
+            {project.budget ? `$${project.budget.toLocaleString()}` : 'N/A'}
+          </span>
           {project.status === 'completed' ? (
             <CheckCircle2 className="w-6 h-6 text-green-500" />
           ) : (

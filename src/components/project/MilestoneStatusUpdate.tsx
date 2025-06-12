@@ -3,16 +3,17 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { notificationService } from '@/services/notificationService';
+import { MilestoneStatus } from '@/types/database';
 
 interface MilestoneStatusUpdateProps {
   projectId: string;
   projectTitle: string;
   milestoneId: string;
   milestoneTitle: string;
-  currentStatus: string;
+  currentStatus: MilestoneStatus;
   clientId: string;
   professionalId: string;
-  onStatusUpdate: (newStatus: string) => void;
+  onStatusUpdate: (newStatus: MilestoneStatus) => void;
 }
 
 const MilestoneStatusUpdate: React.FC<MilestoneStatusUpdateProps> = ({
@@ -28,12 +29,15 @@ const MilestoneStatusUpdate: React.FC<MilestoneStatusUpdateProps> = ({
   const [isUpdating, setIsUpdating] = useState(false);
   const { toast } = useToast();
 
-  const getNextStatus = (currentStatus: string) => {
-    const statusFlow: Record<string, string> = {
+  const getNextStatus = (currentStatus: MilestoneStatus): MilestoneStatus | null => {
+    const statusFlow: Record<MilestoneStatus, MilestoneStatus> = {
       not_started: 'in_progress',
-      in_progress: 'completed'
+      in_progress: 'completed',
+      completed: 'completed',
+      overdue: 'in_progress',
+      on_hold: 'in_progress'
     };
-    return statusFlow[currentStatus];
+    return statusFlow[currentStatus] || null;
   };
 
   const updateStatus = async () => {
@@ -44,7 +48,7 @@ const MilestoneStatusUpdate: React.FC<MilestoneStatusUpdateProps> = ({
     if (newStatus === 'completed') {
       const { data: milestone, error } = await supabase
         .from('project_milestones')
-        .select('tasks')
+        .select('task_ids')
         .eq('id', milestoneId)
         .single();
       if (error) {
@@ -55,15 +59,29 @@ const MilestoneStatusUpdate: React.FC<MilestoneStatusUpdateProps> = ({
         });
         return;
       }
-      const tasks = (milestone?.tasks as { id: string; title: string; completed: boolean }[]) || [];
-      const incompleteTasks = tasks.filter(task => !task.completed);
-      if (tasks.length > 0 && incompleteTasks.length > 0) {
-        toast({
-          title: 'Cannot Complete Milestone',
-          description: 'All tasks must be completed before marking this milestone as completed.',
-          variant: 'destructive'
-        });
-        return;
+      const taskIds = milestone?.task_ids || [];
+      if (taskIds.length > 0) {
+        const { data: tasks, error: tasksError } = await supabase
+          .from('project_tasks')
+          .select('id, title, completed')
+          .in('id', taskIds);
+        if (tasksError) {
+          toast({
+            title: 'Error',
+            description: 'Could not fetch task status.',
+            variant: 'destructive'
+          });
+          return;
+        }
+        const incompleteTasks = tasks?.filter(task => !task.completed) || [];
+        if (incompleteTasks.length > 0) {
+          toast({
+            title: 'Cannot Complete Milestone',
+            description: 'All tasks must be completed before marking this milestone as completed.',
+            variant: 'destructive'
+          });
+          return;
+        }
       }
     }
 
@@ -113,7 +131,7 @@ const MilestoneStatusUpdate: React.FC<MilestoneStatusUpdateProps> = ({
           .eq('id', milestoneId)
           .single();
 
-        if (milestone && new Date(milestone.due_date) < new Date()) {
+        if (milestone?.due_date && new Date(milestone.due_date) < new Date()) {
           // Create overdue notification
           await notificationService.createMilestoneNotification(
             projectId,
