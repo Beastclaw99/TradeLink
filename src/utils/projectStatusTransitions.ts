@@ -1,159 +1,112 @@
-import { ProjectStatus } from '@/types/projectUpdates';
+import { ProjectStatus } from '../types/database';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
 
 // Define valid status transitions
-const VALID_TRANSITIONS: Record<ProjectStatus, ProjectStatus[]> = {
-  draft: ['open', 'cancelled'],
-  open: ['assigned', 'cancelled'],
-  assigned: ['in_progress', 'cancelled'],
-  in_progress: ['work_submitted', 'cancelled'],
-  work_submitted: ['work_revision_requested', 'work_approved', 'cancelled'],
-  work_revision_requested: ['work_submitted', 'cancelled'],
-  work_approved: ['completed', 'cancelled'],
+export const VALID_TRANSITIONS: Record<ProjectStatus, ProjectStatus[]> = {
+  draft: ['open', 'archived'],
+  open: ['assigned', 'archived', 'cancelled'],
+  assigned: ['in_progress', 'archived', 'cancelled'],
+  in_progress: ['work_submitted', 'archived', 'cancelled'],
+  work_submitted: ['work_revision_requested', 'work_approved', 'archived', 'cancelled'],
+  work_revision_requested: ['work_submitted', 'archived', 'cancelled'],
+  work_approved: ['completed', 'archived', 'cancelled'],
   completed: ['archived'],
   archived: [],
   cancelled: [],
-  disputed: ['cancelled', 'in_progress']
+  disputed: ['archived', 'cancelled']
 };
 
 // Define required conditions for each status transition
-const TRANSITION_REQUIREMENTS: Record<ProjectStatus, {
+export const TRANSITION_REQUIREMENTS: Record<ProjectStatus, {
   requiredFields: string[];
-  requiredConditions: (project: any) => boolean;
+  requiredRelations: string[];
 }> = {
   draft: {
     requiredFields: ['title', 'description'],
-    requiredConditions: (project) => true
+    requiredRelations: []
   },
   open: {
-    requiredFields: ['title', 'description', 'budget', 'category'],
-    requiredConditions: (project) => {
-      return project.budget > 0 && !!project.category;
-    }
+    requiredFields: ['title', 'description', 'budget', 'timeline'],
+    requiredRelations: []
   },
   assigned: {
-    requiredFields: ['assigned_to', 'professional_id', 'contract_template_id'],
-    requiredConditions: (project) => {
-      return !!project.assigned_to && 
-             !!project.professional_id && 
-             !!project.contract_template_id;
-    }
+    requiredFields: ['title', 'description', 'budget', 'timeline'],
+    requiredRelations: ['professional_id']
   },
   in_progress: {
-    requiredFields: ['project_start_time'],
-    requiredConditions: (project) => {
-      return !!project.project_start_time && 
-             project.milestones?.length > 0;
-    }
+    requiredFields: ['title', 'description', 'budget', 'timeline'],
+    requiredRelations: ['professional_id']
   },
   work_submitted: {
-    requiredFields: [],
-    requiredConditions: (project) => {
-      // Check if all milestones have deliverables
-      return project.milestones?.every((milestone: any) => 
-        milestone.deliverables?.length > 0
-      ) ?? false;
-    }
+    requiredFields: ['title', 'description', 'budget', 'timeline'],
+    requiredRelations: ['professional_id']
   },
   work_revision_requested: {
-    requiredFields: ['revision_notes'],
-    requiredConditions: (project) => {
-      return !!project.revision_notes;
-    }
+    requiredFields: ['title', 'description', 'budget', 'timeline'],
+    requiredRelations: ['professional_id']
   },
   work_approved: {
-    requiredFields: [],
-    requiredConditions: (project) => {
-      // Check if all milestones are completed
-      return project.milestones?.every((milestone: any) => 
-        milestone.status === 'completed'
-      ) ?? false;
-    }
+    requiredFields: ['title', 'description', 'budget', 'timeline'],
+    requiredRelations: ['professional_id']
   },
   completed: {
-    requiredFields: [],
-    requiredConditions: (project) => {
-      // Check if all milestones are completed
-      return project.milestones?.every((milestone: any) => 
-        milestone.status === 'completed'
-      ) ?? false;
-    }
+    requiredFields: ['title', 'description', 'budget', 'timeline'],
+    requiredRelations: ['professional_id']
   },
   archived: {
-    requiredFields: ['reviews'],
-    requiredConditions: (project) => {
-      // Check if project is completed
-      if (project.status !== 'completed') return false;
-
-      // Check if both reviews exist in the project data
-      if (!project.reviews || !Array.isArray(project.reviews)) return false;
-
-      const hasClientReview = project.reviews.some((review: any) => 
-        review.client_id === project.client_id
-      );
-      const hasProfessionalReview = project.reviews.some((review: any) => 
-        review.professional_id === project.professional_id
-      );
-
-      return hasClientReview && hasProfessionalReview;
-    }
+    requiredFields: [],
+    requiredRelations: []
   },
   cancelled: {
-    requiredFields: ['cancellation_reason'],
-    requiredConditions: (project) => {
-      return !!project.cancellation_reason;
-    }
+    requiredFields: [],
+    requiredRelations: []
   },
   disputed: {
-    requiredFields: ['dispute_reason'],
-    requiredConditions: (project) => {
-      return !!project.dispute_reason;
-    }
+    requiredFields: ['title', 'description', 'budget', 'timeline'],
+    requiredRelations: ['professional_id']
   }
 };
 
 // Validate if a status transition is allowed
-export const validateStatusTransition = (
+export function isValidTransition(
+  currentStatus: ProjectStatus,
+  newStatus: ProjectStatus
+): boolean {
+  return VALID_TRANSITIONS[currentStatus]?.includes(newStatus) ?? false;
+}
+
+export function validateTransitionRequirements(
   currentStatus: ProjectStatus,
   newStatus: ProjectStatus,
   project: any
-): { isValid: boolean; message?: string } => {
-  // Check if transition is in valid transitions
-  if (!VALID_TRANSITIONS[currentStatus]?.includes(newStatus)) {
-    return {
-      isValid: false,
-      message: `Cannot transition from ${currentStatus} to ${newStatus}`
-    };
-  }
-
-  // Check required fields and conditions
+): { isValid: boolean; missingFields: string[] } {
   const requirements = TRANSITION_REQUIREMENTS[newStatus];
   if (!requirements) {
-    return { isValid: true };
+    return { isValid: false, missingFields: ['Invalid status'] };
   }
+
+  const missingFields: string[] = [];
 
   // Check required fields
-  const missingFields = requirements.requiredFields.filter(
-    field => !project[field]
-  );
-  if (missingFields.length > 0) {
-    return {
-      isValid: false,
-      message: `Missing required fields: ${missingFields.join(', ')}`
-    };
+  for (const field of requirements.requiredFields) {
+    if (!project[field]) {
+      missingFields.push(field);
+    }
   }
 
-  // Check required conditions
-  if (!requirements.requiredConditions(project)) {
-    return {
-      isValid: false,
-      message: 'Project does not meet required conditions for this status'
-    };
+  // Check required relations
+  for (const relation of requirements.requiredRelations) {
+    if (!project[relation]) {
+      missingFields.push(relation);
+    }
   }
 
-  return { isValid: true };
-};
+  return {
+    isValid: missingFields.length === 0,
+    missingFields
+  };
+}
 
 // Handle status transition with validation and updates
 export const handleStatusTransition = async (
@@ -177,7 +130,7 @@ export const handleStatusTransition = async (
     if (fetchError) throw fetchError;
 
     // Validate transition
-    const validation = validateStatusTransition(
+    const validation = validateTransitionRequirements(
       project.status as ProjectStatus,
       newStatus,
       project
@@ -186,7 +139,7 @@ export const handleStatusTransition = async (
     if (!validation.isValid) {
       return {
         success: false,
-        message: validation.message
+        message: `Missing required fields: ${validation.missingFields.join(', ')}`
       };
     }
 

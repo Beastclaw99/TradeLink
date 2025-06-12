@@ -119,7 +119,7 @@ const ProfileTab: React.FC<ProfileTabProps> = ({
           location: project.location,
           urgency: project.urgency,
           requirements: project.requirements,
-          required_skills: project.recommended_skills || null,
+          recommended_skills: project.recommended_skills || null,
           status: project.status,
           created_at: project.created_at,
           updated_at: project.updated_at,

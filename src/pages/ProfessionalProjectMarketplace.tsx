@@ -77,7 +77,7 @@ const ProfessionalProjectMarketplace: React.FC = () => {
         location: project.location || null,
         urgency: project.urgency || null,
         requirements: project.requirements || null,
-        required_skills: project.recommended_skills || null,
+        recommended_skills: project.recommended_skills || null,
         status: project.status || null,
         created_at: project.created_at || null,
         updated_at: project.updated_at || null,

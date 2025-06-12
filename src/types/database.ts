@@ -10,14 +10,64 @@ export type DisputeStatus = Database['public']['Enums']['dispute_status'];
 export type FileReviewStatus = Database['public']['Enums']['file_review_status_enum'];
 export type MilestoneStatus = Database['public']['Enums']['milestone_status'];
 export type PaymentStatus = Database['public']['Enums']['payment_status'];
-export type ProjectStatus = Database['public']['Enums']['project_status'];
+export type ProjectStatus = 
+  | 'draft'
+  | 'open'
+  | 'assigned'
+  | 'in_progress'
+  | 'work_submitted'
+  | 'work_revision_requested'
+  | 'work_approved'
+  | 'completed'
+  | 'archived'
+  | 'cancelled'
+  | 'disputed';
 export type ReviewStatus = Database['public']['Enums']['review_status_enum'];
 export type TaskStatus = Database['public']['Enums']['task_status_enum'];
 export type VerificationStatus = Database['public']['Enums']['verification_status_enum'];
 
 // Re-export table types
 export type Profile = Database['public']['Tables']['profiles']['Row'];
-export type Project = Database['public']['Tables']['projects']['Row'];
+export type Project = {
+  id: string;
+  client_id: string;
+  title: string;
+  description: string | null;
+  category: string | null;
+  location: string | null;
+  budget: number | null;
+  timeline: string | null;
+  urgency: 'low' | 'medium' | 'high' | 'urgent' | null;
+  requirements: string[] | null;
+  skills_needed: string[] | null;
+  status: ProjectStatus;
+  assigned_to: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+  professional_id: string | null;
+  contract_template_id: string | null;
+  deadline: string | null;
+  industry_specific_fields: any | null;
+  location_coordinates: any | null;
+  project_start_time: string | null;
+  rich_description: string | null;
+  scope: string | null;
+  service_contract: string | null;
+  sla_terms: any | null;
+  client?: {
+    id: string;
+    first_name: string;
+    last_name: string;
+    profile_image_url: string | null;
+  };
+  professional?: {
+    id: string;
+    first_name: string;
+    last_name: string;
+    rating: number | null;
+    profile_image_url: string | null;
+  };
+};
 export type Application = Database['public']['Tables']['applications']['Row'];
 export type Payment = Database['public']['Tables']['payments']['Row'];
 export type Review = Database['public']['Tables']['reviews']['Row'];

@@ -17,7 +17,13 @@ export const useProjectOperations = (userId: string, onUpdate: () => void) => {
   const [newProject, setNewProject] = useState({
     title: '',
     description: '',
-    budget: ''
+    budget: '',
+    category: '',
+    location: '',
+    timeline: '',
+    urgency: 'medium',
+    requirements: [],
+    skills_needed: []
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
@@ -255,7 +261,13 @@ export const useProjectOperations = (userId: string, onUpdate: () => void) => {
             description: newProject.description,
             budget: parseFloat(newProject.budget),
             client_id: userId,
-            status: 'open'
+            status: 'open',
+            category: newProject.category,
+            location: newProject.location,
+            timeline: newProject.timeline,
+            urgency: newProject.urgency,
+            requirements: newProject.requirements,
+            skills_needed: newProject.skills_needed
           }
         ])
         .select();
@@ -271,7 +283,13 @@ export const useProjectOperations = (userId: string, onUpdate: () => void) => {
       setNewProject({
         title: '',
         description: '',
-        budget: ''
+        budget: '',
+        category: '',
+        location: '',
+        timeline: '',
+        urgency: 'medium',
+        requirements: [],
+        skills_needed: []
       });
       
       // Refresh projects data

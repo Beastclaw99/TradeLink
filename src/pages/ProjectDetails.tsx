@@ -54,7 +54,7 @@ const ProjectDetails: React.FC = () => {
         location: data.location,
         urgency: data.urgency,
         requirements: data.requirements,
-        required_skills: data.recommended_skills || null,
+        recommended_skills: data.recommended_skills || null,
         status: data.status,
         created_at: data.created_at,
         updated_at: data.updated_at,
@@ -169,8 +169,8 @@ const ProjectDetails: React.FC = () => {
     );
   }
 
-  const requiredSkills = project.required_skills && typeof project.required_skills === 'string' 
-    ? project.required_skills.split(',').map(skill => skill.trim())
+  const requiredSkills = project.recommended_skills && typeof project.recommended_skills === 'string' 
+    ? project.recommended_skills.split(',').map(skill => skill.trim())
     : [];
 
   const recommendedSkills = project.recommended_skills && typeof project.recommended_skills === 'string'
