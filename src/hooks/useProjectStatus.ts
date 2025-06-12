@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { useToast } from '@/components/ui/use-toast';
-import { ProjectStatus } from '@/types/projectUpdates';
-import { validateStatusTransition, handleStatusTransition } from '@/utils/projectStatusTransitions';
+import { Database } from '@/integrations/supabase/types';
+import { validateTransitionRequirements, handleStatusTransition } from '@/utils/projectStatusTransitions';
+
+type ProjectStatus = Database['public']['Enums']['project_status_enum'];
 
 export const useProjectStatus = (projectId: string, userId: string) => {
   const { toast } = useToast();
@@ -53,7 +55,7 @@ export const useProjectStatus = (projectId: string, userId: string) => {
   };
 
   const canTransitionTo = (currentStatus: ProjectStatus, newStatus: ProjectStatus, project: any) => {
-    const validation = validateStatusTransition(currentStatus, newStatus, project);
+    const validation = validateTransitionRequirements(currentStatus, newStatus, project);
     return validation.isValid;
   };
 

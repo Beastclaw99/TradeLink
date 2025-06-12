@@ -1,6 +1,8 @@
-import { ProjectStatus } from '../types/database';
+import { Database } from '@/integrations/supabase/types';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
+
+type ProjectStatus = Database['public']['Enums']['project_status_enum'];
 
 // Define valid status transitions
 export const VALID_TRANSITIONS: Record<ProjectStatus, ProjectStatus[]> = {
