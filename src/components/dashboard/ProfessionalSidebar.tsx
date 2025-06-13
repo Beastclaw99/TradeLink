@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { cn } from "@/lib/utils";
 import { 
   User, 
@@ -12,7 +13,9 @@ import {
   HelpCircle,
   Phone,
   ChevronRight,
-  ChevronLeft
+  ChevronLeft,
+  Briefcase,
+  FileText
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import {
@@ -24,22 +27,45 @@ import {
 
 const sidebarItems = [
   {
+    title: "Available Projects",
+    icon: Briefcase,
+    href: "/dashboard",
+    tab: "featured",
+    description: "Browse and apply to projects"
+  },
+  {
+    title: "My Applications",
+    icon: FileText,
+    href: "/dashboard",
+    tab: "applications",
+    description: "Track your project applications"
+  },
+  {
+    title: "Active Projects",
+    icon: Calendar,
+    href: "/dashboard",
+    tab: "active",
+    description: "Manage your current projects"
+  },
+  {
+    title: "Payments",
+    icon: BarChart,
+    href: "/dashboard",
+    tab: "payments",
+    description: "View earnings and payment history"
+  },
+  {
+    title: "Reviews",
+    icon: TrendingUp,
+    href: "/dashboard",
+    tab: "reviews",
+    description: "Client feedback and ratings"
+  },
+  {
     title: "My Profile",
     icon: User,
     href: "/profile",
     description: "Manage personal information, skills & rates"
-  },
-  {
-    title: "Insights",
-    icon: TrendingUp,
-    href: "/insights",
-    description: "Market trends and opportunities"
-  },
-  {
-    title: "Analytics",
-    icon: BarChart,
-    href: "/analytics",
-    description: "Performance metrics and reviews"
   },
   {
     title: "Notifications",
@@ -52,12 +78,6 @@ const sidebarItems = [
     icon: MessageSquare,
     href: "/messages",
     description: "Client communications"
-  },
-  {
-    title: "My Schedule",
-    icon: Calendar,
-    href: "/calendar",
-    description: "Upcoming visits and activities"
   },
   {
     title: "Settings",
@@ -86,6 +106,7 @@ interface ProfessionalSidebarProps {
 const ProfessionalSidebar: React.FC<ProfessionalSidebarProps> = ({ onExpand }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
 
   useEffect(() => {
     onExpand(isExpanded);
@@ -93,6 +114,16 @@ const ProfessionalSidebar: React.FC<ProfessionalSidebarProps> = ({ onExpand }) =
 
   const handleToggle = () => {
     setIsExpanded(!isExpanded);
+  };
+
+  const handleNavigation = (item: typeof sidebarItems[0]) => {
+    if (item.tab && item.href === '/dashboard') {
+      // Navigate to dashboard with specific tab
+      navigate('/dashboard', { state: { activeTab: item.tab } });
+    } else {
+      // For other routes, navigate normally (these may not exist yet)
+      navigate(item.href);
+    }
   };
 
   return (
@@ -131,15 +162,15 @@ const ProfessionalSidebar: React.FC<ProfessionalSidebarProps> = ({ onExpand }) =
         {/* Navigation items */}
         <nav className="p-2 space-y-1">
           {sidebarItems.map((item) => {
-            const isActive = location.pathname === item.href || 
-                           (item.href.includes('?tab=') && location.search.includes(item.href.split('?tab=')[1]));
+            const isActive = location.pathname === item.href && 
+                           (!item.tab || location.state?.activeTab === item.tab);
             
             const menuItem = (
-              <Link
-                key={item.href}
-                to={item.href}
+              <button
+                key={item.href + (item.tab || '')}
+                onClick={() => handleNavigation(item)}
                 className={cn(
-                  "flex items-center gap-3 p-2 rounded-lg transition-colors duration-200 group",
+                  "w-full flex items-center gap-3 p-2 rounded-lg transition-colors duration-200 group text-left",
                   isActive 
                     ? "bg-ttc-blue-50 text-ttc-blue-700 border border-ttc-blue-200" 
                     : "hover:bg-gray-50 text-gray-700"
@@ -162,12 +193,12 @@ const ProfessionalSidebar: React.FC<ProfessionalSidebarProps> = ({ onExpand }) =
                     </div>
                   </div>
                 )}
-              </Link>
+              </button>
             );
 
             if (!isExpanded) {
               return (
-                <TooltipProvider key={item.href} delayDuration={0}>
+                <TooltipProvider key={item.href + (item.tab || '')} delayDuration={0}>
                   <Tooltip>
                     <TooltipTrigger asChild>
                       {menuItem}

@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useToast } from "@/components/ui/use-toast";
@@ -6,6 +7,7 @@ import { supabase } from '@/integrations/supabase/client';
 import Layout from '@/components/layout/Layout';
 import ClientDashboard from '@/components/dashboard/ClientDashboard';
 import ProfessionalDashboard from '@/components/dashboard/ProfessionalDashboard';
+import ErrorBoundary from '@/components/common/ErrorBoundary';
 
 const Dashboard: React.FC = () => {
   const { user, isLoading } = useAuth();
@@ -153,23 +155,27 @@ const Dashboard: React.FC = () => {
   }
 
   return (
-    <Layout>
-      <div className="container mx-auto px-4 py-8">
-        <h1 className="text-3xl font-bold mb-8">Dashboard</h1>
-        {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">
-            {error}
-          </div>
-        )}
-        {accountType === 'client' ? (
-          <ClientDashboard userId={user.id} initialTab={activeTab} />
-        ) : accountType === 'professional' ? (
-          <ProfessionalDashboard userId={user.id} />
-        ) : (
-          <div>Loading dashboard...</div>
-        )}
-      </div>
-    </Layout>
+    <ErrorBoundary>
+      <Layout>
+        <div className="container mx-auto px-4 py-8">
+          <h1 className="text-3xl font-bold mb-8">Dashboard</h1>
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">
+              {error}
+            </div>
+          )}
+          <ErrorBoundary>
+            {accountType === 'client' ? (
+              <ClientDashboard userId={user.id} initialTab={activeTab} />
+            ) : accountType === 'professional' ? (
+              <ProfessionalDashboard userId={user.id} />
+            ) : (
+              <div>Loading dashboard...</div>
+            )}
+          </ErrorBoundary>
+        </div>
+      </Layout>
+    </ErrorBoundary>
   );
 };
 

@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { cn } from "@/lib/utils";
 import { 
   User, 
@@ -25,34 +26,38 @@ import {
 
 const sidebarItems = [
   {
+    title: "Projects",
+    icon: FileText,
+    href: "/dashboard",
+    tab: "projects",
+    description: "Manage your projects and view progress"
+  },
+  {
+    title: "Applications",
+    icon: Users,
+    href: "/dashboard",
+    tab: "applications",
+    description: "Review project applications"
+  },
+  {
+    title: "Post Project",
+    icon: TrendingUp,
+    href: "/dashboard",
+    tab: "create",
+    description: "Create a new project"
+  },
+  {
+    title: "Payments",
+    icon: BarChart,
+    href: "/dashboard",
+    tab: "payments",
+    description: "View payments and billing"
+  },
+  {
     title: "My Profile",
     icon: User,
     href: "/profile",
     description: "Manage personal information and settings"
-  },
-  {
-    title: "My Network",
-    icon: Users,
-    href: "/network",
-    description: "List of preferred professionals"
-  },
-  {
-    title: "Invoices",
-    icon: FileText,
-    href: "/invoices",
-    description: "Payment management and billing history"
-  },
-  {
-    title: "Analytics",
-    icon: BarChart,
-    href: "/analytics",
-    description: "Project costs and performance insights"
-  },
-  {
-    title: "Insights",
-    icon: TrendingUp,
-    href: "/insights",
-    description: "Market trends and rate insights"
   },
   {
     title: "Notifications",
@@ -93,6 +98,7 @@ interface ClientSidebarProps {
 const ClientSidebar: React.FC<ClientSidebarProps> = ({ onExpand }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
 
   useEffect(() => {
     onExpand(isExpanded);
@@ -100,6 +106,16 @@ const ClientSidebar: React.FC<ClientSidebarProps> = ({ onExpand }) => {
 
   const handleToggle = () => {
     setIsExpanded(!isExpanded);
+  };
+
+  const handleNavigation = (item: typeof sidebarItems[0]) => {
+    if (item.tab && item.href === '/dashboard') {
+      // Navigate to dashboard with specific tab
+      navigate('/dashboard', { state: { activeTab: item.tab } });
+    } else {
+      // For other routes, navigate normally (these may not exist yet)
+      navigate(item.href);
+    }
   };
 
   return (
@@ -138,15 +154,15 @@ const ClientSidebar: React.FC<ClientSidebarProps> = ({ onExpand }) => {
         {/* Navigation items */}
         <nav className="p-2 space-y-1">
           {sidebarItems.map((item) => {
-            const isActive = location.pathname === item.href || 
-                           (item.href === '/profile' && location.pathname === '/dashboard' && location.search.includes('tab=profile'));
+            const isActive = location.pathname === item.href && 
+                           (!item.tab || location.state?.activeTab === item.tab);
             
             const menuItem = (
-              <Link
-                key={item.href}
-                to={item.href}
+              <button
+                key={item.href + (item.tab || '')}
+                onClick={() => handleNavigation(item)}
                 className={cn(
-                  "flex items-center gap-3 p-2 rounded-lg transition-colors duration-200 group",
+                  "w-full flex items-center gap-3 p-2 rounded-lg transition-colors duration-200 group text-left",
                   isActive 
                     ? "bg-ttc-blue-50 text-ttc-blue-700 border border-ttc-blue-200" 
                     : "hover:bg-gray-50 text-gray-700"
@@ -169,12 +185,12 @@ const ClientSidebar: React.FC<ClientSidebarProps> = ({ onExpand }) => {
                     </div>
                   </div>
                 )}
-              </Link>
+              </button>
             );
 
             if (!isExpanded) {
               return (
-                <TooltipProvider key={item.href} delayDuration={0}>
+                <TooltipProvider key={item.href + (item.tab || '')} delayDuration={0}>
                   <Tooltip>
                     <TooltipTrigger asChild>
                       {menuItem}
