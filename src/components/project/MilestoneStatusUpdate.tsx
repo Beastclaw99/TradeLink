@@ -10,7 +10,7 @@ interface MilestoneStatusUpdateProps {
   projectTitle: string;
   milestoneId: string;
   milestoneTitle: string;
-  currentStatus: MilestoneStatus;
+  currentStatus: MilestoneStatus | null;
   clientId: string;
   professionalId: string;
   onStatusUpdate: (newStatus: MilestoneStatus) => void;
@@ -29,7 +29,9 @@ const MilestoneStatusUpdate: React.FC<MilestoneStatusUpdateProps> = ({
   const [isUpdating, setIsUpdating] = useState(false);
   const { toast } = useToast();
 
-  const getNextStatus = (currentStatus: MilestoneStatus): MilestoneStatus | null => {
+  const getNextStatus = (currentStatus: MilestoneStatus | null): MilestoneStatus | null => {
+    if (!currentStatus) return null;
+
     const statusFlow: Record<MilestoneStatus, MilestoneStatus> = {
       not_started: 'in_progress',
       in_progress: 'completed',
@@ -40,49 +42,72 @@ const MilestoneStatusUpdate: React.FC<MilestoneStatusUpdateProps> = ({
     return statusFlow[currentStatus] || null;
   };
 
-  const updateStatus = async () => {
-    const newStatus = getNextStatus(currentStatus);
-    if (!newStatus) return;
-
-    // If trying to mark as completed, validate all tasks are completed
-    if (newStatus === 'completed') {
+  const validateTasksCompletion = async (): Promise<boolean> => {
+    try {
       const { data: milestone, error } = await supabase
         .from('project_milestones')
         .select('task_ids')
         .eq('id', milestoneId)
         .single();
+
       if (error) {
         toast({
           title: 'Error',
           description: 'Could not fetch milestone tasks.',
           variant: 'destructive'
         });
-        return;
+        return false;
       }
+
       const taskIds = milestone?.task_ids || [];
-      if (taskIds.length > 0) {
-        const { data: tasks, error: tasksError } = await supabase
-          .from('project_tasks')
-          .select('id, title, completed')
-          .in('id', taskIds);
-        if (tasksError) {
-          toast({
-            title: 'Error',
-            description: 'Could not fetch task status.',
-            variant: 'destructive'
-          });
-          return;
-        }
-        const incompleteTasks = tasks?.filter(task => !task.completed) || [];
-        if (incompleteTasks.length > 0) {
-          toast({
-            title: 'Cannot Complete Milestone',
-            description: 'All tasks must be completed before marking this milestone as completed.',
-            variant: 'destructive'
-          });
-          return;
-        }
+      if (taskIds.length === 0) return true;
+
+      const { data: tasks, error: tasksError } = await supabase
+        .from('project_tasks')
+        .select('id, title, completed')
+        .in('id', taskIds);
+
+      if (tasksError) {
+        toast({
+          title: 'Error',
+          description: 'Could not fetch task status.',
+          variant: 'destructive'
+        });
+        return false;
       }
+
+      const incompleteTasks = tasks?.filter(task => !task.completed) || [];
+      if (incompleteTasks.length > 0) {
+        toast({
+          title: 'Cannot Complete Milestone',
+          description: 'All tasks must be completed before marking this milestone as completed.',
+          variant: 'destructive'
+        });
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error validating tasks:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to validate task completion.',
+        variant: 'destructive'
+      });
+      return false;
+    }
+  };
+
+  const updateStatus = async () => {
+    if (!currentStatus) return;
+
+    const newStatus = getNextStatus(currentStatus);
+    if (!newStatus) return;
+
+    // If trying to mark as completed, validate all tasks are completed
+    if (newStatus === 'completed') {
+      const canComplete = await validateTasksCompletion();
+      if (!canComplete) return;
     }
 
     setIsUpdating(true);
@@ -125,22 +150,31 @@ const MilestoneStatusUpdate: React.FC<MilestoneStatusUpdateProps> = ({
   useEffect(() => {
     const checkOverdue = async () => {
       if (currentStatus === 'in_progress') {
-        const { data: milestone } = await supabase
-          .from('project_milestones')
-          .select('due_date')
-          .eq('id', milestoneId)
-          .single();
+        try {
+          const { data: milestone, error } = await supabase
+            .from('project_milestones')
+            .select('due_date')
+            .eq('id', milestoneId)
+            .single();
 
-        if (milestone?.due_date && new Date(milestone.due_date) < new Date()) {
-          // Create overdue notification
-          await notificationService.createMilestoneNotification(
-            projectId,
-            projectTitle,
-            milestoneTitle,
-            'overdue',
-            clientId,
-            professionalId
-          );
+          if (error) {
+            console.error('Error fetching milestone due date:', error);
+            return;
+          }
+
+          if (milestone?.due_date && new Date(milestone.due_date) < new Date()) {
+            // Create overdue notification
+            await notificationService.createMilestoneNotification(
+              projectId,
+              projectTitle,
+              milestoneTitle,
+              'overdue',
+              clientId,
+              professionalId
+            );
+          }
+        } catch (error) {
+          console.error('Error checking overdue status:', error);
         }
       }
     };
@@ -149,7 +183,7 @@ const MilestoneStatusUpdate: React.FC<MilestoneStatusUpdateProps> = ({
   }, [currentStatus, milestoneId, projectId, projectTitle, milestoneTitle, clientId, professionalId]);
 
   const nextStatus = getNextStatus(currentStatus);
-  if (!nextStatus) return null;
+  if (!nextStatus || !currentStatus) return null;
 
   return (
     <Button

@@ -29,27 +29,29 @@ import DeliverableReview from './DeliverableReview';
 import { ProjectStatus } from '@/types/projectUpdates';
 import { supabase } from '@/integrations/supabase/client';
 import MilestoneTasks from './MilestoneTasks';
+import { ProjectMilestone } from '@/types/database';
+import { convertDBMilestoneToMilestone } from '@/utils/milestoneTransformers';
 
 interface ProjectMilestonesProps {
-  milestones: Milestone[];
-  isClient: boolean;
-  onAddMilestone: (milestone: Omit<Milestone, 'id'>) => Promise<void>;
-  onEditMilestone: (milestoneId: string, milestone: Partial<Milestone>) => Promise<void>;
-  onDeleteMilestone: (milestoneId: string) => Promise<void>;
-  onUpdateTaskStatus: (milestoneId: string, taskId: string, completed: boolean) => Promise<void>;
   projectId: string;
   projectStatus: ProjectStatus;
+  milestones: ProjectMilestone[];
+  isClient?: boolean;
+  onAddMilestone?: () => void;
+  onEditMilestone?: (milestoneId: string, updates: Partial<ProjectMilestone>) => Promise<void>;
+  onDeleteMilestone?: (milestoneId: string) => Promise<void>;
+  onUpdateTaskStatus?: (milestoneId: string, taskId: string, completed: boolean) => Promise<void>;
 }
 
 const ProjectMilestones: React.FC<ProjectMilestonesProps> = ({
+  projectId,
+  projectStatus,
   milestones,
-  isClient,
+  isClient = false,
   onAddMilestone,
   onEditMilestone,
   onDeleteMilestone,
-  onUpdateTaskStatus,
-  projectId,
-  projectStatus
+  onUpdateTaskStatus
 }) => {
   const { toast } = useToast();
   const [isAddingMilestone, setIsAddingMilestone] = useState(false);
@@ -105,9 +107,7 @@ const ProjectMilestones: React.FC<ProjectMilestonesProps> = ({
   const handleAddMilestone = async () => {
     if (!newMilestone.title.trim() || !newMilestone.dueDate) return;
     try {
-      await onAddMilestone({
-        ...newMilestone
-      });
+      await onAddMilestone();
       setNewMilestone({
         title: '',
         description: '',
@@ -129,7 +129,7 @@ const ProjectMilestones: React.FC<ProjectMilestonesProps> = ({
     }
   };
 
-  const handleEditMilestone = async (milestoneId: string, updates: Partial<Milestone>) => {
+  const handleEditMilestone = async (milestoneId: string, updates: Partial<ProjectMilestone>) => {
     try {
       await onEditMilestone(milestoneId, updates);
       setEditingMilestone(null);
@@ -184,43 +184,39 @@ const ProjectMilestones: React.FC<ProjectMilestonesProps> = ({
     setNewTask('');
   };
 
-  const getStatusBadge = (status: Milestone['status'], dueDate?: string) => {
-    // Check if milestone is overdue
-    const isOverdue = dueDate && isPast(new Date(dueDate)) && !isToday(new Date(dueDate)) && status !== 'completed';
-    const effectiveStatus = isOverdue ? 'overdue' : status;
-
-    const statusConfig: Record<string, { color: string; icon: React.ReactNode }> = {
-      not_started: {
-        color: 'bg-gray-100 text-gray-800 border-gray-200',
-        icon: <Clock className="h-4 w-4" />
-      },
-      in_progress: {
-        color: 'bg-blue-100 text-blue-800 border-blue-200',
-        icon: <Target className="h-4 w-4" />
-      },
-      completed: {
-        color: 'bg-green-100 text-green-800 border-green-200',
-        icon: <CheckCircle2 className="h-4 w-4" />
-      },
-      on_hold: {
-        color: 'bg-yellow-100 text-yellow-800 border-yellow-200',
-        icon: <AlertTriangle className="h-4 w-4" />
-      },
-      overdue: {
-        color: 'bg-red-100 text-red-800 border-red-200',
-        icon: <AlertTriangle className="h-4 w-4" />
-      }
-    };
-
-    const { color, icon } = statusConfig[effectiveStatus];
-    return (
-      <Badge variant="outline" className={color}>
-        {icon}
-        <span className="ml-1">
-          {effectiveStatus.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
-        </span>
-      </Badge>
-    );
+  const getStatusBadge = (status: string | null, dueDate: string | null) => {
+    const deadlineStatus = getDeadlineStatus(dueDate);
+    
+    switch (status) {
+      case 'completed':
+        return (
+          <Badge variant="default" className="bg-green-100 text-green-800">
+            <CheckCircle2 className="h-4 w-4 mr-1" />
+            Completed
+          </Badge>
+        );
+      case 'in_progress':
+        return (
+          <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+            <Clock className="h-4 w-4 mr-1" />
+            In Progress
+          </Badge>
+        );
+      case 'not_started':
+        return (
+          <Badge variant="outline" className="bg-gray-100 text-gray-800">
+            <Target className="h-4 w-4 mr-1" />
+            Not Started
+          </Badge>
+        );
+      default:
+        return (
+          <Badge variant={deadlineStatus.variant}>
+            <AlertTriangle className="h-4 w-4 mr-1" />
+            {deadlineStatus.label}
+          </Badge>
+        );
+    }
   };
 
   const getDueDateStatus = (dueDate: string) => {
@@ -247,9 +243,13 @@ const ProjectMilestones: React.FC<ProjectMilestonesProps> = ({
     });
   };
 
-  const handleStatusUpdate = (newStatus: Milestone['status']) => {
-    if (editingMilestone && onEditMilestone) {
-      onEditMilestone(editingMilestone, { status: newStatus });
+  const handleStatusUpdate = async (milestoneId: string, newStatus: string) => {
+    if (!onEditMilestone) return;
+    
+    try {
+      await onEditMilestone(milestoneId, { status: newStatus });
+    } catch (error) {
+      console.error('Error updating milestone status:', error);
     }
   };
 
@@ -291,37 +291,25 @@ const ProjectMilestones: React.FC<ProjectMilestonesProps> = ({
     fetchDeliverables();
   };
 
-  const getDeadlineStatus = (dueDate: string) => {
-    const today = new Date();
+  const getDeadlineStatus = (dueDate: string | null): { label: string; variant: 'default' | 'secondary' | 'destructive' } => {
+    if (!dueDate) return { label: 'No deadline', variant: 'secondary' };
+    
+    const now = new Date();
     const deadline = new Date(dueDate);
-    const daysUntilDeadline = differenceInDays(deadline, today);
-
-    if (isPast(deadline) && !isToday(deadline)) {
-      return {
-        status: 'overdue',
-        message: 'Overdue',
-        color: 'text-red-600'
-      };
-    } else if (isToday(deadline)) {
-      return {
-        status: 'due-today',
-        message: 'Due today',
-        color: 'text-orange-600'
-      };
-    } else if (daysUntilDeadline <= 3) {
-      return {
-        status: 'due-soon',
-        message: `Due in ${daysUntilDeadline} days`,
-        color: 'text-yellow-600'
-      };
+    const diffDays = Math.ceil((deadline.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+    
+    if (diffDays < 0) {
+      return { label: 'Overdue', variant: 'destructive' };
+    } else if (diffDays <= 3) {
+      return { label: 'Due soon', variant: 'destructive' };
+    } else if (diffDays <= 7) {
+      return { label: 'Due in a week', variant: 'secondary' };
     } else {
-      return {
-        status: 'upcoming',
-        message: `Due in ${daysUntilDeadline} days`,
-        color: 'text-green-600'
-      };
+      return { label: 'On track', variant: 'default' };
     }
   };
+
+  const convertedMilestones: Milestone[] = milestones.map(milestone => convertDBMilestoneToMilestone(milestone));
 
   return (
     <Card>
@@ -417,15 +405,15 @@ const ProjectMilestones: React.FC<ProjectMilestonesProps> = ({
         </div>
       </CardHeader>
       <CardContent className="p-6">
-        {milestones.length === 0 ? (
+        {convertedMilestones.length === 0 ? (
           <div className="text-center py-8 text-gray-500">
             <Calendar className="h-12 w-12 mx-auto mb-4 text-gray-400" />
             <p>No milestones have been created yet.</p>
           </div>
         ) : (
           <div className="space-y-4">
-            {milestones.map((milestone) => {
-              const deadlineStatus = milestone.dueDate ? getDeadlineStatus(milestone.dueDate) : null;
+            {convertedMilestones.map((milestone) => {
+              const deadlineStatus = milestone.due_date ? getDeadlineStatus(milestone.due_date) : null;
               const milestoneDeliverables = deliverables[milestone.id!] || [];
 
               return (
@@ -437,28 +425,28 @@ const ProjectMilestones: React.FC<ProjectMilestonesProps> = ({
                         <CardTitle className="text-lg">{milestone.title}</CardTitle>
                       </div>
                       <div className="flex items-center gap-2">
-                        {getStatusBadge(milestone.status, milestone.dueDate)}
+                        {getStatusBadge(milestone.status, milestone.due_date)}
                         <MilestoneStatusUpdate
-                          milestoneId={milestone.id!}
+                          milestoneId={milestone.id}
                           projectId={projectId}
                           projectTitle={milestone.title}
                           milestoneTitle={milestone.title}
                           currentStatus={milestone.status}
                           clientId={milestone.created_by || ''}
                           professionalId={milestone.created_by || ''}
-                          onStatusUpdate={handleStatusUpdate}
+                          onStatusUpdate={() => handleStatusUpdate(milestone.id, milestone.status)}
                         />
                       </div>
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <p className="text-sm text-gray-600">{milestone.description}</p>
+                    <p className="text-sm text-gray-600">{milestone.description || 'No description provided'}</p>
                     {deadlineStatus && (
                       <div className="flex items-center gap-4">
                         <div className="flex items-center gap-2">
                           <Calendar className="h-4 w-4 text-gray-500" />
-                          <span className={`text-sm ${deadlineStatus.color}`}>
-                            {deadlineStatus.message}
+                          <span className={`text-sm ${deadlineStatus.variant === 'destructive' ? 'text-red-600' : deadlineStatus.variant === 'secondary' ? 'text-yellow-600' : 'text-green-600'}`}>
+                            {deadlineStatus.label}
                           </span>
                         </div>
                       </div>
@@ -468,7 +456,7 @@ const ProjectMilestones: React.FC<ProjectMilestonesProps> = ({
                     <div className="space-y-2">
                       <h4 className="font-medium">Tasks</h4>
                       <MilestoneTasks
-                        milestoneId={milestone.id!}
+                        milestoneId={milestone.id}
                         projectId={projectId}
                         projectTitle={milestone.title}
                         milestoneTitle={milestone.title}
@@ -484,7 +472,7 @@ const ProjectMilestones: React.FC<ProjectMilestonesProps> = ({
                         <h4 className="font-medium">Deliverables</h4>
                         {!isClient && milestone.status === 'in_progress' && projectStatus === 'in_progress' && (
                           <DeliverableSubmission
-                            milestoneId={milestone.id!}
+                            milestoneId={milestone.id}
                             projectId={projectId}
                             projectTitle={milestone.title}
                             milestoneTitle={milestone.title}
