@@ -20,22 +20,22 @@ const Dashboard: React.FC = () => {
   useEffect(() => {
     const fetchUserProfile = async () => {
       if (!user) return;
-
+      
       try {
         setIsLoadingProfile(true);
         setError(null);
-
+        
         const { data: profileData, error: profileError } = await supabase
           .from('profiles')
           .select('*')
           .eq('id', user.id)
           .single();
-
+        
         if (profileError) {
           console.error('Profile fetch error:', profileError);
           throw new Error('Failed to load profile information. Please try again.');
         }
-
+        
         if (!profileData) {
           // Create a new profile if one doesn't exist
           const { data: newProfile, error: createError } = await supabase
@@ -50,12 +50,12 @@ const Dashboard: React.FC = () => {
             ])
             .select()
             .single();
-
+          
           if (createError) {
             console.error('Profile creation error:', createError);
             throw new Error('Failed to create profile. Please try again.');
           }
-
+          
           console.log('New profile created:', newProfile);
           setAccountType(newProfile.account_type);
         } else {
@@ -144,7 +144,7 @@ const Dashboard: React.FC = () => {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
-      </div>
+        </div>
     );
   }
 
