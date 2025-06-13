@@ -16,12 +16,12 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate, useLocation } from 'react-router-dom';
 
 const STEPS = [
-  { id: 'basic', title: 'Basic Details' },
-  { id: 'skills', title: 'Recommended Skills' },
-  { id: 'timeline', title: 'Timeline' },
-  { id: 'budget', title: 'Budget' },
-  { id: 'service', title: 'Service Contract' },
-  { id: 'review', title: 'Review' }
+  { id: 1, title: 'Basic Details', component: BasicDetailsStep },
+  { id: 2, title: 'Recommended Skills', component: RecommendedSkillsStep },
+  { id: 3, title: 'Budget & Timeline', component: BudgetTimelineStep },
+  { id: 4, title: 'Milestones & Deliverables', component: MilestonesDeliverablesStep },
+  { id: 5, title: 'Service Contract', component: ServiceContractStep },
+  { id: 6, title: 'Review', component: ReviewStep }
 ];
 
 const ProjectCreationWizard: React.FC = () => {
@@ -29,70 +29,44 @@ const ProjectCreationWizard: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const [currentStep, setCurrentStep] = useState(0);
+  const [currentStep, setCurrentStep] = useState(() => {
+    // Initialize from URL query param if available
+    const params = new URLSearchParams(location.search);
+    const step = params.get('step');
+    return step ? parseInt(step, 10) : 1;
+  });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSavingDraft, setIsSavingDraft] = useState(false);
   const [projectData, setProjectData] = useState<ProjectData>(() => {
-    const savedData = localStorage.getItem('projectData');
-    if (savedData) {
-      try {
-        const parsed = JSON.parse(savedData);
-        // Ensure recommended_skills is always an array
-        return {
-          ...parsed,
-          recommended_skills: Array.isArray(parsed.recommended_skills) ? parsed.recommended_skills : []
-        };
-      } catch (e) {
-        console.error('Error parsing saved project data:', e);
-        return {
-          title: '',
-          description: '',
-          category: '',
-          location: '',
-          recommended_skills: [],
-          budget: 0,
-          expected_timeline: '',
-          urgency: '',
-          milestones: [],
-          deliverables: [],
-          service_contract: '',
-          requirements: [],
-          rich_description: '',
-          scope: '',
-          industry_specific_fields: null,
-          location_coordinates: null,
-          contract_template_id: '',
-          payment_required: true,
-          payment_due_date: '',
-          project_start_time: '',
-          client_id: user?.id,
-          sla_terms: null
-        };
-      }
+    // Try to load draft data from localStorage
+    const savedDraft = localStorage.getItem('projectDraft');
+    if (savedDraft) {
+      return JSON.parse(savedDraft);
     }
     return {
-      title: '',
-      description: '',
-      category: '',
-      location: '',
-      recommended_skills: [],
-      budget: 0,
-      expected_timeline: '',
-      urgency: '',
-      milestones: [],
-      deliverables: [],
-      service_contract: '',
-      requirements: [],
-      rich_description: '',
-      scope: '',
-      industry_specific_fields: null,
-      location_coordinates: null,
-      contract_template_id: '',
-      payment_required: true,
-      payment_due_date: '',
-      project_start_time: '',
-      client_id: user?.id,
-      sla_terms: null
+    title: '',
+    description: '',
+    category: '',
+    location: '',
+    recommendedSkills: [],
+    budget: 0,
+    timeline: '',
+    urgency: '',
+    milestones: [],
+    deliverables: [],
+    service_contract: '',
+    requirements: [],
+    rich_description: '',
+    expected_timeline: '',
+    scope: '',
+    industry_specific_fields: null,
+    location_coordinates: null,
+    contract_template_id: '',
+    payment_required: true,
+    payment_due_date: '',
+    project_start_time: '',
+    client_id: user?.id,
+    sla_terms: null
     };
   });
 
@@ -151,7 +125,7 @@ const ProjectCreationWizard: React.FC = () => {
   };
 
   const handlePrevious = () => {
-    if (currentStep > 0) {
+    if (currentStep > 1) {
       setCurrentStep(currentStep - 1);
     }
   };
@@ -269,8 +243,9 @@ const ProjectCreationWizard: React.FC = () => {
         const milestonesData = projectData.milestones.map(milestone => ({
           title: milestone.title,
           description: milestone.description || '',
-          due_date: milestone.due_date,
+          due_date: milestone.dueDate,
           status: milestone.status,
+          requires_deliverable: milestone.requires_deliverable || false,
           project_id: projectId,
           created_by: user.id,
           is_complete: false
@@ -286,9 +261,10 @@ const ProjectCreationWizard: React.FC = () => {
       // Create project-level deliverables if any
       if (projectData.deliverables && projectData.deliverables.length > 0) {
         const deliverablesData = projectData.deliverables.map(deliverable => ({
-          title: deliverable.description,
           description: deliverable.description,
-          status: deliverable.status || 'pending',
+          deliverable_type: deliverable.deliverable_type,
+          content: deliverable.content || '',
+          file_url: deliverable.file_url || '',
           project_id: projectId,
           uploaded_by: user.id
         }));
@@ -341,7 +317,7 @@ const ProjectCreationWizard: React.FC = () => {
           <CardTitle className="text-2xl text-center">Create New Project</CardTitle>
           <div className="space-y-2">
             <div className="flex justify-between text-sm text-gray-600">
-              <span>Step {currentStep + 1} of {STEPS.length}</span>
+              <span>Step {currentStep} of {STEPS.length}</span>
               <span>{Math.round(progress)}% Complete</span>
             </div>
             <Progress value={progress} className="w-full" />
@@ -352,16 +328,16 @@ const ProjectCreationWizard: React.FC = () => {
             {STEPS.map((step, index) => (
               <div key={step.id} className="flex flex-col items-center">
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                  index < currentStep 
+                  step.id < currentStep 
                     ? 'bg-green-500 text-white' 
-                    : index === currentStep
+                    : step.id === currentStep
                     ? 'bg-blue-500 text-white'
                     : 'bg-gray-200 text-gray-600'
                 }`}>
-                  {index < currentStep ? <Check className="w-4 h-4" /> : index + 1}
+                  {step.id < currentStep ? <Check className="w-4 h-4" /> : step.id}
                 </div>
                 <span className={`text-xs mt-1 ${
-                  index <= currentStep ? 'text-gray-900' : 'text-gray-500'
+                  step.id <= currentStep ? 'text-gray-900' : 'text-gray-500'
                 }`}>
                   {step.title}
                 </span>
@@ -378,7 +354,7 @@ const ProjectCreationWizard: React.FC = () => {
             <Button
               variant="outline"
               onClick={handlePrevious}
-              disabled={currentStep === 0}
+              disabled={currentStep === 1}
               className="flex items-center gap-2"
             >
               <ChevronLeft className="w-4 h-4" />

@@ -116,28 +116,25 @@ const CATEGORY_SKILLS: Record<string, string[]> = {
 const RecommendedSkillsStep: React.FC<RecommendedSkillsStepProps> = ({ data, onUpdate }) => {
   const { toast } = useToast();
   const [newSkill, setNewSkill] = useState('');
-  
-  // Ensure recommended_skills is always an array
-  const currentSkills = Array.isArray(data.recommended_skills) ? data.recommended_skills : [];
 
   const addSkill = (skill: string) => {
-    if (skill.trim() && !currentSkills.includes(skill.trim())) {
+    if (skill.trim() && !data.recommended_skills.includes(skill.trim())) {
       onUpdate({
-        recommended_skills: [...currentSkills, skill.trim()]
+        recommended_skills: [...data.recommended_skills, skill.trim()]
       });
       setNewSkill('');
     }
   };
 
   const removeSkill = (index: number) => {
-    const updatedSkills = currentSkills.filter((_, i) => i !== index);
+    const updatedSkills = data.recommended_skills.filter((_, i) => i !== index);
     onUpdate({ recommended_skills: updatedSkills });
   };
 
   const addSuggestedSkill = (skill: string) => {
-    if (!currentSkills.includes(skill)) {
+    if (!data.recommended_skills.includes(skill)) {
       onUpdate({
-        recommended_skills: [...currentSkills, skill]
+        recommended_skills: [...data.recommended_skills, skill]
       });
     }
   };
@@ -165,7 +162,7 @@ const RecommendedSkillsStep: React.FC<RecommendedSkillsStepProps> = ({ data, onU
                 {suggestedSkills.map((skill) => (
                   <Badge
                     key={skill}
-                    variant={currentSkills.includes(skill) ? "default" : "outline"}
+                    variant={data.recommended_skills.includes(skill) ? "default" : "outline"}
                     className="cursor-pointer hover:bg-gray-100 transition-colors"
                     onClick={() => addSuggestedSkill(skill)}
                   >
@@ -194,12 +191,12 @@ const RecommendedSkillsStep: React.FC<RecommendedSkillsStepProps> = ({ data, onU
             </div>
 
             {/* Selected Skills */}
-            {currentSkills.length > 0 && (
+            {data.recommended_skills.length > 0 && (
               <div className="space-y-2">
                 <Label>Your Recommended Skills</Label>
                 <p className="text-sm text-gray-500 mb-2">These are the skills you've selected as beneficial for your project</p>
                 <div className="flex flex-wrap gap-2">
-                  {currentSkills.map((skill, index) => (
+                  {data.recommended_skills.map((skill, index) => (
                     <Badge key={index} variant="secondary" className="flex items-center gap-1">
                       {skill}
                       <X
