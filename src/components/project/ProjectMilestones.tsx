@@ -22,7 +22,7 @@ import {
   FileText
 } from 'lucide-react';
 import { format, isPast, isToday, isFuture, differenceInDays } from 'date-fns';
-import { Milestone } from './creation/types';
+import { Milestone, convertDBMilestoneToMilestone } from './creation/types';
 import MilestoneStatusUpdate from './MilestoneStatusUpdate';
 import DeliverableSubmission from './DeliverableSubmission';
 import DeliverableReview from './DeliverableReview';
@@ -30,7 +30,6 @@ import { ProjectStatus } from '@/types/projectUpdates';
 import { supabase } from '@/integrations/supabase/client';
 import MilestoneTasks from './MilestoneTasks';
 import { ProjectMilestone } from '@/types/database';
-import { convertDBMilestoneToMilestone } from '@/utils/milestoneTransformers';
 
 interface ProjectMilestonesProps {
   projectId: string;
