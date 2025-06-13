@@ -14,7 +14,7 @@ type ApplicationStatus = Database['public']['Enums']['application_status'];
 interface ApplicationCardProps {
   application: Application;
   project?: Partial<Project>;
-  professional?: Profile;
+  professional?: Partial<Profile>;
   onViewDetails?: (application: Application) => void;
   onAccept?: (application: Application) => void;
   onReject?: (application: Application) => void;
@@ -84,56 +84,54 @@ const ApplicationCard: React.FC<ApplicationCardProps> = ({
             </p>
           </div>
           
-          <div className="flex justify-between items-center">
-            <div>
-              <span className="text-sm text-gray-500">Bid Amount: </span>
-              <span className="font-medium">
-                ${application.bid_amount?.toLocaleString() || 'Not specified'}
-              </span>
-            </div>
-            <div className="flex gap-2">
-              {onViewDetails && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => onViewDetails(application)}
-                >
-                  <Eye className="h-4 w-4 mr-1" />
-                  View Details
-                </Button>
-              )}
-              {!isProfessional && application.status === 'pending' && (
-                <>
-                  {onAccept && (
-                    <Button
-                      size="sm"
-                      onClick={() => onAccept(application)}
-                      className="bg-green-600 hover:bg-green-700"
-                    >
-                      Accept
-                    </Button>
-                  )}
-                  {onReject && (
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => onReject(application)}
-                    >
-                      Reject
-                    </Button>
-                  )}
-                </>
-              )}
-              {isProfessional && application.status === 'pending' && onWithdraw && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => onWithdraw(application)}
-                >
-                  Withdraw
-                </Button>
-              )}
-            </div>
+          <div>
+            <span className="text-sm text-gray-500">Bid Amount: </span>
+            <span className="font-medium">
+              ${application.bid_amount?.toLocaleString() || 'Not specified'}
+            </span>
+          </div>
+          <div className="flex gap-2">
+            {onViewDetails && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onViewDetails(application)}
+              >
+                <Eye className="h-4 w-4 mr-1" />
+                View Details
+              </Button>
+            )}
+            {!isProfessional && application.status === 'pending' && (
+              <>
+                {onAccept && (
+                  <Button
+                    size="sm"
+                    onClick={() => onAccept(application)}
+                    className="bg-green-600 hover:bg-green-700"
+                  >
+                    Accept
+                  </Button>
+                )}
+                {onReject && (
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => onReject(application)}
+                  >
+                    Reject
+                  </Button>
+                )}
+              </>
+            )}
+            {isProfessional && application.status === 'pending' && onWithdraw && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onWithdraw(application)}
+              >
+                Withdraw
+              </Button>
+            )}
           </div>
         </div>
       </CardContent>
