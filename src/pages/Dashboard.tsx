@@ -1,94 +1,66 @@
 import React, { useEffect, useState } from 'react';
-import { Navigate, useLocation } from 'react-router-dom';
+import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import Layout from '@/components/layout/Layout';
-import { Loader2 } from 'lucide-react';
-import { Button } from "@/components/ui/button";
-import { supabase } from "@/integrations/supabase/client";
 import ClientDashboard from '@/components/dashboard/ClientDashboard';
 import ProfessionalDashboard from '@/components/dashboard/ProfessionalDashboard';
 
 const Dashboard: React.FC = () => {
-  const { user, isLoading: authLoading } = useAuth();
+  const { user, isLoading } = useAuth();
+  const navigate = useNavigate();
   const { toast } = useToast();
-  const [accountType, setAccountType] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingProfile, setIsLoadingProfile] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isProfileComplete, setIsProfileComplete] = useState(false);
+  const [accountType, setAccountType] = useState<'client' | 'professional' | null>(null);
   const location = useLocation();
   const activeTab = location.state?.activeTab || 'projects';
 
   useEffect(() => {
     const fetchUserProfile = async () => {
       if (!user) return;
-      
+
       try {
+        setIsLoadingProfile(true);
         setError(null);
-        console.log('Fetching user profile for:', user.id);
-        
-        // First check if profile exists
+
         const { data: profileData, error: profileError } = await supabase
           .from('profiles')
           .select('*')
           .eq('id', user.id)
           .single();
-        
+
         if (profileError) {
           console.error('Profile fetch error:', profileError);
-          throw profileError;
+          throw new Error('Failed to load profile information. Please try again.');
         }
-        
+
         if (!profileData) {
-          // Profile doesn't exist, create it
+          // Create a new profile if one doesn't exist
           const { data: newProfile, error: createError } = await supabase
             .from('profiles')
             .insert([
               {
                 id: user.id,
+                email: user.email,
                 account_type: user.user_metadata?.account_type || 'client',
-                first_name: user.user_metadata?.full_name?.split(' ')[0] || null,
-                last_name: user.user_metadata?.full_name?.split(' ').slice(1).join(' ') || null,
-                email: user.email
+                created_at: new Date().toISOString(),
               }
             ])
             .select()
             .single();
-          
+
           if (createError) {
             console.error('Profile creation error:', createError);
-            throw createError;
+            throw new Error('Failed to create profile. Please try again.');
           }
-          
-          console.log('Created new profile:', newProfile);
+
+          console.log('New profile created:', newProfile);
           setAccountType(newProfile.account_type);
-          setIsProfileComplete(false);
         } else {
           console.log('Existing profile data:', profileData);
           setAccountType(profileData.account_type);
-          
-          // Check if profile is complete
-          const requiredFields = ['first_name', 'last_name', 'phone', 'location', 'bio'] as const;
-          let isComplete = requiredFields.every(field => profileData[field as keyof typeof profileData]);
-          
-          // For professionals, check additional required fields
-          if (profileData.account_type === 'professional') {
-            const professionalFields = [
-              'years_experience',
-              'hourly_rate',
-              'skills'
-            ] as const;
-            isComplete = isComplete && professionalFields.every(field => {
-              const value = profileData[field as keyof typeof profileData];
-              // For array fields, check if they have at least one item
-              if (Array.isArray(value)) {
-                return value.length > 0;
-              }
-              return !!value;
-            });
-          }
-          
-          setIsProfileComplete(isComplete);
         }
       } catch (error: any) {
         console.error('Error in profile handling:', error);
@@ -99,19 +71,19 @@ const Dashboard: React.FC = () => {
           variant: "destructive"
         });
       } finally {
-        setIsLoading(false);
+        setIsLoadingProfile(false);
       }
     };
 
     if (user) {
       fetchUserProfile();
-    } else if (!authLoading) {
-      setIsLoading(false);
+    } else if (!isLoading) {
+      setIsLoadingProfile(false);
     }
-  }, [user, authLoading, toast]);
+  }, [user, isLoading, toast]);
 
   const retryFetchProfile = async () => {
-    setIsLoading(true);
+    setIsLoadingProfile(true);
     if (user) {
       try {
         setError(null);
@@ -163,65 +135,38 @@ const Dashboard: React.FC = () => {
           variant: "destructive"
         });
       } finally {
-        setIsLoading(false);
+        setIsLoadingProfile(false);
       }
     }
   };
 
-  // If not logged in, redirect to login
-  if (!authLoading && !user) {
-    return <Navigate to="/login" replace />;
-  }
-
-  // If profile is not complete, redirect to onboarding
-  if (!isLoading && !isProfileComplete && user) {
-    return <Navigate to="/onboarding" replace />;
-  }
-
-  // Loading state
-  if (authLoading || isLoading) {
+  if (isLoading || isLoadingProfile) {
     return (
-      <Layout>
-        <div className="flex justify-center items-center min-h-[60vh]">
-          <Loader2 className="h-8 w-8 animate-spin text-ttc-blue-700" />
-          <span className="ml-2 text-lg">Loading your dashboard...</span>
-        </div>
-      </Layout>
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+      </div>
     );
+  }
+
+  if (!user) {
+    return <Navigate to="/login" replace />;
   }
 
   return (
     <Layout>
-      <div className="container-custom py-8">
-        <h1 className="text-3xl font-bold mb-6">Your Dashboard</h1>
-        
-        {error ? (
-          <div className="bg-red-50 border border-red-200 p-4 rounded-md mb-6">
-            <p className="text-red-700">{error}</p>
-            <Button 
-              onClick={retryFetchProfile} 
-              variant="outline" 
-              className="mt-2"
-            >
-              Try Again
-            </Button>
+      <div className="container mx-auto px-4 py-8">
+        <h1 className="text-3xl font-bold mb-8">Dashboard</h1>
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">
+            {error}
           </div>
-        ) : !accountType ? (
-          <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-md">
-            <p className="text-yellow-700">
-              Your account type is not properly set. Please contact support.
-            </p>
-          </div>
-        ) : accountType === 'client' ? (
+        )}
+        {accountType === 'client' ? (
           <ClientDashboard userId={user.id} initialTab={activeTab} />
         ) : accountType === 'professional' ? (
           <ProfessionalDashboard userId={user.id} />
         ) : (
-          <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-md">
-            <p className="text-yellow-700">
-              Invalid account type. Please contact support.
-            </p>
-          </div>
+          <div>Loading dashboard...</div>
         )}
       </div>
     </Layout>

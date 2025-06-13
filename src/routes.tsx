@@ -23,7 +23,6 @@ import EditProfile from './pages/EditProfile';
 import Network from './pages/Network';
 import Invoices from './pages/Invoices';
 import Settings from './pages/Settings';
-import Onboarding from './pages/Onboarding';
 
 const AppRoutes = () => {
   return (
@@ -33,7 +32,6 @@ const AppRoutes = () => {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
-        <Route path="/onboarding" element={<Onboarding />} />
         <Route path="/marketplace" element={<ProfessionalMarketplace />} />
         <Route path="/project-marketplace" element={<ProjectMarketplace />} />
         <Route path="/projects/:projectId" element={<ProjectDetails />} />
