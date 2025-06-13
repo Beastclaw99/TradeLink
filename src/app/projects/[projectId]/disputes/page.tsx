@@ -1,4 +1,3 @@
-import React from 'react';
 import DisputeList from '@/components/project/DisputeList';
 
 interface DisputesPageProps {

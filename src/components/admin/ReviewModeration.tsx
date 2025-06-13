@@ -5,10 +5,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { StarRating } from '@/components/ui/star-rating';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Info, Star, MessageSquare, CheckCircle, XCircle, Flag } from 'lucide-react';
+import { Star, CheckCircle, XCircle, Flag } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Review } from '../dashboard/types';
 
@@ -16,7 +16,6 @@ const ReviewModeration: React.FC = () => {
   const { toast } = useToast();
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedReview, setSelectedReview] = useState<Review | null>(null);
   const [moderationNotes, setModerationNotes] = useState('');
   const [activeTab, setActiveTab] = useState('pending');
 
@@ -73,7 +72,6 @@ const ReviewModeration: React.FC = () => {
         description: `Review ${action === 'approve' ? 'approved' : 'rejected'} successfully.`
       });
 
-      setSelectedReview(null);
       setModerationNotes('');
       fetchReviews();
     } catch (error: any) {
@@ -87,7 +85,7 @@ const ReviewModeration: React.FC = () => {
   };
 
   const getStatusBadge = (status: Review['status']) => {
-    const statusConfig = {
+    const statusConfig: Record<Review['status'], { color: string; text: string }> = {
       pending: { color: 'bg-yellow-100 text-yellow-800', text: 'Pending' },
       approved: { color: 'bg-green-100 text-green-800', text: 'Approved' },
       rejected: { color: 'bg-red-100 text-red-800', text: 'Rejected' },
@@ -143,7 +141,7 @@ const ReviewModeration: React.FC = () => {
                   <div>
                     <Label>Overall Rating</Label>
                     <StarRating
-                      value={review.rating}
+                      value={review.rating || 0}
                       onChange={() => {}}
                       className="mt-1"
                     />
@@ -195,7 +193,7 @@ const ReviewModeration: React.FC = () => {
                     <Alert variant="destructive">
                       <Flag className="h-4 w-4" />
                       <AlertDescription>
-                        <p className="font-medium">Reported on {new Date(review.reported_at!).toLocaleDateString()}</p>
+                        <p className="font-medium">Reported on {review.reported_at ? new Date(review.reported_at).toLocaleDateString() : 'Unknown date'}</p>
                         <p className="mt-1">{review.report_reason}</p>
                       </AlertDescription>
                     </Alert>

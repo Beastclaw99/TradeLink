@@ -91,10 +91,10 @@ const ApplicationsTab: React.FC<ApplicationsTabProps> = ({
         ) : (
           <div className="grid gap-4">
             {applications.map((application) => {
-              const project = projects.find(p => p.id === application.project_id);
+    const project = projects.find(p => p.id === application.project_id);
               const professional = professionals.find(p => p.id === application.professional_id);
-              
-              return (
+    
+    return (
                 <ApplicationCard
                   key={application.id}
                   application={application}
@@ -124,7 +124,7 @@ const ApplicationsTab: React.FC<ApplicationsTabProps> = ({
             <DialogTitle>Application Details</DialogTitle>
           </DialogHeader>
           {selectedApplication && (
-            <div className="space-y-4">
+          <div className="space-y-4">
               <div className="flex justify-between items-start">
                 <div>
                   <h3 className="font-semibold">
@@ -137,14 +137,14 @@ const ApplicationsTab: React.FC<ApplicationsTabProps> = ({
                 <Badge variant="outline">
                   {selectedApplication.status}
                 </Badge>
-              </div>
-              
-              <div>
+            </div>
+            
+            <div>
                 <h4 className="font-medium mb-2">Cover Letter</h4>
                 <p className="text-sm text-gray-600 whitespace-pre-wrap">
                   {selectedApplication.cover_letter}
-                </p>
-              </div>
+              </p>
+            </div>
 
               {selectedApplication.proposal_message && (
                 <div>
@@ -154,12 +154,12 @@ const ApplicationsTab: React.FC<ApplicationsTabProps> = ({
                   </p>
                 </div>
               )}
-
-              <div className="flex justify-between items-center">
-                <div>
+            
+            <div className="flex justify-between items-center">
+              <div>
                   <p className="text-sm font-medium">Bid Amount</p>
                   <p className="text-lg">${selectedApplication.bid_amount?.toLocaleString()}</p>
-                </div>
+              </div>
                 {selectedApplication.status === 'pending' && (
                   <div className="space-x-2">
                     <Button

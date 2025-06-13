@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, Control } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Button } from "@/components/ui/button";
@@ -18,21 +18,20 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Database } from '@/integrations/supabase/types';
 
-type Application = Database['public']['Tables']['applications']['Row'];
-type ApplicationStatus = Database['public']['Enums']['application_status_enum'];
-
 const formSchema = z.object({
+  status: z.enum(['pending', 'accepted', 'rejected', 'withdrawn'] as const),
   proposal: z.string().min(100, 'Proposal must be at least 100 characters'),
   budget: z.number().min(0, 'Budget must be a positive number'),
   timeline: z.string().min(1, 'Please specify the timeline'),
   availability: z.string().min(1, 'Please specify your availability'),
-  status: z.enum(['pending', 'accepted', 'rejected', 'withdrawn'] as const).default('pending'),
   additional_notes: z.string().optional(),
   attachments: z.array(z.string()).optional(),
   terms_accepted: z.boolean().refine(val => val === true, {
     message: 'You must accept the terms and conditions'
   })
 });
+
+type FormValues = z.infer<typeof formSchema>;
 
 interface ApplicationFormProps {
   projectId: string;
@@ -47,7 +46,7 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
   const { toast } = useToast();
   const { user } = useAuth();
 
-  const form = useForm<z.infer<typeof formSchema>>({
+  const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       proposal: '',
@@ -61,7 +60,7 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
     },
   });
 
-  const onSubmit = async (values: z.infer<typeof formSchema>) => {
+  const onSubmit = async (values: FormValues) => {
     if (!user) {
       toast({
         title: "Error",
@@ -117,7 +116,7 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        <FormField
+        <FormField<FormValues>
           control={form.control}
           name="proposal"
           render={({ field }) => (
@@ -135,7 +134,7 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
           )}
         />
 
-        <FormField
+        <FormField<FormValues>
           control={form.control}
           name="budget"
           render={({ field }) => (
@@ -154,7 +153,7 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
           )}
         />
 
-        <FormField
+        <FormField<FormValues>
           control={form.control}
           name="timeline"
           render={({ field }) => (
@@ -171,7 +170,7 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
           )}
         />
 
-        <FormField
+        <FormField<FormValues>
           control={form.control}
           name="availability"
           render={({ field }) => (
@@ -188,7 +187,7 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
           )}
         />
 
-        <FormField
+        <FormField<FormValues>
           control={form.control}
           name="additional_notes"
           render={({ field }) => (
@@ -205,33 +204,28 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
           )}
         />
 
-        <FormField
+        <FormField<FormValues>
           control={form.control}
           name="terms_accepted"
           render={({ field }) => (
-            <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+            <FormItem className="flex items-center space-x-2">
               <FormControl>
                 <input
                   type="checkbox"
                   checked={field.value}
                   onChange={field.onChange}
+                  className="h-4 w-4 rounded border-gray-300"
                 />
               </FormControl>
-              <div className="space-y-1 leading-none">
-                <FormLabel>
-                  I accept the terms and conditions
-                </FormLabel>
-                <FormMessage />
-              </div>
+              <FormLabel className="text-sm">
+                I accept the terms and conditions
+              </FormLabel>
+              <FormMessage />
             </FormItem>
           )}
         />
 
-        <Button
-          type="submit"
-          className="w-full"
-          disabled={isSubmitting}
-        >
+        <Button type="submit" disabled={isSubmitting}>
           {isSubmitting ? 'Submitting...' : 'Submit Application'}
         </Button>
       </form>

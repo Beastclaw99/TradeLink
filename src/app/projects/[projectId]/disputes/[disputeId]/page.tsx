@@ -1,4 +1,3 @@
-import React from 'react';
 import DisputeDetail from '@/components/project/DisputeDetail';
 
 interface DisputeDetailPageProps {

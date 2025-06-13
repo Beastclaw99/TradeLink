@@ -107,9 +107,9 @@ const ProjectApplicationsView: React.FC<ProjectApplicationsViewProps> = ({
       ) : (
         <div className="space-y-8">
           {pendingApplications.length > 0 && (
-            <div>
+        <div>
               <h3 className="text-lg font-semibold mb-4">Pending Applications</h3>
-              <div className="grid gap-4">
+            <div className="grid gap-4">
                 {pendingApplications.map(application => {
                   const professional = professionals.find(p => p.id === application.professional_id);
                   return (
@@ -132,9 +132,9 @@ const ProjectApplicationsView: React.FC<ProjectApplicationsViewProps> = ({
                     />
                   );
                 })}
-              </div>
-            </div>
-          )}
+                        </div>
+                            </div>
+                          )}
 
           {acceptedApplications.length > 0 && (
             <div>
@@ -152,8 +152,8 @@ const ProjectApplicationsView: React.FC<ProjectApplicationsViewProps> = ({
                     />
                   );
                 })}
-              </div>
-            </div>
+                        </div>
+                      </div>
           )}
 
           {rejectedApplications.length > 0 && (
@@ -172,10 +172,10 @@ const ProjectApplicationsView: React.FC<ProjectApplicationsViewProps> = ({
                     />
                   );
                 })}
-              </div>
-            </div>
+                      </div>
+                    </div>
           )}
-        </div>
+                        </div>
       )}
 
       <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
@@ -186,23 +186,23 @@ const ProjectApplicationsView: React.FC<ProjectApplicationsViewProps> = ({
           {selectedApplication && (
             <div className="space-y-4">
               <div className="flex justify-between items-start">
-                <div>
+                      <div>
                   <h3 className="font-semibold">{project.title}</h3>
                   <p className="text-sm text-gray-500">
                     Applied on {new Date(selectedApplication.created_at).toLocaleDateString()}
-                  </p>
-                </div>
+                        </p>
+                      </div>
                 <Badge variant="outline">
                   {selectedApplication.status}
                 </Badge>
-              </div>
-              
+                    </div>
+
               <div>
                 <h4 className="font-medium mb-2">Cover Letter</h4>
                 <p className="text-sm text-gray-600 whitespace-pre-wrap">
                   {selectedApplication.cover_letter}
-                </p>
-              </div>
+                      </p>
+                    </div>
 
               {selectedApplication.proposal_message && (
                 <div>
@@ -220,24 +220,24 @@ const ProjectApplicationsView: React.FC<ProjectApplicationsViewProps> = ({
                 </div>
                 {selectedApplication.status === 'pending' && (
                   <div className="space-x-2">
-                    <Button
-                      variant="outline"
+                      <Button
+                        variant="outline"
                       onClick={() => {
                         setActionType('reject');
                         setIsConfirmDialogOpen(true);
                       }}
-                    >
-                      Reject
-                    </Button>
-                    <Button
+                      >
+                        Reject
+                      </Button>
+                      <Button
                       onClick={() => {
                         setActionType('accept');
                         setIsConfirmDialogOpen(true);
                       }}
-                    >
-                      Accept
-                    </Button>
-                  </div>
+                      >
+                        Accept
+                      </Button>
+                    </div>
                 )}
               </div>
             </div>
@@ -257,12 +257,12 @@ const ProjectApplicationsView: React.FC<ProjectApplicationsViewProps> = ({
             <Button variant="outline" onClick={() => setIsConfirmDialogOpen(false)}>
               Cancel
             </Button>
-            <Button
+                      <Button
               variant={actionType === 'accept' ? 'default' : 'destructive'}
               onClick={handleConfirmAction}
-            >
+                      >
               {actionType === 'accept' ? 'Accept' : 'Reject'}
-            </Button>
+                      </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

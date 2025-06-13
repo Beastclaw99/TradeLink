@@ -1,5 +1,3 @@
-
-import React from 'react';
 import DisputeForm from '@/components/project/DisputeForm';
 
 interface NewDisputePageProps {
