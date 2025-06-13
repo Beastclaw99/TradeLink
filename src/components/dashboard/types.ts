@@ -41,7 +41,7 @@ export interface Project {
   client?: {
     first_name: string | null;
     last_name: string | null;
-    profile_image: string | null;
+    profile_image_url: string | null;
     rating: number | null;
     total_reviews: number | null;
   };

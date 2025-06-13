@@ -18,9 +18,9 @@ export interface ProfileData {
   show_email: boolean;
   show_phone: boolean;
   allow_messages: boolean;
-  profile_image: string | null;
+  profile_image_url: string | null;
   verification_status: 'unverified' | 'pending' | 'verified' | null;
-  years_experience: number | null;
+  years_of_experience: number | null;
   created_at: string;
   updated_at: string;
   rating: number | null;

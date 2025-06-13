@@ -135,7 +135,7 @@ const ProjectMarketplace: React.FC = () => {
             { data: disputes },
             { data: payments },
             { data: invoices },
-            { data: messages },
+            { data: project_messages },
             { data: notifications }
           ] = await Promise.all([
             supabase.from('project_milestones').select('*').eq('project_id', project.id),
@@ -146,7 +146,7 @@ const ProjectMarketplace: React.FC = () => {
             supabase.from('disputes').select('*').eq('project_id', project.id),
             supabase.from('payments').select('*').eq('project_id', project.id),
             supabase.from('invoices').select('*').eq('project_id', project.id),
-            supabase.from('messages').select('*').eq('project_id', project.id),
+            supabase.from('project_messages').select('*').eq('project_id', project.id),
             supabase.from('notifications').select('*').eq('project_id', project.id)
           ]);
 
@@ -162,7 +162,7 @@ const ProjectMarketplace: React.FC = () => {
             disputes: disputes || [],
             payments: payments || [],
             invoices: invoices || [],
-            messages: messages || [],
+            project_messages: project_messages || [],
             notifications: notifications || []
           } as Project;
         })

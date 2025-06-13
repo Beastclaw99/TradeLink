@@ -26,7 +26,7 @@ export type Review = Database['public']['Tables']['reviews']['Row'];
 export type Dispute = Database['public']['Tables']['disputes']['Row'];
 export type Payment = Database['public']['Tables']['payments']['Row'];
 export type Invoice = Database['public']['Tables']['invoices']['Row'];
-export type Message = Database['public']['Tables']['messages']['Row'];
+export type Message = Database['public']['Tables']['project_messages']['Row'];
 export type Notification = Database['public']['Tables']['notifications']['Row'];
 
 // Base project type from Supabase

@@ -1,4 +1,4 @@
-import { Project, Application, Payment, Review, Professional, Client } from '@/components/dashboard/types';
+import { Project, Application, Payment, Review, Client } from '@/components/dashboard/types';
 
 export const transformProjects = (data: any[]): Project[] => {
   return (data || []).map(project => ({
@@ -84,7 +84,12 @@ export const transformPayments = (data: any[]): Payment[] => {
     professional_id: payment.professional_id,
     project_id: payment.project_id,
     project: payment.project,
-    professional: payment.professional
+    professional: payment.professional,
+    currency: payment.currency || null,
+    metadata: payment.metadata || null,
+    payment_id: payment.payment_id || null,
+    payment_method_id: payment.payment_method_id || null,
+    payment_url: payment.payment_url || null
   }));
 };
 
@@ -109,35 +114,8 @@ export const transformReviews = (data: any[]): Review[] => {
     verification_method: review.verification_method,
     moderated_at: review.moderated_at,
     moderated_by: review.moderated_by,
-    moderation_notes: review.moderation_notes
-  }));
-};
-
-export const transformProfessionals = (data: any[]): Professional[] => {
-  return (data || []).map(prof => ({
-    id: prof.id,
-    first_name: prof.first_name,
-    last_name: prof.last_name,
-    skills: prof.skills,
-    rating: prof.rating,
-    account_type: 'professional',
-    bio: prof.bio,
-    location: prof.location,
-    phone: prof.phone,
-    email: prof.email,
-    availability: prof.availability,
-    certifications: prof.certifications,
-    completed_projects: prof.completed_projects,
-    response_rate: prof.response_rate,
-    on_time_completion: prof.on_time_completion,
-    profile_visibility: prof.profile_visibility,
-    show_email: prof.show_email,
-    show_phone: prof.show_phone,
-    allow_messages: prof.allow_messages,
-    profile_image: prof.profile_image,
-    verification_status: prof.verification_status,
-    created_at: prof.created_at,
-    updated_at: prof.updated_at
+    moderation_notes: review.moderation_notes,
+    updated_at: review.updated_at || null
   }));
 };
 
@@ -147,19 +125,10 @@ export const transformClient = (data: any): Client => {
   }
 
   return {
-    id: data.id,
-    first_name: data.first_name || null,
-    last_name: data.last_name || null,
+    ...data,
     account_type: 'client',
-    bio: data.bio || null,
-    location: data.location || null,
-    phone: data.phone || null,
-    email: data.email || null,
-    profile_visibility: data.profile_visibility || null,
-    show_email: data.show_email || null,
-    show_phone: data.show_phone || null,
-    allow_messages: data.allow_messages || null,
-    profile_image: data.profile_image || null,
+    profile_image_url: data.profile_image_url || null,
+    years_of_experience: data.years_of_experience || null,
     verification_status: data.verification_status || 'unverified',
     created_at: data.created_at,
     updated_at: data.updated_at || null
