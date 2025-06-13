@@ -92,9 +92,18 @@ export const useClientDataFetcher = (userId: string) => {
       const transformedProjects = transformProjects(projectsData || []);
       setProjects(transformedProjects);
 
-      // Fetch applications for all projects
-      const projectIds = projectsData?.map(p => p.id) || [];
-      if (projectIds.length > 0) {
+      // Initialize empty arrays for related data
+      setApplications([]);
+      setPayments([]);
+      setReviews([]);
+      setMilestones([]);
+      setTasks([]);
+
+      // Only fetch related data if there are projects
+      if (transformedProjects.length > 0) {
+        const projectIds = transformedProjects.map(p => p.id);
+
+        // Fetch applications
         const { data: applicationsData, error: applicationsError } = await supabase
           .from('applications')
           .select(`
@@ -112,10 +121,8 @@ export const useClientDataFetcher = (userId: string) => {
         if (applicationsError) throw applicationsError;
         const transformedApplications = transformApplications(applicationsData || []);
         setApplications(transformedApplications);
-      }
 
-      // Fetch payments for all projects
-      if (projectIds.length > 0) {
+        // Fetch payments
         const { data: paymentsData, error: paymentsError } = await supabase
           .from('payments')
           .select(`
@@ -131,10 +138,8 @@ export const useClientDataFetcher = (userId: string) => {
         if (paymentsError) throw paymentsError;
         const transformedPayments = transformPayments(paymentsData || []);
         setPayments(transformedPayments);
-      }
 
-      // Fetch reviews for all projects
-      if (projectIds.length > 0) {
+        // Fetch reviews
         const { data: reviewsData, error: reviewsError } = await supabase
           .from('reviews')
           .select(`
@@ -150,10 +155,8 @@ export const useClientDataFetcher = (userId: string) => {
         if (reviewsError) throw reviewsError;
         const transformedReviews = transformReviews(reviewsData || []);
         setReviews(transformedReviews);
-      }
 
-      // Fetch milestones for all projects
-      if (projectIds.length > 0) {
+        // Fetch milestones
         const { data: milestonesData, error: milestonesError } = await supabase
           .from('project_milestones')
           .select('*')
@@ -161,25 +164,25 @@ export const useClientDataFetcher = (userId: string) => {
 
         if (milestonesError) throw milestonesError;
         setMilestones(milestonesData || []);
-      }
 
-      // Fetch tasks for all milestones
-      const milestoneIds = milestonesData?.map(m => m.id) || [];
-      if (milestoneIds.length > 0) {
-        const { data: tasksData, error: tasksError } = await supabase
-          .from('project_tasks')
-          .select(`
-            *,
-            assignee:profiles!project_tasks_assignee_id_fkey(
-              id,
-              first_name,
-              last_name
-            )
-          `)
-          .in('milestone_id', milestoneIds);
+        // Fetch tasks if there are milestones
+        if (milestonesData && milestonesData.length > 0) {
+          const milestoneIds = milestonesData.map(m => m.id);
+          const { data: tasksData, error: tasksError } = await supabase
+            .from('project_tasks')
+            .select(`
+              *,
+              assignee:profiles!project_tasks_assignee_id_fkey(
+                id,
+                first_name,
+                last_name
+              )
+            `)
+            .in('milestone_id', milestoneIds);
 
-        if (tasksError) throw tasksError;
-        setTasks(tasksData || []);
+          if (tasksError) throw tasksError;
+          setTasks(tasksData || []);
+        }
       }
 
     } catch (error: any) {
@@ -200,15 +203,15 @@ export const useClientDataFetcher = (userId: string) => {
   }, [userId]);
 
   return {
-    isLoading,
-    error,
-    profile,
     projects,
     applications,
     payments,
     reviews,
+    profile,
     milestones,
     tasks,
-    refreshData: fetchData
+    isLoading,
+    error,
+    fetchDashboardData: fetchData
   };
 }; 

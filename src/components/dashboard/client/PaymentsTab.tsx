@@ -34,10 +34,10 @@ interface PaymentsTabProps {
 
 const PaymentsTab: React.FC<PaymentsTabProps> = ({
   isLoading,
-  projects,
-  reviews,
-  applications,
-  payments,
+  projects = [],
+  reviews = [],
+  applications = [],
+  payments = [],
   projectToReview,
   reviewData,
   isSubmitting,
@@ -105,10 +105,10 @@ const PaymentsTab: React.FC<PaymentsTabProps> = ({
     );
   };
 
-  const projectsToReview = projects.filter(project => 
-    project.status === 'completed' && 
-    !reviews.some(review => review.project_id === project.id)
-  );
+  const projectsToReview = projects?.filter(project => 
+    project?.status === 'completed' && 
+    !reviews?.some(review => review?.project_id === project?.id)
+  ) || [];
 
   return (
     <div className="space-y-6">
@@ -122,7 +122,7 @@ const PaymentsTab: React.FC<PaymentsTabProps> = ({
       {/* Payments Section */}
       <div>
         <h3 className="text-lg font-semibold mb-4">Recent Payments</h3>
-        {payments.length === 0 ? (
+        {!payments?.length ? (
           <Card>
             <CardContent className="text-center py-8">
               <CreditCard className="h-12 w-12 mx-auto text-gray-400 mb-4" />
@@ -135,10 +135,10 @@ const PaymentsTab: React.FC<PaymentsTabProps> = ({
         ) : (
           <div className="grid gap-4">
             {payments.map(payment => {
-              const project = projects.find(p => p.id === payment.project_id);
+              const project = projects?.find(p => p?.id === payment?.project_id);
               return (
                 <PaymentCard
-                  key={payment.id}
+                  key={payment?.id}
                   payment={payment}
                   project={project}
                   onViewDetails={onPaymentViewDetails}
@@ -152,34 +152,34 @@ const PaymentsTab: React.FC<PaymentsTabProps> = ({
       </div>
 
       {/* Projects Ready for Review */}
-      {projectsToReview.length > 0 && (
+      {projectsToReview?.length > 0 && (
         <div>
           <h3 className="text-lg font-semibold mb-4">Projects Ready for Review</h3>
           <div className="grid gap-4">
             {projectsToReview.map(project => (
-              <Card key={project.id}>
+              <Card key={project?.id}>
                 <CardHeader>
                   <div className="flex justify-between items-start">
                     <div>
-                      <CardTitle className="text-lg">{project.title}</CardTitle>
+                      <CardTitle className="text-lg">{project?.title}</CardTitle>
                       <CardDescription>
-                        Completed on {project.updated_at ? format(new Date(project.updated_at), 'MMM d, yyyy') : 'Unknown date'}
+                        Completed on {project?.updated_at ? format(new Date(project.updated_at), 'MMM d, yyyy') : 'Unknown date'}
                       </CardDescription>
                     </div>
-                    {getStatusBadge(project.status)}
+                    {getStatusBadge(project?.status)}
                   </div>
                 </CardHeader>
                 <CardContent>
                   <div className="flex justify-between items-center">
                     <div>
                       <p className="text-sm text-gray-600 mb-2">
-                        Budget: TTD {project.budget?.toLocaleString() || 'Not specified'}
+                        Budget: TTD {project?.budget?.toLocaleString() || 'Not specified'}
                       </p>
                       <p className="text-sm text-gray-600">
-                        Professional ID: {project.professional_id}
+                        Professional ID: {project?.professional_id}
                       </p>
                     </div>
-                    <Button onClick={() => handleReviewInitiate(project)}>
+                    <Button onClick={() => project && handleReviewInitiate(project)}>
                       Leave Review
                     </Button>
                   </div>
@@ -194,7 +194,7 @@ const PaymentsTab: React.FC<PaymentsTabProps> = ({
       {projectToReview && (
         <Card>
           <CardHeader>
-            <CardTitle>Review Project: {projectToReview.title}</CardTitle>
+            <CardTitle>Review Project: {projectToReview?.title}</CardTitle>
             <CardDescription>
               Share your experience working with the professional
             </CardDescription>
@@ -206,7 +206,7 @@ const PaymentsTab: React.FC<PaymentsTabProps> = ({
                   Overall Rating
                 </label>
                 <StarRating 
-                  rating={reviewData.rating} 
+                  rating={reviewData?.rating || 0} 
                   onRatingChange={(rating) => setReviewData({ ...reviewData, rating })}
                   interactive
                 />
@@ -219,7 +219,7 @@ const PaymentsTab: React.FC<PaymentsTabProps> = ({
                 <textarea
                   className="w-full p-3 border rounded-md"
                   rows={4}
-                  value={reviewData.comment}
+                  value={reviewData?.comment || ''}
                   onChange={(e) => setReviewData({ ...reviewData, comment: e.target.value })}
                   placeholder="Share details about your experience..."
                 />
@@ -228,7 +228,7 @@ const PaymentsTab: React.FC<PaymentsTabProps> = ({
               <div className="flex gap-2">
                 <Button 
                   onClick={handleReviewSubmit}
-                  disabled={isSubmitting || reviewData.rating === 0}
+                  disabled={isSubmitting || !reviewData?.rating}
                 >
                   {isSubmitting ? 'Submitting...' : 'Submit Review'}
                 </Button>
