@@ -40,7 +40,7 @@ const EditProfile: React.FC = () => {
     availability: '' as 'available' | 'busy' | 'unavailable' | '',
     skills: [] as string[],
     certifications: [] as string[],
-    years_experience: '',
+    years_of_experience: '',
     profile_visibility: true,
     show_email: true,
     show_phone: true,
@@ -79,7 +79,7 @@ const EditProfile: React.FC = () => {
         allow_messages: data.allow_messages ?? true,
         profile_image_url: data.profile_image_url || null,
         verification_status: (data.verification_status as 'unverified' | 'pending' | 'verified') || null,
-        years_experience: data.years_experience || null,
+        years_of_experience: data.years_of_experience || null,
       };
       
       setProfile(profileData);
@@ -94,7 +94,7 @@ const EditProfile: React.FC = () => {
         availability: (data.availability as 'available' | 'busy' | 'unavailable') || '',
         skills: data.skills || [],
         certifications: data.certifications || [],
-        years_experience: data.years_experience?.toString() || '',
+        years_of_experience: data.years_of_experience?.toString() || '',
         profile_visibility: data.profile_visibility ?? true,
         show_email: data.show_email ?? true,
         show_phone: data.show_phone ?? true,
@@ -179,7 +179,7 @@ const EditProfile: React.FC = () => {
         updateData.availability = formData.availability || null;
         updateData.skills = formData.skills;
         updateData.certifications = formData.certifications;
-        updateData.years_experience = formData.years_experience ? parseInt(formData.years_experience) : null;
+        updateData.years_of_experience = formData.years_of_experience ? parseInt(formData.years_of_experience) : null;
       }
 
       const { error } = await supabase
@@ -344,12 +344,12 @@ const EditProfile: React.FC = () => {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="years_experience">Years of Experience</Label>
+                      <Label htmlFor="years_of_experience">Years of Experience</Label>
                       <Input
-                        id="years_experience"
+                        id="years_of_experience"
                         type="number"
-                        value={formData.years_experience}
-                        onChange={(e) => setFormData({ ...formData, years_experience: e.target.value })}
+                        value={formData.years_of_experience}
+                        onChange={(e) => setFormData({ ...formData, years_of_experience: e.target.value })}
                       />
                     </div>
                     <div className="space-y-2">

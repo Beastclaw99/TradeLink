@@ -28,7 +28,7 @@ export const useProfessionalDataFetcher = (userId: string) => {
     try {
       console.log('Fetching professional dashboard data for user:', userId);
       
-      // Fetch profile with all necessary fields
+      // Fetch profile with all necessary fields - using correct column name
       const { data: userProfileData, error: userProfileError } = await supabase
         .from('profiles')
         .select(`
@@ -54,7 +54,7 @@ export const useProfessionalDataFetcher = (userId: string) => {
           allow_messages,
           profile_image_url,
           verification_status,
-          years_experience,
+          years_of_experience,
           portfolio_images,
           created_at,
           updated_at,

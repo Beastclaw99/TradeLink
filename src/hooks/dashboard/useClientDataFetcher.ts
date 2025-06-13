@@ -307,4 +307,4 @@ export const useClientDataFetcher = (userId: string) => {
     error,
     fetchDashboardData
   };
-}; 
+};

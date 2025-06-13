@@ -1,3 +1,4 @@
+
 export interface ProfileData {
   id: string;
   email: string;
@@ -42,6 +43,7 @@ export interface ProfileData {
     push: boolean;
     marketing: boolean;
   } | null;
+  portfolio_images: string[] | null;
 }
 
 export interface ProfessionalStats {
