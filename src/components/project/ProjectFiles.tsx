@@ -25,7 +25,7 @@ import {
   Clock,
   User
 } from 'lucide-react';
-import { format, formatDistanceToNow } from 'date-fns';
+import { formatDistanceToNow } from 'date-fns';
 import {
   Select,
   SelectContent,
@@ -42,6 +42,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ProjectFile } from '@/types/database';
+import { formatDateToLocale } from '@/utils/dateUtils';
 
 interface ExtendedProjectFile extends ProjectFile {
   uploadedBy: {

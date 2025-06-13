@@ -1,4 +1,3 @@
-
 // Update types to match actual database schema
 export interface Application {
   id: string;
@@ -8,7 +7,7 @@ export interface Application {
   proposal_message: string | null;
   bid_amount: number | null;
   availability: string | null;
-  status: 'pending' | 'accepted' | 'rejected' | null;
+  status: 'pending' | 'accepted' | 'rejected' | 'withdrawn' | null;
   created_at: string;
   updated_at: string;
   // Relations - these come from joins, not direct columns
@@ -127,7 +126,7 @@ export interface Deliverable {
 export interface Payment {
   id: string;
   amount: number;
-  status: 'pending' | 'completed' | 'failed' | 'cancelled' | null;
+  status: 'pending' | 'processing' | 'completed' | 'failed' | 'refunded' | null;
   payment_method: string | null;
   transaction_id: string | null;
   created_at: string | null;

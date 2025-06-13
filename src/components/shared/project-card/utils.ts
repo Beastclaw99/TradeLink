@@ -1,6 +1,6 @@
-
 import { format } from 'date-fns';
 import { Project } from '@/components/dashboard/types';
+import { formatDateToLocale } from '@/utils/dateUtils';
 
 export const statusColors = {
   open: { bg: 'bg-blue-100', text: 'text-blue-800' },
@@ -16,8 +16,7 @@ export const statusColors = {
 };
 
 export const formatDate = (date: string | null) => {
-  if (!date) return 'N/A';
-  return format(new Date(date), 'MMM d, yyyy');
+  return formatDateToLocale(date);
 };
 
 export const formatCurrency = (amount: number | null) => {

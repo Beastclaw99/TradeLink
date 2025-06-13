@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ProjectUpdate } from '@/types/projectUpdates';
 import { useAuth } from '@/contexts/AuthContext';
+import { formatDateToLocale } from '@/utils/dateUtils';
 import {
   ClockIcon,
   ExclamationCircleIcon,
@@ -212,7 +213,7 @@ export default function UnifiedProjectUpdateTimeline({
               <div className="flex items-center justify-between">
                 <div className="flex flex-col">
                   <span className="text-sm text-gray-500">
-                    {format(new Date(update.created_at || ''), 'MMM d, yyyy h:mm a')}
+                    {formatDateToLocale(update.created_at)}
                   </span>
                   {isProfessional && update.profiles && (
                     <span className="text-sm text-gray-600">

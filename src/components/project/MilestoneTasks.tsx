@@ -5,23 +5,19 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus, Trash2 } from 'lucide-react';
 import { useToast } from "@/components/ui/use-toast";
-import { ProjectTask } from '@/types/database';
+import { ProjectTask, TaskStatus } from '@/types/database';
 
 interface MilestoneTasksProps {
   milestoneId: string;
-  projectId: string;
-  projectTitle: string;
   tasks: ProjectTask[];
   isClient?: boolean;
   onAddTask?: (task: Omit<ProjectTask, 'id'>) => Promise<void>;
   onDeleteTask?: (taskId: string) => Promise<void>;
-  onUpdateTaskStatus?: (taskId: string, completed: boolean) => Promise<void>;
+  onUpdateTaskStatus?: (taskId: string, status: TaskStatus) => Promise<void>;
 }
 
 const MilestoneTasks: React.FC<MilestoneTasksProps> = ({
   milestoneId,
-  projectId,
-  projectTitle,
   tasks = [],
   isClient = false,
   onAddTask,
@@ -37,11 +33,15 @@ const MilestoneTasks: React.FC<MilestoneTasksProps> = ({
 
     try {
       await onAddTask({
-        milestone_id: milestoneId,
+        project_id: milestoneId,
         title: newTaskTitle.trim(),
-        completed: false,
+        status: 'todo' as TaskStatus,
+        description: null,
+        assignee_id: null,
+        due_date: null,
         created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
+        assignee: null
       });
 
       setNewTaskTitle('');
@@ -81,15 +81,16 @@ const MilestoneTasks: React.FC<MilestoneTasksProps> = ({
     }
   };
 
-  const handleTaskStatusChange = async (taskId: string, completed: boolean) => {
+  const handleTaskStatusChange = async (taskId: string, checked: boolean) => {
     if (!onUpdateTaskStatus) return;
 
     try {
-      await onUpdateTaskStatus(taskId, completed);
+      const newStatus: TaskStatus = checked ? 'completed' : 'todo';
+      await onUpdateTaskStatus(taskId, newStatus);
       
       toast({
         title: "Task updated",
-        description: `Task marked as ${completed ? 'completed' : 'incomplete'}.`,
+        description: `Task marked as ${checked ? 'completed' : 'incomplete'}.`,
       });
     } catch (error) {
       console.error('Error updating task status:', error);
@@ -160,13 +161,13 @@ const MilestoneTasks: React.FC<MilestoneTasksProps> = ({
                 >
                   <div className="flex items-center gap-2">
                     <Checkbox
-                      checked={task.completed}
+                      checked={task.status === 'completed'}
                       onCheckedChange={(checked) => 
                         handleTaskStatusChange(task.id, checked as boolean)
                       }
                       disabled={isClient}
                     />
-                    <span className={`text-sm ${task.completed ? 'line-through text-gray-500' : ''}`}>
+                    <span className={`text-sm ${task.status === 'completed' ? 'line-through text-gray-500' : ''}`}>
                       {task.title}
                     </span>
                   </div>

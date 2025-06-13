@@ -21,7 +21,7 @@ import {
   Target,
   FileText
 } from 'lucide-react';
-import { format, isPast, isToday, isFuture, differenceInDays } from 'date-fns';
+import { isPast, isToday, isFuture, differenceInDays } from 'date-fns';
 import { Milestone, convertDBMilestoneToMilestone } from './creation/types';
 import MilestoneStatusUpdate from './MilestoneStatusUpdate';
 import DeliverableSubmission from './DeliverableSubmission';
@@ -30,6 +30,7 @@ import { ProjectStatus } from '@/types/projectUpdates';
 import { supabase } from '@/integrations/supabase/client';
 import MilestoneTasks from './MilestoneTasks';
 import { ProjectMilestone } from '@/types/database';
+import { formatDateToLocale } from '@/utils/dateUtils';
 
 interface ProjectMilestonesProps {
   projectId: string;
@@ -220,14 +221,15 @@ const ProjectMilestones: React.FC<ProjectMilestonesProps> = ({
 
   const getDueDateStatus = (dueDate: string) => {
     const date = new Date(dueDate);
-    if (isPast(date) && !isToday(date)) {
-      return 'text-red-600';
+    if (isPast(date)) {
+      return 'Overdue';
     } else if (isToday(date)) {
-      return 'text-yellow-600';
+      return 'Due Today';
     } else if (isFuture(date)) {
-      return 'text-green-600';
+      const daysLeft = differenceInDays(date, new Date());
+      return `Due in ${daysLeft} days`;
     }
-    return 'text-gray-600';
+    return 'No due date';
   };
 
   const toggleMilestoneExpansion = (milestoneId: string) => {
@@ -298,13 +300,13 @@ const ProjectMilestones: React.FC<ProjectMilestonesProps> = ({
     const diffDays = Math.ceil((deadline.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
     
     if (diffDays < 0) {
-      return { label: 'Overdue', variant: 'destructive' };
+      return { label: `Overdue (${formatDateToLocale(dueDate)})`, variant: 'destructive' };
     } else if (diffDays <= 3) {
-      return { label: 'Due soon', variant: 'destructive' };
+      return { label: `Due soon (${formatDateToLocale(dueDate)})`, variant: 'destructive' };
     } else if (diffDays <= 7) {
-      return { label: 'Due in a week', variant: 'secondary' };
+      return { label: `Due in a week (${formatDateToLocale(dueDate)})`, variant: 'secondary' };
     } else {
-      return { label: 'On track', variant: 'default' };
+      return { label: `On track (${formatDateToLocale(dueDate)})`, variant: 'default' };
     }
   };
 

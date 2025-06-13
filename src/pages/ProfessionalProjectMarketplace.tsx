@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Loader2 } from "lucide-react";
-import { format } from 'date-fns';
+import { formatDate } from '@/utils/dateUtils';
 
 interface ProjectWithClient extends Omit<Project, 'client'> {
   client: {
@@ -219,7 +219,7 @@ const ProfessionalProjectMarketplace: React.FC = () => {
                   <CardHeader>
                     <CardTitle className="line-clamp-2">{project.title}</CardTitle>
                     <CardDescription>
-                      Posted {format(new Date(project.created_at || ''), 'PPP')}
+                      Posted {formatDate(project.created_at)}
                     </CardDescription>
                   </CardHeader>
                   <CardContent>

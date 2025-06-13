@@ -8,6 +8,7 @@ import { format } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
 import { Database } from '@/integrations/supabase/types';
 import { Project, ProjectStatus } from '@/types/database';
+import { formatDateToLocale } from '@/utils/dateUtils';
 
 type Project = Database['public']['Tables']['projects']['Row'];
 type Profile = Database['public']['Tables']['profiles']['Row'];
@@ -197,7 +198,7 @@ const UnifiedProjectCard: React.FC<UnifiedProjectCardProps> = ({
             <div className="flex items-center gap-4 text-sm text-gray-600">
               <span className="flex items-center gap-1">
                 <Calendar className="h-4 w-4" />
-                {project.created_at ? new Date(project.created_at).toLocaleDateString() : 'No date'}
+                {formatDateToLocale(project.created_at)}
               </span>
               {project.location && (
                 <span className="flex items-center gap-1">

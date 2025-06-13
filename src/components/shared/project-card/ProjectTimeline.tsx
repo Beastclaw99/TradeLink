@@ -1,7 +1,7 @@
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { ProjectStatus } from '@/types/database';
-import { format, isValid } from 'date-fns';
+import { formatDateToLocale } from '@/utils/dateUtils';
 
 interface ProjectTimelineProps {
   startDate: string | null;
@@ -14,21 +14,6 @@ export const ProjectTimeline: React.FC<ProjectTimelineProps> = ({
   deadline,
   projectStatus
 }) => {
-  const formatDate = (date: string | null): string => {
-    if (!date) return 'Not set';
-    try {
-      const parsedDate = new Date(date);
-      if (!isValid(parsedDate)) {
-        console.error('Invalid date:', date);
-        return 'Invalid date';
-      }
-      return format(parsedDate, 'PPP');
-    } catch (error) {
-      console.error('Error formatting date:', error);
-      return 'Invalid date';
-    }
-  };
-
   const formatStatus = (status: ProjectStatus): string => {
     try {
       return status.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
@@ -36,6 +21,10 @@ export const ProjectTimeline: React.FC<ProjectTimelineProps> = ({
       console.error('Error formatting status:', error);
       return 'Unknown Status';
     }
+  };
+
+  const formatDate = (date: string | null): string => {
+    return formatDateToLocale(date);
   };
 
   return (

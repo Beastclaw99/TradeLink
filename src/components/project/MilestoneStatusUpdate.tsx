@@ -4,6 +4,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { notificationService } from '@/services/notificationService';
 import { MilestoneStatus } from '@/types/database';
+import { formatDateToLocale } from '@/utils/dateUtils';
 
 interface MilestoneStatusUpdateProps {
   projectId: string;
@@ -162,16 +163,20 @@ const MilestoneStatusUpdate: React.FC<MilestoneStatusUpdateProps> = ({
             return;
           }
 
-          if (milestone?.due_date && new Date(milestone.due_date) < new Date()) {
-            // Create overdue notification
-            await notificationService.createMilestoneNotification(
-              projectId,
-              projectTitle,
-              milestoneTitle,
-              'overdue',
-              clientId,
-              professionalId
-            );
+          if (milestone?.due_date) {
+            const dueDate = new Date(milestone.due_date);
+            const now = new Date();
+            if (dueDate < now) {
+              // Create overdue notification
+              await notificationService.createMilestoneNotification(
+                projectId,
+                projectTitle,
+                milestoneTitle,
+                'overdue',
+                clientId,
+                professionalId
+              );
+            }
           }
         } catch (error) {
           console.error('Error checking overdue status:', error);

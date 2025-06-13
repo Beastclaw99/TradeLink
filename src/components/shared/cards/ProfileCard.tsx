@@ -12,14 +12,12 @@ interface ProfileCardProps {
   profile: Profile;
   onEdit?: (profile: Profile) => void;
   onViewDetails?: (profile: Profile) => void;
-  isProfessional?: boolean;
 }
 
 const ProfileCard: React.FC<ProfileCardProps> = ({
   profile,
   onEdit,
-  onViewDetails,
-  isProfessional = false
+  onViewDetails
 }) => {
   const getAccountTypeBadge = (type: AccountType) => {
     const typeConfig = {

@@ -23,6 +23,7 @@ import {
   Briefcase
 } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
+import { formatDateToLocale } from '@/utils/dateUtils';
 
 const Profile: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -169,7 +170,7 @@ const Profile: React.FC = () => {
                         )}
                         <div className="flex items-center gap-1">
                           <Calendar className="h-4 w-4" />
-                          Joined {new Date(profile?.created_at || '').toLocaleDateString()}
+                          Joined {formatDateToLocale(profile?.created_at)}
                         </div>
                       </div>
                     </div>

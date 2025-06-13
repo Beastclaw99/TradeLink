@@ -7,6 +7,7 @@ import { ProjectTimeline } from './ProjectTimeline';
 import { ProjectDeliverables } from './ProjectDeliverables';
 import { ProjectUpdates } from './ProjectUpdates';
 import { ProjectFiles } from './ProjectFiles';
+import { formatDateToLocale } from '@/utils/dateUtils';
 
 interface ProjectCardTabsProps {
   project: {
@@ -92,13 +93,7 @@ export const ProjectCardTabs: React.FC<ProjectCardTabsProps> = ({
   });
 
   const formatDate = (date: string | null): string => {
-    if (!date) return 'No due date';
-    try {
-      return new Date(date).toLocaleDateString();
-    } catch (error) {
-      console.error('Error formatting date:', error);
-      return 'Invalid date';
-    }
+    return formatDateToLocale(date);
   };
 
   return (

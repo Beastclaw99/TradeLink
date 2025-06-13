@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Bell, Check, X, Clock, AlertCircle, CheckCircle, Info, Loader2 } from 'lucide-react';
 import { useNotifications } from '@/contexts/NotificationContext';
 import { useNavigate } from 'react-router-dom';
+import { formatDateToLocale } from '@/utils/dateUtils';
 
 const NotificationSystem: React.FC = () => {
   const { notifications, unreadCount, isLoading, markAsRead, markAllAsRead, removeNotification } = useNotifications();
@@ -98,7 +99,7 @@ const NotificationSystem: React.FC = () => {
                     </p>
                     <div className="flex items-center mt-2 text-xs text-gray-500">
                       <Clock className="h-3 w-3 mr-1" />
-                      {new Date(notification.created_at).toLocaleTimeString()}
+                      {formatDateToLocale(notification.created_at)}
                     </div>
                   </div>
                 </div>

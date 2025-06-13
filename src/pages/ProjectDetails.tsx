@@ -12,6 +12,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { formatDateToLocale } from '@/utils/dateUtils';
 
 const ProjectDetails: React.FC = () => {
   const { projectId } = useParams<{ projectId: string }>();
@@ -200,7 +201,7 @@ const ProjectDetails: React.FC = () => {
                       <div className="flex items-center gap-4 text-sm text-gray-600">
                         <span className="flex items-center gap-1">
                           <Calendar className="h-4 w-4" />
-                          Posted {project.created_at ? new Date(project.created_at).toLocaleDateString() : 'Recently'}
+                          Posted {formatDateToLocale(project.created_at)}
                         </span>
                         <span className="flex items-center gap-1">
                           <User className="h-4 w-4" />

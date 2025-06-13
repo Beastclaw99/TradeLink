@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import Layout from '@/components/layout/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { FileText, Download, Eye, Search, Filter, Calendar } from 'lucide-react';
+import { formatDateToLocale } from '@/utils/dateUtils';
 
 const Invoices: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -204,16 +204,16 @@ const Invoices: React.FC = () => {
                         <div className="flex items-center gap-4 mt-2 text-sm text-gray-600">
                           <div className="flex items-center gap-1">
                             <Calendar className="h-4 w-4" />
-                            Invoice Date: {new Date(invoice.invoiceDate).toLocaleDateString()}
+                            Invoice Date: {formatDateToLocale(invoice.invoiceDate)}
                           </div>
                           <div className="flex items-center gap-1">
                             <Calendar className="h-4 w-4" />
-                            Due: {new Date(invoice.dueDate).toLocaleDateString()}
+                            Due: {formatDateToLocale(invoice.dueDate)}
                           </div>
                           {invoice.paidDate && (
                             <div className="flex items-center gap-1">
                               <Calendar className="h-4 w-4" />
-                              Paid: {new Date(invoice.paidDate).toLocaleDateString()}
+                              Paid: {formatDateToLocale(invoice.paidDate)}
                             </div>
                           )}
                         </div>
