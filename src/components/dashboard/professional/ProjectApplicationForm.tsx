@@ -11,11 +11,15 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { DollarSign, Calendar, CheckCircle2, AlertTriangle, Info, Star } from "lucide-react";
-import { Project } from '../types';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
+import { Database } from '@/integrations/supabase/types';
+
+type Project = Database['public']['Tables']['projects']['Row'];
+type Application = Database['public']['Tables']['applications']['Row'];
+type ApplicationStatus = Database['public']['Enums']['application_status_enum'];
 
 interface ProjectApplicationFormProps {
   selectedProject: string | null;
@@ -30,6 +34,10 @@ interface ProjectApplicationFormProps {
   handleApplyToProject: () => Promise<void>;
   onCancel: () => void;
   userSkills?: string[];
+  additionalNotes?: string;
+  setAdditionalNotes?: (value: string) => void;
+  termsAccepted?: boolean;
+  setTermsAccepted?: (value: boolean) => void;
 }
 
 const AVAILABILITY_OPTIONS = [
@@ -52,7 +60,11 @@ const ProjectApplicationForm: React.FC<ProjectApplicationFormProps> = ({
   isApplying,
   handleApplyToProject,
   onCancel,
-  userSkills = []
+  userSkills = [],
+  additionalNotes = '',
+  setAdditionalNotes = () => {},
+  termsAccepted = false,
+  setTermsAccepted = () => {}
 }) => {
   if (!selectedProject) return null;
   
@@ -113,56 +125,23 @@ const ProjectApplicationForm: React.FC<ProjectApplicationFormProps> = ({
               </div>
             </div>
           )}
-          
+
           {missingSkills.length > 0 && (
             <div className="space-y-2">
-              <p className="text-sm text-amber-700 font-medium">⚠ Skills to highlight in your proposal:</p>
+              <p className="text-sm text-amber-700 font-medium">⚠️ Recommended skills you don't have:</p>
               <div className="flex flex-wrap gap-2">
                 {missingSkills.map(skill => (
-                  <Badge key={skill} variant="outline" className="border-amber-200 text-amber-700">
+                  <Badge key={skill} variant="outline" className="bg-amber-50 text-amber-800 border-amber-200">
+                    <AlertTriangle className="w-3 h-3 mr-1" />
                     {skill}
                   </Badge>
                 ))}
               </div>
-              <p className="text-xs text-amber-600">
-                Explain how your experience relates to these skills in your proposal.
-              </p>
             </div>
-          )}
-
-          {skillMatchPercentage < 50 && (
-            <Alert>
-              <AlertTriangle className="h-4 w-4" />
-              <AlertDescription className="text-sm">
-                Your skill match is below 50%. Consider explaining how your related experience applies to this project.
-              </AlertDescription>
-            </Alert>
           )}
         </div>
 
         <Separator />
-
-        {/* Availability Selection */}
-        <div className="space-y-2">
-          <label className="block text-sm font-medium text-gray-700">
-            Your Availability *
-          </label>
-          <Select value={availability} onValueChange={setAvailability}>
-            <SelectTrigger>
-              <SelectValue placeholder="When can you start this project?" />
-            </SelectTrigger>
-            <SelectContent>
-              {AVAILABILITY_OPTIONS.map(option => (
-                <SelectItem key={option.value} value={option.value}>
-                  <div className="flex flex-col">
-                    <span className="font-medium">{option.label}</span>
-                    <span className="text-xs text-gray-500">{option.description}</span>
-                  </div>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
 
         {/* Enhanced Bid Amount Section */}
         <div className="space-y-3">
@@ -200,6 +179,28 @@ const ProjectApplicationForm: React.FC<ProjectApplicationFormProps> = ({
             </div>
           )}
         </div>
+
+        {/* Enhanced Availability Section */}
+        <div className="space-y-3">
+          <label className="block text-sm font-medium text-gray-700">
+            Your Availability *
+          </label>
+          <Select value={availability} onValueChange={setAvailability}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select your availability" />
+            </SelectTrigger>
+            <SelectContent>
+              {AVAILABILITY_OPTIONS.map(option => (
+                <SelectItem key={option.value} value={option.value}>
+                  <div className="flex flex-col">
+                    <span>{option.label}</span>
+                    <span className="text-xs text-gray-500">{option.description}</span>
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
         
         {/* Enhanced Proposal Section */}
         <div className="space-y-3">
@@ -228,6 +229,35 @@ const ProjectApplicationForm: React.FC<ProjectApplicationFormProps> = ({
             {coverLetter.length}/500 characters (aim for at least 200 for a competitive proposal)
           </div>
         </div>
+
+        {/* Additional Notes Section */}
+        <div className="space-y-3">
+          <label className="block text-sm font-medium text-gray-700">
+            Additional Notes (Optional)
+          </label>
+          <Textarea 
+            placeholder="Any additional information you'd like to share..."
+            className="min-h-[100px]"
+            value={additionalNotes}
+            onChange={(e) => setAdditionalNotes(e.target.value)}
+          />
+        </div>
+
+        {/* Terms and Conditions */}
+        <div className="space-y-3">
+          <div className="flex items-start space-x-3">
+            <input
+              type="checkbox"
+              id="terms"
+              checked={termsAccepted}
+              onChange={(e) => setTermsAccepted(e.target.checked)}
+              className="mt-1"
+            />
+            <label htmlFor="terms" className="text-sm text-gray-700">
+              I accept the terms and conditions of applying to this project
+            </label>
+          </div>
+        </div>
       </CardContent>
 
       <CardFooter className="flex justify-between items-center bg-gray-50">
@@ -236,7 +266,7 @@ const ProjectApplicationForm: React.FC<ProjectApplicationFormProps> = ({
         </Button>
         <Button 
           onClick={handleApplyToProject}
-          disabled={isApplying || !coverLetter.trim() || !bidAmount || !availability}
+          disabled={isApplying || !coverLetter.trim() || !bidAmount || !availability || !termsAccepted}
           size="lg"
           className="px-8"
         >

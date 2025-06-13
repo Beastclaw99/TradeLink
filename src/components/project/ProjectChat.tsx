@@ -9,48 +9,19 @@ import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
-
-interface ProjectMessage {
-  id: string;
-  project_id: string;
-  sender_id: string;
-  recipient_id: string;
-  content: string;
-  sent_at: string;
-  sender_name: string;
-  sender_role: 'client' | 'professional';
-  metadata?: {
-    type?: string;
-    title?: string;
-  };
-  sender?: {
-    first_name: string;
-    last_name: string;
-  };
-}
-
-type DatabaseMessage = {
-  id: string;
-  project_id: string;
-  sender_id: string;
-  recipient_id: string;
-  content: string;
-  sent_at: string;
-  metadata?: {
-    type?: string;
-    title?: string;
-  };
-  sender: {
-    first_name: string;
-    last_name: string;
-  } | null;
-};
+import { Message } from '@/types/database';
 
 interface ProjectChatProps {
   projectId: string;
   projectStatus: string;
   clientId: string;
   professionalId: string;
+}
+
+// For display, define an extended type inside the component
+interface DisplayMessage extends Message {
+  sender_name: string;
+  sender_role: 'client' | 'professional';
 }
 
 const ProjectChat: React.FC<ProjectChatProps> = ({
@@ -61,7 +32,7 @@ const ProjectChat: React.FC<ProjectChatProps> = ({
 }) => {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [messages, setMessages] = useState<ProjectMessage[]>([]);
+  const [messages, setMessages] = useState<DisplayMessage[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -173,16 +144,10 @@ const ProjectChat: React.FC<ProjectChatProps> = ({
 
       if (error) throw error;
 
-      const formattedMessages: ProjectMessage[] = (data as unknown as DatabaseMessage[]).map(msg => ({
-        id: msg.id,
-        project_id: msg.project_id,
-        sender_id: msg.sender_id,
-        recipient_id: msg.recipient_id,
-        content: msg.content,
-        sent_at: msg.sent_at,
-        metadata: msg.metadata,
+      const formattedMessages: DisplayMessage[] = (data as any[]).map(msg => ({
+        ...msg,
         sender_name: msg.sender ? `${msg.sender.first_name} ${msg.sender.last_name}` : 'Unknown User',
-        sender_role: msg.sender_id === clientId ? 'client' : 'professional' as const
+        sender_role: msg.sender_id === clientId ? 'client' : 'professional',
       }));
 
       setMessages(formattedMessages);
@@ -207,8 +172,14 @@ const ProjectChat: React.FC<ProjectChatProps> = ({
         table: 'project_messages',
         filter: `project_id=eq.${projectId}`
       }, (payload) => {
-        const newMessage = payload.new as ProjectMessage;
-        setMessages(prev => [...prev, newMessage]);
+        const newMessage = payload.new as Message;
+        // Add display fields
+        const displayMessage: DisplayMessage = {
+          ...newMessage,
+          sender_name: '', // Will be filled on next fetch, or you can refetch sender if needed
+          sender_role: newMessage.sender_id === clientId ? 'client' : 'professional',
+        };
+        setMessages(prev => [...prev, displayMessage]);
         scrollToBottom();
       })
       .subscribe();

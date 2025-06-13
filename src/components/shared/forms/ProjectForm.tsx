@@ -11,17 +11,32 @@ import { Plus, X } from 'lucide-react';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
+import { Database } from '@/integrations/supabase/types';
+
+type Project = Database['public']['Tables']['projects']['Row'];
+type ProjectStatus = Database['public']['Enums']['project_status_enum'];
 
 interface ProjectFormData {
   title: string;
   description: string;
   category: string;
-  budget: string;
+  budget: number;
   expected_timeline: string;
   location: string;
   urgency: string;
   requirements: string[];
   recommended_skills: string[];
+  status: ProjectStatus;
+  rich_description?: string;
+  scope?: string;
+  industry_specific_fields?: Record<string, any>;
+  location_coordinates?: { lat: number; lng: number };
+  contract_template_id?: string;
+  payment_required: boolean;
+  payment_due_date?: string;
+  project_start_time?: string;
+  client_id?: string;
+  sla_terms?: Record<string, any>;
 }
 
 interface ProjectFormProps {
@@ -92,12 +107,14 @@ const ProjectForm: React.FC<ProjectFormProps> = ({
     title: '',
     description: '',
     category: '',
-    budget: '',
+    budget: 0,
     expected_timeline: '',
     location: '',
     urgency: '',
     requirements: [],
     recommended_skills: [],
+    status: 'pending',
+    payment_required: true,
     ...initialData
   });
 
@@ -144,7 +161,7 @@ const ProjectForm: React.FC<ProjectFormProps> = ({
     if (!formData.title.trim()) newErrors.title = 'Project title is required';
     if (!formData.description.trim()) newErrors.description = 'Project description is required';
     if (!formData.category) newErrors.category = 'Project category is required';
-    if (!formData.budget.trim()) newErrors.budget = 'Budget is required';
+    if (!formData.budget) newErrors.budget = 'Budget is required';
     if (!formData.expected_timeline) newErrors.expected_timeline = 'Timeline is required';
     if (!formData.location.trim()) newErrors.location = 'Location is required';
 
@@ -218,8 +235,8 @@ const ProjectForm: React.FC<ProjectFormProps> = ({
               <Label htmlFor="budget">Budget *</Label>
               <Input
                 id="budget"
-                value={formData.budget}
-                onChange={(e) => handleInputChange('budget', e.target.value)}
+                value={formData.budget.toString()}
+                onChange={(e) => handleInputChange('budget', Number(e.target.value))}
                 placeholder="e.g., $5,000 or Negotiable"
                 className={errors.budget ? 'border-red-500' : ''}
               />

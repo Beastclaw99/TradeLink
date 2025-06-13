@@ -16,13 +16,22 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { Database } from '@/integrations/supabase/types';
+
+type Application = Database['public']['Tables']['applications']['Row'];
+type ApplicationStatus = Database['public']['Enums']['application_status_enum'];
 
 const formSchema = z.object({
   proposal: z.string().min(100, 'Proposal must be at least 100 characters'),
-  budget: z.string().refine((val) => !isNaN(Number(val)) && Number(val) > 0, {
-    message: 'Please enter a valid budget amount',
-  }),
+  budget: z.number().min(0, 'Budget must be a positive number'),
   timeline: z.string().min(1, 'Please specify the timeline'),
+  availability: z.string().min(1, 'Please specify your availability'),
+  status: z.enum(['pending', 'accepted', 'rejected', 'withdrawn'] as const).default('pending'),
+  additional_notes: z.string().optional(),
+  attachments: z.array(z.string()).optional(),
+  terms_accepted: z.boolean().refine(val => val === true, {
+    message: 'You must accept the terms and conditions'
+  })
 });
 
 interface ApplicationFormProps {
@@ -42,8 +51,13 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
     resolver: zodResolver(formSchema),
     defaultValues: {
       proposal: '',
-      budget: '',
+      budget: 0,
       timeline: '',
+      availability: '',
+      status: 'pending',
+      additional_notes: '',
+      attachments: [],
+      terms_accepted: false
     },
   });
 
@@ -66,9 +80,15 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
           project_id: projectId,
           professional_id: user.id,
           proposal: values.proposal,
-          budget: Number(values.budget),
+          budget: values.budget,
           timeline: values.timeline,
-          status: 'pending'
+          availability: values.availability,
+          status: values.status,
+          additional_notes: values.additional_notes,
+          attachments: values.attachments,
+          terms_accepted: values.terms_accepted,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
         });
 
       if (error) throw error;
@@ -126,6 +146,7 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
                   type="number"
                   placeholder="Enter your proposed budget"
                   {...field}
+                  onChange={(e) => field.onChange(Number(e.target.value))}
                 />
               </FormControl>
               <FormMessage />
@@ -146,6 +167,62 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
                 />
               </FormControl>
               <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="availability"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Availability</FormLabel>
+              <FormControl>
+                <Input
+                  placeholder="e.g., Immediate, Within 2 weeks, etc."
+                  {...field}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="additional_notes"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Additional Notes (Optional)</FormLabel>
+              <FormControl>
+                <Textarea
+                  placeholder="Any additional information you'd like to share..."
+                  {...field}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="terms_accepted"
+          render={({ field }) => (
+            <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+              <FormControl>
+                <input
+                  type="checkbox"
+                  checked={field.value}
+                  onChange={field.onChange}
+                />
+              </FormControl>
+              <div className="space-y-1 leading-none">
+                <FormLabel>
+                  I accept the terms and conditions
+                </FormLabel>
+                <FormMessage />
+              </div>
             </FormItem>
           )}
         />
