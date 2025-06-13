@@ -38,7 +38,7 @@ export const useClientDataFetcher = (userId: string) => {
           email,
           phone,
           location,
-          profile_image,
+          profile_image_url,
           rating,
           total_reviews,
           bio,
@@ -157,14 +157,14 @@ export const useClientDataFetcher = (userId: string) => {
             id,
             first_name,
             last_name,
-            profile_image
+            profile_image_url
           ),
           professional:professional_id (
             id,
             first_name,
             last_name,
             rating,
-            profile_image
+            profile_image_url
           ),
           milestones:project_milestones (
             id,
@@ -196,7 +196,7 @@ export const useClientDataFetcher = (userId: string) => {
               first_name,
               last_name,
               rating,
-              profile_image
+              profile_image_url
             )
           )
         `)
@@ -244,7 +244,7 @@ export const useClientDataFetcher = (userId: string) => {
             id,
             first_name,
             last_name,
-            profile_image
+            profile_image_url
           )
         `)
         .eq('client_id', userId)
@@ -271,7 +271,7 @@ export const useClientDataFetcher = (userId: string) => {
             id,
             first_name,
             last_name,
-            profile_image
+            profile_image_url
           )
         `)
         .eq('client_id', userId)

@@ -52,7 +52,7 @@ export const useProfessionalDataFetcher = (userId: string) => {
           show_email,
           show_phone,
           allow_messages,
-          profile_image,
+          profile_image_url,
           verification_status,
           years_experience,
           portfolio_images,
