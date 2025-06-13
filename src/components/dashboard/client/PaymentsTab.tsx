@@ -83,7 +83,7 @@ const PaymentsTab: React.FC<PaymentsTabProps> = ({
     );
   };
 
-  const StarRating = ({ rating, onRatingChange, interactive = false }: { 
+  const StarRating = ({ rating = 0, onRatingChange, interactive = false }: { 
     rating: number; 
     onRatingChange?: (rating: number) => void;
     interactive?: boolean;
@@ -94,7 +94,7 @@ const PaymentsTab: React.FC<PaymentsTabProps> = ({
           <StarIcon
             key={star}
             className={`h-5 w-5 ${
-              star <= rating 
+              star <= (rating || 0)
                 ? 'text-yellow-400 fill-current' 
                 : 'text-gray-300'
             } ${interactive ? 'cursor-pointer hover:text-yellow-400' : ''}`}
@@ -140,7 +140,7 @@ const PaymentsTab: React.FC<PaymentsTabProps> = ({
                 <PaymentCard
                   key={payment?.id}
                   payment={payment}
-                  project={project}
+                  project={project || undefined}
                   onViewDetails={onPaymentViewDetails}
                   onApprove={onPaymentApprove}
                   onReject={onPaymentReject}
@@ -161,7 +161,7 @@ const PaymentsTab: React.FC<PaymentsTabProps> = ({
                 <CardHeader>
                   <div className="flex justify-between items-start">
                     <div>
-                      <CardTitle className="text-lg">{project?.title}</CardTitle>
+                      <CardTitle className="text-lg">{project?.title || 'Untitled Project'}</CardTitle>
                       <CardDescription>
                         Completed on {project?.updated_at ? format(new Date(project.updated_at), 'MMM d, yyyy') : 'Unknown date'}
                       </CardDescription>
@@ -176,7 +176,7 @@ const PaymentsTab: React.FC<PaymentsTabProps> = ({
                         Budget: TTD {project?.budget?.toLocaleString() || 'Not specified'}
                       </p>
                       <p className="text-sm text-gray-600">
-                        Professional ID: {project?.professional_id}
+                        Professional ID: {project?.professional_id || 'Not assigned'}
                       </p>
                     </div>
                     <Button onClick={() => project && handleReviewInitiate(project)}>
@@ -194,7 +194,7 @@ const PaymentsTab: React.FC<PaymentsTabProps> = ({
       {projectToReview && (
         <Card>
           <CardHeader>
-            <CardTitle>Review Project: {projectToReview?.title}</CardTitle>
+            <CardTitle>Review Project: {projectToReview?.title || 'Untitled Project'}</CardTitle>
             <CardDescription>
               Share your experience working with the professional
             </CardDescription>
@@ -242,29 +242,27 @@ const PaymentsTab: React.FC<PaymentsTabProps> = ({
       )}
 
       {/* Existing Reviews */}
-      {reviews.length > 0 && (
+      {reviews?.length > 0 && (
         <div>
           <h3 className="text-lg font-semibold mb-4">Your Reviews</h3>
           <div className="grid gap-4">
             {reviews.map(review => {
-              const project = projects.find(p => p.id === review.project_id);
+              const project = projects?.find(p => p?.id === review?.project_id);
               return (
-                <Card key={review.id}>
+                <Card key={review?.id}>
                   <CardHeader>
                     <div className="flex justify-between items-start">
                       <div>
-                        <CardTitle className="text-lg">
-                          {project?.title || 'Unknown Project'}
-                        </CardTitle>
+                        <CardTitle className="text-lg">{project?.title || 'Unknown Project'}</CardTitle>
                         <CardDescription>
-                          Reviewed on {review.created_at ? format(new Date(review.created_at), 'MMM d, yyyy') : 'Unknown date'}
+                          Reviewed on {review?.created_at ? format(new Date(review.created_at), 'MMM d, yyyy') : 'Unknown date'}
                         </CardDescription>
                       </div>
-                      <StarRating rating={review.rating || 0} />
+                      <StarRating rating={review?.rating || 0} />
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-gray-600">{review.comment}</p>
+                    <p className="text-gray-600">{review?.comment || 'No comment provided'}</p>
                   </CardContent>
                 </Card>
               );

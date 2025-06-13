@@ -5,12 +5,12 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Application } from '../types';
-import ApplicationCard from '@/components/shared/cards/ApplicationCard';
 import { Database } from '@/integrations/supabase/types';
+import ApplicationCard from '@/components/shared/cards/ApplicationCard';
 
 type Project = Database['public']['Tables']['projects']['Row'];
-type Profile = Database['public']['Tables']['profiles']['Row'];
+type Application = Database['public']['Tables']['applications']['Row'];
+type ApplicationStatus = Database['public']['Enums']['application_status'];
 
 interface ApplicationsTabProps {
   isLoading: boolean;
@@ -21,8 +21,8 @@ interface ApplicationsTabProps {
 
 const ApplicationsTab: React.FC<ApplicationsTabProps> = ({
   isLoading,
-  applications,
-  projects,
+  applications = [],
+  projects = [],
   userId
 }) => {
   const { toast } = useToast();
@@ -31,11 +31,14 @@ const ApplicationsTab: React.FC<ApplicationsTabProps> = ({
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
 
   const handleViewDetails = (application: Application) => {
+    if (!application?.id) return;
     setSelectedApplication(application);
     setIsViewDialogOpen(true);
   };
 
   const handleWithdraw = async (application: Application) => {
+    if (!application?.id) return;
+    
     try {
       const { error } = await supabase
         .from('applications')
@@ -62,21 +65,30 @@ const ApplicationsTab: React.FC<ApplicationsTabProps> = ({
   };
 
   const handleConfirmWithdraw = async () => {
-    if (!selectedApplication) return;
+    if (!selectedApplication?.id) return;
     await handleWithdraw(selectedApplication);
     setIsConfirmDialogOpen(false);
     setIsViewDialogOpen(false);
   };
 
   if (isLoading) {
-    return <div>Loading applications...</div>;
+    return (
+      <div className="space-y-4">
+        <div className="h-8 bg-gray-200 rounded animate-pulse" />
+        <div className="grid gap-4">
+          {[1, 2, 3].map(i => (
+            <div key={i} className="h-32 bg-gray-100 rounded animate-pulse" />
+          ))}
+        </div>
+      </div>
+    );
   }
 
   return (
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold mb-4">My Applications</h2>
-        {applications.length === 0 ? (
+        {!applications?.length ? (
           <Card>
             <CardContent className="text-center py-8">
               <p className="text-gray-500">No applications yet.</p>
@@ -85,16 +97,17 @@ const ApplicationsTab: React.FC<ApplicationsTabProps> = ({
         ) : (
           <div className="grid gap-4">
             {applications.map((application) => {
-              const project = projects.find(p => p.id === application.project_id);
+              const project = projects?.find(p => p?.id === application?.project_id);
               
               return (
                 <ApplicationCard
-                  key={application.id}
+                  key={application?.id}
                   application={application}
-                  project={project}
+                  project={project || undefined}
                   isProfessional={true}
                   onViewDetails={handleViewDetails}
                   onWithdraw={(app) => {
+                    if (!app?.id) return;
                     setSelectedApplication(app);
                     setIsConfirmDialogOpen(true);
                   }}
@@ -115,25 +128,25 @@ const ApplicationsTab: React.FC<ApplicationsTabProps> = ({
               <div className="flex justify-between items-start">
                 <div>
                   <h3 className="font-semibold">
-                    {projects.find(p => p.id === selectedApplication.project_id)?.title}
+                    {projects?.find(p => p?.id === selectedApplication?.project_id)?.title || 'Unknown Project'}
                   </h3>
                   <p className="text-sm text-gray-500">
-                    Applied on {new Date(selectedApplication.created_at).toLocaleDateString()}
+                    Applied on {selectedApplication?.created_at ? new Date(selectedApplication.created_at).toLocaleDateString() : 'Unknown date'}
                   </p>
                 </div>
                 <Badge variant="outline">
-                  {selectedApplication.status}
+                  {selectedApplication?.status || 'Unknown'}
                 </Badge>
               </div>
               
               <div>
                 <h4 className="font-medium mb-2">Cover Letter</h4>
                 <p className="text-sm text-gray-600 whitespace-pre-wrap">
-                  {selectedApplication.cover_letter}
+                  {selectedApplication?.cover_letter || 'No cover letter provided'}
                 </p>
               </div>
 
-              {selectedApplication.proposal_message && (
+              {selectedApplication?.proposal_message && (
                 <div>
                   <h4 className="font-medium mb-2">Proposal Message</h4>
                   <p className="text-sm text-gray-600 whitespace-pre-wrap">
@@ -145,12 +158,15 @@ const ApplicationsTab: React.FC<ApplicationsTabProps> = ({
               <div className="flex justify-between items-center">
                 <div>
                   <p className="text-sm font-medium">Bid Amount</p>
-                  <p className="text-lg">${selectedApplication.bid_amount?.toLocaleString()}</p>
+                  <p className="text-lg">
+                    ${selectedApplication?.bid_amount?.toLocaleString() || '0'}
+                  </p>
                 </div>
-                {selectedApplication.status === 'pending' && (
+                {selectedApplication?.status === 'pending' && (
                   <Button
                     variant="outline"
                     onClick={() => {
+                      setSelectedApplication(selectedApplication);
                       setIsConfirmDialogOpen(true);
                     }}
                   >
@@ -175,11 +191,8 @@ const ApplicationsTab: React.FC<ApplicationsTabProps> = ({
             <Button variant="outline" onClick={() => setIsConfirmDialogOpen(false)}>
               Cancel
             </Button>
-            <Button
-              variant="destructive"
-              onClick={handleConfirmWithdraw}
-            >
-              Withdraw
+            <Button onClick={handleConfirmWithdraw}>
+              Confirm Withdrawal
             </Button>
           </DialogFooter>
         </DialogContent>

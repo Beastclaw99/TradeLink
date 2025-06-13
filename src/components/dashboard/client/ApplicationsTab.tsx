@@ -100,15 +100,17 @@ const ApplicationsTab: React.FC<ApplicationsTabProps> = ({
                 <ApplicationCard
                   key={application?.id}
                   application={application}
-                  project={project}
-                  professional={professional}
+                  project={project || undefined}
+                  professional={professional || undefined}
                   onViewDetails={handleViewDetails}
                   onAccept={(app: Application) => {
+                    if (!app?.id) return;
                     setSelectedApplication(app);
                     setActionType('accept');
                     setIsConfirmDialogOpen(true);
                   }}
                   onReject={(app: Application) => {
+                    if (!app?.id) return;
                     setSelectedApplication(app);
                     setActionType('reject');
                     setIsConfirmDialogOpen(true);
