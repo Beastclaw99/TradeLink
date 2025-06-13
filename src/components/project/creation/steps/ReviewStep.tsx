@@ -58,11 +58,11 @@ const ReviewStep: React.FC<ReviewStepProps> = ({ data }) => {
               </ul>
             </div>
           )}
-          {data.recommendedSkills && data.recommendedSkills.length > 0 && (
+          {data.recommended_skills && data.recommended_skills.length > 0 && (
             <div>
               <h4 className="font-medium mb-2">Recommended Skills</h4>
               <div className="flex flex-wrap gap-2">
-                {data.recommendedSkills.map((skill, index) => (
+                {data.recommended_skills.map((skill, index) => (
                   <Badge key={index} variant="outline">{skill}</Badge>
                 ))}
               </div>
@@ -83,7 +83,7 @@ const ReviewStep: React.FC<ReviewStepProps> = ({ data }) => {
             </div>
             <div>
               <h4 className="font-medium">Timeline</h4>
-              <p className="text-gray-700">{data.timeline}</p>
+              <p className="text-gray-700">{data.expected_timeline}</p>
             </div>
             <div>
               <h4 className="font-medium">Urgency</h4>
@@ -109,8 +109,8 @@ const ReviewStep: React.FC<ReviewStepProps> = ({ data }) => {
                   {milestone.description && (
                     <p className="text-gray-600 text-sm mb-2">{milestone.description}</p>
                   )}
-                  {milestone.dueDate && (
-                    <p className="text-sm text-gray-500">Due: {milestone.dueDate}</p>
+                  {milestone.due_date && (
+                    <p className="text-sm text-gray-500">Due: {milestone.due_date}</p>
                   )}
                 </div>
               ))}
@@ -130,7 +130,7 @@ const ReviewStep: React.FC<ReviewStepProps> = ({ data }) => {
                 <div key={index} className="border rounded p-3">
                   <div className="flex items-center justify-between">
                     <p className="font-medium">{deliverable.description}</p>
-                    <Badge variant="outline">{deliverable.deliverable_type}</Badge>
+                    <Badge variant="outline">{deliverable.type || deliverable.deliverable_type}</Badge>
                   </div>
                 </div>
               ))}
