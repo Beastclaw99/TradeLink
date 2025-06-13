@@ -4,7 +4,7 @@ import Layout from '@/components/layout/Layout';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Project, ExtendedProject } from '@/types/database';
+import { Project } from '@/types/database';
 
 // Import the refactored components
 import HeroSection from '@/components/marketplace/HeroSection';
@@ -23,7 +23,7 @@ const ProjectMarketplace: React.FC = () => {
   const [locationFilter, setLocationFilter] = useState("");
   const [budgetFilter, setBudgetFilter] = useState("");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-  const [projects, setProjects] = useState<(Project | ExtendedProject)[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [userType, setUserType] = useState<'professional' | 'client' | null>(null);
   const [userSkills, setUserSkills] = useState<string[]>([]);
@@ -69,6 +69,7 @@ const ProjectMarketplace: React.FC = () => {
     try {
       setLoading(true);
       
+      // First fetch the projects with client and professional info
       let query = supabase
         .from('projects')
         .select(`
@@ -77,21 +78,18 @@ const ProjectMarketplace: React.FC = () => {
             id,
             first_name,
             last_name,
-            profile_image,
+            profile_image_url,
             rating,
-            total_reviews
+            completed_projects
           ),
           professional:profiles!projects_professional_id_fkey(
             id,
             first_name,
             last_name,
-            profile_image,
+            profile_image_url,
             rating,
-            total_reviews
-          ),
-          milestones:project_milestones(*),
-          deliverables:project_deliverables(*),
-          applications:project_applications(*)
+            completed_projects
+          )
         `)
         .eq('status', 'open');
 
@@ -121,63 +119,57 @@ const ProjectMarketplace: React.FC = () => {
       // Add sorting
       query = query.order('created_at', { ascending: false });
       
-      const { data, error } = await query;
+      const { data: projectsData, error: projectsError } = await query;
         
-      if (error) throw error;
-      
-      const typedProjects = data?.map(project => {
-        // Ensure urgency is one of the allowed values
-        const urgency = project.urgency === 'low' || project.urgency === 'normal' || project.urgency === 'high' 
-          ? project.urgency 
-          : null;
+      if (projectsError) throw projectsError;
 
-        // Create base project object
-        const baseProject = {
-          id: project.id,
-          title: project.title,
-          description: project.description,
-          category: project.category,
-          budget: project.budget,
-          expected_timeline: project.expected_timeline,
-          location: project.location,
-          urgency,
-          requirements: project.requirements,
-          status: project.status,
-          created_at: project.created_at,
-          updated_at: project.updated_at,
-          client_id: project.client_id,
-          assigned_to: project.assigned_to,
-          professional_id: project.professional_id,
-          contract_template_id: project.contract_template_id,
-          deadline: project.deadline,
-          industry_specific_fields: project.industry_specific_fields,
-          location_coordinates: project.location_coordinates,
-          scope: project.scope,
-          sla_terms: project.sla_terms,
-          client: project.client,
-          professional: project.professional,
-          milestones: project.milestones,
-          deliverables: project.deliverables,
-          applications: project.applications
-        };
+      // Then fetch related data for each project
+      const projectsWithRelations = await Promise.all(
+        (projectsData || []).map(async (project) => {
+          const [
+            { data: milestones },
+            { data: tasks },
+            { data: updates },
+            { data: applications },
+            { data: reviews },
+            { data: disputes },
+            { data: payments },
+            { data: invoices },
+            { data: messages },
+            { data: notifications }
+          ] = await Promise.all([
+            supabase.from('project_milestones').select('*').eq('project_id', project.id),
+            supabase.from('project_tasks').select('*').eq('project_id', project.id),
+            supabase.from('project_updates').select('*').eq('project_id', project.id),
+            supabase.from('applications').select('*').eq('project_id', project.id),
+            supabase.from('reviews').select('*').eq('project_id', project.id),
+            supabase.from('disputes').select('*').eq('project_id', project.id),
+            supabase.from('payments').select('*').eq('project_id', project.id),
+            supabase.from('invoices').select('*').eq('project_id', project.id),
+            supabase.from('messages').select('*').eq('project_id', project.id),
+            supabase.from('notifications').select('*').eq('project_id', project.id)
+          ]);
 
-        // If user is a professional, add extended fields
-        if (userType === 'professional') {
           return {
-            ...baseProject,
-            spent: 0,
-            recommended_skills: [],
-            project_start_time: null,
-            rich_description: null,
-            service_contract: null
-          } as unknown as ExtendedProject;
-        }
-
-        return baseProject as unknown as Project;
-      }) || [];
+            ...project,
+            client: project.client || undefined,
+            professional: project.professional || undefined,
+            milestones: milestones || [],
+            tasks: tasks || [],
+            updates: updates || [],
+            applications: applications || [],
+            reviews: reviews || [],
+            disputes: disputes || [],
+            payments: payments || [],
+            invoices: invoices || [],
+            messages: messages || [],
+            notifications: notifications || []
+          } as Project;
+        })
+      );
       
-      setProjects(typedProjects);
-    } catch (error) {
+      setProjects(projectsWithRelations);
+    } catch (error: any) {
       console.error('Error fetching projects:', error);
       toast({
         title: "Error",

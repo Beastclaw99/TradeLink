@@ -1,10 +1,10 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import UnifiedProjectCard from '@/components/shared/UnifiedProjectCard';
-import { ExtendedProject } from '@/types/database';
+import { Project } from '@/types/database';
 
 interface ProjectListItemProps {
-  project: ExtendedProject;
+  project: Project;
   onClick?: () => void;
   userSkills?: string[];
 }

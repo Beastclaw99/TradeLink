@@ -18,9 +18,6 @@ export type VerificationStatus = Database['public']['Enums']['verification_statu
 
 // Re-export table types
 export type Profile = Database['public']['Tables']['profiles']['Row'];
-export type Project = Database['public']['Tables']['projects']['Row'];
-export type ProjectInsert = Database['public']['Tables']['projects']['Insert'];
-export type ProjectUpdate = Database['public']['Tables']['projects']['Update'];
 export type ProjectMilestone = Database['public']['Tables']['project_milestones']['Row'];
 export type ProjectTask = Database['public']['Tables']['project_tasks']['Row'];
 export type ProjectStatusUpdate = Database['public']['Tables']['project_updates']['Row'];
@@ -32,8 +29,11 @@ export type Invoice = Database['public']['Tables']['invoices']['Row'];
 export type Message = Database['public']['Tables']['messages']['Row'];
 export type Notification = Database['public']['Tables']['notifications']['Row'];
 
-// Extended types for frontend use
-export interface ExtendedProject extends Project {
+// Base project type from Supabase
+export type ProjectBase = Database['public']['Tables']['projects']['Row'];
+
+// Extended project type for frontend use
+export interface Project extends Omit<ProjectBase, 'urgency'> {
   client?: Profile;
   professional?: Profile;
   milestones?: ProjectMilestone[];
@@ -46,6 +46,11 @@ export interface ExtendedProject extends Project {
   invoices?: Invoice[];
   messages?: Message[];
   notifications?: Notification[];
+  recommended_skills?: string[];
+  project_start_time?: string | null;
+  rich_description?: string | null;
+  service_contract?: string | null;
+  urgency?: 'high' | 'low' | 'normal' | null;
 }
 
 // Task types

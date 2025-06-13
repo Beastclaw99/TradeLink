@@ -2,11 +2,11 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import ProjectCard from './ProjectCard';
 import ProjectListItem from './ProjectListItem';
-import { Project, ExtendedProject } from '@/types/database';
+import { Project } from '@/types/database';
 import { Loader2 } from 'lucide-react';
 
 interface ProjectsDisplayProps {
-  projects: Project[] | ExtendedProject[];
+  projects: Project[];
   loading: boolean;
   viewMode: 'grid' | 'list';
   userType: 'professional' | 'client';
@@ -64,13 +64,13 @@ const ProjectsDisplay: React.FC<ProjectsDisplayProps> = ({
             userType === 'client' ? (
               <ProjectCard 
                 key={project.id} 
-                project={project as Project} 
+                project={project} 
                 onClick={() => handleProjectClick(project.id)}
               />
             ) : (
               <ProjectListItem 
                 key={project.id} 
-                project={project as ExtendedProject}
+                project={project}
                 onClick={() => handleProjectClick(project.id)}
                 userSkills={userSkills}
               />
@@ -83,13 +83,13 @@ const ProjectsDisplay: React.FC<ProjectsDisplayProps> = ({
             userType === 'client' ? (
               <ProjectCard 
                 key={project.id} 
-                project={project as Project} 
+                project={project} 
                 onClick={() => handleProjectClick(project.id)}
               />
             ) : (
               <ProjectListItem 
                 key={project.id} 
-                project={project as ExtendedProject}
+                project={project}
                 onClick={() => handleProjectClick(project.id)}
                 userSkills={userSkills}
               />

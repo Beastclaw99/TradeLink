@@ -4,13 +4,22 @@ import Layout from '@/components/layout/Layout';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Project } from '@/components/dashboard/types';
+import { Project, Profile } from '@/types/database';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Loader2 } from "lucide-react";
+import { format } from 'date-fns';
+
+interface ProjectWithClient extends Omit<Project, 'client'> {
+  client: {
+    first_name: string | null;
+    last_name: string | null;
+  } | null;
+  requirements: string[] | null;
+}
 
 const ProfessionalProjectMarketplace: React.FC = () => {
   const { user } = useAuth();
@@ -67,34 +76,24 @@ const ProfessionalProjectMarketplace: React.FC = () => {
         
       if (error) throw error;
       
-      const typedProjects: Project[] = data?.map(project => ({
-        id: project.id,
-        title: project.title,
-        description: project.description || null,
-        category: project.category || null,
-        budget: project.budget || null,
-        expected_timeline: project.expected_timeline || null,
-        location: project.location || null,
-        urgency: project.urgency || null,
-        requirements: project.requirements || null,
-        recommended_skills: project.recommended_skills || null,
-        status: project.status || null,
-        created_at: project.created_at || null,
-        updated_at: project.updated_at || null,
-        client_id: project.client_id || null,
-        assigned_to: project.assigned_to || null,
-        professional_id: project.professional_id || null,
-        contract_template_id: project.contract_template_id || null,
-        deadline: project.deadline || null,
-        industry_specific_fields: project.industry_specific_fields || null,
-        location_coordinates: project.location_coordinates || null,
-        project_start_time: project.project_start_time || null,
-        rich_description: project.rich_description || null,
-        scope: project.scope || null,
-        service_contract: project.service_contract || null,
-        sla_terms: project.sla_terms || null,
-        client: project.client || undefined
-      })) || [];
+      const typedProjects: Project[] = (data as ProjectWithClient[]).map(project => ({
+        ...project,
+        urgency: project.urgency as 'high' | 'low' | 'normal' | null,
+        recommended_skills: project.requirements || [],
+        project_start_time: null,
+        rich_description: null,
+        service_contract: null,
+        client: project.client as Profile | undefined,
+        spent: project.spent || 0,
+        milestones: [],
+        updates: [],
+        applications: [],
+        reviews: [],
+        disputes: [],
+        invoices: [],
+        messages: [],
+        notifications: []
+      }));
       
       setProjects(typedProjects);
     } catch (error: any) {
@@ -153,6 +152,18 @@ const ProfessionalProjectMarketplace: React.FC = () => {
     }).format(budget);
   };
 
+  const handleProjectClick = (projectId: string) => {
+    navigate(`/projects/${projectId}`);
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+      </div>
+    );
+  }
+
   return (
     <Layout>
       <section className="bg-ttc-blue-800 py-12 text-white">
@@ -199,66 +210,69 @@ const ProfessionalProjectMarketplace: React.FC = () => {
             </Select>
           </div>
           
-          {loading ? (
-            <div className="flex justify-center items-center py-12">
-              <Loader2 className="h-8 w-8 animate-spin text-ttc-blue-600" />
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredProjects.map((project) => {
-                const projectSkills = project.recommended_skills ? JSON.parse(project.recommended_skills) as string[] : [];
-                
-                return (
-                  <Card key={project.id} className="flex flex-col">
-                    <CardHeader>
-                      <CardTitle className="line-clamp-2">{project.title}</CardTitle>
-                      <CardDescription>
-                        Posted by {project.client?.first_name} {project.client?.last_name}
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="flex-grow">
-                      <div className="space-y-4">
-                        <p className="text-gray-600 line-clamp-3">{project.description}</p>
-                        <div className="space-y-2">
-                          <div className="flex justify-between text-sm">
-                            <span className="text-gray-500">Budget:</span>
-                            <span className="font-medium">{formatBudget(project.budget)}</span>
-                          </div>
-                          <div className="flex justify-between text-sm">
-                            <span className="text-gray-500">Location:</span>
-                            <span className="font-medium">{project.location || 'Remote'}</span>
-                          </div>
-                          {projectSkills.length > 0 && (
-                            <div className="space-y-2">
-                              <span className="text-sm font-medium">Required Skills</span>
-                              <div className="flex flex-wrap gap-2">
-                                {projectSkills.map((skill) => (
-                                  <Badge
-                                    key={skill}
-                                    variant={userSkills.includes(skill) ? "default" : "secondary"}
-                                  >
-                                    {skill}
-                                  </Badge>
-                                ))}
-                              </div>
-                            </div>
-                          )}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredProjects.map((project) => {
+              const projectSkills = project.recommended_skills ? JSON.parse(project.recommended_skills) as string[] : [];
+              
+              return (
+                <Card key={project.id} className="hover:shadow-lg transition-shadow">
+                  <CardHeader>
+                    <CardTitle className="line-clamp-2">{project.title}</CardTitle>
+                    <CardDescription>
+                      Posted {format(new Date(project.created_at || ''), 'PPP')}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <p className="text-sm text-gray-600 line-clamp-3">
+                        {project.description}
+                      </p>
+                      <div className="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <span className="font-medium">Budget:</span>
+                          <p className="text-gray-600">
+                            {project.budget ? `$${project.budget.toLocaleString()}` : 'N/A'}
+                          </p>
+                        </div>
+                        <div>
+                          <span className="font-medium">Timeline:</span>
+                          <p className="text-gray-600">{project.expected_timeline || 'N/A'}</p>
+                        </div>
+                        <div>
+                          <span className="font-medium">Location:</span>
+                          <p className="text-gray-600">{project.location || 'Remote'}</p>
+                        </div>
+                        <div>
+                          <span className="font-medium">Status:</span>
+                          <p className="text-gray-600">{project.status || 'Open'}</p>
                         </div>
                       </div>
-                    </CardContent>
-                    <CardFooter>
-                      <Button
-                        className="w-full"
-                        onClick={() => navigate(`/projects/${project.id}`)}
-                      >
-                        View Details
-                      </Button>
-                    </CardFooter>
-                  </Card>
-                );
-              })}
-            </div>
-          )}
+                      {projectSkills.length > 0 && (
+                        <div>
+                          <span className="text-sm font-medium">Required Skills:</span>
+                          <div className="flex flex-wrap gap-2 mt-2">
+                            {projectSkills.map((skill) => (
+                              <Badge key={skill} variant="outline">
+                                <span>{skill}</span>
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                  <CardFooter>
+                    <Button 
+                      className="w-full" 
+                      onClick={() => handleProjectClick(project.id)}
+                    >
+                      View Details
+                    </Button>
+                  </CardFooter>
+                </Card>
+              );
+            })}
+          </div>
         </div>
       </section>
     </Layout>

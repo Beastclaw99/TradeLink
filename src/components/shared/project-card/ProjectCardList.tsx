@@ -1,9 +1,9 @@
-
 import React from 'react';
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { useNavigate } from 'react-router-dom';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { ChatBubbleLeftIcon } from '@heroicons/react/24/outline';
-import { Project } from '@/components/dashboard/types';
+import { Project } from '@/types/database';
 import ProjectChat from '../../project/ProjectChat';
 import { ProjectStatusBadge } from './ProjectStatusBadge';
 import { formatCurrency, formatDate } from './utils';

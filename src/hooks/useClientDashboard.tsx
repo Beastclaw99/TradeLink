@@ -3,7 +3,9 @@ import { useClientDataFetcher } from './dashboard/useClientDataFetcher';
 import { useClientActions } from './dashboard/useClientActions';
 import { calculateAverageRating, calculatePaymentTotals } from './dashboard/calculationUtils';
 import { useState } from 'react';
-import { Project, Application } from '@/components/dashboard/types';
+import { Project, Application } from '@/types/database';
+import { useToast } from "@/components/ui/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 export const useClientDashboard = (userId: string) => {
   const {

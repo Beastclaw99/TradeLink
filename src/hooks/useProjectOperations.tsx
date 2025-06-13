@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Project } from '@/components/dashboard/types';
+import { Project } from '@/types/database';
 import { Milestone, convertMilestoneToDBMilestone } from '@/components/project/creation/types';
 import { transformProjects } from './dashboard/dataTransformers';
 

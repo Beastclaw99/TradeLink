@@ -1,5 +1,5 @@
-
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Badge } from "@/components/ui/badge";
 import { 
   Card, 
@@ -13,7 +13,7 @@ import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import { ProgressIndicator } from "@/components/ui/progress-indicator";
 import { CalendarIcon, ChatBubbleLeftIcon } from '@heroicons/react/24/outline';
-import { Project } from '@/components/dashboard/types';
+import { Project } from '@/types/database';
 import { ProjectStatusBadge } from './ProjectStatusBadge';
 import { StatusIcon } from './StatusIcon';
 import { formatCurrency, formatDate, getProjectSteps, getProjectProgress } from './utils';

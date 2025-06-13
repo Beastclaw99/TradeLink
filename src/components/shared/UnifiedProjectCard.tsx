@@ -6,10 +6,10 @@ import { Button } from "@/components/ui/button"
 import { CalendarDays, CheckCircle2, Link2, ListChecks, User2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
-import { ExtendedProject, ProjectStatus } from '@/types/database';
+import { Project, ProjectStatus } from '@/types/database';
 
 interface UnifiedProjectCardProps {
-  project: ExtendedProject;
+  project: Project;
   variant?: 'card' | 'list';
   userType: 'professional';
   userSkills?: string[];
@@ -81,7 +81,7 @@ const UnifiedProjectCard: React.FC<UnifiedProjectCardProps> = ({
   const projectType = getProjectType();
 
   const projectSkills = project.requirements || [];
-  const matchingSkills = projectSkills.filter(skill => userSkills.includes(skill));
+  const matchingSkills = projectSkills.filter((skill: string) => userSkills.includes(skill));
   const hasMatchingSkills = matchingSkills.length > 0;
 
   return (
@@ -130,7 +130,7 @@ const UnifiedProjectCard: React.FC<UnifiedProjectCardProps> = ({
           <div className="mt-4">
             <span className="text-sm font-medium">Required Skills:</span>
             <div className="flex flex-wrap gap-2 mt-2">
-              {projectSkills.map((skill, index) => (
+              {projectSkills.map((skill: string, index: number) => (
                 <Badge 
                   key={index}
                   variant={userSkills.includes(skill) ? 'default' : 'outline'}

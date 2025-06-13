@@ -2,7 +2,7 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Project } from '@/components/dashboard/types';
+import { Project } from '@/types/database';
 import { MapPin, DollarSign, Calendar, Clock, Target, AlertTriangle, CheckCircle } from 'lucide-react';
 
 interface UnifiedProjectCardProps {
