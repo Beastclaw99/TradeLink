@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -7,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from '@/integrations/supabase/client';
+import { AccountType } from '@/types/database';
 
 const SignupForm: React.FC = () => {
   const [formData, setFormData] = useState({
@@ -15,7 +15,7 @@ const SignupForm: React.FC = () => {
     email: '',
     password: '',
     confirmPassword: '',
-    accountType: ''
+    accountType: '' as AccountType
   });
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
@@ -23,7 +23,7 @@ const SignupForm: React.FC = () => {
   const { toast } = useToast();
   
   const redirectTo = (location.state as any)?.redirect || '/dashboard';
-  const preselectedAccountType = (location.state as any)?.accountType;
+  const preselectedAccountType = (location.state as any)?.accountType as AccountType;
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -62,7 +62,8 @@ const SignupForm: React.FC = () => {
     setIsLoading(true);
 
     try {
-      const { error } = await supabase.auth.signUp({
+      // Sign up the user
+      const { data: authData, error: signUpError } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
         options: {
@@ -74,13 +75,43 @@ const SignupForm: React.FC = () => {
         }
       });
 
-      if (error) {
+      if (signUpError) {
         toast({
           title: "Error",
-          description: error.message,
+          description: signUpError.message,
           variant: "destructive"
         });
         return;
+      }
+
+      if (authData.user) {
+        // Create the user's profile
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .insert({
+            id: authData.user.id,
+            email: formData.email,
+            first_name: formData.firstName,
+            last_name: formData.lastName,
+            account_type: formData.accountType,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            profile_visibility: true,
+            allow_messages: true,
+            show_email: true,
+            show_phone: true,
+            is_available: true
+          });
+
+        if (profileError) {
+          console.error('Error creating profile:', profileError);
+          toast({
+            title: "Error",
+            description: "Account created but profile setup failed. Please contact support.",
+            variant: "destructive"
+          });
+          return;
+        }
       }
 
       toast({
@@ -90,6 +121,7 @@ const SignupForm: React.FC = () => {
 
       navigate('/login', { state: { redirect: redirectTo } });
     } catch (error) {
+      console.error('Signup error:', error);
       toast({
         title: "Error",
         description: "An unexpected error occurred",
@@ -144,7 +176,7 @@ const SignupForm: React.FC = () => {
         <Label htmlFor="accountType">Account Type</Label>
         <Select 
           value={formData.accountType || preselectedAccountType || ''} 
-          onValueChange={(value) => handleInputChange('accountType', value)}
+          onValueChange={(value) => handleInputChange('accountType', value as AccountType)}
         >
           <SelectTrigger>
             <SelectValue placeholder="Select account type" />
