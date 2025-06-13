@@ -4,18 +4,18 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { CheckCircle, XCircle, Clock, DollarSign, MapPin, Calendar } from 'lucide-react';
-import { ProjectStatus } from '@/types/database';
+import { Project as DBProject, Profile } from '@/types/database';
 
 interface ProjectSummary {
   id: string;
   title: string;
-  professional: string;
+  professional: Profile;
   amount: number;
   description: string;
   location: string;
-  estimatedDuration: string;
-  submittedDate: string;
-  status: ProjectStatus;
+  expected_timeline: string;
+  submitted_date: string;
+  status: DBProject['status'];
 }
 
 interface ApprovalInterfaceProps {
@@ -30,12 +30,22 @@ const ApprovalInterface: React.FC<ApprovalInterfaceProps> = ({ project }) => {
   const mockProject: ProjectSummary = {
     id: '1',
     title: 'Kitchen Plumbing Repair',
-    professional: 'John Smith',
+    professional: {
+      id: '1',
+      name: 'John Smith',
+      email: 'john.smith@example.com',
+      phone: '+1-555-555-5555',
+      address: '123 Main St, Port of Spain, Trinidad',
+      profile_picture: 'https://example.com/john-smith.jpg',
+      rating: 4.5,
+      reviews: 12,
+      description: 'Professional plumber with 10 years of experience'
+    },
     amount: 2500,
     description: 'Complete kitchen sink and dishwasher plumbing installation with new fixtures and connections.',
     location: 'Port of Spain, Trinidad',
-    estimatedDuration: '2-3 days',
-    submittedDate: '2024-01-15',
+    expected_timeline: '2-3 days',
+    submitted_date: '2024-01-15',
     status: 'open'
   };
 
@@ -57,7 +67,7 @@ const ApprovalInterface: React.FC<ApprovalInterfaceProps> = ({ project }) => {
     setIsProcessing(false);
   };
 
-  const statusConfig: Record<ProjectStatus, { icon: typeof Clock; color: string; text: string }> = {
+  const statusConfig: Record<DBProject['status'], { icon: typeof Clock; color: string; text: string }> = {
     draft: { icon: Clock, color: 'bg-gray-100 text-gray-800', text: 'Draft' },
     open: { icon: Clock, color: 'bg-yellow-100 text-yellow-800', text: 'Pending Review' },
     assigned: { icon: CheckCircle, color: 'bg-green-100 text-green-800', text: 'Assigned' },
@@ -101,11 +111,11 @@ const ApprovalInterface: React.FC<ApprovalInterfaceProps> = ({ project }) => {
                 </div>
                 <div className="flex items-center gap-2 text-sm text-gray-600">
                   <Calendar className="h-4 w-4" />
-                  Estimated Duration: {projectData.estimatedDuration}
+                  Estimated Duration: {projectData.expected_timeline}
                 </div>
                 <div className="flex items-center gap-2 text-sm text-gray-600">
                   <Clock className="h-4 w-4" />
-                  Submitted: {new Date(projectData.submittedDate).toLocaleDateString()}
+                  Submitted: {new Date(projectData.submitted_date).toLocaleDateString()}
                 </div>
               </div>
             </div>
@@ -113,7 +123,7 @@ const ApprovalInterface: React.FC<ApprovalInterfaceProps> = ({ project }) => {
             <div className="space-y-4">
               <div className="bg-gray-50 p-4 rounded-lg">
                 <h4 className="font-medium mb-2">Professional Details</h4>
-                <p className="text-sm text-gray-600">Professional: {projectData.professional}</p>
+                <p className="text-sm text-gray-600">Professional: {projectData.professional.name}</p>
                 {/* TODO: Add professional profile link, rating, etc. */}
               </div>
               

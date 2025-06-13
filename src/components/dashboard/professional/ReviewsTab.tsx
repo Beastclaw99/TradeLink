@@ -1,8 +1,7 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StarRating } from "@/components/ui/star-rating";
-import { Review } from '../types';
+import { Review } from '@/types/database';
 import EnhancedReviewDisplay from '@/components/reviews/EnhancedReviewDisplay';
 import { useEnhancedReviewOperations } from '@/hooks/useEnhancedReviewOperations';
 import { useAuth } from '@/contexts/AuthContext';

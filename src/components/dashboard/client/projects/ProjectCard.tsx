@@ -3,13 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Project, ProjectStatus } from '@/types/database';
+import { Project, ProjectStatus, Application } from '@/types/database';
 import ProjectStatusBadge from '@/components/shared/ProjectStatusBadge';
 import { Edit, Trash2, Send, Eye, Users } from 'lucide-react';
 
 interface ProjectCardProps {
   project: Project;
-  applications: any[];
+  applications: Application[];
   onEdit: (project: Project) => void;
   onDelete: (projectId: string) => void;
 }

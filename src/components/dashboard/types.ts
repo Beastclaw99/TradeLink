@@ -1,15 +1,11 @@
-import {
-  Project as DBProject,
-  Application as DBApplication,
-  Review as DBReview,
-  Payment as DBPayment,
-  Profile,
-  ProjectStatus,
-  ApplicationStatus,
-  ReviewStatus,
-  PaymentStatus,
-  MilestoneStatus,
-  DeliverableStatus
+import { 
+  Project, 
+  Application, 
+  Payment, 
+  Review, 
+  Milestone, 
+  Task, 
+  Profile 
 } from '@/types/database';
 
 export interface Project {
@@ -96,3 +92,95 @@ export interface Payment extends DBPayment {
     last_name?: string;
   };
 }
+
+export type DashboardStats = {
+  totalProjects: number;
+  activeProjects: number;
+  completedProjects: number;
+  totalEarnings: number;
+  pendingPayments: number;
+  averageRating: number;
+  totalReviews: number;
+  totalApplications: number;
+  pendingApplications: number;
+  acceptedApplications: number;
+  rejectedApplications: number;
+};
+
+export type ProjectCardProps = {
+  project: Project;
+  onStatusChange?: (status: Project['status']) => void;
+  onEdit?: (project: Project) => void;
+  onDelete?: (projectId: string) => void;
+  onViewDetails?: (projectId: string) => void;
+  onViewApplications?: (projectId: string) => void;
+  onViewPayments?: (projectId: string) => void;
+  onViewReviews?: (projectId: string) => void;
+  onViewMilestones?: (projectId: string) => void;
+  onViewTasks?: (projectId: string) => void;
+  onViewUpdates?: (projectId: string) => void;
+  onViewMessages?: (projectId: string) => void;
+  onViewFiles?: (projectId: string) => void;
+  onViewTeam?: (projectId: string) => void;
+  onViewSettings?: (projectId: string) => void;
+};
+
+export type ApplicationCardProps = {
+  application: Application;
+  project: Project;
+  professional: Profile;
+  onStatusChange?: (status: Application['status']) => void;
+  onViewDetails?: (applicationId: string) => void;
+  onViewProfile?: (professionalId: string) => void;
+  onViewProject?: (projectId: string) => void;
+  onViewMessages?: (applicationId: string) => void;
+  onViewFiles?: (applicationId: string) => void;
+};
+
+export type PaymentCardProps = {
+  payment: Payment;
+  project: Project;
+  onStatusChange?: (status: Payment['status']) => void;
+  onViewDetails?: (paymentId: string) => void;
+  onViewProject?: (projectId: string) => void;
+  onViewReceipt?: (paymentId: string) => void;
+  onViewInvoice?: (paymentId: string) => void;
+  onViewTransaction?: (paymentId: string) => void;
+};
+
+export type ReviewCardProps = {
+  review: Review;
+  project: Project;
+  reviewer: Profile;
+  reviewee: Profile;
+  onViewDetails?: (reviewId: string) => void;
+  onViewProject?: (projectId: string) => void;
+  onViewProfile?: (profileId: string) => void;
+  onViewResponse?: (reviewId: string) => void;
+};
+
+export type MilestoneCardProps = {
+  milestone: Milestone;
+  project: Project;
+  onStatusChange?: (status: Milestone['status']) => void;
+  onViewDetails?: (milestoneId: string) => void;
+  onViewProject?: (projectId: string) => void;
+  onViewTasks?: (milestoneId: string) => void;
+  onViewFiles?: (milestoneId: string) => void;
+  onViewTeam?: (milestoneId: string) => void;
+  onViewSettings?: (milestoneId: string) => void;
+};
+
+export type TaskCardProps = {
+  task: Task;
+  milestone: Milestone;
+  project: Project;
+  assignedTo?: Profile;
+  onStatusChange?: (status: Task['status']) => void;
+  onViewDetails?: (taskId: string) => void;
+  onViewMilestone?: (milestoneId: string) => void;
+  onViewProject?: (projectId: string) => void;
+  onViewFiles?: (taskId: string) => void;
+  onViewTeam?: (taskId: string) => void;
+  onViewSettings?: (taskId: string) => void;
+};

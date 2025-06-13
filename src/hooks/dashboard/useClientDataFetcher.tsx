@@ -1,19 +1,22 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
-import { Project, Application, Payment, Review, Profile } from '@/types/database';
+import { Project, Application, Payment, Review, Profile, Milestone, Task } from '@/types/database';
 
 export const useClientDataFetcher = (userId: string) => {
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
   const [applications, setApplications] = useState<Application[]>([]);
   const [payments, setPayments] = useState<Payment[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [milestones, setMilestones] = useState<Milestone[]>([]);
+  const [tasks, setTasks] = useState<Task[]>([]);
+
   const { toast } = useToast();
 
-  const fetchDashboardData = async () => {
+  const fetchData = async () => {
     try {
       setIsLoading(true);
       setError(null);
@@ -22,101 +25,84 @@ export const useClientDataFetcher = (userId: string) => {
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('*')
-        .eq('id', userId)
+        .eq('user_id', userId)
         .single();
 
-      if (profileError) {
-        console.error('Error fetching profile:', profileError);
-        throw new Error('Failed to load profile information');
-      }
-
+      if (profileError) throw profileError;
       setProfile(profileData);
 
       // Fetch projects
       const { data: projectsData, error: projectsError } = await supabase
         .from('projects')
-        .select(`
-          *,
-          project_milestones (*),
-          project_updates (*)
-        `)
-        .eq('client_id', userId)
-        .order('created_at', { ascending: false });
+        .select('*')
+        .eq('client_id', userId);
 
-      if (projectsError) {
-        console.error('Error fetching projects:', projectsError);
-        throw new Error('Failed to load projects');
-      }
-
+      if (projectsError) throw projectsError;
       setProjects(projectsData || []);
 
-      // Fetch applications for the client's projects
+      // Fetch applications for all projects
       const projectIds = projectsData?.map(p => p.id) || [];
-      const { data: applicationsData, error: applicationsError } = await supabase
-        .from('applications')
-        .select(`
-          *,
-          professionals:professional_id (
-            id,
-            email,
-            first_name,
-            last_name,
-            profile_visibility,
-            allow_messages
-          )
-        `)
-        .in('project_id', projectIds)
-        .order('created_at', { ascending: false });
+      if (projectIds.length > 0) {
+        const { data: applicationsData, error: applicationsError } = await supabase
+          .from('applications')
+          .select('*')
+          .in('project_id', projectIds);
 
-      if (applicationsError) {
-        console.error('Error fetching applications:', applicationsError);
-        throw new Error('Failed to load applications');
+        if (applicationsError) throw applicationsError;
+        setApplications(applicationsData || []);
       }
 
-      setApplications(applicationsData || []);
+      // Fetch payments for all projects
+      if (projectIds.length > 0) {
+        const { data: paymentsData, error: paymentsError } = await supabase
+          .from('payments')
+          .select('*')
+          .in('project_id', projectIds);
 
-      // Fetch payments
-      const { data: paymentsData, error: paymentsError } = await supabase
-        .from('payments')
-        .select('*')
-        .eq('client_id', userId)
-        .order('created_at', { ascending: false });
-
-      if (paymentsError) {
-        console.error('Error fetching payments:', paymentsError);
-        throw new Error('Failed to load payments');
+        if (paymentsError) throw paymentsError;
+        setPayments(paymentsData || []);
       }
 
-      setPayments(paymentsData || []);
+      // Fetch reviews for all projects
+      if (projectIds.length > 0) {
+        const { data: reviewsData, error: reviewsError } = await supabase
+          .from('reviews')
+          .select('*')
+          .in('project_id', projectIds);
 
-      // Fetch reviews
-      const { data: reviewsData, error: reviewsError } = await supabase
-        .from('reviews')
-        .select(`
-          *,
-          professionals:professional_id (
-            id,
-            email,
-            first_name,
-            last_name
-          )
-        `)
-        .eq('client_id', userId)
-        .order('created_at', { ascending: false });
-
-      if (reviewsError) {
-        console.error('Error fetching reviews:', reviewsError);
-        throw new Error('Failed to load reviews');
+        if (reviewsError) throw reviewsError;
+        setReviews(reviewsData || []);
       }
 
-      setReviews(reviewsData || []);
+      // Fetch milestones for all projects
+      if (projectIds.length > 0) {
+        const { data: milestonesData, error: milestonesError } = await supabase
+          .from('milestones')
+          .select('*')
+          .in('project_id', projectIds);
+
+        if (milestonesError) throw milestonesError;
+        setMilestones(milestonesData || []);
+      }
+
+      // Fetch tasks for all milestones
+      const milestoneIds = milestonesData?.map(m => m.id) || [];
+      if (milestoneIds.length > 0) {
+        const { data: tasksData, error: tasksError } = await supabase
+          .from('tasks')
+          .select('*')
+          .in('milestone_id', milestoneIds);
+
+        if (tasksError) throw tasksError;
+        setTasks(tasksData || []);
+      }
 
     } catch (error: any) {
-      console.error('Error in fetchDashboardData:', error);
-      setError(error.message || 'An error occurred while loading dashboard data');
+      console.error('Error fetching data:', error);
+      setError(error.message);
       toast({
         title: "Error",
-        description: error.message || 'Failed to load dashboard data',
+        description: error.message || 'Failed to fetch data',
         variant: "destructive"
       });
     } finally {
@@ -124,21 +110,20 @@ export const useClientDataFetcher = (userId: string) => {
     }
   };
 
-  // Initial data fetch
   useEffect(() => {
-    if (userId) {
-      fetchDashboardData();
-    }
+    fetchData();
   }, [userId]);
 
   return {
+    isLoading,
+    error,
+    profile,
     projects,
     applications,
     payments,
     reviews,
-    profile,
-    isLoading,
-    error,
-    fetchDashboardData
+    milestones,
+    tasks,
+    refreshData: fetchData
   };
 }; 

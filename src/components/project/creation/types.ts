@@ -39,15 +39,14 @@ export interface ProjectData {
   category: string;
   location: string;
   budget: number;
-  timeline: string;
+  expected_timeline: string;
   urgency: string;
-  recommendedSkills: string[];
+  recommended_skills: string[];
   milestones: Milestone[];
   deliverables: Deliverable[];
   service_contract?: string;
   requirements?: string[];
   rich_description?: string;
-  expected_timeline?: string;
   scope?: string;
   sla_terms?: any;
   industry_specific_fields?: any;
@@ -104,7 +103,7 @@ export const convertDBMilestoneToMilestone = (dbMilestone: any): Milestone => {
     id: dbMilestone.id,
     title: dbMilestone.title || '',
     description: dbMilestone.description || '',
-    dueDate: dbMilestone.due_date || dbMilestone.dueDate,
+    due_date: dbMilestone.due_date,
     status: dbMilestone.status || 'not_started',
     requires_deliverable: dbMilestone.requires_deliverable || false,
     progress: dbMilestone.progress || 0,
@@ -123,7 +122,7 @@ export const convertMilestoneToDBMilestone = (milestone: Milestone, projectId?: 
     id: milestone.id,
     title: milestone.title,
     description: milestone.description || '',
-    due_date: milestone.dueDate,
+    due_date: milestone.due_date,
     status: milestone.status,
     requires_deliverable: milestone.requires_deliverable || false,
     project_id: projectId || milestone.project_id,

@@ -20,7 +20,7 @@ import {
   Edit,
   Eye
 } from "lucide-react";
-import { Project } from '../types';
+import { Project } from '@/types/database';
 import ProjectUpdateTimeline from "@/components/project/ProjectUpdateTimeline";
 import ProjectMilestones from "@/components/project/ProjectMilestones";
 import ProjectDeliverables from "@/components/project/ProjectDeliverables";

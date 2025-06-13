@@ -1,20 +1,14 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Eye, Download, CreditCard, Banknote } from 'lucide-react';
+import { Payment as DBPayment } from '@/types/database';
 
-interface Payment {
-  id: string;
-  projectTitle: string;
-  professional: string;
-  amount: number;
-  status: 'pending' | 'processing' | 'completed' | 'failed';
-  method: 'paypal' | 'direct_deposit';
-  date: string;
-  invoiceUrl?: string;
+interface Payment extends DBPayment {
+  project_title: string;
+  professional_name: string;
 }
 
 const PaymentStatusDashboard: React.FC = () => {
@@ -22,31 +16,30 @@ const PaymentStatusDashboard: React.FC = () => {
   const payments: Payment[] = [
     {
       id: 'PAY-001',
-      projectTitle: 'Kitchen Plumbing Repair',
-      professional: 'John Smith',
+      project_title: 'Kitchen Plumbing Repair',
+      professional_name: 'John Smith',
       amount: 2500,
       status: 'completed',
-      method: 'paypal',
-      date: '2024-01-15',
-      invoiceUrl: '#'
+      payment_method: 'paypal',
+      created_at: '2024-01-15',
     },
     {
       id: 'PAY-002',
-      projectTitle: 'Electrical Panel Upgrade',
-      professional: 'Maria Rodriguez',
+      project_title: 'Electrical Panel Upgrade',
+      professional_name: 'Maria Rodriguez',
       amount: 3200,
       status: 'processing',
-      method: 'direct_deposit',
-      date: '2024-01-16'
+      payment_method: 'direct_deposit',
+      created_at: '2024-01-16',
     },
     {
       id: 'PAY-003',
-      projectTitle: 'Bathroom Renovation',
-      professional: 'David Williams',
+      project_title: 'Bathroom Renovation',
+      professional_name: 'David Williams',
       amount: 1800,
       status: 'pending',
-      method: 'paypal',
-      date: '2024-01-17'
+      payment_method: 'paypal',
+      created_at: '2024-01-17',
     }
   ];
 
@@ -168,19 +161,20 @@ const PaymentStatusDashboard: React.FC = () => {
             </TableHeader>
             <TableBody>
               {payments.map((payment) => {
-                const MethodIcon = methodConfig[payment.method].icon;
                 return (
                   <TableRow key={payment.id}>
                     <TableCell className="font-mono text-sm">{payment.id}</TableCell>
-                    <TableCell>{payment.projectTitle}</TableCell>
-                    <TableCell>{payment.professional}</TableCell>
+                    <TableCell>{payment.project_title}</TableCell>
+                    <TableCell>{payment.professional_name}</TableCell>
                     <TableCell className="font-medium">
                       TTD {payment.amount.toLocaleString()}
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <MethodIcon className="h-4 w-4" />
-                        {methodConfig[payment.method].text}
+                        {methodConfig[payment.payment_method as keyof typeof methodConfig]?.icon && (
+                          React.createElement(methodConfig[payment.payment_method as keyof typeof methodConfig].icon, { className: 'h-4 w-4' })
+                        )}
+                        {methodConfig[payment.payment_method as keyof typeof methodConfig]?.text}
                       </div>
                     </TableCell>
                     <TableCell>
@@ -189,18 +183,13 @@ const PaymentStatusDashboard: React.FC = () => {
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      {new Date(payment.date).toLocaleDateString()}
+                      {payment.created_at ? new Date(payment.created_at).toLocaleDateString() : ''}
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <Button variant="ghost" size="sm">
                           <Eye className="h-4 w-4" />
                         </Button>
-                        {payment.invoiceUrl && (
-                          <Button variant="ghost" size="sm">
-                            <Download className="h-4 w-4" />
-                          </Button>
-                        )}
                       </div>
                     </TableCell>
                   </TableRow>

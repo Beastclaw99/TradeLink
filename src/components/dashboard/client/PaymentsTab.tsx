@@ -4,13 +4,13 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { StarRating } from "@/components/ui/star-rating";
-import { Project, Review } from '../types';
+import { Project, Review, Application } from '@/types/database';
 
 interface PaymentsTabProps {
   isLoading: boolean;
   projects: Project[];
   reviews: Review[];
-  applications: any[];
+  applications: Application[];
   projectToReview: Project | null;
   reviewData: { rating: number; comment: string };
   isSubmitting: boolean;

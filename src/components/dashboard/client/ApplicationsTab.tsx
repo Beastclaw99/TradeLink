@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Application } from '../types';
+import { Application, Project } from '@/types/database';
 import { useToast } from "@/components/ui/use-toast";
 import { useNavigate } from 'react-router-dom';
 import ViewApplicationDialog from './dialogs/ViewApplicationDialog';
@@ -21,7 +21,7 @@ import { Card, CardContent } from "@/components/ui/card";
 
 interface ApplicationsTabProps {
   isLoading: boolean;
-  projects: any[];
+  projects: Project[];
   applications: Application[];
   handleApplicationUpdate: (
     applicationId: string, 
