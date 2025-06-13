@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
-import { Project, Application, Payment, Review } from '@/components/dashboard/types';
+import { Database } from '@/integrations/supabase/types';
 import { 
   transformProjects, 
   transformApplications, 
@@ -9,6 +9,13 @@ import {
   transformReviews 
 } from './dataTransformers';
 import { filterProjectsBySkills } from './projectFilters';
+
+type Project = Database['public']['Tables']['projects']['Row'];
+type Application = Database['public']['Tables']['applications']['Row'];
+type Payment = Database['public']['Tables']['payments']['Row'];
+type Review = Database['public']['Tables']['reviews']['Row'];
+type Profile = Database['public']['Tables']['profiles']['Row'];
+type ProjectStatus = Database['public']['Enums']['project_status_enum'];
 
 export const useProfessionalDataFetcher = (userId: string) => {
   const { toast } = useToast();
@@ -18,7 +25,7 @@ export const useProfessionalDataFetcher = (userId: string) => {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [skills, setSkills] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [profile, setProfile] = useState<any>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const fetchDashboardData = async () => {
@@ -103,7 +110,7 @@ export const useProfessionalDataFetcher = (userId: string) => {
             rating
           )
         `)
-        .eq('status', 'open');
+        .eq('status', 'open' as ProjectStatus);
       
       if (projectsError) {
         console.error('Projects fetch error:', projectsError);
@@ -128,7 +135,7 @@ export const useProfessionalDataFetcher = (userId: string) => {
           )
         `)
         .eq('assigned_to', userId)
-        .in('status', ['assigned', 'in_progress', 'completed']);
+        .in('status', ['assigned', 'in_progress', 'completed'] as ProjectStatus[]);
         
       if (assignedProjectsError) {
         console.error('Assigned projects fetch error:', assignedProjectsError);

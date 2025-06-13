@@ -1,27 +1,12 @@
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
+import { Database } from '@/integrations/supabase/types';
 
-interface Milestone {
-  id: string;
-  project_id: string;
-  title: string;
-  description: string;
-  status: string;
-  due_date: string;
-  created_at: string;
-  updated_at: string;
-}
-
-interface Deliverable {
-  id: string;
-  project_id: string;
-  title: string;
-  description: string;
-  status: string;
-  due_date: string;
-  created_at: string;
-  updated_at: string;
-}
+type Milestone = Database['public']['Tables']['project_milestones']['Row'];
+type Deliverable = Database['public']['Tables']['project_deliverables']['Row'];
+type ProjectStatus = Database['public']['Enums']['project_status_enum'];
+type DeliverableStatus = Database['public']['Enums']['deliverable_status'];
+type MilestoneStatus = Database['public']['Enums']['milestone_status'];
 
 export const useProfessionalActions = (userId: string, fetchDashboardData: () => void) => {
   const { toast } = useToast();
@@ -37,14 +22,14 @@ export const useProfessionalActions = (userId: string, fetchDashboardData: () =>
       if (milestonesError) throw milestonesError;
 
       const allMilestonesCompleted = milestones?.every(
-        (milestone: Milestone) => milestone.status === 'completed'
+        (milestone) => milestone.status === 'completed' as MilestoneStatus
       );
 
       if (!allMilestonesCompleted) {
         toast({
           title: "Warning",
           description: "All milestones must be completed before marking the project as complete",
-          variant: "warning"
+          variant: "destructive"
         });
         return;
       }
@@ -58,14 +43,14 @@ export const useProfessionalActions = (userId: string, fetchDashboardData: () =>
       if (deliverablesError) throw deliverablesError;
 
       const allDeliverablesSubmitted = deliverables?.every(
-        (deliverable: Deliverable) => deliverable.status === 'submitted'
+        (deliverable) => deliverable.status === 'approved' as DeliverableStatus
       );
 
       if (!allDeliverablesSubmitted) {
         toast({
           title: "Warning",
-          description: "All deliverables must be submitted before marking the project as complete",
-          variant: "warning"
+          description: "All deliverables must be approved before marking the project as complete",
+          variant: "destructive"
         });
         return;
       }
@@ -74,7 +59,7 @@ export const useProfessionalActions = (userId: string, fetchDashboardData: () =>
       const { error: projectError } = await supabase
         .from('projects')
         .update({
-          status: 'completed',
+          status: 'completed' as ProjectStatus,
           updated_at: new Date().toISOString()
         })
         .eq('id', projectId);
@@ -87,7 +72,8 @@ export const useProfessionalActions = (userId: string, fetchDashboardData: () =>
         .insert({
           project_id: projectId,
           update_type: 'completion_note',
-          content: 'Project marked as complete by professional',
+          message: 'Project marked as complete by professional',
+          user_id: userId,
           created_at: new Date().toISOString()
         });
 

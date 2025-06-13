@@ -1,7 +1,11 @@
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
-import { Application, Milestone, Task } from '@/types/database';
+import { Database } from '@/integrations/supabase/types';
+
+type Application = Database['public']['Tables']['applications']['Row'];
+type Milestone = Database['public']['Tables']['project_milestones']['Row'];
+type Task = Database['public']['Tables']['project_tasks']['Row'];
 
 export const useClientActions = (userId: string, onSuccess?: () => void) => {
   const [isProcessing, setIsProcessing] = useState(false);
@@ -70,10 +74,10 @@ export const useClientActions = (userId: string, onSuccess?: () => void) => {
 
       // Update milestone status
       const { error: updateError } = await supabase
-        .from('milestones')
+        .from('project_milestones')
         .update({ 
           status,
-          completed_at: status === 'completed' ? new Date().toISOString() : null
+          is_complete: status === 'completed'
         })
         .eq('id', milestoneId)
         .eq('project_id', (await supabase
@@ -89,7 +93,7 @@ export const useClientActions = (userId: string, onSuccess?: () => void) => {
 
       // Add project update
       const { data: milestone } = await supabase
-        .from('milestones')
+        .from('project_milestones')
         .select('project_id, title')
         .eq('id', milestoneId)
         .single();
@@ -130,10 +134,11 @@ export const useClientActions = (userId: string, onSuccess?: () => void) => {
 
       // Update task status
       const { error: updateError } = await supabase
-        .from('tasks')
+        .from('project_tasks')
         .update({ 
           status,
-          completed_at: status === 'completed' ? new Date().toISOString() : null
+          completed: status === 'completed',
+          completion_date: status === 'completed' ? new Date().toISOString() : null
         })
         .eq('id', taskId)
         .eq('project_id', (await supabase
@@ -149,7 +154,7 @@ export const useClientActions = (userId: string, onSuccess?: () => void) => {
 
       // Add project update
       const { data: task } = await supabase
-        .from('tasks')
+        .from('project_tasks')
         .select('project_id, milestone_id, title')
         .eq('id', taskId)
         .single();
@@ -159,7 +164,7 @@ export const useClientActions = (userId: string, onSuccess?: () => void) => {
           .from('project_updates')
           .insert([{
             project_id: task.project_id,
-            update_type: 'milestone_complete',
+            update_type: 'task_complete',
             message: `Task "${task.title}" ${status}`,
             user_id: userId,
             metadata: { milestone_id: task.milestone_id }

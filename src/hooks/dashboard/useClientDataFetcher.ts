@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
-import { Project, Application, Payment, Review } from '@/components/dashboard/types';
+import { Database } from '@/integrations/supabase/types';
 import { 
   transformProjects, 
   transformApplications, 
@@ -10,6 +10,13 @@ import {
   transformClient
 } from './dataTransformers';
 
+type Project = Database['public']['Tables']['projects']['Row'];
+type Application = Database['public']['Tables']['applications']['Row'];
+type Payment = Database['public']['Tables']['payments']['Row'];
+type Review = Database['public']['Tables']['reviews']['Row'];
+type Profile = Database['public']['Tables']['profiles']['Row'];
+type ProjectStatus = Database['public']['Enums']['project_status_enum'];
+
 export const useClientDataFetcher = (userId: string) => {
   const { toast } = useToast();
   const [projects, setProjects] = useState<Project[]>([]);
@@ -17,7 +24,7 @@ export const useClientDataFetcher = (userId: string) => {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [profile, setProfile] = useState<any>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const fetchDashboardData = async () => {
@@ -40,21 +47,7 @@ export const useClientDataFetcher = (userId: string) => {
           location,
           profile_image_url,
           rating,
-          total_reviews,
           bio,
-          company_name,
-          company_size,
-          industry,
-          website,
-          social_media_links,
-          notification_preferences,
-          language_preferences,
-          timezone,
-          payment_methods,
-          preferred_payment_method,
-          tax_information,
-          bank_account_details,
-          stripe_customer_id,
           created_at,
           updated_at,
           verification_status,
@@ -62,76 +55,19 @@ export const useClientDataFetcher = (userId: string) => {
           show_email,
           show_phone,
           allow_messages,
-          project_preferences,
-          budget_preferences,
-          timeline_preferences,
-          location_preferences,
-          industry_preferences,
-          professional_preferences,
-          communication_preferences,
-          payment_preferences,
-          contract_preferences,
-          insurance_preferences,
-          compliance_preferences,
-          security_preferences,
-          privacy_preferences,
-          data_preferences,
-          backup_preferences,
-          recovery_preferences,
-          support_preferences,
-          maintenance_preferences,
-          upgrade_preferences,
-          downgrade_preferences,
-          cancellation_preferences,
-          refund_preferences,
-          dispute_preferences,
-          arbitration_preferences,
-          mediation_preferences,
-          litigation_preferences,
-          settlement_preferences,
-          resolution_preferences,
-          satisfaction_preferences,
-          feedback_preferences,
-          review_preferences,
-          rating_preferences,
-          recommendation_preferences,
-          referral_preferences,
-          networking_preferences,
-          collaboration_preferences,
-          partnership_preferences,
-          alliance_preferences,
-          joint_venture_preferences,
-          merger_preferences,
-          acquisition_preferences,
-          divestiture_preferences,
-          restructuring_preferences,
-          reorganization_preferences,
-          transformation_preferences,
-          innovation_preferences,
-          research_preferences,
-          development_preferences,
-          testing_preferences,
-          deployment_preferences,
-          maintenance_preferences,
-          support_preferences,
-          training_preferences,
-          documentation_preferences,
-          reporting_preferences,
-          analytics_preferences,
-          metrics_preferences,
-          kpi_preferences,
-          okr_preferences,
-          goal_preferences,
-          objective_preferences,
-          strategy_preferences,
-          tactic_preferences,
-          plan_preferences,
-          execution_preferences,
-          implementation_preferences,
-          operation_preferences,
-          management_preferences,
-          leadership_preferences,
-          governance_preferences
+          business_name,
+          business_description,
+          service_areas,
+          specialties,
+          insurance_info,
+          license_number,
+          is_available,
+          role,
+          address,
+          city,
+          state,
+          country,
+          zip_code
         `)
         .eq('id', userId)
         .single();
@@ -148,18 +84,18 @@ export const useClientDataFetcher = (userId: string) => {
       console.log('Profile data:', profileData);
       setProfile(transformClient(profileData));
       
-      // Fetch client's projects with related data (without the problematic tasks relationship)
+      // Fetch client's projects with related data
       const { data: projectsData, error: projectsError } = await supabase
         .from('projects')
         .select(`
           *,
-          client:client_id (
+          client:profiles!projects_client_id_fkey (
             id,
             first_name,
             last_name,
             profile_image_url
           ),
-          professional:professional_id (
+          professional:profiles!projects_professional_id_fkey (
             id,
             first_name,
             last_name,
@@ -247,49 +183,36 @@ export const useClientDataFetcher = (userId: string) => {
             profile_image_url
           )
         `)
-        .eq('client_id', userId)
-        .order('created_at', { ascending: false });
+        .eq('client_id', userId);
       
       if (paymentsError) {
         console.error('Payments fetch error:', paymentsError);
         throw paymentsError;
       }
       
-      setPayments(transformPayments(paymentsData || []));
+      const transformedPayments = transformPayments(paymentsData || []);
+      setPayments(transformedPayments);
       
       // Fetch reviews
       const { data: reviewsData, error: reviewsError } = await supabase
         .from('reviews')
-        .select(`
-          *,
-          project:projects(
-            id,
-            title,
-            status
-          ),
-          professional:profiles!reviews_professional_id_fkey(
-            id,
-            first_name,
-            last_name,
-            profile_image_url
-          )
-        `)
-        .eq('client_id', userId)
-        .order('created_at', { ascending: false });
+        .select('*')
+        .eq('client_id', userId);
       
       if (reviewsError) {
         console.error('Reviews fetch error:', reviewsError);
         throw reviewsError;
       }
       
-      setReviews(transformReviews(reviewsData || []));
+      const transformedReviews = transformReviews(reviewsData || []);
+      setReviews(transformedReviews);
       
     } catch (error: any) {
       console.error('Dashboard data fetch error:', error);
-      setError(error.message || 'Failed to load dashboard data');
+      setError(error.message);
       toast({
         title: "Error",
-        description: error.message || 'Failed to load dashboard data',
+        description: error.message || 'Failed to fetch dashboard data',
         variant: "destructive"
       });
     } finally {

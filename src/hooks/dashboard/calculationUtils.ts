@@ -1,5 +1,8 @@
+import { Database } from '@/integrations/supabase/types';
 
-import { Review, Payment } from '@/components/dashboard/types';
+type Review = Database['public']['Tables']['reviews']['Row'];
+type Payment = Database['public']['Tables']['payments']['Row'];
+type PaymentStatus = Database['public']['Enums']['payment_status'];
 
 export const calculateAverageRating = (reviews: Review[]): number => {
   if (!reviews || reviews.length === 0) return 0;
@@ -16,15 +19,15 @@ export const calculateAverageRating = (reviews: Review[]): number => {
 
 export const calculatePaymentTotals = (payments: Payment[]) => {
   const totalPaid = payments
-    .filter(payment => payment.status === 'completed')
+    .filter(payment => payment.status === 'completed' as PaymentStatus)
     .reduce((sum, payment) => sum + payment.amount, 0);
   
   const totalPending = payments
-    .filter(payment => payment.status === 'pending')
+    .filter(payment => payment.status === 'pending' as PaymentStatus)
     .reduce((sum, payment) => sum + payment.amount, 0);
   
   const totalOverdue = payments
-    .filter(payment => payment.status === 'failed')
+    .filter(payment => payment.status === 'failed' as PaymentStatus)
     .reduce((sum, payment) => sum + payment.amount, 0);
 
   return {

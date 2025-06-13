@@ -2,6 +2,10 @@ import { useState } from 'react';
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { notificationService } from '@/services/notificationService';
+import { Database } from '@/integrations/supabase/types';
+
+type ProjectStatus = Database['public']['Enums']['project_status_enum'];
+type ApplicationStatus = Database['public']['Enums']['application_status'];
 
 export const useProfessionalProjectActions = (userId: string, fetchDashboardData: () => void) => {
   const { toast } = useToast();
@@ -32,7 +36,7 @@ export const useProfessionalProjectActions = (userId: string, fetchDashboardData
 
       if (projectError) throw projectError;
 
-      if (projectData.status !== 'open') {
+      if (projectData.status !== 'open' as ProjectStatus) {
         toast({
           title: "Error",
           description: "This project is no longer accepting applications",
@@ -41,11 +45,11 @@ export const useProfessionalProjectActions = (userId: string, fetchDashboardData
         return;
       }
 
-      if (bidAmount > projectData.budget * 1.5) {
+      if (projectData.budget && bidAmount > projectData.budget * 1.5) {
         toast({
           title: "Warning",
           description: "Your bid is significantly higher than the project budget",
-          variant: "warning"
+          variant: "destructive"
         });
       }
 
@@ -57,7 +61,7 @@ export const useProfessionalProjectActions = (userId: string, fetchDashboardData
           bid_amount: bidAmount,
           cover_letter: coverLetter,
           availability: availability,
-          status: 'pending',
+          status: 'pending' as ApplicationStatus,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         });
