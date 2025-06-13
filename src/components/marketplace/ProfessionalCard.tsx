@@ -21,7 +21,7 @@ const ProfessionalCard: React.FC<ProfessionalCardProps> = ({ professional }) => 
       <CardContent className="p-6">
         <div className="flex flex-col items-center text-center">
           <Avatar className="h-24 w-24 mb-4">
-            <AvatarImage src={professional.profile_image || `https://api.dicebear.com/6/initials/svg?seed=${fullName}`} />
+            <AvatarImage src={professional.profile_image_url || `https://api.dicebear.com/6/initials/svg?seed=${fullName}`} />
             <AvatarFallback>{initials}</AvatarFallback>
           </Avatar>
           

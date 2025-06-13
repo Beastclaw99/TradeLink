@@ -26,7 +26,7 @@ interface StatusUpdate extends Omit<ProjectStatusUpdate, 'metadata'> {
   profiles?: {
     first_name: string | null;
     last_name: string | null;
-    profile_image: string | null;
+    profile_image_url: string | null;
   };
 }
 
@@ -55,7 +55,7 @@ export function StatusHistory({ projectId }: StatusHistoryProps) {
           profiles!project_updates_user_id_fkey (
             first_name,
             last_name,
-            profile_image
+            profile_image_url
           )
         `)
         .eq('project_id', projectId)

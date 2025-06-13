@@ -39,7 +39,7 @@ export const useProjectOperations = (userId: string, onUpdate: () => void) => {
             first_name,
             last_name,
             rating,
-            profile_image
+            profile_image_url
           ),
           milestones:project_milestones(
             id,

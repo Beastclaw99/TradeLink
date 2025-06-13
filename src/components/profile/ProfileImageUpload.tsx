@@ -66,7 +66,7 @@ const ProfileImageUpload: React.FC<ProfileImageUploadProps> = ({ userId, current
       // Update profile with new image URL
       const { error: updateError } = await supabase
         .from('profiles')
-        .update({ profile_image: publicUrl })
+        .update({ profile_image_url: publicUrl })
         .eq('id', userId);
 
       if (updateError) throw updateError;

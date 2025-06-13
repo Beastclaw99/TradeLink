@@ -77,7 +77,7 @@ const EditProfile: React.FC = () => {
         show_email: data.show_email ?? true,
         show_phone: data.show_phone ?? true,
         allow_messages: data.allow_messages ?? true,
-        profile_image: data.profile_image || null,
+        profile_image_url: data.profile_image_url || null,
         verification_status: (data.verification_status as 'unverified' | 'pending' | 'verified') || null,
         years_experience: data.years_experience || null,
       };

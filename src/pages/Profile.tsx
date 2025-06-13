@@ -64,7 +64,7 @@ const Profile: React.FC = () => {
           show_email: data.show_email ?? true,
           show_phone: data.show_phone ?? true,
           allow_messages: data.allow_messages ?? true,
-          profile_image: data.profile_image || null,
+          profile_image_url: data.profile_image_url || null,
           verification_status: (data.verification_status as 'unverified' | 'pending' | 'verified') || null,
           years_experience: data.years_experience || null,
         };
@@ -135,7 +135,7 @@ const Profile: React.FC = () => {
               <div className="flex flex-col md:flex-row items-start gap-6">
                 <div className="relative">
                   <Avatar className="h-32 w-32">
-                    <AvatarImage src={profile?.profile_image || `https://api.dicebear.com/6/initials/svg?seed=${profile?.first_name} ${profile?.last_name}`} />
+                    <AvatarImage src={profile?.profile_image_url || `https://api.dicebear.com/6/initials/svg?seed=${profile?.first_name} ${profile?.last_name}`} />
                     <AvatarFallback className="text-2xl">{profile?.first_name?.[0]}{profile?.last_name?.[0]}</AvatarFallback>
                   </Avatar>
                   {isOwnProfile && (

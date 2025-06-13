@@ -28,7 +28,7 @@ const ProfessionalListItem: React.FC<ProfessionalListItemProps> = ({ professiona
         <div className="flex items-start justify-between">
           <div className="flex items-start space-x-4 flex-1">
             <Avatar className="h-16 w-16">
-              <AvatarImage src={professional.profile_image || `https://api.dicebear.com/6/initials/svg?seed=${fullName}`} />
+              <AvatarImage src={professional.profile_image_url || `https://api.dicebear.com/6/initials/svg?seed=${fullName}`} />
               <AvatarFallback>{initials}</AvatarFallback>
             </Avatar>
             
