@@ -1,52 +1,23 @@
-import { 
-  Project, 
-  Application, 
-  Payment, 
-  Review, 
-  Milestone, 
-  Task, 
-  Profile 
+import {
+  Project as BackendProject,
+  Application as BackendApplication,
+  Payment as BackendPayment,
+  Review as BackendReview,
+  Milestone,
+  Task,
+  Profile,
+  ProjectStatus,
+  PaymentStatus,
+  MilestoneStatus,
+  TaskStatus
 } from '@/types/database';
 
-export interface Project {
-  id: string;
-  title: string;
-  description: string | null;
-  category: string | null;
-  budget: number | null;
-  expected_timeline: string | null;
-  location: string | null;
-  urgency: 'low' | 'normal' | 'high' | null;
-  requirements: string[] | null;
-  recommended_skills: string | null;
-  status: string | null;
-  created_at: string | null;
-  updated_at: string | null;
-  client_id: string | null;
-  assigned_to: string | null;
-  professional_id: string | null;
-  contract_template_id: string | null;
-  deadline: string | null;
-  industry_specific_fields: any | null;
-  location_coordinates: any | null;
-  project_start_time: string | null;
-  rich_description: string | null;
-  scope: string | null;
-  service_contract: string | null;
-  sla_terms: any | null;
-  client?: {
-    first_name: string | null;
-    last_name: string | null;
-    profile_image_url: string | null;
-    rating: number | null;
-    total_reviews: number | null;
-  };
-  milestones?: any[];
-  deliverables?: any[];
-  applications?: any[];
-}
+// Augment backend Project type with frontend-only fields if needed
+export type Project = BackendProject & {
+  // Add only frontend-specific fields here if any
+};
 
-// Simplified project interface for applications
+// Simplified project interface for applications (frontend only)
 export interface ApplicationProject {
   id: string;
   title: string;
@@ -55,7 +26,8 @@ export interface ApplicationProject {
   created_at: string | null;
 }
 
-export interface Application extends DBApplication {
+// Augment backend Application type with frontend-only fields if needed
+export type Application = BackendApplication & {
   project?: ApplicationProject;
   professional?: {
     first_name?: string;
@@ -63,13 +35,10 @@ export interface Application extends DBApplication {
     skills?: string[];
     rating?: number;
   };
-}
+};
 
-export interface Client extends Profile {
-  account_type: 'client';
-}
-
-export interface Review extends DBReview {
+// Augment backend Review type with frontend-only fields if needed
+export type Review = BackendReview & {
   client?: {
     first_name?: string;
     last_name?: string;
@@ -81,9 +50,10 @@ export interface Review extends DBReview {
   project?: {
     title?: string;
   };
-}
+};
 
-export interface Payment extends DBPayment {
+// Augment backend Payment type with frontend-only fields if needed
+export type Payment = BackendPayment & {
   project?: {
     title?: string;
   };
@@ -91,6 +61,10 @@ export interface Payment extends DBPayment {
     first_name?: string;
     last_name?: string;
   };
+};
+
+export interface Client extends Profile {
+  account_type: 'client';
 }
 
 export type DashboardStats = {
@@ -162,7 +136,7 @@ export type ReviewCardProps = {
 export type MilestoneCardProps = {
   milestone: Milestone;
   project: Project;
-  onStatusChange?: (status: Milestone['status']) => void;
+  onStatusChange?: (status: MilestoneStatus) => void;
   onViewDetails?: (milestoneId: string) => void;
   onViewProject?: (projectId: string) => void;
   onViewTasks?: (milestoneId: string) => void;
@@ -176,7 +150,7 @@ export type TaskCardProps = {
   milestone: Milestone;
   project: Project;
   assignedTo?: Profile;
-  onStatusChange?: (status: Task['status']) => void;
+  onStatusChange?: (status: TaskStatus) => void;
   onViewDetails?: (taskId: string) => void;
   onViewMilestone?: (milestoneId: string) => void;
   onViewProject?: (projectId: string) => void;
