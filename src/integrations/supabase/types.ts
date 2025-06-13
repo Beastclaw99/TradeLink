@@ -7,31 +7,6 @@ export type Json =
   | Json[]
 
 export type Database = {
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          operationName?: string
-          query?: string
-          variables?: Json
-          extensions?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
   public: {
     Tables: {
       admin_actions: {
@@ -158,26 +133,67 @@ export type Database = {
       direct_messages: {
         Row: {
           content: string
+          created_at: string | null
+          file_url: string | null
           id: string
-          recipient_id: string | null
-          sender_id: string | null
-          sent_at: string | null
+          is_read: boolean | null
+          message_type: string | null
+          project_id: string | null
+          recipient_id: string
+          sender_id: string
         }
         Insert: {
           content: string
+          created_at?: string | null
+          file_url?: string | null
           id?: string
-          recipient_id?: string | null
-          sender_id?: string | null
-          sent_at?: string | null
+          is_read?: boolean | null
+          message_type?: string | null
+          project_id?: string | null
+          recipient_id: string
+          sender_id: string
         }
         Update: {
           content?: string
+          created_at?: string | null
+          file_url?: string | null
           id?: string
-          recipient_id?: string | null
-          sender_id?: string | null
-          sent_at?: string | null
+          is_read?: boolean | null
+          message_type?: string | null
+          project_id?: string | null
+          recipient_id?: string
+          sender_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "messages_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "payment_status_history_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_recipient_id_fkey"
+            columns: ["recipient_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_sender_id_fkey"
+            columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       dispute_evidence: {
         Row: {
@@ -621,71 +637,6 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      messages: {
-        Row: {
-          content: string
-          created_at: string | null
-          file_url: string | null
-          id: string
-          is_read: boolean | null
-          message_type: string | null
-          project_id: string | null
-          recipient_id: string
-          sender_id: string
-        }
-        Insert: {
-          content: string
-          created_at?: string | null
-          file_url?: string | null
-          id?: string
-          is_read?: boolean | null
-          message_type?: string | null
-          project_id?: string | null
-          recipient_id: string
-          sender_id: string
-        }
-        Update: {
-          content?: string
-          created_at?: string | null
-          file_url?: string | null
-          id?: string
-          is_read?: boolean | null
-          message_type?: string | null
-          project_id?: string | null
-          recipient_id?: string
-          sender_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "messages_project_id_fkey"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "payment_status_history_view"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "messages_project_id_fkey"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "projects"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "messages_recipient_id_fkey"
-            columns: ["recipient_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "messages_sender_id_fkey"
-            columns: ["sender_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -1998,9 +1949,6 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {
       account_type_enum: ["client", "professional"],
