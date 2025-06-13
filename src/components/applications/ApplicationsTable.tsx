@@ -25,15 +25,15 @@ interface Application {
   project_id: string;
   professional_id: string;
   status: 'pending' | 'accepted' | 'rejected';
-  proposal: string;
-  budget: number;
-  timeline: string;
+  proposal_message: string;
+  bid_amount: number;
+  availability: string;
   created_at: string;
   professional: {
     id: string;
     first_name: string;
     last_name: string;
-    avatar_url?: string;
+    profile_image_url?: string;
     rating?: number;
   };
 }
@@ -68,7 +68,7 @@ const ApplicationsTable: React.FC<ApplicationsTableProps> = ({
             id,
             first_name,
             last_name,
-            avatar_url,
+            profile_image_url,
             rating
           )
         `)
@@ -76,28 +76,28 @@ const ApplicationsTable: React.FC<ApplicationsTableProps> = ({
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      // Map raw data to Application interface
-      const mapped = (data || []).map((row: any) => {
-        // If join failed, skip this row
-        if (!row.professional || row.professional.error) return null;
-        return {
+      
+      // Map raw data to Application interface and filter out invalid joins
+      const mapped = (data || [])
+        .filter((row: any) => row.professional && !row.professional.error)
+        .map((row: any): Application => ({
           id: row.id,
           project_id: row.project_id,
           professional_id: row.professional_id,
           status: row.status,
-          proposal: row.proposal_message || row.proposal || '',
-          budget: row.bid_amount || row.budget || 0,
-          timeline: row.timeline || row.availability || '',
+          proposal_message: row.proposal_message || '',
+          bid_amount: row.bid_amount || 0,
+          availability: row.availability || '',
           created_at: row.created_at,
           professional: {
             id: row.professional.id,
             first_name: row.professional.first_name,
             last_name: row.professional.last_name,
-            avatar_url: row.professional.avatar_url,
+            profile_image_url: row.professional.profile_image_url,
             rating: row.professional.rating,
           },
-        };
-      }).filter(Boolean);
+        }));
+      
       setApplications(mapped);
     } catch (error) {
       console.error('Error fetching applications:', error);
@@ -213,9 +213,9 @@ const ApplicationsTable: React.FC<ApplicationsTableProps> = ({
               <TableCell>
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
-                    {application.professional.avatar_url ? (
+                    {application.professional.profile_image_url ? (
                       <img
-                        src={application.professional.avatar_url}
+                        src={application.professional.profile_image_url}
                         alt={`${application.professional.first_name} ${application.professional.last_name}`}
                         className="w-8 h-8 rounded-full"
                       />
@@ -239,10 +239,10 @@ const ApplicationsTable: React.FC<ApplicationsTableProps> = ({
                 </div>
               </TableCell>
               <TableCell className="max-w-md">
-                <p className="truncate">{application.proposal}</p>
+                <p className="truncate">{application.proposal_message}</p>
               </TableCell>
-              <TableCell>TTD {application.budget.toLocaleString()}</TableCell>
-              <TableCell>{application.timeline}</TableCell>
+              <TableCell>TTD {application.bid_amount.toLocaleString()}</TableCell>
+              <TableCell>{application.availability}</TableCell>
               <TableCell>{getStatusBadge(application.status)}</TableCell>
               <TableCell>
                 {format(new Date(application.created_at), 'MMM d, yyyy')}
@@ -281,4 +281,4 @@ const ApplicationsTable: React.FC<ApplicationsTableProps> = ({
   );
 };
 
-export default ApplicationsTable; 
+export default ApplicationsTable;

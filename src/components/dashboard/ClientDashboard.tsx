@@ -68,7 +68,8 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ userId, initialTab = 
           title: milestone.title,
           description: milestone.description,
           due_date: milestone.dueDate,
-          status: 'pending'
+          status: 'not_started', // Use correct enum value
+          created_by: userId
         }])
         .select()
         .single();
@@ -155,21 +156,18 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ userId, initialTab = 
 
   // Note: Since project_tasks table doesn't exist, we'll create placeholder functions
   // These would need to be implemented when the tasks functionality is added
-  const handleAddTask = async (milestoneId: string, task: any) => {
+  const handleAddTask = async () => {
     console.log('Add task functionality not implemented - project_tasks table does not exist');
-    // This would be implemented when project_tasks table is created
     return Promise.resolve();
   };
 
-  const handleUpdateTask = async (taskId: string, updates: any) => {
+  const handleUpdateTask = async () => {
     console.log('Update task functionality not implemented - project_tasks table does not exist');
-    // This would be implemented when project_tasks table is created
     return Promise.resolve();
   };
 
-  const handleDeleteTask = async (taskId: string) => {
+  const handleDeleteTask = async () => {
     console.log('Delete task functionality not implemented - project_tasks table does not exist');
-    // This would be implemented when project_tasks table is created
     return Promise.resolve();
   };
 
@@ -211,8 +209,8 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ userId, initialTab = 
     handleDeleteProject,
     selectedProject,
     setSelectedProject,
-    handleAddMilestone,
-    handleEditMilestone,
+    onAddMilestone: handleAddMilestone,
+    onEditMilestone: handleEditMilestone,
     handleDeleteMilestone,
     handleAddTask,
     handleUpdateTask,

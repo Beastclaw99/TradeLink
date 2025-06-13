@@ -1,10 +1,10 @@
 import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import { StarRating } from "@/components/ui/star-rating";
-import { Project, Review, Application } from '@/types/database';
+import { format } from 'date-fns';
+import { StarIcon, CreditCard, Clock, CheckCircle } from 'lucide-react';
+import { Project, Application, Review } from '../types';
 
 interface PaymentsTabProps {
   isLoading: boolean;
@@ -12,7 +12,10 @@ interface PaymentsTabProps {
   reviews: Review[];
   applications: Application[];
   projectToReview: Project | null;
-  reviewData: { rating: number; comment: string };
+  reviewData: {
+    rating: number;
+    comment: string;
+  };
   isSubmitting: boolean;
   handleReviewInitiate: (project: Project) => void;
   handleReviewCancel: () => void;
@@ -20,9 +23,9 @@ interface PaymentsTabProps {
   setReviewData: (data: { rating: number; comment: string }) => void;
 }
 
-const PaymentsTab: React.FC<PaymentsTabProps> = ({ 
-  isLoading, 
-  projects, 
+const PaymentsTab: React.FC<PaymentsTabProps> = ({
+  isLoading,
+  projects,
   reviews,
   applications,
   projectToReview,
@@ -33,132 +36,213 @@ const PaymentsTab: React.FC<PaymentsTabProps> = ({
   handleReviewSubmit,
   setReviewData
 }) => {
-  return (
-    <>
-      <h2 className="text-2xl font-bold mb-4">Payments</h2>
-      {isLoading ? (
-        <p>Loading payments...</p>
-      ) : projects.filter(p => p.status === 'paid').length === 0 ? (
-        <div className="text-center py-8">
-          <p className="text-ttc-neutral-600">You don't have any paid projects yet.</p>
+  if (isLoading) {
+    return (
+      <div className="space-y-4">
+        <div className="h-8 bg-gray-200 rounded animate-pulse" />
+        <div className="grid gap-4">
+          {[1, 2, 3].map(i => (
+            <div key={i} className="h-32 bg-gray-100 rounded animate-pulse" />
+          ))}
         </div>
-      ) : (
-        <div className="grid gap-6 md:grid-cols-2">
-          {projects
-            .filter(p => p.status === 'paid')
-            .map(project => {
-              // Find the accepted application for this project to get professional info
-              const acceptedApp = applications.find(app => 
-                app.project_id === project.id && app.status === 'accepted'
-              );
-              
-              // Check if this project has a review
-              const hasReview = reviews.some(r => r.project_id === project.id);
-              
-              return (
-                <Card key={project.id}>
-                  <CardHeader>
-                    <CardTitle>{project.title}</CardTitle>
-                    <CardDescription className="flex items-center justify-between">
-                      <span>Completed</span>
-                      <span className={`px-2 py-1 text-xs rounded-full ${
-                        project.status === 'archived' ? 'bg-purple-100 text-purple-800' : 'bg-green-100 text-green-800'
-                      }`}>
-                        {project.status === 'archived' ? 'Reviewed' : 'Completed'}
-                      </span>
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-sm text-ttc-neutral-600 mb-4">{project.description}</p>
-                    <p className="font-medium">Budget: ${project.budget}</p>
-                    
-                    {acceptedApp && (
-                      <div className="mt-4 p-3 bg-gray-50 rounded-md">
-                        <p className="font-medium">Completed by:</p>
-                        <p>{acceptedApp.professional?.first_name} {acceptedApp.professional?.last_name}</p>
-                      </div>
-                    )}
-                  </CardContent>
-                  <CardFooter>
-                    {!hasReview && project.status === 'completed' ? (
-                      <Button 
-                        className="w-full bg-yellow-600 hover:bg-yellow-700"
-                        onClick={() => handleReviewInitiate(project)}
-                      >
-                        <StarRating
-                          value={reviewData.rating}
-                          onChange={(rating) => setReviewData({ ...reviewData, rating })}
-                          size="large"
-                          className="mt-2"
-                        />
-                      </Button>
-                    ) : hasReview ? (
-                      <p className="text-sm text-center w-full text-green-600">
-                        Review submitted
+      </div>
+    );
+  }
+
+  // Filter projects that can be reviewed (completed projects without reviews)
+  const completedProjects = projects.filter(project => 
+    project.status === 'completed'
+  );
+
+  const projectsWithReviews = reviews.map(review => review.project_id);
+  const projectsToReview = completedProjects.filter(project => 
+    !projectsWithReviews.includes(project.id)
+  );
+
+  const getStatusBadge = (status: string | null) => {
+    const statusConfig = {
+      pending: { color: 'bg-yellow-100 text-yellow-800', icon: Clock },
+      completed: { color: 'bg-green-100 text-green-800', icon: CheckCircle },
+      failed: { color: 'bg-red-100 text-red-800', icon: CreditCard },
+    };
+    
+    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.pending;
+    const Icon = config.icon;
+    
+    return (
+      <Badge variant="outline" className={config.color}>
+        <Icon className="h-3 w-3 mr-1" />
+        {status ? status.charAt(0).toUpperCase() + status.slice(1) : 'Unknown'}
+      </Badge>
+    );
+  };
+
+  const StarRating = ({ rating, onRatingChange, interactive = false }: { 
+    rating: number; 
+    onRatingChange?: (rating: number) => void;
+    interactive?: boolean;
+  }) => {
+    return (
+      <div className="flex gap-1">
+        {[1, 2, 3, 4, 5].map((star) => (
+          <StarIcon
+            key={star}
+            className={`h-5 w-5 ${
+              star <= rating 
+                ? 'text-yellow-400 fill-current' 
+                : 'text-gray-300'
+            } ${interactive ? 'cursor-pointer hover:text-yellow-400' : ''}`}
+            onClick={() => interactive && onRatingChange?.(star)}
+          />
+        ))}
+      </div>
+    );
+  };
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-bold mb-2">Payments & Reviews</h2>
+        <p className="text-gray-600">
+          Manage project payments and leave reviews for completed work
+        </p>
+      </div>
+
+      {/* Completed Projects Available for Review */}
+      {projectsToReview.length > 0 && (
+        <div>
+          <h3 className="text-lg font-semibold mb-4">Projects Ready for Review</h3>
+          <div className="grid gap-4">
+            {projectsToReview.map(project => (
+              <Card key={project.id}>
+                <CardHeader>
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <CardTitle className="text-lg">{project.title}</CardTitle>
+                      <CardDescription>
+                        Completed on {project.updated_at ? format(new Date(project.updated_at), 'MMM d, yyyy') : 'Unknown date'}
+                      </CardDescription>
+                    </div>
+                    {getStatusBadge(project.status)}
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <p className="text-sm text-gray-600 mb-2">
+                        Budget: TTD {project.budget?.toLocaleString() || 'Not specified'}
                       </p>
-                    ) : (
-                      <p className="text-sm text-center w-full text-gray-500">
-                        Project archived
+                      <p className="text-sm text-gray-600">
+                        Professional: {project.professional?.first_name} {project.professional?.last_name}
                       </p>
-                    )}
-                  </CardFooter>
-                </Card>
-              );
-            })}
+                    </div>
+                    <Button onClick={() => handleReviewInitiate(project)}>
+                      Leave Review
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         </div>
       )}
-      
-      {/* Review Dialog */}
+
+      {/* Review Form Modal */}
       {projectToReview && (
-        <Card className="mt-6 border-yellow-200">
-          <CardHeader className="bg-yellow-50">
-            <CardTitle>Leave a Review</CardTitle>
+        <Card>
+          <CardHeader>
+            <CardTitle>Review Project: {projectToReview.title}</CardTitle>
             <CardDescription>
-              Share your experience with the professional who completed your project.
+              Share your experience working with the professional
             </CardDescription>
           </CardHeader>
-          <CardContent className="pt-4">
+          <CardContent>
             <div className="space-y-4">
               <div>
-                <Label htmlFor="rating" className="block mb-2">Rating</Label>
-                <StarRating
-                  value={reviewData.rating}
-                  onChange={(rating) => setReviewData({ ...reviewData, rating })}
-                  size="large"
-                  className="mt-2"
+                <label className="block text-sm font-medium mb-2">
+                  Overall Rating
+                </label>
+                <StarRating 
+                  rating={reviewData.rating} 
+                  onRatingChange={(rating) => setReviewData({ ...reviewData, rating })}
+                  interactive
                 />
               </div>
               
-              <div className="space-y-2">
-                <Label htmlFor="review-comment">Your Comments</Label>
-                <Textarea 
-                  id="review-comment" 
-                  className="min-h-[120px]"
-                  placeholder="Share details about your experience working with this professional..."
+              <div>
+                <label className="block text-sm font-medium mb-2">
+                  Review Comment
+                </label>
+                <textarea
+                  className="w-full p-3 border rounded-md"
+                  rows={4}
                   value={reviewData.comment}
-                  onChange={e => setReviewData({ ...reviewData, comment: e.target.value })}
+                  onChange={(e) => setReviewData({ ...reviewData, comment: e.target.value })}
+                  placeholder="Share details about your experience..."
                 />
+              </div>
+              
+              <div className="flex gap-2">
+                <Button 
+                  onClick={handleReviewSubmit}
+                  disabled={isSubmitting || reviewData.rating === 0}
+                >
+                  {isSubmitting ? 'Submitting...' : 'Submit Review'}
+                </Button>
+                <Button variant="outline" onClick={handleReviewCancel}>
+                  Cancel
+                </Button>
               </div>
             </div>
           </CardContent>
-          <CardFooter className="flex justify-between">
-            <Button 
-              variant="outline" 
-              onClick={handleReviewCancel}
-            >
-              Cancel
-            </Button>
-            <Button 
-              className="bg-yellow-600 hover:bg-yellow-700"
-              onClick={handleReviewSubmit}
-              disabled={isSubmitting || reviewData.rating === 0}
-            >
-              {isSubmitting ? "Submitting..." : "Submit Review"}
-            </Button>
-          </CardFooter>
         </Card>
       )}
-    </>
+
+      {/* Existing Reviews */}
+      {reviews.length > 0 && (
+        <div>
+          <h3 className="text-lg font-semibold mb-4">Your Reviews</h3>
+          <div className="grid gap-4">
+            {reviews.map(review => {
+              const project = projects.find(p => p.id === review.project_id);
+              return (
+                <Card key={review.id}>
+                  <CardHeader>
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <CardTitle className="text-lg">
+                          {project?.title || 'Unknown Project'}
+                        </CardTitle>
+                        <CardDescription>
+                          Reviewed on {review.created_at ? format(new Date(review.created_at), 'MMM d, yyyy') : 'Unknown date'}
+                        </CardDescription>
+                      </div>
+                      <StarRating rating={review.rating || 0} />
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-gray-600">{review.comment}</p>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Empty State */}
+      {projectsToReview.length === 0 && reviews.length === 0 && (
+        <Card>
+          <CardContent className="text-center py-8">
+            <CreditCard className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+            <h3 className="text-lg font-medium mb-2">No Payment History</h3>
+            <p className="text-gray-500">
+              Completed projects and payment information will appear here.
+            </p>
+          </CardContent>
+        </Card>
+      )}
+    </div>
   );
 };
 
