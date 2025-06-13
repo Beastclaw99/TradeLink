@@ -5,7 +5,7 @@ import { Progress } from '@/components/ui/progress';
 import { ChevronLeft, ChevronRight, Check, Save } from 'lucide-react';
 import { ProjectData } from './types';
 import BasicDetailsStep from './steps/BasicDetailsStep';
-import RequirementsStep from './steps/RequirementsStep';
+import RecommendedSkillsStep from './steps/RecommendedSkillsStep';
 import BudgetTimelineStep from './steps/BudgetTimelineStep';
 import MilestonesDeliverablesStep from './steps/MilestonesDeliverablesStep';
 import ServiceContractStep from './steps/ServiceContractStep';
@@ -17,7 +17,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 
 const STEPS = [
   { id: 1, title: 'Basic Details', component: BasicDetailsStep },
-  { id: 2, title: 'Requirements', component: RequirementsStep },
+  { id: 2, title: 'Recommended Skills', component: RecommendedSkillsStep },
   { id: 3, title: 'Budget & Timeline', component: BudgetTimelineStep },
   { id: 4, title: 'Milestones & Deliverables', component: MilestonesDeliverablesStep },
   { id: 5, title: 'Service Contract', component: ServiceContractStep },
