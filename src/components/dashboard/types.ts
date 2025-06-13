@@ -7,7 +7,6 @@ import {
   Task,
   Profile,
   ProjectStatus,
-  PaymentStatus,
   MilestoneStatus,
   TaskStatus
 } from '@/types/database';
