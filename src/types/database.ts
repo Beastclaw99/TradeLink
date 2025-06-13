@@ -17,124 +17,27 @@ export type UserRole = Database['public']['Enums']['user_role'];
 export type VerificationStatus = Database['public']['Enums']['verification_status_enum'];
 
 // Re-export table types
-export type Profile = {
-  id: string;
-  user_id: string;
-  first_name: string;
-  last_name: string;
-  email: string;
-  phone?: string;
-  bio?: string;
-  avatar_url?: string;
-  created_at: string;
-  updated_at: string;
-  role: 'client' | 'professional';
-  status: 'active' | 'inactive' | 'suspended';
-  company_name?: string;
-  company_website?: string;
-  company_logo?: string;
-  company_description?: string;
-  company_address?: string;
-  company_phone?: string;
-  company_email?: string;
-  company_social_media?: {
-    linkedin?: string;
-    twitter?: string;
-    facebook?: string;
-    instagram?: string;
-  };
-  skills?: string[];
-  experience?: string;
-  education?: string;
-  certifications?: string[];
-  languages?: string[];
-  hourly_rate?: number;
-  availability?: {
-    monday?: boolean;
-    tuesday?: boolean;
-    wednesday?: boolean;
-    thursday?: boolean;
-    friday?: boolean;
-    saturday?: boolean;
-    sunday?: boolean;
-  };
-  timezone?: string;
-  preferred_communication?: 'email' | 'phone' | 'both';
-  notification_preferences?: {
-    email?: boolean;
-    push?: boolean;
-    sms?: boolean;
-  };
-};
-
-export type ProjectMilestone = Database['public']['Tables']['project_milestones']['Row'];
-export type ProjectTask = Database['public']['Tables']['project_tasks']['Row'];
-export type ProjectStatusUpdate = Database['public']['Tables']['project_updates']['Row'];
-export type Application = {
-  id: string;
-  project_id: string;
-  professional_id: string;
-  cover_letter: string;
-  proposed_budget: number;
-  proposed_timeline: string;
-  status: 'pending' | 'accepted' | 'rejected';
-  created_at: string;
-  updated_at: string;
-  attachments?: string[];
-  questions?: {
-    question: string;
-    answer: string;
-  }[];
-};
-
-export type Review = {
-  id: string;
-  project_id: string;
-  reviewer_id: string;
-  reviewee_id: string;
-  rating: number;
-  comment: string;
-  created_at: string;
-  updated_at: string;
-  is_public: boolean;
-  response?: string;
-  response_date?: string;
-};
-
+export type Profile = Database['public']['Tables']['profiles']['Row'];
+export type Project = Database['public']['Tables']['projects']['Row'];
+export type Application = Database['public']['Tables']['applications']['Row'];
+export type Review = Database['public']['Tables']['reviews']['Row'];
 export type Dispute = Database['public']['Tables']['disputes']['Row'];
-export type Payment = {
-  id: string;
-  project_id: string;
-  amount: number;
-  currency: string;
-  status: 'pending' | 'processing' | 'completed' | 'failed' | 'refunded';
-  payment_method: string;
-  payment_date: string;
-  created_at: string;
-  updated_at: string;
-  transaction_id?: string;
-  receipt_url?: string;
-  notes?: string;
-};
-
+export type Payment = Database['public']['Tables']['payments']['Row'];
 export type Invoice = Database['public']['Tables']['invoices']['Row'];
 export type Message = Database['public']['Tables']['project_messages']['Row'];
 export type Notification = Database['public']['Tables']['notifications']['Row'];
 
-// Base project type from Supabase
-export type ProjectBase = Database['public']['Tables']['projects']['Row'];
-
-// Extended project type for frontend use
-export interface Project extends Omit<ProjectBase, 'urgency'> {
+// Extended types for frontend use
+export interface ExtendedProject extends Omit<Project, 'urgency'> {
   client?: Profile;
   professional?: Profile;
-  milestones?: ProjectMilestone[];
-  tasks?: ProjectTask[];
-  updates?: ProjectStatusUpdate[];
-  applications?: Application[];
-  reviews?: Review[];
+  milestones?: ExtendedProjectMilestone[];
+  tasks?: ExtendedProjectTask[];
+  updates?: ExtendedProjectStatusUpdate[];
+  applications?: ExtendedApplication[];
+  reviews?: ExtendedReview[];
   disputes?: Dispute[];
-  payments?: Payment[];
+  payments?: ExtendedPayment[];
   invoices?: Invoice[];
   messages?: Message[];
   notifications?: Notification[];
@@ -145,8 +48,33 @@ export interface Project extends Omit<ProjectBase, 'urgency'> {
   urgency?: 'high' | 'low' | 'normal' | null;
 }
 
-// Task types
-export interface Task {
+export interface ExtendedApplication extends Application {
+  professional?: {
+    id: string;
+    first_name: string;
+    last_name: string;
+    profile_image_url: string | null;
+    rating: number | null;
+  } | null;
+}
+
+export interface ExtendedPayment extends Payment {
+  professional?: {
+    id: string;
+    first_name: string;
+    last_name: string;
+  } | null;
+}
+
+export interface ExtendedReview extends Review {
+  professional?: {
+    id: string;
+    first_name: string;
+    last_name: string;
+  } | null;
+}
+
+export interface ExtendedProjectTask {
   id: string;
   project_id: string;
   title: string;
@@ -156,13 +84,104 @@ export interface Task {
   due_date: string | null;
   created_at: string;
   updated_at: string;
-  completed: boolean | null;
-  completion_date: string | null;
-  created_by: string | null;
-  dependencies: string[] | null;
-  milestone_id: string | null;
-  priority: string;
-  tags: string[] | null;
+  assignee?: {
+    id: string;
+    first_name: string;
+    last_name: string;
+    profile_image_url: string | null;
+  } | null;
+}
+
+export interface ExtendedProjectMilestone {
+  id: string;
+  project_id: string;
+  title: string;
+  description: string | null;
+  due_date: string | null;
+  status: MilestoneStatus;
+  created_at: string;
+  updated_at: string;
+  tasks?: ExtendedProjectTask[];
+}
+
+export interface ExtendedProjectStatusUpdate {
+  id: string;
+  project_id: string;
+  status: ProjectStatus;
+  comment: string | null;
+  created_at: string;
+  updated_at: string;
+  user: {
+    id: string;
+    first_name: string;
+    last_name: string;
+  };
+}
+
+export interface ExtendedProjectComment {
+  id: string;
+  project_id: string;
+  user_id: string;
+  content: string;
+  created_at: string;
+  updated_at: string;
+  user: {
+    id: string;
+    first_name: string;
+    last_name: string;
+    profile_image_url: string | null;
+  };
+}
+
+export interface ExtendedProjectFile {
+  id: string;
+  project_id: string;
+  title: string;
+  description: string | null;
+  file_url: string;
+  file_type: string;
+  file_size: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ExtendedProjectExpense {
+  id: string;
+  project_id: string;
+  title: string;
+  description: string | null;
+  amount: number;
+  status: PaymentStatus;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ExtendedProjectDeliverable {
+  id: string;
+  project_id: string;
+  title: string;
+  description: string | null;
+  status: DeliverableStatus;
+  due_date: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+// Task types
+export interface Task {
+  id: string;
+  milestone_id: string;
+  title: string;
+  description: string | null;
+  status: TaskStatus;
+  assignee_id: string | null;
+  created_at: string;
+  updated_at: string;
+  assignee?: {
+    id: string;
+    first_name: string;
+    last_name: string;
+  } | null;
 }
 
 export interface TaskInsert {
@@ -211,13 +230,103 @@ export type Milestone = {
   id: string;
   project_id: string;
   title: string;
-  description: string;
-  due_date: string;
-  status: 'pending' | 'in_progress' | 'completed' | 'cancelled';
+  description: string | null;
+  due_date: string | null;
+  status: TaskStatus;
   created_at: string;
   updated_at: string;
-  completed_at?: string;
-  completion_notes?: string;
-  attachments?: string[];
-  tasks?: Task[];
+};
+
+export type ExpenseStatus = 'pending' | 'approved' | 'rejected';
+
+export type ProjectMilestone = {
+  id: string;
+  project_id: string;
+  title: string;
+  description: string | null;
+  due_date: string | null;
+  status: MilestoneStatus;
+  created_at: string;
+  updated_at: string;
+};
+
+export type ProjectDeliverable = {
+  id: string;
+  project_id: string;
+  title: string;
+  description: string | null;
+  status: TaskStatus;
+  due_date: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type ProjectExpense = {
+  id: string;
+  project_id: string;
+  title: string;
+  description: string | null;
+  amount: number;
+  status: ExpenseStatus;
+  created_at: string;
+  updated_at: string;
+};
+
+export type ProjectFile = {
+  id: string;
+  project_id: string;
+  title: string;
+  description: string | null;
+  file_url: string;
+  file_type: string;
+  file_size: number;
+  created_at: string;
+  updated_at: string;
+};
+
+export type ProjectComment = {
+  id: string;
+  project_id: string;
+  user_id: string;
+  content: string;
+  created_at: string;
+  updated_at: string;
+  user: {
+    id: string;
+    first_name: string;
+    last_name: string;
+    profile_image_url: string | null;
+  };
+};
+
+export type ProjectStatusUpdate = {
+  id: string;
+  project_id: string;
+  status: ProjectStatus;
+  comment: string | null;
+  created_at: string;
+  updated_at: string;
+  user: {
+    id: string;
+    first_name: string;
+    last_name: string;
+  };
+};
+
+export type ProjectTask = {
+  id: string;
+  project_id: string;
+  title: string;
+  description: string | null;
+  status: TaskStatus;
+  assignee_id: string | null;
+  due_date: string | null;
+  created_at: string;
+  updated_at: string;
+  assignee: {
+    id: string;
+    first_name: string;
+    last_name: string;
+    profile_image_url: string | null;
+  } | null;
 }; 

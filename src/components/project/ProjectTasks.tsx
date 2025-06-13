@@ -2,411 +2,114 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { useToast } from "@/components/ui/use-toast";
-import {
-  CheckSquare,
-  Plus,
-  Search,
-  Filter,
-  SortAsc,
-  SortDesc,
-  MoreVertical,
-  Clock,
-  AlertTriangle,
-  CheckCircle2,
-  XCircle,
-  User,
-  Calendar,
-  Tag,
-  ArrowRight
-} from 'lucide-react';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue
-} from '@/components/ui/select';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { format, formatDistanceToNow } from 'date-fns';
-import { ProjectTask, TaskStatus } from '@/types/database';
-
-interface TaskAssignee {
-  id: string;
-  name: string;
-  avatar?: string;
-}
-
-interface ExtendedProjectTask extends ProjectTask {
-  assignee?: TaskAssignee;
-  tags: string[];
-}
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ExtendedProjectTask, TaskStatus } from '@/types/database';
+import { format } from 'date-fns';
 
 interface ProjectTasksProps {
   tasks: ExtendedProjectTask[];
-  isAdmin: boolean;
+  onDeleteTask: (taskId: string) => Promise<void>;
   onCreateTask: (task: Omit<ExtendedProjectTask, 'id' | 'created_at' | 'updated_at'>) => Promise<void>;
   onUpdateTask: (taskId: string, updates: Partial<ExtendedProjectTask>) => Promise<void>;
-  onDeleteTask: (taskId: string) => Promise<void>;
-  availableAssignees: TaskAssignee[];
 }
 
 const ProjectTasks: React.FC<ProjectTasksProps> = ({
   tasks,
-  isAdmin,
-  onCreateTask,
-  onUpdateTask,
   onDeleteTask,
-  availableAssignees
+  onCreateTask,
+  onUpdateTask
 }) => {
-  const { toast } = useToast();
   const [isCreating, setIsCreating] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedStatus, setSelectedStatus] = useState<TaskStatus | 'all'>('all');
-  const [selectedPriority, setSelectedPriority] = useState<ExtendedProjectTask['priority'] | 'all'>('all');
-  const [sortBy, setSortBy] = useState<'due_date' | 'priority' | 'status'>('due_date');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
-  const [isProcessing, setIsProcessing] = useState(false);
-
-  const [newTask, setNewTask] = useState({
+  const [newTask, setNewTask] = useState<Partial<ExtendedProjectTask>>({
     title: '',
     description: '',
-    status: 'todo' as TaskStatus,
-    priority: 'medium' as ExtendedProjectTask['priority'],
-    assigneeId: '',
-    due_date: '',
-    tags: [] as string[]
+    status: 'todo',
+    priority: 'medium'
   });
+  const [selectedPriority, setSelectedPriority] = useState<ExtendedProjectTask['priority'] | 'all'>('all');
 
   const handleCreateTask = async () => {
-    if (!newTask.title.trim()) return;
+    if (!newTask.title) return;
 
-    setIsProcessing(true);
     try {
       await onCreateTask({
-        title: newTask.title.trim(),
-        description: newTask.description.trim(),
-        status: newTask.status,
-        priority: newTask.priority,
-        assignee: newTask.assigneeId ? availableAssignees.find(a => a.id === newTask.assigneeId) : undefined,
-        due_date: newTask.due_date || undefined,
-        tags: newTask.tags
+        title: newTask.title,
+        description: newTask.description || null,
+        status: newTask.status || 'todo',
+        priority: newTask.priority || 'medium',
+        assignee_id: newTask.assignee_id || null,
+        due_date: newTask.due_date || null
       });
       setNewTask({
         title: '',
         description: '',
         status: 'todo',
-        priority: 'medium',
-        assigneeId: '',
-        due_date: '',
-        tags: []
+        priority: 'medium'
       });
       setIsCreating(false);
-      toast({
-        title: "Success",
-        description: "Task created successfully."
-      });
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to create task. Please try again.",
-        variant: "destructive"
-      });
-    } finally {
-      setIsProcessing(false);
+      console.error('Error creating task:', error);
     }
   };
 
   const handleUpdateTask = async (taskId: string, updates: Partial<ExtendedProjectTask>) => {
-    setIsProcessing(true);
     try {
       await onUpdateTask(taskId, updates);
-      toast({
-        title: "Success",
-        description: "Task updated successfully."
-      });
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to update task. Please try again.",
-        variant: "destructive"
-      });
-    } finally {
-      setIsProcessing(false);
+      console.error('Error updating task:', error);
     }
   };
 
   const handleDeleteTask = async (taskId: string) => {
-    setIsProcessing(true);
     try {
       await onDeleteTask(taskId);
-      toast({
-        title: "Success",
-        description: "Task deleted successfully."
-      });
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to delete task. Please try again.",
-        variant: "destructive"
-      });
-    } finally {
-      setIsProcessing(false);
+      console.error('Error deleting task:', error);
     }
   };
 
   const getStatusBadge = (status: TaskStatus) => {
-    const statusConfig: Record<TaskStatus, { color: string; icon: React.ReactNode }> = {
-      todo: {
-        color: 'bg-gray-100 text-gray-800 border-gray-200',
-        icon: <Clock className="h-4 w-4" />
-      },
-      in_progress: {
-        color: 'bg-blue-100 text-blue-800 border-blue-200',
-        icon: <ArrowRight className="h-4 w-4" />
-      },
-      review: {
-        color: 'bg-yellow-100 text-yellow-800 border-yellow-200',
-        icon: <AlertTriangle className="h-4 w-4" />
-      },
-      completed: {
-        color: 'bg-green-100 text-green-800 border-green-200',
-        icon: <CheckCircle2 className="h-4 w-4" />
-      }
+    const statusConfig: Record<TaskStatus, { color: string; label: string }> = {
+      todo: { color: 'bg-yellow-100 text-yellow-800', label: 'To Do' },
+      in_progress: { color: 'bg-blue-100 text-blue-800', label: 'In Progress' },
+      completed: { color: 'bg-green-100 text-green-800', label: 'Completed' }
     };
 
-    const { color, icon } = statusConfig[status];
+    const config = statusConfig[status];
     return (
-      <Badge variant="outline" className={color}>
-        {icon}
-        <span className="ml-1">
-          {status.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
-        </span>
+      <Badge className={config.color}>
+        {config.label}
       </Badge>
     );
   };
 
   const getPriorityBadge = (priority: ExtendedProjectTask['priority']) => {
     const priorityConfig: Record<ExtendedProjectTask['priority'], { color: string }> = {
-      low: {
-        color: 'bg-green-100 text-green-800 border-green-200'
-      },
-      medium: {
-        color: 'bg-yellow-100 text-yellow-800 border-yellow-200'
-      },
-      high: {
-        color: 'bg-red-100 text-red-800 border-red-200'
-      }
+      low: { color: 'bg-gray-100 text-gray-800' },
+      medium: { color: 'bg-blue-100 text-blue-800' },
+      high: { color: 'bg-red-100 text-red-800' }
     };
 
-    const { color } = priorityConfig[priority];
+    const config = priorityConfig[priority];
     return (
-      <Badge variant="outline" className={color}>
-        {priority.charAt(0).toUpperCase() + priority.slice(1)} Priority
+      <Badge className={config.color}>
+        {priority.charAt(0).toUpperCase() + priority.slice(1)}
       </Badge>
     );
   };
 
-  const filteredTasks = tasks
-    .filter(task => {
-      const matchesSearch = task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        task.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        task.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()));
-      const matchesStatus = selectedStatus === 'all' || task.status === selectedStatus;
-      const matchesPriority = selectedPriority === 'all' || task.priority === selectedPriority;
-      return matchesSearch && matchesStatus && matchesPriority;
-    })
-    .sort((a, b) => {
-      const order = sortOrder === 'asc' ? 1 : -1;
-      switch (sortBy) {
-        case 'due_date':
-          if (!a.due_date) return 1;
-          if (!b.due_date) return -1;
-          return order * (new Date(a.due_date).getTime() - new Date(b.due_date).getTime());
-        case 'priority': {
-          const priorityOrder = { high: 0, medium: 1, low: 2 };
-          return order * (priorityOrder[a.priority] - priorityOrder[b.priority]);
-        }
-        case 'status': {
-          const statusOrder = { todo: 0, in_progress: 1, review: 2, completed: 3 };
-          return order * (statusOrder[a.status] - statusOrder[b.status]);
-        }
-        default:
-          return 0;
-      }
-    });
+  const filteredTasks = selectedPriority === 'all'
+    ? tasks
+    : tasks.filter(task => task.priority === selectedPriority);
 
   return (
     <Card>
-      <CardHeader className="border-b">
-        <div className="flex justify-between items-center">
-          <CardTitle>Project Tasks</CardTitle>
-          {isAdmin && (
-            <Button
-              onClick={() => setIsCreating(true)}
-              disabled={isProcessing}
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Create Task
-            </Button>
-          )}
-        </div>
-      </CardHeader>
-      <CardContent className="p-6">
-        {isCreating && (
-          <div className="mb-6 p-4 border rounded-lg bg-gray-50">
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="task-title">Title</Label>
-                <Input
-                  id="task-title"
-                  value={newTask.title}
-                  onChange={(e) => setNewTask(prev => ({ ...prev, title: e.target.value }))}
-                  placeholder="Enter task title"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="task-description">Description</Label>
-                <Textarea
-                  id="task-description"
-                  value={newTask.description}
-                  onChange={(e) => setNewTask(prev => ({ ...prev, description: e.target.value }))}
-                  placeholder="Enter task description"
-                  rows={3}
-                />
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="task-status">Status</Label>
-                  <Select
-                    value={newTask.status}
-                    onValueChange={(value) => setNewTask(prev => ({ ...prev, status: value as TaskStatus }))}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="todo">To Do</SelectItem>
-                      <SelectItem value="in_progress">In Progress</SelectItem>
-                      <SelectItem value="review">In Review</SelectItem>
-                      <SelectItem value="completed">Done</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="task-priority">Priority</Label>
-                  <Select
-                    value={newTask.priority}
-                    onValueChange={(value) => setNewTask(prev => ({ ...prev, priority: value as ExtendedProjectTask['priority'] }))}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select priority" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="low">Low</SelectItem>
-                      <SelectItem value="medium">Medium</SelectItem>
-                      <SelectItem value="high">High</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="task-assignee">Assignee</Label>
-                  <Select
-                    value={newTask.assigneeId}
-                    onValueChange={(value) => setNewTask(prev => ({ ...prev, assigneeId: value }))}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select assignee" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="">Unassigned</SelectItem>
-                      {availableAssignees.map((assignee) => (
-                        <SelectItem key={assignee.id} value={assignee.id}>
-                          {assignee.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="task-due-date">Due Date</Label>
-                  <Input
-                    id="task-due-date"
-                    type="date"
-                    value={newTask.due_date}
-                    onChange={(e) => setNewTask(prev => ({ ...prev, due_date: e.target.value }))}
-                  />
-                </div>
-              </div>
-              <div className="flex justify-end gap-2">
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setIsCreating(false);
-                    setNewTask({
-                      title: '',
-                      description: '',
-                      status: 'todo',
-                      priority: 'medium',
-                      assigneeId: '',
-                      due_date: '',
-                      tags: []
-                    });
-                  }}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  onClick={handleCreateTask}
-                  disabled={isProcessing || !newTask.title.trim()}
-                >
-                  Create Task
-                </Button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        <div className="flex flex-col sm:flex-row gap-4 mb-6">
-          <div className="flex-1">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <Input
-                placeholder="Search tasks..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-          </div>
-          <div className="flex gap-2">
-            <Select
-              value={selectedStatus}
-              onValueChange={(value) => setSelectedStatus(value as TaskStatus | 'all')}
-            >
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Filter by status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Statuses</SelectItem>
-                <SelectItem value="todo">To Do</SelectItem>
-                <SelectItem value="in_progress">In Progress</SelectItem>
-                <SelectItem value="review">In Review</SelectItem>
-                <SelectItem value="completed">Done</SelectItem>
-              </SelectContent>
-            </Select>
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <CardTitle>Tasks</CardTitle>
+          <div className="flex items-center gap-4">
             <Select
               value={selectedPriority}
               onValueChange={(value) => setSelectedPriority(value as ExtendedProjectTask['priority'] | 'all')}
@@ -416,130 +119,102 @@ const ProjectTasks: React.FC<ProjectTasksProps> = ({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Priorities</SelectItem>
-                <SelectItem value="high">High</SelectItem>
-                <SelectItem value="medium">Medium</SelectItem>
                 <SelectItem value="low">Low</SelectItem>
+                <SelectItem value="medium">Medium</SelectItem>
+                <SelectItem value="high">High</SelectItem>
               </SelectContent>
             </Select>
-            <Button
-              variant="outline"
-              onClick={() => setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')}
-            >
-              {sortOrder === 'asc' ? (
-                <SortAsc className="h-4 w-4" />
-              ) : (
-                <SortDesc className="h-4 w-4" />
-              )}
-            </Button>
+            <Button onClick={() => setIsCreating(true)}>Add Task</Button>
           </div>
         </div>
-
-        {filteredTasks.length === 0 ? (
-          <div className="text-center py-8 text-gray-500">
-            <CheckSquare className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-            <p>No tasks found.</p>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {filteredTasks.map((task) => (
-              <div
-                key={task.id}
-                className="flex items-center justify-between p-4 border rounded-lg"
+      </CardHeader>
+      <CardContent>
+        {isCreating && (
+          <div className="mb-6 space-y-4 p-4 border rounded-lg">
+            <Input
+              placeholder="Task title"
+              value={newTask.title}
+              onChange={(e) => setNewTask(prev => ({ ...prev, title: e.target.value }))}
+            />
+            <Textarea
+              placeholder="Task description"
+              value={newTask.description || ''}
+              onChange={(e) => setNewTask(prev => ({ ...prev, description: e.target.value }))}
+            />
+            <div className="flex gap-4">
+              <Select
+                value={newTask.status}
+                onValueChange={(value) => setNewTask(prev => ({ ...prev, status: value as TaskStatus }))}
               >
-                <div className="flex-1 space-y-2">
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium">{task.title}</span>
-                    {getStatusBadge(task.status)}
-                    {getPriorityBadge(task.priority)}
-                  </div>
-                  {task.description && (
-                    <p className="text-sm text-gray-600">{task.description}</p>
-                  )}
-                  <div className="flex items-center gap-4 text-sm text-gray-500">
-                    {task.assignee && (
-                      <div className="flex items-center gap-1">
-                        <User className="h-4 w-4" />
-                        <span>{task.assignee.name}</span>
-                      </div>
-                    )}
-                    {task.due_date && (
-                      <div className="flex items-center gap-1">
-                        <Calendar className="h-4 w-4" />
-                        <span>
-                          Due {format(new Date(task.due_date), 'MMM d, yyyy')}
-                        </span>
-                      </div>
-                    )}
-                    <div className="flex items-center gap-1">
-                      <Clock className="h-4 w-4" />
-                      <span>
-                        Updated {formatDistanceToNow(new Date(task.updated_at), { addSuffix: true })}
-                      </span>
-                    </div>
-                  </div>
-                  {task.tags.length > 0 && (
-                    <div className="flex flex-wrap gap-1">
-                      {task.tags.map((tag) => (
-                        <Badge
-                          key={tag}
-                          variant="secondary"
-                          className="text-xs"
-                        >
-                          {tag}
-                        </Badge>
-                      ))}
-                    </div>
-                  )}
-                </div>
-                {isAdmin && (
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon">
-                        <MoreVertical className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem
-                        onClick={() => handleUpdateTask(task.id, { status: 'todo' })}
-                        disabled={isProcessing || task.status === 'todo'}
-                      >
-                        Mark as To Do
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() => handleUpdateTask(task.id, { status: 'in_progress' })}
-                        disabled={isProcessing || task.status === 'in_progress'}
-                      >
-                        Mark as In Progress
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() => handleUpdateTask(task.id, { status: 'review' })}
-                        disabled={isProcessing || task.status === 'review'}
-                      >
-                        Mark as In Review
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() => handleUpdateTask(task.id, { status: 'completed' })}
-                        disabled={isProcessing || task.status === 'completed'}
-                      >
-                        Mark as Done
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem
-                        onClick={() => handleDeleteTask(task.id)}
-                        disabled={isProcessing}
-                        className="text-red-600"
-                      >
-                        Delete Task
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                )}
-              </div>
-            ))}
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Select status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todo">To Do</SelectItem>
+                  <SelectItem value="in_progress">In Progress</SelectItem>
+                  <SelectItem value="completed">Completed</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select
+                value={newTask.priority}
+                onValueChange={(value) => setNewTask(prev => ({ ...prev, priority: value as ExtendedProjectTask['priority'] }))}
+              >
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Select priority" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="low">Low</SelectItem>
+                  <SelectItem value="medium">Medium</SelectItem>
+                  <SelectItem value="high">High</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setIsCreating(false)}>Cancel</Button>
+              <Button onClick={handleCreateTask}>Create Task</Button>
+            </div>
           </div>
         )}
+
+        <div className="space-y-4">
+          {filteredTasks.map((task) => (
+            <div key={task.id} className="p-4 border rounded-lg">
+              <div className="flex items-start justify-between">
+                <div className="space-y-2">
+                  <h3 className="font-medium">{task.title}</h3>
+                  {task.description && (
+                    <p className="text-sm text-muted-foreground">{task.description}</p>
+                  )}
+                  <div className="flex gap-2">
+                    {getStatusBadge(task.status)}
+                    {getPriorityBadge(task.priority)}
+                    {task.due_date && (
+                      <Badge variant="outline">
+                        Due: {format(new Date(task.due_date), 'MMM d, yyyy')}
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleUpdateTask(task.id, { status: 'completed' })}
+                  >
+                    Complete
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => handleDeleteTask(task.id)}
+                  >
+                    Delete
+                  </Button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
       </CardContent>
     </Card>
   );

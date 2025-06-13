@@ -1,20 +1,24 @@
 import React from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ClockIcon, TagIcon, DocumentIcon, EyeIcon } from '@heroicons/react/24/outline';
-import { Project, ProjectStatus, ProjectMilestone } from '@/types/database';
+import { Project, ProjectStatus, ExtendedProjectMilestone } from '@/types/database';
 import { Milestone, convertDBMilestoneToMilestone } from '@/components/project/creation/types';
 import ProjectUpdateTimeline from '../../project/ProjectUpdateTimeline';
 import ProjectMilestones from '../../project/ProjectMilestones';
 import ProjectDeliverables from '../../project/ProjectDeliverables';
+import { ProjectDescription } from './ProjectDescription';
+import { ProjectRequirements } from './ProjectRequirements';
+import { ProjectTimeline } from './ProjectTimeline';
+import { ProjectBudget } from './ProjectBudget';
 
 interface ProjectCardTabsProps {
   project: Project;
-  milestones: ProjectMilestone[];
+  milestones: ExtendedProjectMilestone[];
   activeTab: string;
   setActiveTab: (tab: string) => void;
-  isProfessional: boolean;
-  isClient: boolean;
-  onMilestoneUpdate?: (milestoneId: string, updates: Partial<ProjectMilestone>) => Promise<void>;
+  isProfessional?: boolean;
+  isClient?: boolean;
+  onMilestoneUpdate?: (milestoneId: string, updates: Partial<ExtendedProjectMilestone>) => Promise<void>;
   onMilestoneDelete?: (milestoneId: string) => Promise<void>;
   onTaskStatusUpdate?: (milestoneId: string, taskId: string, completed: boolean) => Promise<void>;
 }
@@ -24,32 +28,24 @@ export const ProjectCardTabs: React.FC<ProjectCardTabsProps> = ({
   milestones,
   activeTab,
   setActiveTab,
-  isProfessional,
-  isClient,
+  isProfessional = false,
+  isClient = false,
   onMilestoneUpdate,
   onMilestoneDelete,
   onTaskStatusUpdate
 }) => {
   const getValidProjectStatus = (status: string | null): ProjectStatus => {
-    if (!status) return 'open';
     const validStatuses: ProjectStatus[] = [
-      'draft',
       'open',
-      'assigned',
       'in_progress',
-      'work_submitted',
-      'work_revision_requested',
-      'work_approved',
       'completed',
-      'archived',
-      'cancelled',
-      'disputed'
+      'cancelled'
     ];
     return validStatuses.includes(status as ProjectStatus) ? status as ProjectStatus : 'open';
   };
 
   const defaultMilestoneHandler = async (): Promise<void> => {};
-  const defaultMilestoneUpdateHandler = async (_milestoneId: string, _updates: Partial<ProjectMilestone>): Promise<void> => {};
+  const defaultMilestoneUpdateHandler = async (_milestoneId: string, _updates: Partial<ExtendedProjectMilestone>): Promise<void> => {};
   const defaultMilestoneDeleteHandler = async (_milestoneId: string): Promise<void> => {};
   const defaultTaskStatusHandler = async (_milestoneId: string, _taskId: string, _completed: boolean): Promise<void> => {};
 

@@ -28,7 +28,7 @@ export const useProfessionalDataFetcher = (userId: string) => {
     try {
       console.log('Fetching professional dashboard data for user:', userId);
       
-      // Fetch profile with all necessary fields - using correct column name
+      // Fetch profile with all necessary fields
       const { data: userProfileData, error: userProfileError } = await supabase
         .from('profiles')
         .select(`
@@ -58,116 +58,19 @@ export const useProfessionalDataFetcher = (userId: string) => {
           portfolio_images,
           created_at,
           updated_at,
-          stripe_account_id,
-          stripe_customer_id,
-          payment_methods,
-          preferred_payment_method,
-          tax_information,
-          bank_account_details,
-          notification_preferences,
-          language_preferences,
-          timezone,
-          working_hours,
+          business_name,
+          business_description,
           service_areas,
-          specializations,
-          education,
-          work_history,
-          awards,
-          memberships,
-          insurance_details,
-          compliance_documents,
-          emergency_contact,
-          references,
-          social_media_links,
-          website,
-          blog,
-          testimonials,
-          case_studies,
-          published_works,
-          speaking_engagements,
-          training_certifications,
-          industry_expertise,
-          tools_technologies,
-          methodology,
-          quality_standards,
-          service_guarantees,
-          cancellation_policy,
-          terms_conditions,
-          privacy_policy,
-          accessibility_preferences,
-          communication_preferences,
-          project_preferences,
-          client_preferences,
-          rate_preferences,
-          availability_preferences,
-          location_preferences,
-          industry_preferences,
-          project_size_preferences,
-          timeline_preferences,
-          budget_preferences,
-          payment_preferences,
-          contract_preferences,
-          insurance_preferences,
-          compliance_preferences,
-          security_preferences,
-          privacy_preferences,
-          data_preferences,
-          backup_preferences,
-          recovery_preferences,
-          support_preferences,
-          maintenance_preferences,
-          upgrade_preferences,
-          downgrade_preferences,
-          cancellation_preferences,
-          refund_preferences,
-          dispute_preferences,
-          arbitration_preferences,
-          mediation_preferences,
-          litigation_preferences,
-          settlement_preferences,
-          resolution_preferences,
-          satisfaction_preferences,
-          feedback_preferences,
-          review_preferences,
-          rating_preferences,
-          recommendation_preferences,
-          referral_preferences,
-          networking_preferences,
-          collaboration_preferences,
-          partnership_preferences,
-          alliance_preferences,
-          joint_venture_preferences,
-          merger_preferences,
-          acquisition_preferences,
-          divestiture_preferences,
-          restructuring_preferences,
-          reorganization_preferences,
-          transformation_preferences,
-          innovation_preferences,
-          research_preferences,
-          development_preferences,
-          testing_preferences,
-          deployment_preferences,
-          maintenance_preferences,
-          support_preferences,
-          training_preferences,
-          documentation_preferences,
-          reporting_preferences,
-          analytics_preferences,
-          metrics_preferences,
-          kpi_preferences,
-          okr_preferences,
-          goal_preferences,
-          objective_preferences,
-          strategy_preferences,
-          tactic_preferences,
-          plan_preferences,
-          execution_preferences,
-          implementation_preferences,
-          operation_preferences,
-          management_preferences,
-          leadership_preferences,
-          governance_preferences
+          specialties,
+          insurance_info,
+          license_number,
+          is_available,
+          role,
+          address,
+          city,
+          state,
+          country,
+          zip_code
         `)
         .eq('id', userId)
         .single();
@@ -192,7 +95,13 @@ export const useProfessionalDataFetcher = (userId: string) => {
         .from('projects')
         .select(`
           *,
-          client:profiles!projects_client_id_fkey(first_name, last_name)
+          client:profiles!projects_client_id_fkey(
+            id,
+            first_name,
+            last_name,
+            profile_image_url,
+            rating
+          )
         `)
         .eq('status', 'open');
       
@@ -210,7 +119,13 @@ export const useProfessionalDataFetcher = (userId: string) => {
         .from('projects')
         .select(`
           *,
-          client:profiles!projects_client_id_fkey(first_name, last_name)
+          client:profiles!projects_client_id_fkey(
+            id,
+            first_name,
+            last_name,
+            profile_image_url,
+            rating
+          )
         `)
         .eq('assigned_to', userId)
         .in('status', ['assigned', 'in_progress', 'completed']);
@@ -251,23 +166,18 @@ export const useProfessionalDataFetcher = (userId: string) => {
               created_at
             )
           `)
-          .eq('professional_id', userId)
-          .order('created_at', { ascending: false });
+          .eq('professional_id', userId);
         
         if (appsError) {
           console.error('Applications fetch error:', appsError);
           throw appsError;
         }
-        console.log('Applications data:', appsData);
         
-        setApplications(transformApplications(appsData));
-      } catch (error: any) {
+        const transformedApps = transformApplications(appsData || []);
+        setApplications(transformedApps);
+      } catch (error) {
         console.error('Error fetching applications:', error);
-        toast({
-          title: "Warning",
-          description: "There was an issue loading your applications. Some data may be missing.",
-          variant: "destructive"
-        });
+        throw error;
       }
       
       // Fetch payments
@@ -275,7 +185,15 @@ export const useProfessionalDataFetcher = (userId: string) => {
         .from('payments')
         .select(`
           *,
-          project:projects!payments_project_id_fkey(title)
+          project:projects (
+            id,
+            title
+          ),
+          professional:profiles!payments_professional_id_fkey (
+            id,
+            first_name,
+            last_name
+          )
         `)
         .eq('professional_id', userId);
       
@@ -284,8 +202,8 @@ export const useProfessionalDataFetcher = (userId: string) => {
         throw paymentsError;
       }
       
-      console.log('Payments data:', paymentsData);
-      setPayments(transformPayments(paymentsData));
+      const transformedPayments = transformPayments(paymentsData || []);
+      setPayments(transformedPayments);
       
       // Fetch reviews
       const { data: reviewsData, error: reviewsError } = await supabase
@@ -298,15 +216,15 @@ export const useProfessionalDataFetcher = (userId: string) => {
         throw reviewsError;
       }
       
-      console.log('Reviews data:', reviewsData);
-      setReviews(transformReviews(reviewsData));
+      const transformedReviews = transformReviews(reviewsData || []);
+      setReviews(transformedReviews);
       
     } catch (error: any) {
       console.error('Dashboard data fetch error:', error);
-      setError(error.message || 'Failed to load dashboard data');
+      setError(error.message);
       toast({
         title: "Error",
-        description: "Failed to load dashboard data. Please try again later.",
+        description: error.message || 'Failed to fetch dashboard data',
         variant: "destructive"
       });
     } finally {
@@ -323,14 +241,6 @@ export const useProfessionalDataFetcher = (userId: string) => {
     profile,
     isLoading,
     error,
-    fetchDashboardData,
-    setProjects,
-    setApplications,
-    setPayments,
-    setReviews,
-    setSkills,
-    setProfile,
-    setIsLoading,
-    setError
+    fetchDashboardData
   };
 };
