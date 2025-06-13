@@ -4,13 +4,19 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { format } from 'date-fns';
 import { StarIcon, CreditCard, Clock, CheckCircle } from 'lucide-react';
-import { Project, Application, Review } from '../types';
+import { Application, Review } from '../types';
+import PaymentCard from '@/components/shared/cards/PaymentCard';
+import { Database } from '@/integrations/supabase/types';
+
+type Payment = Database['public']['Tables']['payments']['Row'];
+type Project = Database['public']['Tables']['projects']['Row'];
 
 interface PaymentsTabProps {
   isLoading: boolean;
   projects: Project[];
   reviews: Review[];
   applications: Application[];
+  payments: Payment[];
   projectToReview: Project | null;
   reviewData: {
     rating: number;
@@ -21,6 +27,9 @@ interface PaymentsTabProps {
   handleReviewCancel: () => void;
   handleReviewSubmit: () => Promise<void>;
   setReviewData: (data: { rating: number; comment: string }) => void;
+  onPaymentViewDetails: (payment: Payment) => void;
+  onPaymentApprove: (payment: Payment) => void;
+  onPaymentReject: (payment: Payment) => void;
 }
 
 const PaymentsTab: React.FC<PaymentsTabProps> = ({
@@ -28,13 +37,17 @@ const PaymentsTab: React.FC<PaymentsTabProps> = ({
   projects,
   reviews,
   applications,
+  payments,
   projectToReview,
   reviewData,
   isSubmitting,
   handleReviewInitiate,
   handleReviewCancel,
   handleReviewSubmit,
-  setReviewData
+  setReviewData,
+  onPaymentViewDetails,
+  onPaymentApprove,
+  onPaymentReject
 }) => {
   if (isLoading) {
     return (
@@ -49,30 +62,23 @@ const PaymentsTab: React.FC<PaymentsTabProps> = ({
     );
   }
 
-  // Filter projects that can be reviewed (completed projects without reviews)
-  const completedProjects = projects.filter(project => 
-    project.status === 'completed'
-  );
-
-  const projectsWithReviews = reviews.map(review => review.project_id);
-  const projectsToReview = completedProjects.filter(project => 
-    !projectsWithReviews.includes(project.id)
-  );
-
   const getStatusBadge = (status: string | null) => {
     const statusConfig = {
-      pending: { color: 'bg-yellow-100 text-yellow-800', icon: Clock },
+      draft: { color: 'bg-gray-100 text-gray-800', icon: Clock },
+      open: { color: 'bg-blue-100 text-blue-800', icon: Clock },
+      assigned: { color: 'bg-yellow-100 text-yellow-800', icon: Clock },
+      in_progress: { color: 'bg-purple-100 text-purple-800', icon: Clock },
       completed: { color: 'bg-green-100 text-green-800', icon: CheckCircle },
-      failed: { color: 'bg-red-100 text-red-800', icon: CreditCard },
+      cancelled: { color: 'bg-red-100 text-red-800', icon: Clock }
     };
     
-    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.pending;
+    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.draft;
     const Icon = config.icon;
     
     return (
       <Badge variant="outline" className={config.color}>
         <Icon className="h-3 w-3 mr-1" />
-        {status ? status.charAt(0).toUpperCase() + status.slice(1) : 'Unknown'}
+        {status ? status.charAt(0).toUpperCase() + status.slice(1).replace('_', ' ') : 'Unknown'}
       </Badge>
     );
   };
@@ -99,6 +105,11 @@ const PaymentsTab: React.FC<PaymentsTabProps> = ({
     );
   };
 
+  const projectsToReview = projects.filter(project => 
+    project.status === 'completed' && 
+    !reviews.some(review => review.project_id === project.id)
+  );
+
   return (
     <div className="space-y-6">
       <div>
@@ -108,7 +119,39 @@ const PaymentsTab: React.FC<PaymentsTabProps> = ({
         </p>
       </div>
 
-      {/* Completed Projects Available for Review */}
+      {/* Payments Section */}
+      <div>
+        <h3 className="text-lg font-semibold mb-4">Recent Payments</h3>
+        {payments.length === 0 ? (
+          <Card>
+            <CardContent className="text-center py-8">
+              <CreditCard className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+              <h3 className="text-lg font-medium mb-2">No Payments Yet</h3>
+              <p className="text-gray-500">
+                Payment information will appear here when projects are completed.
+              </p>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid gap-4">
+            {payments.map(payment => {
+              const project = projects.find(p => p.id === payment.project_id);
+              return (
+                <PaymentCard
+                  key={payment.id}
+                  payment={payment}
+                  project={project}
+                  onViewDetails={onPaymentViewDetails}
+                  onApprove={onPaymentApprove}
+                  onReject={onPaymentReject}
+                />
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Projects Ready for Review */}
       {projectsToReview.length > 0 && (
         <div>
           <h3 className="text-lg font-semibold mb-4">Projects Ready for Review</h3>
@@ -133,7 +176,7 @@ const PaymentsTab: React.FC<PaymentsTabProps> = ({
                         Budget: TTD {project.budget?.toLocaleString() || 'Not specified'}
                       </p>
                       <p className="text-sm text-gray-600">
-                        Professional: {project.professional?.first_name} {project.professional?.last_name}
+                        Professional ID: {project.professional_id}
                       </p>
                     </div>
                     <Button onClick={() => handleReviewInitiate(project)}>
@@ -231,7 +274,7 @@ const PaymentsTab: React.FC<PaymentsTabProps> = ({
       )}
 
       {/* Empty State */}
-      {projectsToReview.length === 0 && reviews.length === 0 && (
+      {projectsToReview.length === 0 && reviews.length === 0 && payments.length === 0 && (
         <Card>
           <CardContent className="text-center py-8">
             <CreditCard className="h-12 w-12 mx-auto text-gray-400 mb-4" />

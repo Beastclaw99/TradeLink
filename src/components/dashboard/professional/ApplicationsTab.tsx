@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,6 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Application } from '../types';
+import ApplicationCard from '@/components/shared/cards/ApplicationCard';
 
 interface ApplicationsTabProps {
   isLoading: boolean;
@@ -108,58 +108,16 @@ export const ApplicationsTab: React.FC<ApplicationsTabProps> = ({
       ) : (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {applications.map((application) => (
-            <Card key={application.id} className="overflow-hidden">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle className="line-clamp-1">{application.project?.title}</CardTitle>
-                  <Badge variant={getStatusBadgeVariant(application.status)}>
-                    {application.status.charAt(0).toUpperCase() + application.status.slice(1)}
-                  </Badge>
-                </div>
-                <CardDescription>
-                  Applied on {new Date(application.created_at).toLocaleDateString()}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {application.bid_amount && (
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium">Bid Amount</span>
-                      <span className="text-sm">
-                        {new Intl.NumberFormat('en-US', {
-                          style: 'currency',
-                          currency: 'USD',
-                          minimumFractionDigits: 0,
-                          maximumFractionDigits: 0
-                        }).format(application.bid_amount)}
-                      </span>
-                    </div>
-                  )}
-                  {application.cover_letter && (
-                    <div className="space-y-2">
-                      <span className="text-sm font-medium">Cover Letter</span>
-                      <p className="text-sm text-muted-foreground line-clamp-3">
-                        {application.cover_letter}
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-              {application.status === 'pending' && (
-                <CardFooter>
-                  <Button
-                    variant="outline"
-                    className="w-full"
-                    onClick={() => {
-                      setSelectedApplication(application);
-                      setIsWithdrawDialogOpen(true);
-                    }}
-                  >
-                    Withdraw Application
-                  </Button>
-                </CardFooter>
-              )}
-            </Card>
+            <ApplicationCard
+              key={application.id}
+              application={application}
+              project={application.project}
+              isProfessional={true}
+              onWithdraw={() => {
+                setSelectedApplication(application);
+                setIsWithdrawDialogOpen(true);
+              }}
+            />
           ))}
         </div>
       )}

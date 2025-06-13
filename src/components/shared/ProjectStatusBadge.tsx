@@ -1,6 +1,6 @@
 import React from 'react';
 import { Badge } from '@/components/ui/badge';
-import { ProjectStatus } from '@/types/database';
+import { Database } from '@/integrations/supabase/types';
 import {
   FileText,
   Clock,
@@ -13,6 +13,8 @@ import {
   AlertCircle,
   AlertTriangle
 } from 'lucide-react';
+
+type ProjectStatus = Database['public']['Enums']['project_status_enum'];
 
 interface ProjectStatusBadgeProps {
   status: ProjectStatus;

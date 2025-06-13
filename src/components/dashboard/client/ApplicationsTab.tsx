@@ -1,29 +1,55 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { format } from 'date-fns';
-import { Clock, CheckCircle, XCircle, Eye, User } from 'lucide-react';
+import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { useToast } from "@/components/ui/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 import { Application, Project } from '../types';
+import ApplicationCard from '@/components/shared/cards/ApplicationCard';
+import { Database } from '@/integrations/supabase/types';
+
+type Profile = Database['public']['Tables']['profiles']['Row'];
 
 interface ApplicationsTabProps {
   isLoading: boolean;
-  projects: Project[];
   applications: Application[];
-  handleApplicationUpdate: (applicationId: string, status: 'accepted' | 'rejected') => Promise<void>;
-  profile: any;
+  projects: Project[];
+  professionals: Profile[];
+  onApplicationUpdate: (applicationId: string, status: string) => Promise<void>;
 }
 
 const ApplicationsTab: React.FC<ApplicationsTabProps> = ({
   isLoading,
-  projects,
   applications,
-  handleApplicationUpdate,
-  profile
+  projects,
+  professionals,
+  onApplicationUpdate
 }) => {
   const [selectedApplication, setSelectedApplication] = useState<Application | null>(null);
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
+  const { toast } = useToast();
+
+  const handleViewDetails = (application: Application) => {
+    setSelectedApplication(application);
+    setIsViewDialogOpen(true);
+  };
+
+  const handleApplicationUpdate = async (applicationId: string, status: string) => {
+    try {
+      await onApplicationUpdate(applicationId, status);
+      toast({
+        title: "Application Updated",
+        description: `Application has been ${status}.`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update application. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
 
   if (isLoading) {
     return (
@@ -38,162 +64,77 @@ const ApplicationsTab: React.FC<ApplicationsTabProps> = ({
     );
   }
 
-  const pendingApplications = applications.filter(app => app.status === 'pending');
-  const processedApplications = applications.filter(app => app.status !== 'pending');
-
-  const getStatusBadge = (status: string) => {
-    const statusConfig = {
-      pending: { color: 'bg-yellow-100 text-yellow-800', icon: Clock },
-      accepted: { color: 'bg-green-100 text-green-800', icon: CheckCircle },
-      rejected: { color: 'bg-red-100 text-red-800', icon: XCircle },
-    };
-    
-    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.pending;
-    const Icon = config.icon;
-    
-    return (
-      <Badge variant="outline" className={config.color}>
-        <Icon className="h-3 w-3 mr-1" />
-        {status.charAt(0).toUpperCase() + status.slice(1)}
-      </Badge>
-    );
-  };
-
-  const ApplicationCard = ({ application }: { application: Application }) => {
-    const project = projects.find(p => p.id === application.project_id);
-    
-    return (
-      <Card>
-        <CardHeader>
-          <div className="flex justify-between items-start">
-            <div>
-              <CardTitle className="text-lg">
-                {project?.title || 'Unknown Project'}
-              </CardTitle>
-              <CardDescription>
-                Applied on {format(new Date(application.created_at), 'MMM d, yyyy')}
-              </CardDescription>
-            </div>
-            {getStatusBadge(application.status || 'pending')}
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div className="flex items-center gap-2">
-              <User className="h-4 w-4" />
-              <span className="text-sm">
-                Professional ID: {application.professional_id}
-              </span>
-            </div>
-            
-            <div>
-              <p className="text-sm font-medium mb-1">Proposal:</p>
-              <p className="text-sm text-gray-600 line-clamp-3">
-                {application.proposal_message || application.cover_letter || 'No proposal message'}
-              </p>
-            </div>
-            
-            <div className="flex justify-between items-center">
-              <div>
-                <span className="text-sm text-gray-500">Bid Amount: </span>
-                <span className="font-medium">
-                  TTD {application.bid_amount?.toLocaleString() || 'Not specified'}
-                </span>
-              </div>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setSelectedApplication(application)}
-                >
-                  <Eye className="h-4 w-4 mr-1" />
-                  View Details
-                </Button>
-                {application.status === 'pending' && (
-                  <>
-                    <Button
-                      size="sm"
-                      onClick={() => handleApplicationUpdate(application.id, 'accepted')}
-                      className="bg-green-600 hover:bg-green-700"
-                    >
-                      Accept
-                    </Button>
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => handleApplicationUpdate(application.id, 'rejected')}
-                    >
-                      Reject
-                    </Button>
-                  </>
-                )}
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  };
-
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold mb-2">Project Applications</h2>
-        <p className="text-gray-600">
-          Manage applications from professionals for your projects
-        </p>
+        <h2 className="text-2xl font-bold mb-4">Applications</h2>
+        {applications.length === 0 ? (
+          <Card>
+            <CardContent className="text-center py-8">
+              <p className="text-gray-500">No applications yet.</p>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid gap-4">
+            {applications.map((application) => {
+              const project = projects.find(p => p.id === application.project_id);
+              const professional = professionals.find(p => p.id === application.professional_id);
+              
+              return (
+                <ApplicationCard
+                  key={application.id}
+                  application={application}
+                  project={project}
+                  professional={professional}
+                  onViewDetails={handleViewDetails}
+                  onAccept={(app) => handleApplicationUpdate(app.id, 'accepted')}
+                  onReject={(app) => handleApplicationUpdate(app.id, 'rejected')}
+                />
+              );
+            })}
+          </div>
+        )}
       </div>
 
-      <Tabs defaultValue="pending">
-        <TabsList>
-          <TabsTrigger value="pending">
-            Pending ({pendingApplications.length})
-          </TabsTrigger>
-          <TabsTrigger value="processed">
-            Processed ({processedApplications.length})
-          </TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="pending" className="mt-6">
-          {pendingApplications.length === 0 ? (
-            <Card>
-              <CardContent className="text-center py-8">
-                <Clock className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-                <h3 className="text-lg font-medium mb-2">No Pending Applications</h3>
-                <p className="text-gray-500">
-                  New applications will appear here when professionals apply to your projects.
-                </p>
-              </CardContent>
-            </Card>
-          ) : (
+      <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Application Details</DialogTitle>
+            <DialogDescription>
+              Review the full application details
+            </DialogDescription>
+          </DialogHeader>
+          {selectedApplication && (
             <div className="space-y-4">
-              {pendingApplications.map(application => (
-                <ApplicationCard key={application.id} application={application} />
-              ))}
+              <div>
+                <h3 className="font-medium mb-2">Cover Letter</h3>
+                <p className="text-sm text-gray-600">
+                  {selectedApplication.cover_letter || selectedApplication.proposal_message || 'No cover letter provided'}
+                </p>
+              </div>
+              <div>
+                <h3 className="font-medium mb-2">Bid Amount</h3>
+                <p className="text-sm text-gray-600">
+                  ${selectedApplication.bid_amount?.toLocaleString() || 'Not specified'}
+                </p>
+              </div>
+              {selectedApplication.availability && (
+                <div>
+                  <h3 className="font-medium mb-2">Availability</h3>
+                  <p className="text-sm text-gray-600">
+                    {selectedApplication.availability}
+                  </p>
+                </div>
+              )}
             </div>
           )}
-        </TabsContent>
-        
-        <TabsContent value="processed" className="mt-6">
-          {processedApplications.length === 0 ? (
-            <Card>
-              <CardContent className="text-center py-8">
-                <CheckCircle className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-                <h3 className="text-lg font-medium mb-2">No Processed Applications</h3>
-                <p className="text-gray-500">
-                  Applications you've accepted or rejected will appear here.
-                </p>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="space-y-4">
-              {processedApplications.map(application => (
-                <ApplicationCard key={application.id} application={application} />
-              ))}
-            </div>
-          )}
-        </TabsContent>
-      </Tabs>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsViewDialogOpen(false)}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

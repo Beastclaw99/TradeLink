@@ -3,9 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Project, ProjectStatus, Application } from '@/types/database';
+import { Database } from '@/integrations/supabase/types';
 import ProjectStatusBadge from '@/components/shared/ProjectStatusBadge';
 import { Edit, Trash2, Send, Eye, Users } from 'lucide-react';
+
+type Project = Database['public']['Tables']['projects']['Row'];
+type Application = Database['public']['Tables']['applications']['Row'];
+type ProjectStatus = Database['public']['Enums']['project_status_enum'];
+type ApplicationStatus = Database['public']['Enums']['application_status'];
 
 interface ProjectCardProps {
   project: Project;
@@ -23,8 +28,8 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
   const navigate = useNavigate();
   
   const projectApplications = applications.filter(app => app.project_id === project.id);
-  const pendingApplications = projectApplications.filter(app => app.status === 'pending');
-  const acceptedApplication = projectApplications.find(app => app.status === 'accepted');
+  const pendingApplications = projectApplications.filter(app => app.status === 'pending' as ApplicationStatus);
+  const acceptedApplication = projectApplications.find(app => app.status === 'accepted' as ApplicationStatus);
 
   const handleViewDetails = () => {
     navigate(`/projects/${project.id}`);
@@ -40,7 +45,7 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
         <div className="flex items-start justify-between">
           <div className="flex-1">
             <CardTitle className="text-lg mb-2">{project.title}</CardTitle>
-            <ProjectStatusBadge status={project.status || 'open'} showIcon={true} />
+            <ProjectStatusBadge status={project.status || 'open' as ProjectStatus} showIcon={true} />
           </div>
         </div>
       </CardHeader>
@@ -71,7 +76,7 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
             <div className="flex justify-between text-sm">
               <span className="text-gray-500">Assigned Professional:</span>
               <span className="font-medium">
-                {acceptedApplication.professional?.first_name} {acceptedApplication.professional?.last_name}
+                {acceptedApplication.professional_id}
               </span>
             </div>
           )}
@@ -88,7 +93,7 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
             View Details
           </Button>
           
-          {project.status === 'open' && (
+          {project.status === 'open' as ProjectStatus && (
             <Button 
               variant="default" 
               size="sm"

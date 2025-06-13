@@ -6,7 +6,11 @@ import { Button } from "@/components/ui/button"
 import { CalendarDays, CheckCircle2, Link2, ListChecks, User2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
-import { Project, ProjectStatus } from '@/types/database';
+import { Database } from '@/integrations/supabase/types';
+
+type Project = Database['public']['Tables']['projects']['Row'];
+type ProjectStatus = Database['public']['Enums']['project_status_enum'];
+type Profile = Database['public']['Tables']['profiles']['Row'];
 
 interface UnifiedProjectCardProps {
   project: Project;
@@ -15,6 +19,7 @@ interface UnifiedProjectCardProps {
   userSkills?: string[];
   actionLabel?: string;
   onClick?: () => void;
+  client?: Profile;
 }
 
 interface StatusConfig {
@@ -57,7 +62,8 @@ const UnifiedProjectCard: React.FC<UnifiedProjectCardProps> = ({
   userType,
   userSkills = [],
   actionLabel = "View Project",
-  onClick
+  onClick,
+  client
 }) => {
   const navigate = useNavigate();
 
@@ -74,7 +80,6 @@ const UnifiedProjectCard: React.FC<UnifiedProjectCardProps> = ({
   const getProjectType = (): 'open' | 'applied' | 'assigned' | 'completed' => {
     if (project.assigned_to) return 'assigned';
     if (project.status === 'completed') return 'completed';
-    if (project.applications && project.applications.length > 0) return 'applied';
     return 'open';
   };
 
@@ -111,20 +116,16 @@ const UnifiedProjectCard: React.FC<UnifiedProjectCardProps> = ({
             <CalendarDays className="w-4 h-4 mr-2" />
             <span>{project.created_at ? format(new Date(project.created_at), 'PPP') : 'N/A'}</span>
           </div>
-          <div className="flex items-center text-gray-600 text-sm">
-            <User2 className="w-4 h-4 mr-2" />
-            <span>{project.client?.first_name} {project.client?.last_name}</span>
-          </div>
+          {client && (
+            <div className="flex items-center text-gray-600 text-sm">
+              <User2 className="w-4 h-4 mr-2" />
+              <span>{client.first_name} {client.last_name}</span>
+            </div>
+          )}
           <div className="flex items-center text-gray-600 text-sm">
             <Link2 className="w-4 h-4 mr-2" />
             <span>{project.location || 'Remote'}</span>
           </div>
-          {project.milestones && project.milestones.length > 0 && (
-            <div className="flex items-center text-gray-600 text-sm">
-              <ListChecks className="w-4 h-4 mr-2" />
-              <span>{project.milestones.length} Milestones</span>
-            </div>
-          )}
         </div>
         {projectSkills.length > 0 && (
           <div className="mt-4">

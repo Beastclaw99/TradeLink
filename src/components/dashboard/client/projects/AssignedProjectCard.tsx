@@ -1,21 +1,28 @@
 import React from 'react';
 import UnifiedProjectCard from '@/components/shared/UnifiedProjectCard';
-import { Project, Application } from '../../types';
+import { Database } from '@/integrations/supabase/types';
+
+type Project = Database['public']['Tables']['projects']['Row'];
+type Application = Database['public']['Tables']['applications']['Row'];
+type Profile = Database['public']['Tables']['profiles']['Row'];
 
 interface AssignedProjectCardProps {
   project: Project;
   acceptedApp: Application | undefined;
+  client: Profile;
 }
 
 const AssignedProjectCard: React.FC<AssignedProjectCardProps> = ({ 
   project,
-  acceptedApp
+  acceptedApp,
+  client
 }) => {
   return (
     <UnifiedProjectCard 
       project={project}
       variant="card"
-      isProfessional={false}
+      userType="professional"
+      client={client}
     />
   );
 };
