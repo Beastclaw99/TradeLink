@@ -87,9 +87,9 @@ const ProfileTab: React.FC<ProfileTabProps> = ({
         show_email: profileData.show_email ?? true,
         show_phone: profileData.show_phone ?? true,
         allow_messages: profileData.allow_messages ?? true,
-        profile_image: profileData.profile_image || null,
+        profile_image_url: profileData.profile_image_url || '',
         verification_status: (profileData.verification_status as 'unverified' | 'pending' | 'verified') || null,
-        years_experience: profileData.years_experience || null,
+        years_of_experience: profileData.years_of_experience || null,
         rating: profileData.rating || null,
         portfolio_images: profileData.portfolio_images || null,
       };
@@ -134,7 +134,8 @@ const ProfileTab: React.FC<ProfileTabProps> = ({
           rich_description: project.rich_description,
           scope: project.scope,
           service_contract: project.service_contract,
-          sla_terms: project.sla_terms
+          sla_terms: project.sla_terms,
+          spent: project.spent || 0
         }));
         
         setProjects(transformedProjects);
