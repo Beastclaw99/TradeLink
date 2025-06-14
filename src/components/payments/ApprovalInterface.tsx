@@ -13,7 +13,7 @@ interface ProjectSummary {
   amount: number;
   description: string;
   location: string;
-  expected_timeline: string;
+  timeline: string;
   submitted_date: string;
   status: DBProject['status'];
 }
@@ -44,7 +44,7 @@ const ApprovalInterface: React.FC<ApprovalInterfaceProps> = ({ project }) => {
     amount: 2500,
     description: 'Complete kitchen sink and dishwasher plumbing installation with new fixtures and connections.',
     location: 'Port of Spain, Trinidad',
-    expected_timeline: '2-3 days',
+    timeline: '2-3 days',
     submitted_date: '2024-01-15',
     status: 'open'
   };
@@ -111,7 +111,7 @@ const ApprovalInterface: React.FC<ApprovalInterfaceProps> = ({ project }) => {
                 </div>
                 <div className="flex items-center gap-2 text-sm text-gray-600">
                   <Calendar className="h-4 w-4" />
-                  Estimated Duration: {projectData.expected_timeline}
+                  Estimated Duration: {projectData.timeline}
                 </div>
                 <div className="flex items-center gap-2 text-sm text-gray-600">
                   <Clock className="h-4 w-4" />

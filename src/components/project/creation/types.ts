@@ -25,7 +25,6 @@ export interface ProjectData {
   service_contract: string;
   requirements: string[];
   rich_description: string;
-  expected_timeline: string;
   scope: string;
   industry_specific_fields: Record<string, any> | null;
   location_coordinates: { lat: number; lng: number } | null;

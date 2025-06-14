@@ -16,13 +16,17 @@ const TIMELINE_OPTIONS = [
   { value: '1_to_3_months', label: '1-3 months' },
   { value: '3_to_6_months', label: '3-6 months' },
   { value: 'more_than_6_months', label: 'More than 6 months' }
-];
+] as const;
+
+type TimelineOption = typeof TIMELINE_OPTIONS[number]['value'];
 
 const URGENCY_OPTIONS = [
   { value: 'low', label: 'Low - Flexible timeline' },
   { value: 'medium', label: 'Medium - Standard timeline' },
   { value: 'high', label: 'High - Urgent completion needed' }
-];
+] as const;
+
+type UrgencyOption = typeof URGENCY_OPTIONS[number]['value'];
 
 const BudgetTimelineStep: React.FC<BudgetTimelineStepProps> = ({ data, onUpdate }) => {
   const handleBudgetChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -62,10 +66,10 @@ const BudgetTimelineStep: React.FC<BudgetTimelineStepProps> = ({ data, onUpdate 
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="timeline">Expected Timeline</Label>
+            <Label htmlFor="timeline">Project Timeline</Label>
             <Select
               value={data.timeline}
-              onValueChange={(value) => onUpdate({ timeline: value })}
+              onValueChange={(value: TimelineOption) => onUpdate({ timeline: value })}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select timeline" />
@@ -84,7 +88,7 @@ const BudgetTimelineStep: React.FC<BudgetTimelineStepProps> = ({ data, onUpdate 
             <Label htmlFor="urgency">Project Urgency</Label>
             <Select
               value={data.urgency}
-              onValueChange={(value) => onUpdate({ urgency: value })}
+              onValueChange={(value: UrgencyOption) => onUpdate({ urgency: value })}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select urgency level" />

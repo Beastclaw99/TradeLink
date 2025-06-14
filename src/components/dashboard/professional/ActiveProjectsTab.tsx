@@ -534,10 +534,10 @@ const ActiveProjectsTab: React.FC<ActiveProjectsTabProps> = ({
                       <span className="font-medium text-gray-700">Client:</span>
                       <p>{project.client?.first_name} {project.client?.last_name}</p>
                     </div>
-                    {project.expected_timeline && (
-                      <div>
-                        <span className="font-medium text-gray-700">Timeline:</span>
-                        <p>{project.expected_timeline}</p>
+                    {project.timeline && (
+                      <div className="flex items-center gap-2">
+                        <Clock className="h-4 w-4 text-gray-500" />
+                        <p>{project.timeline}</p>
                       </div>
                     )}
                     {project.category && (

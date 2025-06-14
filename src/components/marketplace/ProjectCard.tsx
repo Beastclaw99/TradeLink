@@ -73,7 +73,7 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
             </div>
             <div>
               <span className="font-medium">Timeline:</span>
-              <p className="text-gray-600">{project.expected_timeline || 'N/A'}</p>
+              <p className="text-gray-600">{project.timeline || 'N/A'}</p>
             </div>
             <div>
               <span className="font-medium">Location:</span>

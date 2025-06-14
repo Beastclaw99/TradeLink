@@ -83,7 +83,7 @@ const ReviewStep: React.FC<ReviewStepProps> = ({ data }) => {
             </div>
             <div>
               <h4 className="font-medium">Timeline</h4>
-              <p className="text-gray-700">{data.expected_timeline}</p>
+              <p className="text-gray-700">{data.timeline}</p>
             </div>
             <div>
               <h4 className="font-medium">Urgency</h4>

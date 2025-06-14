@@ -51,7 +51,7 @@ const ProjectDetails: React.FC = () => {
         description: data.description,
         category: data.category,
         budget: data.budget,
-        expected_timeline: data.expected_timeline,
+        timeline: data.timeline,
         location: data.location,
         urgency: data.urgency,
         requirements: data.requirements,
@@ -300,11 +300,10 @@ const ProjectDetails: React.FC = () => {
                     </div>
                   )}
 
-                  {project.expected_timeline && (
+                  {project.timeline && (
                     <div className="flex items-center gap-2">
                       <Clock className="h-4 w-4 text-gray-500" />
-                      <span className="font-medium">Timeline:</span>
-                      <span>{project.expected_timeline}</span>
+                      <span>{project.timeline}</span>
                     </div>
                   )}
 

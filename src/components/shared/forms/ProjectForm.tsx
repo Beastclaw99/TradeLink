@@ -21,12 +21,12 @@ interface ProjectFormData {
   description: string;
   category: string;
   budget: number;
-  expected_timeline: string;
+  timeline: string;
   location: string;
   urgency: string;
   requirements: string[];
   recommended_skills: string[];
-  status: ProjectStatus;
+  status: 'draft' | 'open' | 'assigned' | 'in_progress' | 'work_submitted' | 'work_revision_requested' | 'work_approved' | 'completed' | 'archived' | 'cancelled' | 'disputed';
   rich_description?: string;
   scope?: string;
   industry_specific_fields?: Record<string, any>;
@@ -108,13 +108,13 @@ const ProjectForm: React.FC<ProjectFormProps> = ({
     description: '',
     category: '',
     budget: 0,
-    expected_timeline: '',
+    timeline: '',
     location: '',
     urgency: '',
     requirements: [],
     recommended_skills: [],
-    status: 'pending',
-    payment_required: true,
+    status: 'draft',
+    payment_required: false,
     ...initialData
   });
 
@@ -122,10 +122,18 @@ const ProjectForm: React.FC<ProjectFormProps> = ({
   const [newSkill, setNewSkill] = useState('');
   const [openSkillsPopover, setOpenSkillsPopover] = useState(false);
 
-  const handleInputChange = (field: keyof ProjectFormData, value: string | string[]) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-    if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: '' }));
+  const handleInputChange = (field: keyof ProjectFormData, value: string | number | string[] | boolean) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+    
+    // Clear error for this field when user makes a change
+    if (errors[field as keyof typeof errors]) {
+      setErrors(prev => ({
+        ...prev,
+        [field]: ''
+      }));
     }
   };
 
@@ -162,7 +170,7 @@ const ProjectForm: React.FC<ProjectFormProps> = ({
     if (!formData.description.trim()) newErrors.description = 'Project description is required';
     if (!formData.category) newErrors.category = 'Project category is required';
     if (!formData.budget) newErrors.budget = 'Budget is required';
-    if (!formData.expected_timeline) newErrors.expected_timeline = 'Timeline is required';
+    if (!formData.timeline) newErrors.timeline = 'Timeline is required';
     if (!formData.location.trim()) newErrors.location = 'Location is required';
 
     setErrors(newErrors);
@@ -247,9 +255,9 @@ const ProjectForm: React.FC<ProjectFormProps> = ({
           {/* Timeline and Location */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="expected_timeline">Expected Timeline *</Label>
-              <Select value={formData.expected_timeline} onValueChange={(value) => handleInputChange('expected_timeline', value)}>
-                <SelectTrigger className={errors.expected_timeline ? 'border-red-500' : ''}>
+              <Label htmlFor="timeline">Project Timeline *</Label>
+              <Select value={formData.timeline} onValueChange={(value) => handleInputChange('timeline', value)}>
+                <SelectTrigger className={errors.timeline ? 'border-red-500' : ''}>
                   <SelectValue placeholder="Select timeline" />
                 </SelectTrigger>
                 <SelectContent>
@@ -261,7 +269,7 @@ const ProjectForm: React.FC<ProjectFormProps> = ({
                   <SelectItem value="flexible">Flexible</SelectItem>
                 </SelectContent>
               </Select>
-              {errors.expected_timeline && <p className="text-red-500 text-sm mt-1">{errors.expected_timeline}</p>}
+              {errors.timeline && <p className="text-red-500 text-sm mt-1">{errors.timeline}</p>}
             </div>
 
             <div>
