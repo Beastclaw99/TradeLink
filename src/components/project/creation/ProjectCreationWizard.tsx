@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -44,29 +45,29 @@ const ProjectCreationWizard: React.FC = () => {
       return JSON.parse(savedDraft);
     }
     return {
-    title: '',
-    description: '',
-    category: '',
-    location: '',
-    recommendedSkills: [],
-    budget: 0,
-    timeline: '',
-    urgency: '',
-    milestones: [],
-    deliverables: [],
-    service_contract: '',
-    requirements: [],
-    rich_description: '',
-    expected_timeline: '',
-    scope: '',
-    industry_specific_fields: null,
-    location_coordinates: null,
-    contract_template_id: '',
-    payment_required: true,
-    payment_due_date: '',
-    project_start_time: '',
-    client_id: user?.id,
-    sla_terms: null
+      title: '',
+      description: '',
+      category: '',
+      location: '',
+      recommended_skills: [],
+      budget: 0,
+      timeline: '',
+      urgency: '',
+      milestones: [],
+      deliverables: [],
+      service_contract: '',
+      requirements: [],
+      rich_description: '',
+      expected_timeline: '',
+      scope: '',
+      industry_specific_fields: null,
+      location_coordinates: null,
+      contract_template_id: '',
+      payment_required: true,
+      payment_due_date: '',
+      project_start_time: '',
+      client_id: user?.id,
+      sla_terms: null
     };
   });
 
@@ -115,10 +116,16 @@ const ProjectCreationWizard: React.FC = () => {
   }, [currentStep, location.pathname, navigate]);
 
   const handleUpdateData = (updates: Partial<ProjectData>) => {
-    setProjectData(prev => ({ ...prev, ...updates }));
+    console.log('Updating project data:', updates);
+    setProjectData(prev => {
+      const newData = { ...prev, ...updates };
+      console.log('New project data:', newData);
+      return newData;
+    });
   };
 
   const handleNext = () => {
+    console.log('Current step:', currentStep, 'Project data:', projectData);
     if (currentStep < STEPS.length) {
       setCurrentStep(currentStep + 1);
     }
@@ -300,10 +307,20 @@ const ProjectCreationWizard: React.FC = () => {
 
   const getCurrentStepComponent = () => {
     const step = STEPS.find(s => s.id === currentStep);
-    if (!step) return null;
-    const Component = step.component;
+    if (!step) {
+      console.error('Step not found:', currentStep);
+      return null;
+    }
     
-    // All steps need both data and onUpdate props
+    const Component = step.component;
+    console.log('Rendering step component:', step.title, 'with data:', projectData);
+    
+    // Special handling for ReviewStep which doesn't need onUpdate
+    if (step.id === 6) {
+      return <Component data={projectData} />;
+    }
+    
+    // All other steps need both data and onUpdate props
     return <Component data={projectData} onUpdate={handleUpdateData} />;
   };
 
