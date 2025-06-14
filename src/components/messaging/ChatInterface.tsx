@@ -3,172 +3,125 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { Send, MessageCircle, User } from 'lucide-react';
+import { Send } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/components/ui/use-toast';
 
 interface Message {
   id: string;
   content: string;
+  created_at: string;
   sender_id: string;
   recipient_id: string;
   project_id: string | null;
-  created_at: string;
-  is_read: boolean;
-  message_type: string;
   file_url: string | null;
+  message_type: string | null;
+  is_read: boolean | null;
 }
 
 interface ChatInterfaceProps {
-  userId: string;
+  projectId: string;
+  currentUserId: string;
   recipientId: string;
-  projectId?: string;
-  className?: string;
 }
 
-const ChatInterface: React.FC<ChatInterfaceProps> = ({
-  userId,
-  recipientId,
-  projectId,
-  className = ""
+const ChatInterface: React.FC<ChatInterfaceProps> = ({ 
+  projectId, 
+  currentUserId, 
+  recipientId 
 }) => {
-  const { toast } = useToast();
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
-  const [isSending, setIsSending] = useState(false);
-  const [recipientInfo, setRecipientInfo] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     fetchMessages();
-    fetchRecipientInfo();
-  }, [userId, recipientId, projectId]);
+  }, [projectId, currentUserId, recipientId]);
 
   const fetchMessages = async () => {
     try {
       const { data, error } = await supabase
         .from('direct_messages')
         .select('*')
-        .or(`and(sender_id.eq.${userId},recipient_id.eq.${recipientId}),and(sender_id.eq.${recipientId},recipient_id.eq.${userId})`)
-        .eq('project_id', projectId || null)
+        .eq('project_id', projectId)
+        .or(`and(sender_id.eq.${currentUserId},recipient_id.eq.${recipientId}),and(sender_id.eq.${recipientId},recipient_id.eq.${currentUserId})`)
         .order('created_at', { ascending: true });
 
       if (error) throw error;
-      setMessages(data || []);
-    } catch (error: any) {
+
+      // Transform data to match Message interface
+      const transformedMessages: Message[] = (data || []).map(msg => ({
+        ...msg,
+        created_at: msg.created_at || new Date().toISOString(),
+        project_id: msg.project_id || null,
+        file_url: msg.file_url || null,
+        message_type: msg.message_type || null,
+        is_read: msg.is_read || null
+      }));
+
+      setMessages(transformedMessages);
+    } catch (error) {
       console.error('Error fetching messages:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load messages",
-        variant: "destructive"
-      });
-    }
-  };
-
-  const fetchRecipientInfo = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('first_name, last_name, profile_image_url')
-        .eq('id', recipientId)
-        .single();
-
-      if (error) throw error;
-      setRecipientInfo(data);
-    } catch (error: any) {
-      console.error('Error fetching recipient info:', error);
     }
   };
 
   const sendMessage = async () => {
-    if (!newMessage.trim() || isSending) return;
+    if (!newMessage.trim()) return;
 
+    setIsLoading(true);
     try {
-      setIsSending(true);
       const { error } = await supabase
         .from('direct_messages')
-        .insert({
-          content: newMessage.trim(),
-          sender_id: userId,
-          recipient_id: recipientId,
-          project_id: projectId || null,
-          message_type: 'text'
-        });
+        .insert([
+          {
+            content: newMessage,
+            sender_id: currentUserId,
+            recipient_id: recipientId,
+            project_id: projectId
+          }
+        ]);
 
       if (error) throw error;
 
       setNewMessage('');
       fetchMessages();
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error sending message:', error);
-      toast({
-        title: "Error",
-        description: "Failed to send message",
-        variant: "destructive"
-      });
     } finally {
-      setIsSending(false);
+      setIsLoading(false);
     }
   };
 
-  const formatTime = (timestamp: string) => {
-    return new Date(timestamp).toLocaleTimeString([], { 
-      hour: '2-digit', 
-      minute: '2-digit' 
-    });
-  };
-
   return (
-    <Card className={className}>
+    <Card className="h-96">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <MessageCircle className="h-5 w-5" />
-          Chat {recipientInfo && `with ${recipientInfo.first_name} ${recipientInfo.last_name}`}
-        </CardTitle>
+        <CardTitle>Project Chat</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
-        {/* Messages */}
-        <div className="h-64 overflow-y-auto space-y-2 border rounded-lg p-4">
-          {messages.length === 0 ? (
-            <div className="text-center text-gray-500">
-              <MessageCircle className="mx-auto h-8 w-8 mb-2" />
-              <p>No messages yet. Start the conversation!</p>
+      <CardContent className="flex flex-col h-full">
+        <div className="flex-1 overflow-y-auto mb-4 space-y-2">
+          {messages.map((message) => (
+            <div
+              key={message.id}
+              className={`p-2 rounded max-w-xs ${
+                message.sender_id === currentUserId
+                  ? 'bg-blue-500 text-white ml-auto'
+                  : 'bg-gray-200'
+              }`}
+            >
+              <p>{message.content}</p>
+              <p className="text-xs opacity-70">
+                {new Date(message.created_at).toLocaleString()}
+              </p>
             </div>
-          ) : (
-            messages.map((message) => (
-              <div
-                key={message.id}
-                className={`flex ${message.sender_id === userId ? 'justify-end' : 'justify-start'}`}
-              >
-                <div
-                  className={`max-w-xs lg:max-w-md px-3 py-2 rounded-lg ${
-                    message.sender_id === userId
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-200 text-gray-900'
-                  }`}
-                >
-                  <p className="text-sm">{message.content}</p>
-                  <p className={`text-xs mt-1 ${
-                    message.sender_id === userId ? 'text-blue-100' : 'text-gray-500'
-                  }`}>
-                    {formatTime(message.created_at)}
-                  </p>
-                </div>
-              </div>
-            ))
-          )}
+          ))}
         </div>
-
-        {/* Message Input */}
         <div className="flex gap-2">
           <Input
-            placeholder="Type your message..."
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
+            placeholder="Type a message..."
             onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
-            disabled={isSending}
           />
-          <Button onClick={sendMessage} disabled={isSending || !newMessage.trim()}>
+          <Button onClick={sendMessage} disabled={isLoading}>
             <Send className="h-4 w-4" />
           </Button>
         </div>

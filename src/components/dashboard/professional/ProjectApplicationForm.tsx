@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
-import { DollarSign, FileText, Clock, User } from 'lucide-react';
+import { DollarSign, FileText, Clock } from 'lucide-react';
 import { Project } from '../types';
 
 interface ProjectApplicationFormProps {

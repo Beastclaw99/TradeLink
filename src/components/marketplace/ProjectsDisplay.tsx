@@ -67,11 +67,7 @@ const ProjectsDisplay: React.FC<ProjectsDisplayProps> = ({
         <ProjectCard
           key={project.id}
           project={project}
-          onViewDetails={onViewDetails}
-          onApply={onApply}
-          showApplyButton={showApplyButton}
-          hasApplied={hasApplied(project.id)}
-          userSkills={userSkills}
+          onClick={() => onViewDetails(project.id)}
         />
       ))}
     </div>
