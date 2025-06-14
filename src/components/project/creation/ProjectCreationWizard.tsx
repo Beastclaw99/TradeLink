@@ -41,7 +41,19 @@ const ProjectCreationWizard: React.FC = () => {
     // Try to load draft data from localStorage
     const savedDraft = localStorage.getItem('projectDraft');
     if (savedDraft) {
-      return JSON.parse(savedDraft);
+      try {
+        const parsed = JSON.parse(savedDraft);
+        // Ensure all required arrays are initialized
+        return {
+          ...parsed,
+          recommended_skills: parsed.recommended_skills || [],
+          milestones: parsed.milestones || [],
+          deliverables: parsed.deliverables || [],
+          requirements: parsed.requirements || []
+        };
+      } catch (error) {
+        console.error('Error parsing saved draft:', error);
+      }
     }
     return {
       title: '',
@@ -117,7 +129,15 @@ const ProjectCreationWizard: React.FC = () => {
   const handleUpdateData = (updates: Partial<ProjectData>) => {
     console.log('Updating project data:', updates);
     setProjectData(prev => {
-      const newData = { ...prev, ...updates };
+      const newData = { 
+        ...prev, 
+        ...updates,
+        // Ensure arrays are always defined
+        recommended_skills: updates.recommended_skills || prev.recommended_skills || [],
+        milestones: updates.milestones || prev.milestones || [],
+        deliverables: updates.deliverables || prev.deliverables || [],
+        requirements: updates.requirements || prev.requirements || []
+      };
       console.log('New project data:', newData);
       return newData;
     });
@@ -366,13 +386,22 @@ const ProjectCreationWizard: React.FC = () => {
     const Component = step.component;
     console.log('Rendering step component:', step.title, 'with data:', projectData);
     
+    // Ensure we pass clean data to each component
+    const safeProjectData = {
+      ...projectData,
+      recommended_skills: projectData.recommended_skills || [],
+      milestones: projectData.milestones || [],
+      deliverables: projectData.deliverables || [],
+      requirements: projectData.requirements || []
+    };
+    
     // Special handling for ReviewStep which doesn't need onUpdate
     if (step.id === 6) {
-      return <Component data={projectData} onUpdate={handleUpdateData} />;
+      return <Component data={safeProjectData} onUpdate={handleUpdateData} />;
     }
     
     // All other steps need both data and onUpdate props
-    return <Component data={projectData} onUpdate={handleUpdateData} />;
+    return <Component data={safeProjectData} onUpdate={handleUpdateData} />;
   };
 
   const isLastStep = currentStep === STEPS.length;
