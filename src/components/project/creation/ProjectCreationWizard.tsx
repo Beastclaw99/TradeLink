@@ -37,7 +37,37 @@ const ProjectCreationWizard: React.FC = () => {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSavingDraft, setIsSavingDraft] = useState(false);
+  const [isEditing, setIsEditing] = useState(() => {
+    const params = new URLSearchParams(location.search);
+    return params.get('mode') === 'edit';
+  });
   const [projectData, setProjectData] = useState<ProjectData>(() => {
+    // If in edit mode, load project data from localStorage
+    if (isEditing) {
+      const editData = localStorage.getItem('editProjectData');
+      if (editData) {
+        const parsedData = JSON.parse(editData);
+        return {
+          ...parsedData,
+          // Ensure timeline is one of the valid options
+          timeline: parsedData.timeline || '',
+          // Ensure other required fields have default values
+          recommended_skills: parsedData.recommended_skills || [],
+          requirements: parsedData.requirements || [],
+          urgency: parsedData.urgency || 'medium',
+          rich_description: parsedData.rich_description || '',
+          scope: parsedData.scope || '',
+          industry_specific_fields: parsedData.industry_specific_fields || null,
+          location_coordinates: parsedData.location_coordinates || null,
+          project_start_time: parsedData.project_start_time || '',
+          service_contract: parsedData.service_contract || '',
+          contract_template_id: parsedData.contract_template_id || '',
+          payment_required: parsedData.payment_required ?? true,
+          payment_due_date: parsedData.payment_due_date || '',
+          sla_terms: parsedData.sla_terms || null
+        };
+      }
+    }
     // Try to load draft data from localStorage
     const savedDraft = localStorage.getItem('projectDraft');
     if (savedDraft) {
@@ -326,37 +356,70 @@ const ProjectCreationWizard: React.FC = () => {
         project_start_time: cleanUuidField(projectData.project_start_time),
         client_id: user.id,
         sla_terms: projectData.sla_terms,
-        status: 'draft' as const
+        status: isEditing ? projectData.status : 'draft' as const
       };
 
-      if (!draftId) {
-        // Create new project as draft
-        const { data: project, error: projectError } = await supabase
-          .from('projects')
-          .insert([dbProjectData])
-          .select()
-          .single();
-
-        if (projectError) {
-          console.error('Error creating project:', projectError);
-          throw projectError;
-        }
-        
-        projectId = project.id;
-      } else {
-        // Update existing draft
+      if (isEditing) {
+        // Update existing project
         const { error: updateError } = await supabase
           .from('projects')
           .update({
             ...dbProjectData,
             updated_at: new Date().toISOString()
           })
-          .eq('id', draftId);
+          .eq('id', projectData.id);
 
         if (updateError) {
-          console.error('Error updating draft project:', updateError);
+          console.error('Error updating project:', updateError);
           throw updateError;
         }
+
+        toast({
+          title: "Project Updated",
+          description: "Your project has been updated successfully."
+        });
+
+        // Clear edit data
+        localStorage.removeItem('editProjectData');
+      } else {
+        // Create new project
+        if (!draftId) {
+          const { data: project, error: projectError } = await supabase
+            .from('projects')
+            .insert([dbProjectData])
+            .select()
+            .single();
+
+          if (projectError) {
+            console.error('Error creating project:', projectError);
+            throw projectError;
+          }
+          
+          projectId = project.id;
+        } else {
+          // Update existing draft
+          const { error: updateError } = await supabase
+            .from('projects')
+            .update({
+              ...dbProjectData,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', draftId);
+
+          if (updateError) {
+            console.error('Error updating draft project:', updateError);
+            throw updateError;
+          }
+        }
+
+        // Clear draft data
+        localStorage.removeItem('projectDraft');
+        localStorage.removeItem('projectDraftId');
+
+        toast({
+          title: "Project Draft Created",
+          description: "Your project has been saved as a draft. You can review and publish it from your dashboard."
+        });
       }
 
       // Create milestones if any
@@ -403,22 +466,13 @@ const ProjectCreationWizard: React.FC = () => {
         }
       }
 
-      // Clear draft data
-      localStorage.removeItem('projectDraft');
-      localStorage.removeItem('projectDraftId');
-
-      toast({
-        title: "Project Draft Created",
-        description: "Your project has been saved as a draft. You can review and publish it from your dashboard."
-      });
-
-      navigate('/dashboard?tab=projects&draft=true');
+      navigate('/dashboard?tab=projects');
 
     } catch (error: any) {
-      console.error('Error creating project:', error);
+      console.error('Error creating/updating project:', error);
       toast({
         title: "Error",
-        description: error.message || "Failed to create project. Please try again.",
+        description: error.message || "Failed to create/update project. Please try again.",
         variant: "destructive"
       });
     } finally {
@@ -452,7 +506,9 @@ const ProjectCreationWizard: React.FC = () => {
     <div className="max-w-4xl mx-auto p-6">
       <Card>
         <CardHeader>
-          <CardTitle className="text-2xl text-center">Create New Project</CardTitle>
+          <CardTitle className="text-2xl text-center">
+            {isEditing ? 'Edit Project' : 'Create New Project'}
+          </CardTitle>
           <div className="space-y-2">
             <div className="flex justify-between text-sm text-gray-600">
               <span>Step {currentStep} of {STEPS.length}</span>

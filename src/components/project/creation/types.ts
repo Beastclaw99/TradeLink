@@ -12,6 +12,7 @@ export type ProjectStatus =
   | 'disputed';
 
 export interface ProjectData {
+  id?: string;
   title: string;
   description: string;
   category: string;

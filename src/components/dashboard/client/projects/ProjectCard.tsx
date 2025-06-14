@@ -110,6 +110,12 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
     }
   };
 
+  const handleEdit = () => {
+    // Store the project data in localStorage for the wizard to use
+    localStorage.setItem('editProjectData', JSON.stringify(project));
+    navigate('/create-project?mode=edit');
+  };
+
   return (
     <Card className="h-full">
       <CardHeader>
@@ -210,7 +216,7 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
           <Button 
             variant="outline" 
             size="sm"
-            onClick={() => onEdit(project)}
+            onClick={handleEdit}
           >
             <Edit className="h-4 w-4" />
           </Button>
