@@ -39,14 +39,12 @@ interface ProfessionalDashboardTabsProps {
 }
 
 export const ProfessionalDashboardTabs: React.FC<ProfessionalDashboardTabsProps> = ({
-  userId,
   isLoading,
   projects,
   applications,
   payments,
   reviews,
   skills,
-  profile,
   coverLetter,
   setCoverLetter,
   bidAmount,
@@ -60,30 +58,23 @@ export const ProfessionalDashboardTabs: React.FC<ProfessionalDashboardTabsProps>
   markProjectComplete,
   calculateAverageRating,
   calculatePaymentTotals,
-  updateProfile,
-  isEditing,
-  setIsEditing,
   isSubmitting,
   onCancelApplication
 }) => {
   // Helper functions for project actions
   const handleViewProject = (projectId: string) => {
-    // Navigate to project details or show project details
     console.log('Viewing project:', projectId);
   };
 
   const handleUpdateProjectStatus = async (projectId: string, status: string) => {
-    // Update project status
     console.log('Updating project status:', projectId, status);
   };
 
   const handleSubmitWork = (projectId: string) => {
-    // Submit work for project
     console.log('Submitting work for project:', projectId);
   };
 
   const handleRequestRevision = (projectId: string) => {
-    // Request revision for project
     console.log('Requesting revision for project:', projectId);
   };
 
