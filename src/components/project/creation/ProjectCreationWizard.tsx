@@ -132,6 +132,35 @@ const ProjectCreationWizard: React.FC = () => {
 
   const handleNext = () => {
     console.log('Current step:', currentStep, 'Project data:', projectData);
+    
+    // Validate current step before proceeding
+    const currentStepComponent = STEPS.find(s => s.id === currentStep)?.component;
+    if (currentStepComponent) {
+      // Validate based on current step
+      switch (currentStep) {
+        case 1: // Basic Details
+          if (!projectData.title || !projectData.description || !projectData.category || !projectData.location) {
+            toast({
+              title: "Missing Required Fields",
+              description: "Please complete all required fields before proceeding.",
+              variant: "destructive"
+            });
+            return;
+          }
+          break;
+        case 3: // Budget & Timeline
+          if (!projectData.budget || projectData.budget <= 0 || !projectData.timeline) {
+            toast({
+              title: "Missing Required Fields",
+              description: "Please set a valid budget and timeline before proceeding.",
+              variant: "destructive"
+            });
+            return;
+          }
+          break;
+      }
+    }
+
     if (currentStep < STEPS.length) {
       setCurrentStep(currentStep + 1);
     }

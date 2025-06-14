@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -42,6 +41,9 @@ const BudgetTimelineStep: React.FC<BudgetTimelineStepProps> = ({ data, onUpdate 
     }
   };
 
+  // Validate that required fields are set
+  const isValid = data.budget > 0 && data.timeline;
+
   return (
     <div className="space-y-6">
       <Card>
@@ -50,7 +52,7 @@ const BudgetTimelineStep: React.FC<BudgetTimelineStepProps> = ({ data, onUpdate 
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="space-y-2">
-            <Label htmlFor="budget">Project Budget</Label>
+            <Label htmlFor="budget">Project Budget *</Label>
             <div className="relative">
               <DollarSign className="absolute left-3 top-2.5 h-4 w-4 text-gray-500" />
               <Input
@@ -62,15 +64,20 @@ const BudgetTimelineStep: React.FC<BudgetTimelineStepProps> = ({ data, onUpdate 
                 placeholder="Enter your budget"
                 min="0"
                 step="0.01"
+                required
               />
             </div>
+            {data.budget <= 0 && (
+              <p className="text-sm text-red-500">Budget must be greater than 0</p>
+            )}
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="timeline">Project Timeline</Label>
+            <Label htmlFor="timeline">Project Timeline *</Label>
             <Select
               value={data.timeline}
               onValueChange={(value: TimelineOption) => onUpdate({ timeline: value })}
+              required
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select timeline" />
@@ -83,6 +90,9 @@ const BudgetTimelineStep: React.FC<BudgetTimelineStepProps> = ({ data, onUpdate 
                 ))}
               </SelectContent>
             </Select>
+            {!data.timeline && (
+              <p className="text-sm text-red-500">Please select a timeline</p>
+            )}
           </div>
 
           <div className="space-y-2">

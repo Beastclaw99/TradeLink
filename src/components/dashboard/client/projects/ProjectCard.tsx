@@ -60,77 +60,49 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
   const handlePublishProject = async () => {
     try {
       setIsPublishing(true);
-      
-      // Validate required fields before attempting to publish
+
+      // Validate required fields
       const missingFields = [];
       if (!project.title) missingFields.push('title');
       if (!project.description) missingFields.push('description');
-      if (!project.budget) missingFields.push('budget');
-      if (!project.timeline || project.timeline.trim() === '') missingFields.push('timeline');
-      
+      if (!project.budget || project.budget <= 0) missingFields.push('budget');
+      if (!project.timeline) missingFields.push('timeline');
+
       if (missingFields.length > 0) {
         toast({
-          title: "Cannot Publish Project",
+          title: "Missing Required Fields",
           description: `Please complete the following required fields: ${missingFields.join(', ')}`,
           variant: "destructive"
         });
         return;
       }
 
+      // Update project status to 'open'
       const { error } = await supabase
         .from('projects')
-        .update({ 
-          status: 'open' as ProjectStatus,
-          updated_at: new Date().toISOString()
-        })
+        .update({ status: 'open' })
         .eq('id', project.id);
 
       if (error) {
         console.error('Error publishing project:', error);
-        
-        // Handle specific validation errors from the database trigger
-        if (error.message?.includes('Missing required fields')) {
-          toast({
-            title: "Cannot Publish Project",
-            description: "Please ensure all required fields (title, description, budget, timeline) are completed before publishing.",
-            variant: "destructive"
-          });
-        } else if (error.message?.includes('Invalid status transition')) {
-          toast({
-            title: "Cannot Publish Project",
-            description: "This project cannot be published in its current state. Please review the project details.",
-            variant: "destructive"
-          });
-        } else if (error.message?.includes('Invalid user role')) {
-          toast({
-            title: "Permission Denied",
-            description: "You don't have permission to publish this project.",
-            variant: "destructive"
-          });
-        } else {
-          toast({
-            title: "Error",
-            description: "Failed to publish project. Please try again.",
-            variant: "destructive"
-          });
-        }
-        return;
+        throw error;
       }
 
       toast({
         title: "Project Published",
-        description: "Your project has been published and is now open for applications."
+        description: "Your project is now visible on the marketplace."
       });
 
-      // Call the status update callback to refresh the data
+      // Call the status update callback to refresh data
       if (onStatusUpdate) {
         onStatusUpdate();
       }
-    } catch (error) {
+
+    } catch (error: any) {
       console.error('Error publishing project:', error);
       toast({
         title: "Error",
-        description: "An unexpected error occurred. Please try again.",
+        description: error.message || "Failed to publish project. Please try again.",
         variant: "destructive"
       });
     } finally {
