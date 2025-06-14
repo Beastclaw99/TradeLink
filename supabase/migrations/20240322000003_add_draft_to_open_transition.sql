@@ -1,38 +1,13 @@
--- Create enum type for user roles if it doesn't exist
-DO $$ BEGIN
-    CREATE TYPE user_role AS ENUM ('client', 'professional', 'admin');
-EXCEPTION
-    WHEN duplicate_object THEN null;
-END $$;
-
--- Create function to get user role
-CREATE OR REPLACE FUNCTION get_user_role(user_id UUID)
-RETURNS user_role AS $$
-BEGIN
-    RETURN (
-        SELECT 
-            CASE 
-                WHEN EXISTS (SELECT 1 FROM profiles WHERE id = user_id AND account_type = 'client') THEN 'client'::user_role
-                WHEN EXISTS (SELECT 1 FROM profiles WHERE id = user_id AND account_type = 'professional') THEN 'professional'::user_role
-                ELSE 'admin'::user_role
-            END
-    );
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-
--- Create function to validate status transitions
+-- Add draft to open transition for clients
 CREATE OR REPLACE FUNCTION validate_project_status_transition()
 RETURNS TRIGGER AS $$
 DECLARE
-    user_role user_role;
+    user_role text;
 BEGIN
-    -- Get the role of the user making the update
-    user_role := get_user_role(auth.uid());
-
-    -- If status hasn't changed, allow the update
-    IF OLD.status = NEW.status THEN
-        RETURN NEW;
-    END IF;
+    -- Get user role
+    SELECT account_type INTO user_role
+    FROM profiles
+    WHERE id = auth.uid();
 
     -- Validate transitions based on user role
     IF user_role = 'client' THEN
@@ -96,45 +71,12 @@ CREATE TRIGGER validate_project_status_transition_trigger
     WHEN (OLD.status IS DISTINCT FROM NEW.status)
     EXECUTE FUNCTION validate_project_status_transition();
 
--- Update RLS policies to only check ownership
-DROP POLICY IF EXISTS "Clients can update their own projects" ON public.projects;
-DROP POLICY IF EXISTS "Professionals can update assigned projects" ON public.projects;
-
-CREATE POLICY "Clients can update their own projects"
-    ON public.projects
-    FOR UPDATE
-    USING (auth.uid() = client_id)
-    WITH CHECK (auth.uid() = client_id);
-
-CREATE POLICY "Professionals can update assigned projects"
-    ON public.projects
-    FOR UPDATE
-    USING (auth.uid() = professional_id)
-    WITH CHECK (auth.uid() = professional_id);
-
 -- Add rollback function
-CREATE OR REPLACE FUNCTION rollback_project_status_trigger()
+CREATE OR REPLACE FUNCTION rollback_draft_to_open_transition()
 RETURNS void AS $$
 BEGIN
     -- Drop trigger and function
     DROP TRIGGER IF EXISTS validate_project_status_transition_trigger ON public.projects;
     DROP FUNCTION IF EXISTS validate_project_status_transition();
-    DROP FUNCTION IF EXISTS get_user_role(UUID);
-
-    -- Restore original RLS policies
-    DROP POLICY IF EXISTS "Clients can update their own projects" ON public.projects;
-    DROP POLICY IF EXISTS "Professionals can update assigned projects" ON public.projects;
-
-    CREATE POLICY "Clients can update their own projects"
-        ON public.projects
-        FOR UPDATE
-        USING (auth.uid() = client_id)
-        WITH CHECK (auth.uid() = client_id);
-
-    CREATE POLICY "Professionals can update assigned projects"
-        ON public.projects
-        FOR UPDATE
-        USING (auth.uid() = professional_id)
-        WITH CHECK (auth.uid() = professional_id);
 END;
 $$ language 'plpgsql'; 
