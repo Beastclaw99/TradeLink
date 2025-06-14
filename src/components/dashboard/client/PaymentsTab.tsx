@@ -3,24 +3,23 @@ import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { DollarSign } from 'lucide-react';
-import { Project, Application, Review } from '@/types/database';
 
 interface PaymentsTabProps {
   isLoading: boolean;
-  projects: Project[];
-  reviews: Review[];
-  applications: Application[];
-  projectToReview: Project | null;
+  // Unused props that might be used in future implementations
+  projects: any[];
+  reviews: any[];
+  applications: any[];
+  projectToReview: any;
   reviewData: {
     rating: number;
     comment: string;
   };
   isSubmitting: boolean;
-  handleReviewInitiate: (project: Project) => void;
+  handleReviewInitiate: (project: any) => void;
   handleReviewCancel: () => void;
   handleReviewSubmit: () => Promise<void>;
   setReviewData: (data: { rating: number; comment: string }) => void;
-  // Unused props that might be used in future implementations
   payments: any[];
   onPaymentViewDetails: (paymentId: string) => void;
   onPaymentApprove: (paymentId: string) => Promise<void>;
@@ -29,17 +28,7 @@ interface PaymentsTabProps {
 
 const PaymentsTab: React.FC<PaymentsTabProps> = ({
   isLoading,
-  projects,
-  reviews,
-  applications,
-  projectToReview,
-  reviewData,
-  isSubmitting,
-  handleReviewInitiate,
-  handleReviewCancel,
-  handleReviewSubmit,
-  setReviewData,
-  // Note: payments, onPaymentViewDetails are declared but not used yet
+  // Note: All props are declared but not used yet in the current implementation
   // They're kept for future payment functionality implementation
 }) => {
   if (isLoading) {

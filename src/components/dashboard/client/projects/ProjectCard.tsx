@@ -57,11 +57,27 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
     navigate(`/client/projects/${project.id}/applications`);
   };
 
-  // Handle publishing project (draft -> open)
+  // Handle publishing project (draft -> open) with proper validation
   const handlePublishProject = async () => {
     try {
       setIsPublishing(true);
       
+      // Validate required fields before attempting to publish
+      const missingFields = [];
+      if (!project.title) missingFields.push('title');
+      if (!project.description) missingFields.push('description');
+      if (!project.budget) missingFields.push('budget');
+      if (!project.timeline) missingFields.push('timeline');
+      
+      if (missingFields.length > 0) {
+        toast({
+          title: "Cannot Publish Project",
+          description: `Please complete the following required fields: ${missingFields.join(', ')}`,
+          variant: "destructive"
+        });
+        return;
+      }
+
       const { error } = await supabase
         .from('projects')
         .update({ 
@@ -70,7 +86,10 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
         })
         .eq('id', project.id);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error publishing project:', error);
+        throw error;
+      }
 
       toast({
         title: "Project Published",
@@ -83,11 +102,27 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
       }
     } catch (error: any) {
       console.error('Error publishing project:', error);
-      toast({
-        title: "Error",
-        description: "Failed to publish project. Please try again.",
-        variant: "destructive"
-      });
+      
+      // Handle specific validation errors from the database trigger
+      if (error.message?.includes('Missing required fields')) {
+        toast({
+          title: "Cannot Publish Project",
+          description: "Please ensure all required fields (title, description, budget, timeline) are completed before publishing.",
+          variant: "destructive"
+        });
+      } else if (error.message?.includes('Invalid status transition')) {
+        toast({
+          title: "Cannot Publish Project",
+          description: "This project cannot be published in its current state. Please review the project details.",
+          variant: "destructive"
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to publish project. Please try again.",
+          variant: "destructive"
+        });
+      }
     } finally {
       setIsPublishing(false);
     }
@@ -177,7 +212,7 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
                 <AlertDialogHeader>
                   <AlertDialogTitle>Publish Project</AlertDialogTitle>
                   <AlertDialogDescription>
-                    Are you sure you want to publish this project? Once published, it will be visible to professionals and they can start submitting applications.
+                    Are you sure you want to publish this project? Once published, it will be visible to professionals and they can start submitting applications. Make sure all project details (title, description, budget, and timeline) are complete.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
