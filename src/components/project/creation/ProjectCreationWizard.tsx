@@ -246,6 +246,24 @@ const ProjectCreationWizard: React.FC = () => {
       return;
     }
 
+    if (!projectData.category?.trim()) {
+      toast({
+        title: "Missing Required Field",
+        description: "Project category is required.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!projectData.location?.trim()) {
+      toast({
+        title: "Missing Required Field",
+        description: "Project location is required.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     try {
       setIsSubmitting(true);
 
@@ -255,70 +273,63 @@ const ProjectCreationWizard: React.FC = () => {
 
       // Prepare data for database - ensure proper types and field names
       const dbProjectData = {
-        title: projectData.title,
-        description: projectData.description,
-        category: projectData.category,
-        location: projectData.location,
+        title: projectData.title.trim(),
+        description: projectData.description.trim(),
+        category: projectData.category.trim(),
+        location: projectData.location.trim(),
         recommended_skills: projectData.recommended_skills || [],
-        budget: Number(projectData.budget),
-        timeline: projectData.timeline || projectData.expected_timeline,
-        urgency: projectData.urgency,
-        service_contract: projectData.service_contract,
+        budget: parseFloat(projectData.budget.toString()),
+        timeline: projectData.timeline?.trim() || projectData.expected_timeline?.trim(),
+        urgency: projectData.urgency || 'medium',
+        service_contract: projectData.service_contract?.trim(),
         requirements: projectData.requirements || [],
-        rich_description: projectData.rich_description,
-        expected_timeline: projectData.expected_timeline,
-        scope: projectData.scope,
+        rich_description: projectData.rich_description?.trim(),
+        expected_timeline: projectData.expected_timeline?.trim(),
+        scope: projectData.scope?.trim(),
         industry_specific_fields: projectData.industry_specific_fields,
         location_coordinates: projectData.location_coordinates,
-        contract_template_id: projectData.contract_template_id,
-        project_start_time: projectData.project_start_time,
+        contract_template_id: projectData.contract_template_id?.trim(),
+        project_start_time: projectData.project_start_time?.trim(),
         client_id: user.id,
-        sla_terms: projectData.sla_terms
+        sla_terms: projectData.sla_terms,
+        status: 'draft' as const
       };
 
       if (!draftId) {
-        // Create new project as draft first
+        // Create new project as draft
         const { data: project, error: projectError } = await supabase
           .from('projects')
-          .insert([{
-            ...dbProjectData,
-            status: 'draft'
-          }])
+          .insert([dbProjectData])
           .select()
           .single();
 
-        if (projectError) throw projectError;
+        if (projectError) {
+          console.error('Error creating project:', projectError);
+          throw projectError;
+        }
+        
         projectId = project.id;
-
-        // Then update to open status
-        const { error: updateError } = await supabase
-          .from('projects')
-          .update({
-            status: 'open',
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', projectId);
-
-        if (updateError) throw updateError;
       } else {
-        // Update draft to open project
+        // Update existing draft
         const { error: updateError } = await supabase
           .from('projects')
           .update({
             ...dbProjectData,
-            status: 'open',
             updated_at: new Date().toISOString()
           })
           .eq('id', draftId);
 
-        if (updateError) throw updateError;
+        if (updateError) {
+          console.error('Error updating draft project:', updateError);
+          throw updateError;
+        }
       }
 
       // Create milestones if any
       if (projectData.milestones && projectData.milestones.length > 0) {
         const milestonesData = projectData.milestones.map(milestone => ({
-          title: milestone.title,
-          description: milestone.description || '',
+          title: milestone.title.trim(),
+          description: milestone.description?.trim() || '',
           due_date: milestone.dueDate || milestone.due_date,
           status: milestone.status as 'not_started' | 'in_progress' | 'completed' | 'on_hold' | 'overdue',
           requires_deliverable: milestone.requires_deliverable || false,
@@ -331,16 +342,19 @@ const ProjectCreationWizard: React.FC = () => {
           .from('project_milestones')
           .insert(milestonesData);
 
-        if (milestonesError) throw milestonesError;
+        if (milestonesError) {
+          console.error('Error creating milestones:', milestonesError);
+          throw milestonesError;
+        }
       }
 
       // Create project-level deliverables if any
       if (projectData.deliverables && projectData.deliverables.length > 0) {
         const deliverablesData = projectData.deliverables.map(deliverable => ({
-          description: deliverable.description,
-          deliverable_type: deliverable.deliverable_type || deliverable.type,
-          content: deliverable.content || '',
-          file_url: deliverable.file_url || '',
+          description: deliverable.description.trim(),
+          deliverable_type: deliverable.deliverable_type || deliverable.type || 'document',
+          content: deliverable.content?.trim() || '',
+          file_url: deliverable.file_url?.trim() || '',
           project_id: projectId,
           uploaded_by: user.id
         }));
@@ -349,7 +363,10 @@ const ProjectCreationWizard: React.FC = () => {
           .from('project_deliverables')
           .insert(deliverablesData);
 
-        if (deliverablesError) throw deliverablesError;
+        if (deliverablesError) {
+          console.error('Error creating deliverables:', deliverablesError);
+          throw deliverablesError;
+        }
       }
 
       // Clear draft data
@@ -357,19 +374,20 @@ const ProjectCreationWizard: React.FC = () => {
       localStorage.removeItem('projectDraftId');
 
       toast({
-        title: "Project Created Successfully",
-        description: "Your project has been posted and is now available for professionals to apply."
+        title: "Project Draft Created",
+        description: "Your project has been saved as a draft. You can review and publish it from your dashboard."
       });
 
-      navigate('/dashboard?tab=projects&created=true');
+      navigate('/dashboard?tab=projects&draft=true');
 
     } catch (error: any) {
       console.error('Error creating project:', error);
       toast({
         title: "Error",
-        description: "Failed to create project. Please try again.",
+        description: error.message || "Failed to create project. Please try again.",
         variant: "destructive"
       });
+    } finally {
       setIsSubmitting(false);
     }
   };

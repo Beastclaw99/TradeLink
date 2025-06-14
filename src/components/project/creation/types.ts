@@ -1,3 +1,16 @@
+export type ProjectStatus = 
+  | 'draft'
+  | 'open'
+  | 'assigned'
+  | 'in_progress'
+  | 'work_submitted'
+  | 'work_revision_requested'
+  | 'work_approved'
+  | 'completed'
+  | 'archived'
+  | 'cancelled'
+  | 'disputed';
+
 export interface ProjectData {
   title: string;
   description: string;
@@ -6,7 +19,7 @@ export interface ProjectData {
   recommended_skills: string[];
   budget: number;
   timeline: string;
-  urgency: string;
+  urgency: 'low' | 'medium' | 'high' | 'urgent';
   milestones: Milestone[];
   deliverables: Deliverable[];
   service_contract: string;
@@ -22,6 +35,7 @@ export interface ProjectData {
   project_start_time: string;
   client_id?: string;
   sla_terms: Record<string, any> | null;
+  status?: ProjectStatus;
 }
 
 export interface Milestone {
