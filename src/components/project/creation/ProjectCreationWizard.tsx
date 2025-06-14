@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -210,6 +209,43 @@ const ProjectCreationWizard: React.FC = () => {
       return;
     }
 
+    // Validate required fields
+    if (!projectData.title?.trim()) {
+      toast({
+        title: "Missing Required Field",
+        description: "Project title is required.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!projectData.description?.trim()) {
+      toast({
+        title: "Missing Required Field",
+        description: "Project description is required.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!projectData.budget || projectData.budget <= 0) {
+      toast({
+        title: "Missing Required Field",
+        description: "Project budget must be greater than 0.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!projectData.timeline?.trim()) {
+      toast({
+        title: "Missing Required Field",
+        description: "Project timeline is required.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     try {
       setIsSubmitting(true);
 
@@ -218,19 +254,32 @@ const ProjectCreationWizard: React.FC = () => {
       let projectId = draftId;
 
       if (!draftId) {
-        // Create new project
-      const { data: project, error: projectError } = await supabase
-        .from('projects')
-        .insert([{
+        // Create new project as draft first
+        const { data: project, error: projectError } = await supabase
+          .from('projects')
+          .insert([{
             ...projectData,
-            status: 'open',
-            client_id: user.id
-        }])
-        .select()
-        .single();
+            status: 'draft',
+            client_id: user.id,
+            budget: Number(projectData.budget), // Ensure budget is a number
+            timeline: projectData.timeline || projectData.expected_timeline // Use either timeline field
+          }])
+          .select()
+          .single();
 
-      if (projectError) throw projectError;
+        if (projectError) throw projectError;
         projectId = project.id;
+
+        // Then update to open status
+        const { error: updateError } = await supabase
+          .from('projects')
+          .update({
+            status: 'open',
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', projectId);
+
+        if (updateError) throw updateError;
       } else {
         // Update draft to open project
         const { error: updateError } = await supabase
@@ -238,7 +287,9 @@ const ProjectCreationWizard: React.FC = () => {
           .update({
             ...projectData,
             status: 'open',
-            updated_at: new Date().toISOString()
+            updated_at: new Date().toISOString(),
+            budget: Number(projectData.budget), // Ensure budget is a number
+            timeline: projectData.timeline || projectData.expected_timeline // Use either timeline field
           })
           .eq('id', draftId);
 
@@ -251,7 +302,7 @@ const ProjectCreationWizard: React.FC = () => {
           title: milestone.title,
           description: milestone.description || '',
           due_date: milestone.dueDate,
-          status: milestone.status,
+          status: milestone.status as 'not_started' | 'in_progress' | 'completed' | 'on_hold' | 'overdue',
           requires_deliverable: milestone.requires_deliverable || false,
           project_id: projectId,
           created_by: user.id,
@@ -317,7 +368,7 @@ const ProjectCreationWizard: React.FC = () => {
     
     // Special handling for ReviewStep which doesn't need onUpdate
     if (step.id === 6) {
-      return <Component data={projectData} />;
+      return <Component data={projectData} onUpdate={handleUpdateData} />;
     }
     
     // All other steps need both data and onUpdate props
