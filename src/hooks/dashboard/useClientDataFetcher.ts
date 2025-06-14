@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
@@ -16,6 +15,7 @@ type Application = Database['public']['Tables']['applications']['Row'];
 type Payment = Database['public']['Tables']['payments']['Row'];
 type Review = Database['public']['Tables']['reviews']['Row'];
 type Profile = Database['public']['Tables']['profiles']['Row'];
+type ProjectStatus = Database['public']['Enums']['project_status_enum'];
 
 export const useClientDataFetcher = (userId: string) => {
   const { toast } = useToast();
@@ -117,6 +117,23 @@ export const useClientDataFetcher = (userId: string) => {
             file_url,
             status,
             created_at
+          ),
+          applications:applications (
+            id,
+            status,
+            bid_amount,
+            cover_letter,
+            proposal_message,
+            availability,
+            created_at,
+            updated_at,
+            professional:profiles!applications_professional_id_fkey (
+              id,
+              first_name,
+              last_name,
+              rating,
+              profile_image_url
+            )
           )
         `)
         .eq('client_id', userId)
@@ -131,41 +148,22 @@ export const useClientDataFetcher = (userId: string) => {
       const transformedProjects = transformProjects(projectsData || []);
       setProjects(transformedProjects);
       
-      // Fetch applications for client's projects with professional details
-      if (transformedProjects.length > 0) {
-        const projectIds = transformedProjects.map(p => p.id);
-        
-        const { data: applicationsData, error: applicationsError } = await supabase
-          .from('applications')
-          .select(`
-            *,
-            professional:profiles!applications_professional_id_fkey (
-              id,
-              first_name,
-              last_name,
-              rating,
-              profile_image_url
-            ),
-            project:projects!applications_project_id_fkey (
-              id,
-              title,
-              status,
-              budget,
-              created_at
-            )
-          `)
-          .in('project_id', projectIds)
-          .order('created_at', { ascending: false });
-        
-        if (applicationsError) {
-          console.error('Applications fetch error:', applicationsError);
-          throw applicationsError;
-        }
-        
-        setApplications(transformApplications(applicationsData || []));
-      } else {
-        setApplications([]);
-      }
+      // Extract and transform applications from projects
+      const allApplications = (projectsData || [])
+        .flatMap(project => 
+          (project.applications || []).map(app => ({
+            ...app,
+            project: {
+              id: project.id,
+              title: project.title,
+              status: project.status,
+              budget: project.budget,
+              created_at: project.created_at
+            }
+          }))
+        );
+      
+      setApplications(transformApplications(allApplications));
       
       // Fetch payments
       const { data: paymentsData, error: paymentsError } = await supabase
