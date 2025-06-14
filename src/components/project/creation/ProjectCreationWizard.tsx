@@ -69,6 +69,14 @@ const ProjectCreationWizard: React.FC = () => {
     };
   });
 
+  // Helper function to clean UUID fields - convert empty strings to null
+  const cleanUuidField = (value: string | null | undefined): string | null => {
+    if (!value || value.trim() === '') {
+      return null;
+    }
+    return value;
+  };
+
   // Auto-save draft when project data changes
   useEffect(() => {
     const saveDraft = async () => {
@@ -282,12 +290,11 @@ const ProjectCreationWizard: React.FC = () => {
         urgency: projectData.urgency || 'medium',
         service_contract: projectData.service_contract?.trim(),
         requirements: projectData.requirements || [],
-        rich_description: projectData.rich_description?.trim(),
-        scope: projectData.scope?.trim(),
+        rich_description: projectData.rich_description?.trim() || null,
+        scope: projectData.scope?.trim() || null,
         industry_specific_fields: projectData.industry_specific_fields,
         location_coordinates: projectData.location_coordinates,
-        contract_template_id: projectData.contract_template_id?.trim(),
-        project_start_time: projectData.project_start_time?.trim(),
+        project_start_time: cleanUuidField(projectData.project_start_time),
         client_id: user.id,
         sla_terms: projectData.sla_terms,
         status: 'draft' as const

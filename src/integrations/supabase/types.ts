@@ -1450,7 +1450,6 @@ export type Database = {
           created_at: string | null
           deadline: string | null
           description: string | null
-          expected_timeline: string | null
           id: string
           industry_specific_fields: Json | null
           location: string | null
@@ -1465,6 +1464,7 @@ export type Database = {
           sla_terms: Json | null
           spent: number | null
           status: Database["public"]["Enums"]["project_status_enum"] | null
+          timeline: string | null
           title: string
           updated_at: string | null
           urgency: string | null
@@ -1478,7 +1478,6 @@ export type Database = {
           created_at?: string | null
           deadline?: string | null
           description?: string | null
-          expected_timeline?: string | null
           id?: string
           industry_specific_fields?: Json | null
           location?: string | null
@@ -1493,6 +1492,7 @@ export type Database = {
           sla_terms?: Json | null
           spent?: number | null
           status?: Database["public"]["Enums"]["project_status_enum"] | null
+          timeline?: string | null
           title: string
           updated_at?: string | null
           urgency?: string | null
@@ -1506,7 +1506,6 @@ export type Database = {
           created_at?: string | null
           deadline?: string | null
           description?: string | null
-          expected_timeline?: string | null
           id?: string
           industry_specific_fields?: Json | null
           location?: string | null
@@ -1521,6 +1520,7 @@ export type Database = {
           sla_terms?: Json | null
           spent?: number | null
           status?: Database["public"]["Enums"]["project_status_enum"] | null
+          timeline?: string | null
           title?: string
           updated_at?: string | null
           urgency?: string | null
