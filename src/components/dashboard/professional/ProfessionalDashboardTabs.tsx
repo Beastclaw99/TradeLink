@@ -21,14 +21,14 @@ interface ProfessionalDashboardTabsProps {
   coverLetter: string;
   setCoverLetter: (value: string) => void;
   bidAmount: number | null;
-  setBidAmount: (value: number | null) => void;
+  setBidAmount: (value: number) => void;
   selectedProject: string | null;
   setSelectedProject: (projectId: string | null) => void;
   availability: string;
   setAvailability: (value: string) => void;
   isApplying: boolean;
-  handleApplyToProject: () => Promise<void>;
-  markProjectComplete: (projectId: string) => Promise<void>;
+  handleApplyToProject: () => void;
+  markProjectComplete: (projectId: string) => void;
   calculateAverageRating: () => number;
   calculatePaymentTotals: () => { total: number; pending: number; completed: number };
   updateProfile: (data: any) => void;
@@ -39,12 +39,14 @@ interface ProfessionalDashboardTabsProps {
 }
 
 export const ProfessionalDashboardTabs: React.FC<ProfessionalDashboardTabsProps> = ({
+  userId,
   isLoading,
   projects,
   applications,
   payments,
   reviews,
   skills,
+  profile,
   coverLetter,
   setCoverLetter,
   bidAmount,
@@ -58,24 +60,28 @@ export const ProfessionalDashboardTabs: React.FC<ProfessionalDashboardTabsProps>
   markProjectComplete,
   calculateAverageRating,
   calculatePaymentTotals,
+  updateProfile,
+  isEditing,
+  setIsEditing,
   isSubmitting,
   onCancelApplication
 }) => {
-  // Helper functions for project actions
-  const handleViewProject = (projectId: string) => {
-    console.log('Viewing project:', projectId);
-  };
-
-  const handleUpdateProjectStatus = async (projectId: string, status: string) => {
-    console.log('Updating project status:', projectId, status);
-  };
-
-  const handleSubmitWork = (projectId: string) => {
-    console.log('Submitting work for project:', projectId);
-  };
-
-  const handleRequestRevision = (projectId: string) => {
-    console.log('Requesting revision for project:', projectId);
+  const sharedProps = {
+    userId,
+    isLoading,
+    projects,
+    applications,
+    payments,
+    reviews,
+    skills,
+    profile,
+    markProjectComplete,
+    calculateAverageRating,
+    calculatePaymentTotals,
+    updateProfile,
+    isEditing,
+    setIsEditing,
+    isSubmitting
   };
 
   return (
@@ -119,38 +125,20 @@ export const ProfessionalDashboardTabs: React.FC<ProfessionalDashboardTabsProps>
         <ApplicationsTab 
           isLoading={isLoading} 
           applications={applications}
-          projects={projects}
+          userId={userId}
         />
       </TabsContent>
       
       <TabsContent value="active">
-        <ActiveProjectsTab 
-          isLoading={isLoading}
-          projects={projects.filter(p => ['assigned', 'in_progress', 'work_submitted', 'work_revision_requested'].includes(p.status || ''))}
-          onViewProject={handleViewProject}
-          onUpdateProjectStatus={handleUpdateProjectStatus}
-          onSubmitWork={handleSubmitWork}
-          onRequestRevision={handleRequestRevision}
-          markProjectComplete={markProjectComplete}
-          isSubmitting={isSubmitting}
-        />
+        <ActiveProjectsTab {...sharedProps} />
       </TabsContent>
       
       <TabsContent value="payments">
-        <PaymentsTab 
-          isLoading={isLoading}
-          payments={payments}
-          paymentSummary={calculatePaymentTotals()}
-        />
+        <PaymentsTab {...sharedProps} />
       </TabsContent>
       
       <TabsContent value="reviews">
-        <ReviewsTab 
-          isLoading={isLoading}
-          reviews={reviews}
-          averageRating={calculateAverageRating()}
-          totalReviews={reviews.length}
-        />
+        <ReviewsTab {...sharedProps} />
       </TabsContent>
     </Tabs>
   );

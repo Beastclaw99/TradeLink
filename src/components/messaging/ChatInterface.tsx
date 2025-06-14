@@ -1,147 +1,268 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Send, Paperclip } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { Button } from '@/components/ui/button';
+import { Send, Phone, Video, MoreVertical } from 'lucide-react';
+import ContactList from './ContactList';
+import MessageBubble from './MessageBubble';
 import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/components/ui/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 interface Message {
   id: string;
-  content: string;
-  sender_id: string;
-  recipient_id: string;
-  created_at: string;
-  file_url?: string;
-  message_type?: string;
-  is_read?: boolean;
-  project_id?: string;
+  text: string;
+  timestamp: string;
+  isOwn: boolean;
+  senderName: string;
+  senderAvatar?: string;
 }
 
-interface ChatInterfaceProps {
-  recipientId: string;
-  projectId?: string;
-  recipientName?: string;
+interface Contact {
+  id: string;
+  name: string;
+  avatar?: string;
+  lastMessage: string;
+  timestamp: string;
+  unreadCount: number;
+  online: boolean;
 }
 
-const ChatInterface: React.FC<ChatInterfaceProps> = ({
-  recipientId,
-  projectId,
-  recipientName = 'User'
-}) => {
+const ChatInterface: React.FC = () => {
   const { user } = useAuth();
+  const { toast } = useToast();
+  const [contacts, setContacts] = useState<Contact[]>([]);
+  const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (user?.id) {
-      fetchMessages();
+      fetchContacts();
+      subscribeToMessages();
     }
-  }, [user?.id, recipientId]);
+  }, [user?.id]);
 
-  const fetchMessages = async () => {
-    if (!user?.id) return;
-    
+  useEffect(() => {
+    if (selectedContact) {
+      fetchMessages(selectedContact.id);
+    }
+  }, [selectedContact]);
+
+  const fetchContacts = async () => {
     try {
       const { data, error } = await supabase
-        .from('direct_messages')
-        .select('*')
-        .or(`and(sender_id.eq.${user.id},recipient_id.eq.${recipientId}),and(sender_id.eq.${recipientId},recipient_id.eq.${user.id})`)
-        .order('created_at', { ascending: true });
+        .from('profiles')
+        .select(`
+          id,
+          first_name,
+          last_name,
+          profile_image_url,
+          direct_messages!direct_messages_recipient_id_fkey(
+            id,
+            content,
+            sent_at,
+            sender_id
+          )
+        `)
+        .neq('id', user?.id)
+        .order('direct_messages.sent_at', { ascending: false });
 
       if (error) throw error;
-      
-      const messagesWithDefaults = data.map(msg => ({
-        ...msg,
-        created_at: msg.created_at || new Date().toISOString(),
-        is_read: msg.is_read || false,
-        message_type: msg.message_type || 'text'
+
+      const formattedContacts: Contact[] = (data || []).map(contact => ({
+        id: contact.id,
+        name: `${contact.first_name} ${contact.last_name}`,
+        avatar: contact.profile_image_url || '/placeholder.svg',
+        lastMessage: contact.direct_messages?.[0]?.content || '',
+        timestamp: contact.direct_messages?.[0]?.sent_at || '',
+        unreadCount: contact.direct_messages?.filter((m: { sender_id: string }) => m.sender_id !== user?.id).length || 0,
+        online: false // You might want to implement online status tracking
       }));
-      
-      setMessages(messagesWithDefaults);
-    } catch (error) {
-      console.error('Error fetching messages:', error);
-    }
-  };
 
-  const sendMessage = async () => {
-    if (!newMessage.trim() || !user?.id) return;
-
-    setIsLoading(true);
-    try {
-      const { error } = await supabase
-        .from('direct_messages')
-        .insert({
-          content: newMessage,
-          sender_id: user.id,
-          recipient_id: recipientId,
-          project_id: projectId,
-          message_type: 'text'
-        });
-
-      if (error) throw error;
-
-      setNewMessage('');
-      fetchMessages();
-    } catch (error) {
-      console.error('Error sending message:', error);
+      setContacts(formattedContacts);
+    } catch (error: any) {
+      console.error('Error fetching contacts:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load contacts. Please try again later.",
+        variant: "destructive"
+      });
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      sendMessage();
+  const fetchMessages = async (contactId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('direct_messages')
+        .select(`
+          id,
+          sender_id,
+          recipient_id,
+          content,
+          sent_at,
+          sender:profiles!direct_messages_sender_id_fkey(
+            first_name,
+            last_name,
+            profile_image_url
+          )
+        `)
+        .or(`and(sender_id.eq.${user?.id},recipient_id.eq.${contactId}),and(sender_id.eq.${contactId},recipient_id.eq.${user?.id})`)
+        .order('sent_at', { ascending: true });
+
+      if (error) throw error;
+
+      const formattedMessages: Message[] = (data || []).map(message => ({
+        id: message.id,
+        text: message.content,
+        timestamp: new Date(message.sent_at || '').toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        isOwn: message.sender_id === user?.id,
+        senderName: message.sender ? `${message.sender.first_name} ${message.sender.last_name}` : 'Unknown',
+        senderAvatar: message.sender?.profile_image_url
+      }));
+
+      setMessages(formattedMessages);
+      scrollToBottom();
+    } catch (error: any) {
+      console.error('Error fetching messages:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load messages. Please try again later.",
+        variant: "destructive"
+      });
     }
   };
 
+  const subscribeToMessages = () => {
+    const subscription = supabase
+      .channel('direct_messages')
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'direct_messages',
+        filter: `or(recipient_id.eq.${user?.id},sender_id.eq.${user?.id})`
+      }, (payload: any) => {
+        const newMessage = payload.new;
+        const formattedMessage: Message = {
+          id: newMessage.id,
+          text: newMessage.content,
+          timestamp: new Date(newMessage.sent_at || '').toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          isOwn: newMessage.sender_id === user?.id,
+          senderName: newMessage.sender ? `${newMessage.sender.first_name} ${newMessage.sender.last_name}` : 'Unknown',
+          senderAvatar: newMessage.sender?.profile_image_url
+        };
+        setMessages(prev => [...prev, formattedMessage]);
+        scrollToBottom();
+        fetchContacts(); // Refresh contacts to update last message
+      })
+      .subscribe();
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  };
+
+  const sendMessage = async () => {
+    if (!newMessage.trim() || !user?.id || !selectedContact) return;
+
+    try {
+      const messageData = {
+        sender_id: user.id,
+        recipient_id: selectedContact.id,
+        content: newMessage.trim(),
+        sent_at: new Date().toISOString()
+      };
+
+      const { error } = await supabase
+        .from('direct_messages')
+        .insert(messageData);
+
+      if (error) throw error;
+
+      setNewMessage('');
+      scrollToBottom();
+    } catch (error: any) {
+      console.error('Error sending message:', error);
+      toast({
+        title: "Error",
+        description: "Failed to send message. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
   return (
-    <Card className="h-96 flex flex-col">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-lg">Chat with {recipientName}</CardTitle>
-      </CardHeader>
-      
-      <CardContent className="flex-1 flex flex-col p-4">
-        <div className="flex-1 overflow-y-auto space-y-2 mb-4">
-          {messages.map((message) => (
-            <div
-              key={message.id}
-              className={`flex ${message.sender_id === user?.id ? 'justify-end' : 'justify-start'}`}
-            >
-              <div
-                className={`max-w-xs px-3 py-2 rounded-lg ${
-                  message.sender_id === user?.id
-                    ? 'bg-blue-500 text-white'
-                    : 'bg-gray-200 text-gray-800'
-                }`}
-              >
-                <p className="text-sm">{message.content}</p>
-                <p className="text-xs opacity-75 mt-1">
-                  {new Date(message.created_at).toLocaleTimeString()}
-                </p>
+    <div className="flex h-full">
+      <div className="w-1/3 border-r">
+        <ContactList
+          contacts={contacts}
+          selectedContact={selectedContact}
+          onSelectContact={setSelectedContact}
+        />
+      </div>
+      <div className="flex-1 flex flex-col">
+        {selectedContact ? (
+          <>
+            <div className="flex items-center p-4 border-b">
+              <img
+                src={selectedContact.avatar || '/placeholder.svg'}
+                alt={selectedContact.name}
+                className="w-10 h-10 rounded-full mr-3"
+              />
+              <div>
+                <h3 className="font-medium">{selectedContact.name}</h3>
+                <p className="text-sm text-gray-500">Online</p>
+              </div>
+              <div className="ml-auto flex gap-2">
+                <Button variant="ghost" size="icon">
+                  <Phone className="h-4 w-4" />
+                </Button>
+                <Button variant="ghost" size="icon">
+                  <Video className="h-4 w-4" />
+                </Button>
+                <Button variant="ghost" size="icon">
+                  <MoreVertical className="h-4 w-4" />
+                </Button>
               </div>
             </div>
-          ))}
-        </div>
-
-        <div className="flex gap-2">
-          <Input
-            value={newMessage}
-            onChange={(e) => setNewMessage(e.target.value)}
-            onKeyPress={handleKeyPress}
-            placeholder="Type your message..."
-            className="flex-1"
-          />
-          <Button onClick={sendMessage} disabled={isLoading || !newMessage.trim()}>
-            <Send className="h-4 w-4" />
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
+            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+              {messages.map((message) => (
+                <MessageBubble
+                  key={message.id}
+                  message={message}
+                />
+              ))}
+              <div ref={messagesEndRef} />
+            </div>
+            <div className="p-4 border-t">
+              <div className="flex gap-2">
+                <Input
+                  value={newMessage}
+                  onChange={(e) => setNewMessage(e.target.value)}
+                  placeholder="Type a message..."
+                  onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
+                />
+                <Button onClick={sendMessage}>
+                  <Send className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          </>
+        ) : (
+          <div className="flex-1 flex items-center justify-center text-gray-500">
+            Select a conversation to start messaging
+          </div>
+        )}
+      </div>
+    </div>
   );
 };
 
