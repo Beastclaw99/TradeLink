@@ -1,4 +1,3 @@
-
 export interface ProjectData {
   title: string;
   description: string;
@@ -33,6 +32,8 @@ export interface Milestone {
   dueDate?: string; // Support both formats for backwards compatibility
   status: string;
   requires_deliverable?: boolean;
+  deliverables: Deliverable[];
+  tasks: Task[];
 }
 
 export interface Deliverable {
@@ -43,3 +44,28 @@ export interface Deliverable {
   content?: string;
   file_url?: string;
 }
+
+export interface Task {
+  id: string;
+  title: string;
+  completed: boolean;
+}
+
+export const convertDBMilestoneToMilestone = (milestone: any): Milestone => ({
+  id: milestone?.id || '',
+  title: milestone?.title || '',
+  description: milestone?.description || '',
+  due_date: milestone?.due_date || null,
+  status: milestone?.status || 'not_started',
+  deliverables: [],
+  tasks: []
+});
+
+export const convertMilestoneToDBMilestone = (milestone: Milestone, projectId: string) => ({
+  project_id: projectId,
+  title: milestone.title,
+  description: milestone.description,
+  due_date: milestone.due_date || milestone.dueDate,
+  status: milestone.status,
+  requires_deliverable: milestone.requires_deliverable || false
+});
