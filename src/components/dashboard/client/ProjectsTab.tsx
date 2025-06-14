@@ -1,10 +1,11 @@
+
 import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Plus, Calendar, DollarSign, MapPin, User, AlertCircle } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { Project, Application, Profile } from '@/types/database';
+import ProjectCard from './projects/ProjectCard';
 
 interface EditedProject {
   title: string;
@@ -48,32 +49,8 @@ const ProjectsTab: React.FC<ProjectsTabProps> = ({
   isLoading,
   projects,
   applications,
-  editProject,
-  projectToDelete,
-  editedProject,
-  isSubmitting,
-  setEditedProject,
   handleEditInitiate,
-  handleEditCancel,
-  handleUpdateProject,
-  handleDeleteInitiate,
-  handleDeleteCancel,
-  handleDeleteProject,
-  selectedProject,
-  setSelectedProject,
-  onAddMilestone,
-  onEditMilestone,
-  handleDeleteMilestone,
-  handleAddTask,
-  handleUpdateTask,
-  handleDeleteTask,
-  fetchProjectDetails,
-  error,
-  onEditProject,
-  onDeleteProject,
-  profile,
-  handleAddMilestone,
-  handleEditMilestone
+  handleDeleteInitiate
 }) => {
   if (isLoading) {
     return (
@@ -120,71 +97,15 @@ const ProjectsTab: React.FC<ProjectsTabProps> = ({
       </div>
 
       <div className="grid gap-6">
-        {projects.map((project) => {
-          const projectApplications = applications.filter(app => app.project_id === project.id);
-          
-          return (
-            <Card key={project.id}>
-              <CardHeader>
-                <div className="flex justify-between items-start">
-                  <div>
-                    <CardTitle className="text-xl">{project.title}</CardTitle>
-                    <div className="flex items-center space-x-4 mt-2 text-sm text-gray-600">
-                      <span className="flex items-center">
-                        <Calendar className="w-4 h-4 mr-1" />
-                        {project.created_at && new Date(project.created_at).toLocaleDateString()}
-                      </span>
-                      <span className="flex items-center">
-                        <DollarSign className="w-4 h-4 mr-1" />
-                        ${project.budget}
-                      </span>
-                      {project.location && (
-                        <span className="flex items-center">
-                          <MapPin className="w-4 h-4 mr-1" />
-                          {project.location}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  <Badge 
-                    variant={
-                      project.status === 'completed' ? 'default' :
-                      project.status === 'in_progress' ? 'secondary' :
-                      project.status === 'open' ? 'outline' :
-                      'destructive'
-                    }
-                  >
-                    {project.status}
-                  </Badge>
-                </div>
-              </CardHeader>
-              
-              <CardContent>
-                <p className="text-gray-700 mb-4">{project.description}</p>
-                
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <User className="w-4 h-4 text-gray-500" />
-                    <span className="text-sm text-gray-600">
-                      {projectApplications.length} application{projectApplications.length !== 1 ? 's' : ''}
-                    </span>
-                  </div>
-                  
-                  <div className="flex space-x-2">
-                    <Button variant="outline" size="sm">
-                      View Details
-                    </Button>
-                    {project.status === 'draft' && (
-                      <Button size="sm">
-                        Edit
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })}
+        {projects.map((project) => (
+          <ProjectCard
+            key={project.id}
+            project={project}
+            applications={applications}
+            onEdit={handleEditInitiate}
+            onDelete={handleDeleteInitiate}
+          />
+        ))}
       </div>
     </div>
   );

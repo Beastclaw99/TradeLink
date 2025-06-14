@@ -3,7 +3,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { CheckCircle, XCircle, Clock, Eye, User } from 'lucide-react';
+import { CheckCircle, XCircle, Eye, User } from 'lucide-react';
 import { Application, Project, Profile } from '@/types/database';
 
 interface ApplicationsTabProps {
@@ -20,8 +20,7 @@ const ApplicationsTab: React.FC<ApplicationsTabProps> = ({
   isLoading,
   projects,
   applications,
-  handleApplicationUpdate,
-  profile
+  handleApplicationUpdate
 }) => {
   if (isLoading) {
     return (
