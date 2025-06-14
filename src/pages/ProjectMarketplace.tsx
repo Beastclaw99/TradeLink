@@ -134,7 +134,7 @@ const ProjectMarketplace: React.FC = () => {
     try {
       setLoading(true);
       
-      // Fetch projects with broader status criteria to include more projects
+      // First fetch the projects with client and professional info
       let query = supabase
         .from('projects')
         .select(`
@@ -156,7 +156,7 @@ const ProjectMarketplace: React.FC = () => {
             completed_projects
           )
         `)
-        .in('status', ['open', 'draft']); // Include both open and draft projects
+        .eq('status', 'open');
 
       // Apply filters if they exist
       if (categoryFilter && categoryFilter !== 'all') {
