@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
@@ -49,7 +48,6 @@ interface DatabaseProjectWithClient {
 // Helper function to convert database project to expected Project type
 const convertToProjectType = (dbProject: DatabaseProjectWithClient): any => ({
   ...dbProject,
-  expected_timeline: dbProject.timeline, // Map timeline to expected_timeline
   urgency: dbProject.urgency as 'high' | 'low' | 'normal' | null,
   recommended_skills: dbProject.requirements || [],
   project_start_time: null,

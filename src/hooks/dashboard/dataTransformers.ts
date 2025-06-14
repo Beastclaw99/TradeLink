@@ -83,7 +83,7 @@ export const transformProjects = (projects: DatabaseProject[]): Project[] => {
     description: project.description,
     category: project.category,
     budget: project.budget,
-    expected_timeline: project.expected_timeline,
+    timeline: project.timeline,
     location: project.location,
     urgency: project.urgency,
     requirements: project.requirements,

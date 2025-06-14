@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
@@ -62,7 +61,6 @@ type DatabaseProject = {
 // Helper function to convert database project to expected Project type
 const convertToProjectType = (dbProject: DatabaseProject): any => ({
   ...dbProject,
-  expected_timeline: dbProject.timeline, // Map timeline to expected_timeline
   milestones: [],
   tasks: [],
   updates: [],

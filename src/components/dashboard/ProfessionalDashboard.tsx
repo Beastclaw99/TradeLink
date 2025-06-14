@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useProfessionalDashboard } from "@/hooks/useProfessionalDashboard";
 import { useProfessionalProjectActions } from "@/hooks/dashboard/useProfessionalProjectActions";
@@ -15,7 +14,6 @@ interface ProfessionalDashboardProps {
 // Helper function to convert database project to expected Project type
 const convertToProjectType = (dbProject: any): any => ({
   ...dbProject,
-  expected_timeline: dbProject.timeline, // Map timeline to expected_timeline
   milestones: [],
   updates: [],
   applications: [],
