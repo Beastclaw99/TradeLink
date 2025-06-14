@@ -1,18 +1,17 @@
+
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { CheckCircle, XCircle, Eye, User } from 'lucide-react';
-import { Application, Project, Profile } from '@/types/database';
+import { Application, Project } from '@/types/database';
 
 interface ApplicationsTabProps {
   isLoading: boolean;
   projects: Project[];
   applications: Application[];
   handleApplicationUpdate: (applicationId: string, status: 'accepted' | 'rejected') => Promise<void>;
-  profile: Profile | null;
-  professionals: any[];
   userId: string;
 }
 
@@ -84,6 +83,13 @@ const ApplicationsTab: React.FC<ApplicationsTabProps> = ({
                   <div className="mb-4">
                     <h4 className="font-medium mb-2">Proposal</h4>
                     <p className="text-gray-700">{application.proposal_message}</p>
+                  </div>
+                )}
+
+                {application.cover_letter && (
+                  <div className="mb-4">
+                    <h4 className="font-medium mb-2">Cover Letter</h4>
+                    <p className="text-gray-700">{application.cover_letter}</p>
                   </div>
                 )}
 

@@ -1747,6 +1747,10 @@ export type Database = {
         Args: { user_id: string }
         Returns: Database["public"]["Enums"]["user_role"]
       }
+      rollback_draft_to_open_transition: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       rollback_policies_and_indexes: {
         Args: Record<PropertyKey, never>
         Returns: undefined
