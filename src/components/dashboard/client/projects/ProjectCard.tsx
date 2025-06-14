@@ -15,10 +15,10 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { Database } from '@/integrations/supabase/types';
-import ProjectStatusBadge from '@/components/shared/ProjectStatusBadge';
-import { Edit, Trash2, Eye, Users, Upload } from 'lucide-react';
+import { Edit, Trash2, Eye, Users, Upload, Calendar, DollarSign, MapPin, Clock, Target, AlertTriangle, CheckCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
+import { formatDateToLocale } from '@/utils/dateUtils';
 
 type Project = Database['public']['Tables']['projects']['Row'];
 type Application = Database['public']['Tables']['applications']['Row'];
@@ -30,8 +30,117 @@ interface ProjectCardProps {
   applications: Application[];
   onEdit: (project: Project) => void;
   onDelete: (projectId: string) => void;
-  onStatusUpdate?: () => void; // Add callback for status updates
+  onStatusUpdate?: () => void;
 }
+
+interface StatusConfig {
+  label: string;
+  variant: 'default' | 'secondary' | 'outline' | 'destructive';
+  icon: React.ReactNode;
+  color: string;
+}
+
+const getStatusConfig = (status: ProjectStatus | null): StatusConfig => {
+  switch (status) {
+    case 'open':
+      return {
+        label: 'Open',
+        variant: 'default',
+        icon: <Clock className="h-4 w-4 text-blue-600" />,
+        color: 'bg-blue-100 text-blue-800 border-blue-200'
+      };
+    case 'assigned':
+      return {
+        label: 'Assigned',
+        variant: 'secondary',
+        icon: <Target className="h-4 w-4 text-purple-600" />,
+        color: 'bg-purple-100 text-purple-800 border-purple-200'
+      };
+    case 'completed':
+      return {
+        label: 'Completed',
+        variant: 'default',
+        icon: <CheckCircle className="h-4 w-4 text-green-600" />,
+        color: 'bg-green-100 text-green-800 border-green-200'
+      };
+    case 'cancelled':
+      return {
+        label: 'Cancelled',
+        variant: 'destructive',
+        icon: <AlertTriangle className="h-4 w-4 text-red-600" />,
+        color: 'bg-red-100 text-red-800 border-red-200'
+      };
+    case 'disputed':
+      return {
+        label: 'Disputed',
+        variant: 'destructive',
+        icon: <AlertTriangle className="h-4 w-4 text-red-600" />,
+        color: 'bg-red-100 text-red-800 border-red-200'
+      };
+    case 'draft':
+      return {
+        label: 'Draft',
+        variant: 'outline',
+        icon: <Clock className="h-4 w-4 text-gray-600" />,
+        color: 'bg-gray-100 text-gray-800 border-gray-200'
+      };
+    case 'in_progress':
+      return {
+        label: 'In Progress',
+        variant: 'secondary',
+        icon: <Clock className="h-4 w-4 text-yellow-600" />,
+        color: 'bg-yellow-100 text-yellow-800 border-yellow-200'
+      };
+    case 'work_submitted':
+      return {
+        label: 'Work Submitted',
+        variant: 'secondary',
+        icon: <Clock className="h-4 w-4 text-indigo-600" />,
+        color: 'bg-indigo-100 text-indigo-800 border-indigo-200'
+      };
+    case 'work_revision_requested':
+      return {
+        label: 'Revision Requested',
+        variant: 'destructive',
+        icon: <AlertTriangle className="h-4 w-4 text-orange-600" />,
+        color: 'bg-orange-100 text-orange-800 border-orange-200'
+      };
+    case 'work_approved':
+      return {
+        label: 'Work Approved',
+        variant: 'default',
+        icon: <CheckCircle className="h-4 w-4 text-green-600" />,
+        color: 'bg-green-100 text-green-800 border-green-200'
+      };
+    case 'archived':
+      return {
+        label: 'Archived',
+        variant: 'outline',
+        icon: <Clock className="h-4 w-4 text-gray-600" />,
+        color: 'bg-gray-100 text-gray-800 border-gray-200'
+      };
+    default:
+      return {
+        label: 'Unknown',
+        variant: 'outline',
+        icon: <AlertTriangle className="h-4 w-4 text-gray-600" />,
+        color: 'bg-gray-100 text-gray-800 border-gray-200'
+      };
+  }
+};
+
+const getUrgencyColor = (urgency: string | null): string => {
+  switch (urgency?.toLowerCase()) {
+    case 'high':
+      return 'bg-red-100 text-red-800 border-red-200';
+    case 'medium':
+      return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+    case 'low':
+      return 'bg-green-100 text-green-800 border-green-200';
+    default:
+      return 'bg-gray-100 text-gray-800 border-gray-200';
+  }
+};
 
 const ProjectCard: React.FC<ProjectCardProps> = ({ 
   project, 
@@ -48,6 +157,8 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
   const pendingApplications = projectApplications.filter(app => app.status === 'pending' as ApplicationStatus);
   const acceptedApplication = projectApplications.find(app => app.status === 'accepted' as ApplicationStatus);
 
+  const statusConfig = getStatusConfig(project.status);
+
   const handleViewDetails = () => {
     navigate(`/projects/${project.id}`);
   };
@@ -56,12 +167,10 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
     navigate(`/client/projects/${project.id}/applications`);
   };
 
-  // Handle publishing project (draft -> open) with proper validation
   const handlePublishProject = async () => {
     try {
       setIsPublishing(true);
 
-      // Validate required fields
       const missingFields = [];
       if (!project.title) missingFields.push('title');
       if (!project.description) missingFields.push('description');
@@ -77,7 +186,6 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
         return;
       }
 
-      // Update project status to 'open'
       const { error } = await supabase
         .from('projects')
         .update({ status: 'open' })
@@ -93,7 +201,6 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
         description: "Your project is now visible on the marketplace."
       });
 
-      // Call the status update callback to refresh data
       if (onStatusUpdate) {
         onStatusUpdate();
       }
@@ -111,18 +218,48 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
   };
 
   const handleEdit = () => {
-    // Store the project data in localStorage for the wizard to use
     localStorage.setItem('editProjectData', JSON.stringify(project));
     navigate('/create-project?mode=edit');
   };
 
   return (
-    <Card className="h-full">
-      <CardHeader>
+    <Card className="h-full hover:shadow-md transition-shadow">
+      <CardHeader className="pb-4">
         <div className="flex items-start justify-between">
           <div className="flex-1">
-            <CardTitle className="text-lg mb-2">{project.title}</CardTitle>
-            <ProjectStatusBadge status={project.status || 'open' as ProjectStatus} showIcon={true} />
+            <div className="flex items-center gap-3 mb-2">
+              <CardTitle className="text-xl">{project.title}</CardTitle>
+              <div className="flex items-center gap-2">
+                {statusConfig.icon}
+                <Badge variant={statusConfig.variant} className={statusConfig.color}>
+                  {statusConfig.label}
+                </Badge>
+                {project.urgency && (
+                  <Badge className={`border ${getUrgencyColor(project.urgency)}`}>
+                    {project.urgency} Priority
+                  </Badge>
+                )}
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-4 text-sm text-gray-600">
+              <span className="flex items-center gap-1">
+                <Calendar className="h-4 w-4" />
+                {formatDateToLocale(project.created_at)}
+              </span>
+              {project.location && (
+                <span className="flex items-center gap-1">
+                  <MapPin className="h-4 w-4" />
+                  {project.location}
+                </span>
+              )}
+              {project.budget && (
+                <span className="flex items-center gap-1">
+                  <DollarSign className="h-4 w-4" />
+                  ${project.budget.toLocaleString()}
+                </span>
+              )}
+            </div>
           </div>
         </div>
       </CardHeader>
@@ -131,10 +268,10 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
         <p className="text-gray-600 mb-4 line-clamp-3">{project.description}</p>
         
         <div className="space-y-2 mb-4">
-          {project.budget && (
+          {project.timeline && (
             <div className="flex justify-between text-sm">
-              <span className="text-gray-500">Budget:</span>
-              <span className="font-medium">${project.budget.toLocaleString()}</span>
+              <span className="text-gray-500">Timeline:</span>
+              <span className="font-medium">{project.timeline}</span>
             </div>
           )}
           <div className="flex justify-between text-sm">
@@ -182,7 +319,6 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
             </Button>
           )}
 
-          {/* Publish button - only show for draft projects */}
           {project.status === 'draft' as ProjectStatus && (
             <AlertDialog>
               <AlertDialogTrigger asChild>

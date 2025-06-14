@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
@@ -40,7 +39,7 @@ interface ProjectCardProps {
   onClick?: () => void;
 }
 
-const ProjectCard: React.FC<ProjectCardProps> = ({ 
+const MarketplaceProjectCard: React.FC<ProjectCardProps> = ({ 
   project, 
   onClick
 }) => {
@@ -140,4 +139,4 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
   );
 };
 
-export default ProjectCard;
+export default MarketplaceProjectCard;

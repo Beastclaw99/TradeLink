@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import ProjectCard from './ProjectCard';
+import MarketplaceProjectCard from './MarketplaceProjectCard';
 import ProjectListItem from './ProjectListItem';
 import { Project } from '@/types/database';
 import { Loader2 } from 'lucide-react';
@@ -62,7 +62,7 @@ const ProjectsDisplay: React.FC<ProjectsDisplayProps> = ({
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {projects.map(project => (
             userType === 'client' ? (
-              <ProjectCard 
+              <MarketplaceProjectCard 
                 key={project.id} 
                 project={project} 
                 onClick={() => handleProjectClick(project.id)}
@@ -81,7 +81,7 @@ const ProjectsDisplay: React.FC<ProjectsDisplayProps> = ({
         <div className="space-y-4">
           {projects.map(project => (
             userType === 'client' ? (
-              <ProjectCard 
+              <MarketplaceProjectCard 
                 key={project.id} 
                 project={project} 
                 onClick={() => handleProjectClick(project.id)}
