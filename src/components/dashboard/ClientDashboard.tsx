@@ -7,6 +7,7 @@ import PaymentsTab from './client/PaymentsTab';
 import { useClientDashboard } from '@/hooks/useClientDashboard';
 import { supabase } from '@/integrations/supabase/client';
 import { useProjectOperations } from '@/hooks/useProjectOperations';
+import { toast } from "@/components/ui/use-toast";
 
 interface ClientDashboardProps {
   userId: string;
@@ -104,15 +105,26 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ userId, initialTab = 
     ...app,
     project_id: app.project_id || '',
     professional_id: app.professional_id || '',
-    status: app.status as 'pending' | 'accepted' | 'rejected' | 'withdrawn' | null,
-    updated_at: app.updated_at || new Date().toISOString() // Provide default value for null updated_at
+    status: app.status || 'pending',
+    updated_at: app.updated_at || new Date().toISOString()
   }));
 
   // Wrap handleApplicationUpdate to match expected signature
   const handleApplicationUpdate = async (applicationId: string, status: 'accepted' | 'rejected') => {
-    const application = applications.find(app => app.id === applicationId);
-    if (application && application.project_id && application.professional_id) {
-      await rawHandleApplicationUpdate(applicationId, status, application.project_id, application.professional_id);
+    try {
+      const application = applications.find(app => app.id === applicationId);
+      if (!application) {
+        throw new Error('Application not found');
+      }
+      await rawHandleApplicationUpdate(applicationId, status);
+      await fetchDashboardData(); // Refresh data after update
+    } catch (error) {
+      console.error('Error updating application:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update application status. Please try again.",
+        variant: "destructive"
+      });
     }
   };
 

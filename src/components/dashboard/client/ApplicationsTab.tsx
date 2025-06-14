@@ -4,7 +4,20 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { CheckCircle, XCircle, Eye, User } from 'lucide-react';
-import { Application, Project, Profile } from '@/types/database';
+import { Database } from '@/integrations/supabase/types';
+
+type Application = Database['public']['Tables']['applications']['Row'] & {
+  professional?: {
+    id: string;
+    first_name: string;
+    last_name: string;
+    profile_image_url?: string;
+    rating?: number;
+  };
+};
+
+type Project = Database['public']['Tables']['projects']['Row'];
+type Profile = Database['public']['Tables']['profiles']['Row'];
 
 interface ApplicationsTabProps {
   isLoading: boolean;
@@ -12,7 +25,6 @@ interface ApplicationsTabProps {
   applications: Application[];
   handleApplicationUpdate: (applicationId: string, status: 'accepted' | 'rejected') => Promise<void>;
   profile: Profile | null;
-  professionals: any[];
   userId: string;
 }
 
@@ -67,7 +79,11 @@ const ApplicationsTab: React.FC<ApplicationsTabProps> = ({
                 <div className="flex justify-between items-start mb-4">
                   <div>
                     <h3 className="text-lg font-semibold">{project.title}</h3>
-                    <p className="text-gray-600">Professional ID: {application.professional_id}</p>
+                    {application.professional && (
+                      <p className="text-gray-600">
+                        {application.professional.first_name} {application.professional.last_name}
+                      </p>
+                    )}
                   </div>
                   <Badge 
                     variant={
@@ -87,7 +103,7 @@ const ApplicationsTab: React.FC<ApplicationsTabProps> = ({
                   </div>
                 )}
 
-                <div className="grid grid-cols-2 gap-4 mb-4">
+                <div className="space-y-2 mb-4">
                   {application.bid_amount && (
                     <div>
                       <span className="font-medium">Bid Amount: </span>

@@ -15,36 +15,49 @@ export const useClientActions = (userId: string, onSuccess?: () => void) => {
     try {
       setIsProcessing(true);
 
+      // Get the application details first
+      const { data: application, error: fetchError } = await supabase
+        .from('applications')
+        .select('project_id, professional_id')
+        .eq('id', applicationId)
+        .single();
+
+      if (fetchError) throw fetchError;
+      if (!application) throw new Error('Application not found');
+
+      // Verify the project belongs to the client
+      const { data: project, error: projectError } = await supabase
+        .from('projects')
+        .select('id')
+        .eq('id', application.project_id)
+        .eq('client_id', userId)
+        .single();
+
+      if (projectError) throw projectError;
+      if (!project) throw new Error('Project not found or unauthorized');
+
       // Update application status
       const { error: updateError } = await supabase
         .from('applications')
         .update({ status })
-        .eq('id', applicationId)
-        .eq('project_id', (await supabase
-          .from('projects')
-          .select('id')
-          .eq('client_id', userId)
-          .single()
-        ).data?.id);
+        .eq('id', applicationId);
 
-      if (updateError) {
-        throw updateError;
-      }
+      if (updateError) throw updateError;
 
       // Add project update
-      const { data: application } = await supabase
-        .from('applications')
-        .select('project_id, professionals:professional_id (first_name, last_name)')
-        .eq('id', applicationId)
+      const { data: professional } = await supabase
+        .from('profiles')
+        .select('first_name, last_name')
+        .eq('id', application.professional_id)
         .single();
 
-      if (application) {
+      if (professional) {
         await supabase
           .from('project_updates')
           .insert([{
             project_id: application.project_id,
             update_type: 'application_updated',
-            message: `Application ${status} for ${application.professionals.first_name} ${application.professionals.last_name}`,
+            message: `Application ${status} for ${professional.first_name} ${professional.last_name}`,
             user_id: userId
           }]);
       }

@@ -99,28 +99,33 @@ export const useClientDataFetcher = (userId: string) => {
       setMilestones([]);
       setTasks([]);
 
-      // Only fetch related data if there are projects
+      // Fetch applications for all projects owned by the client
+      const { data: applicationsData, error: applicationsError } = await supabase
+        .from('applications')
+        .select(`
+          *,
+          professional:profiles!applications_professional_id_fkey(
+            id,
+            first_name,
+            last_name,
+            profile_image_url,
+            rating
+          ),
+          project:projects!applications_project_id_fkey(
+            id,
+            title,
+            status
+          )
+        `)
+        .eq('projects.client_id', userId);
+
+      if (applicationsError) throw applicationsError;
+      const transformedApplications = transformApplications(applicationsData || []);
+      setApplications(transformedApplications);
+
+      // Only fetch other related data if there are projects
       if (transformedProjects.length > 0) {
         const projectIds = transformedProjects.map(p => p.id);
-
-        // Fetch applications
-        const { data: applicationsData, error: applicationsError } = await supabase
-          .from('applications')
-          .select(`
-            *,
-            professional:profiles!applications_professional_id_fkey(
-              id,
-              first_name,
-              last_name,
-              profile_image_url,
-              rating
-            )
-          `)
-          .in('project_id', projectIds);
-
-        if (applicationsError) throw applicationsError;
-        const transformedApplications = transformApplications(applicationsData || []);
-        setApplications(transformedApplications);
 
         // Fetch payments
         const { data: paymentsData, error: paymentsError } = await supabase
