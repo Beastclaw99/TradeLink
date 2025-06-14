@@ -1,25 +1,71 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Project, Profile } from '@/types/database';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Loader2 } from "lucide-react";
 import { formatDate } from '@/utils/dateUtils';
 
-interface ProjectWithClient extends Omit<Project, 'client'> {
+// Type that matches the actual database schema
+interface DatabaseProjectWithClient {
+  id: string;
+  title: string;
+  description: string | null;
+  client_id: string | null;
+  professional_id: string | null;
+  status: string | null;
+  budget: number | null;
+  timeline: string | null;
+  location: string | null;
+  category: string | null;
+  urgency: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+  assigned_to: string | null;
+  deadline: string | null;
+  spent: number | null;
+  requirements: string[] | null;
+  recommended_skills: string[] | null;
+  rich_description: string | null;
+  scope: string | null;
+  industry_specific_fields: any;
+  location_coordinates: any;
+  project_start_time: string | null;
+  service_contract: string | null;
+  contract_template_id: string | null;
+  sla_terms: any;
   client: {
     first_name: string | null;
     last_name: string | null;
   } | null;
-  requirements: string[] | null;
 }
+
+// Helper function to convert database project to expected Project type
+const convertToProjectType = (dbProject: DatabaseProjectWithClient): any => ({
+  ...dbProject,
+  expected_timeline: dbProject.timeline, // Map timeline to expected_timeline
+  urgency: dbProject.urgency as 'high' | 'low' | 'normal' | null,
+  recommended_skills: dbProject.requirements || [],
+  project_start_time: null,
+  rich_description: null,
+  service_contract: null,
+  client: dbProject.client,
+  spent: dbProject.spent || 0,
+  milestones: [],
+  updates: [],
+  applications: [],
+  reviews: [],
+  disputes: [],
+  invoices: [],
+  messages: [],
+  notifications: []
+});
 
 const ProfessionalProjectMarketplace: React.FC = () => {
   const { user } = useAuth();
@@ -29,9 +75,12 @@ const ProfessionalProjectMarketplace: React.FC = () => {
   const [categoryFilter, setCategoryFilter] = useState("");
   const [locationFilter, setLocationFilter] = useState("");
   const [budgetFilter, setBudgetFilter] = useState("");
-  const [projects, setProjects] = useState<Project[]>([]);
+  const [rawProjects, setRawProjects] = useState<DatabaseProjectWithClient[]>([]);
   const [loading, setLoading] = useState(true);
   const [userSkills, setUserSkills] = useState<string[]>([]);
+
+  // Convert projects to expected format
+  const projects = rawProjects.map(convertToProjectType);
 
   useEffect(() => {
     if (!user) {
@@ -76,26 +125,8 @@ const ProfessionalProjectMarketplace: React.FC = () => {
         
       if (error) throw error;
       
-      const typedProjects: Project[] = (data as ProjectWithClient[]).map(project => ({
-        ...project,
-        urgency: project.urgency as 'high' | 'low' | 'normal' | null,
-        recommended_skills: project.requirements || [],
-        project_start_time: null,
-        rich_description: null,
-        service_contract: null,
-        client: project.client as Profile | undefined,
-        spent: project.spent || 0,
-        milestones: [],
-        updates: [],
-        applications: [],
-        reviews: [],
-        disputes: [],
-        invoices: [],
-        messages: [],
-        notifications: []
-      }));
-      
-      setProjects(typedProjects);
+      console.log('Fetched projects for professional marketplace:', data);
+      setRawProjects(data as DatabaseProjectWithClient[] || []);
     } catch (error: any) {
       console.error('Error fetching projects:', error);
       toast({
@@ -134,7 +165,9 @@ const ProfessionalProjectMarketplace: React.FC = () => {
     // Filter by matching skills if user has skills
     let matchesSkills = true;
     if (userSkills.length > 0 && project.recommended_skills) {
-      const projectSkills = JSON.parse(project.recommended_skills) as string[];
+      const projectSkills = Array.isArray(project.recommended_skills) 
+        ? project.recommended_skills 
+        : JSON.parse(project.recommended_skills) as string[];
       const hasMatchingSkills = projectSkills.some(skill => userSkills.includes(skill));
       if (!hasMatchingSkills) return false;
     }
@@ -212,7 +245,11 @@ const ProfessionalProjectMarketplace: React.FC = () => {
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredProjects.map((project) => {
-              const projectSkills = project.recommended_skills ? JSON.parse(project.recommended_skills) as string[] : [];
+              const projectSkills = project.recommended_skills ? 
+                (Array.isArray(project.recommended_skills) 
+                  ? project.recommended_skills 
+                  : JSON.parse(project.recommended_skills) as string[]) 
+                : [];
               
               return (
                 <Card key={project.id} className="hover:shadow-lg transition-shadow">
@@ -279,4 +316,4 @@ const ProfessionalProjectMarketplace: React.FC = () => {
   );
 };
 
-export default ProfessionalProjectMarketplace; 
+export default ProfessionalProjectMarketplace;

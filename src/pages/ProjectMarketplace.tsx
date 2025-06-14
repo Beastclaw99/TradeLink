@@ -1,10 +1,10 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Project } from '@/types/database';
 
 // Import the refactored components
 import HeroSection from '@/components/marketplace/HeroSection';
@@ -12,6 +12,68 @@ import SearchFilters from '@/components/marketplace/SearchFilters';
 import ViewModeToggle from '@/components/marketplace/ViewModeToggle';
 import ProjectsDisplay from '@/components/marketplace/ProjectsDisplay';
 import CTASection from '@/components/marketplace/CTASection';
+
+// Type that matches the actual database schema
+type DatabaseProject = {
+  id: string;
+  title: string;
+  description: string | null;
+  client_id: string | null;
+  professional_id: string | null;
+  status: string | null;
+  budget: number | null;
+  timeline: string | null;
+  location: string | null;
+  category: string | null;
+  urgency: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+  assigned_to: string | null;
+  deadline: string | null;
+  spent: number | null;
+  requirements: string[] | null;
+  recommended_skills: string[] | null;
+  rich_description: string | null;
+  scope: string | null;
+  industry_specific_fields: any;
+  location_coordinates: any;
+  project_start_time: string | null;
+  service_contract: string | null;
+  contract_template_id: string | null;
+  sla_terms: any;
+  client?: {
+    id: string;
+    first_name: string | null;
+    last_name: string | null;
+    profile_image_url: string | null;
+    rating: number | null;
+    completed_projects: number | null;
+  };
+  professional?: {
+    id: string;
+    first_name: string | null;
+    last_name: string | null;
+    profile_image_url: string | null;
+    rating: number | null;
+    completed_projects: number | null;
+  };
+};
+
+// Helper function to convert database project to expected Project type
+const convertToProjectType = (dbProject: DatabaseProject): any => ({
+  ...dbProject,
+  expected_timeline: dbProject.timeline, // Map timeline to expected_timeline
+  milestones: [],
+  tasks: [],
+  updates: [],
+  applications: [],
+  reviews: [],
+  disputes: [],
+  payments: [],
+  invoices: [],
+  project_messages: [],
+  notifications: []
+});
 
 const ProjectMarketplace: React.FC = () => {
   const { user } = useAuth();
@@ -23,11 +85,14 @@ const ProjectMarketplace: React.FC = () => {
   const [locationFilter, setLocationFilter] = useState("");
   const [budgetFilter, setBudgetFilter] = useState("");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-  const [projects, setProjects] = useState<Project[]>([]);
+  const [rawProjects, setRawProjects] = useState<DatabaseProject[]>([]);
   const [loading, setLoading] = useState(true);
   const [userType, setUserType] = useState<'professional' | 'client' | null>(null);
   const [userSkills, setUserSkills] = useState<string[]>([]);
   
+  // Convert projects to expected format
+  const projects = rawProjects.map(convertToProjectType);
+
   useEffect(() => {
     if (!user) {
       navigate('/login');
@@ -123,52 +188,8 @@ const ProjectMarketplace: React.FC = () => {
         
       if (projectsError) throw projectsError;
 
-      // Then fetch related data for each project
-      const projectsWithRelations = await Promise.all(
-        (projectsData || []).map(async (project) => {
-          const [
-            { data: milestones },
-            { data: tasks },
-            { data: updates },
-            { data: applications },
-            { data: reviews },
-            { data: disputes },
-            { data: payments },
-            { data: invoices },
-            { data: project_messages },
-            { data: notifications }
-          ] = await Promise.all([
-            supabase.from('project_milestones').select('*').eq('project_id', project.id),
-            supabase.from('project_tasks').select('*').eq('project_id', project.id),
-            supabase.from('project_updates').select('*').eq('project_id', project.id),
-            supabase.from('applications').select('*').eq('project_id', project.id),
-            supabase.from('reviews').select('*').eq('project_id', project.id),
-            supabase.from('disputes').select('*').eq('project_id', project.id),
-            supabase.from('payments').select('*').eq('project_id', project.id),
-            supabase.from('invoices').select('*').eq('project_id', project.id),
-            supabase.from('project_messages').select('*').eq('project_id', project.id),
-            supabase.from('notifications').select('*').eq('project_id', project.id)
-          ]);
-
-          return {
-            ...project,
-            client: project.client || undefined,
-            professional: project.professional || undefined,
-            milestones: milestones || [],
-            tasks: tasks || [],
-            updates: updates || [],
-            applications: applications || [],
-            reviews: reviews || [],
-            disputes: disputes || [],
-            payments: payments || [],
-            invoices: invoices || [],
-            project_messages: project_messages || [],
-            notifications: notifications || []
-          } as Project;
-        })
-      );
-      
-      setProjects(projectsWithRelations);
+      console.log('Fetched projects:', projectsData);
+      setRawProjects(projectsData || []);
     } catch (error: any) {
       console.error('Error fetching projects:', error);
       toast({

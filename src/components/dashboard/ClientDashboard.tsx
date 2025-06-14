@@ -6,7 +6,6 @@ import ApplicationsTab from './client/ApplicationsTab';
 import CreateProjectTab from './client/CreateProjectTab';
 import PaymentsTab from './client/PaymentsTab';
 import { useClientDashboard } from '@/hooks/useClientDashboard';
-import { Project } from './types';
 import { supabase } from '@/integrations/supabase/client';
 import { useProjectOperations } from '@/hooks/useProjectOperations';
 
@@ -15,14 +14,58 @@ interface ClientDashboardProps {
   initialTab?: string;
 }
 
+// Create a type that matches the actual database schema
+type DatabaseProject = {
+  id: string;
+  title: string;
+  description: string | null;
+  client_id: string | null;
+  professional_id: string | null;
+  status: string | null;
+  budget: number | null;
+  timeline: string | null; // Use timeline instead of expected_timeline
+  location: string | null;
+  category: string | null;
+  urgency: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+  assigned_to: string | null;
+  deadline: string | null;
+  spent: number | null;
+  requirements: string[] | null;
+  recommended_skills: string[] | null;
+  rich_description: string | null;
+  scope: string | null;
+  industry_specific_fields: any;
+  location_coordinates: any;
+  project_start_time: string | null;
+  service_contract: string | null;
+  contract_template_id: string | null;
+  sla_terms: any;
+};
+
+// Helper function to convert database project to expected Project type
+const convertToProjectType = (dbProject: DatabaseProject): any => ({
+  ...dbProject,
+  expected_timeline: dbProject.timeline, // Map timeline to expected_timeline
+  milestones: [],
+  updates: [],
+  applications: [],
+  reviews: [],
+  disputes: [],
+  invoices: [],
+  messages: [],
+  notifications: []
+});
+
 const ClientDashboard: React.FC<ClientDashboardProps> = ({ userId, initialTab = 'projects' }) => {
   const [activeTab, setActiveTab] = useState(initialTab);
 
   // Use consolidated hook for all dashboard functionality
   const { 
     // Data
-    projects, 
-    applications, 
+    projects: rawProjects, 
+    applications: rawApplications, 
     reviews, 
     profile, 
     isLoading,
@@ -42,7 +85,7 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ userId, initialTab = 
     
     // Actions
     fetchDashboardData,
-    handleApplicationUpdate,
+    handleApplicationUpdate: rawHandleApplicationUpdate,
     handleEditInitiate,
     handleEditCancel,
     handleUpdateProject,
@@ -54,6 +97,25 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ userId, initialTab = 
     handleReviewSubmit,
     setReviewData
   } = useClientDashboard(userId);
+
+  // Convert projects to expected format
+  const projects = rawProjects.map(convertToProjectType);
+  
+  // Convert applications to ensure proper types
+  const applications = rawApplications.map(app => ({
+    ...app,
+    project_id: app.project_id || '',
+    professional_id: app.professional_id || '',
+    status: app.status as 'pending' | 'accepted' | 'rejected' | 'withdrawn' | null
+  }));
+
+  // Wrap handleApplicationUpdate to match expected signature
+  const handleApplicationUpdate = async (applicationId: string, status: 'accepted' | 'rejected') => {
+    const application = applications.find(app => app.id === applicationId);
+    if (application && application.project_id && application.professional_id) {
+      await rawHandleApplicationUpdate(applicationId, status, application.project_id, application.professional_id);
+    }
+  };
 
   // Add useProjectOperations for robust project detail fetching
   const { fetchProjectDetails } = useProjectOperations(userId, fetchDashboardData);
@@ -242,13 +304,13 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ userId, initialTab = 
     projects,
     reviews,
     applications,
-    projectToReview: projectToReview ? projects.find((p: Project) => p.id === projectToReview.project_id) || null : null,
+    projectToReview: projectToReview ? projects.find((p: any) => p.id === projectToReview.project_id) || null : null,
     reviewData: {
       rating: reviewData.rating,
       comment: reviewData.comment
     },
     isSubmitting: isReviewSubmitting,
-    handleReviewInitiate: (project: Project) => {
+    handleReviewInitiate: (project: any) => {
       const application = applications.find((app: any) => app.project_id === project.id);
       if (application) {
         handleReviewInitiate(application);

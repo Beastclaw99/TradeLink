@@ -7,20 +7,33 @@ import { ProfessionalDashboardTabs } from './professional/ProfessionalDashboardT
 import DashboardError from './professional/DashboardError';
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
-import { Application, Review } from '@/types/database';
 
 interface ProfessionalDashboardProps {
   userId: string;
 }
 
+// Helper function to convert database project to expected Project type
+const convertToProjectType = (dbProject: any): any => ({
+  ...dbProject,
+  expected_timeline: dbProject.timeline, // Map timeline to expected_timeline
+  milestones: [],
+  updates: [],
+  applications: [],
+  reviews: [],
+  disputes: [],
+  invoices: [],
+  messages: [],
+  notifications: []
+});
+
 const ProfessionalDashboard: React.FC<ProfessionalDashboardProps> = ({ userId }) => {
   const { toast } = useToast();
   
   const {
-    projects,
-    applications,
+    projects: rawProjects,
+    applications: rawApplications,
     payments,
-    reviews,
+    reviews: rawReviews,
     skills,
     profile,
     isLoading,
@@ -29,6 +42,23 @@ const ProfessionalDashboard: React.FC<ProfessionalDashboardProps> = ({ userId })
     calculateAverageRating,
     calculatePaymentTotals,
   } = useProfessionalDashboard(userId);
+
+  // Convert projects to expected format
+  const projects = rawProjects.map(convertToProjectType);
+
+  // Convert applications to ensure proper types
+  const applications = rawApplications.map(app => ({
+    ...app,
+    project_id: app.project_id || '',
+    professional_id: app.professional_id || '',
+    status: app.status as 'pending' | 'accepted' | 'rejected' | 'withdrawn' | null
+  }));
+
+  // Convert reviews to ensure proper types
+  const reviews = rawReviews.map(review => ({
+    ...review,
+    status: (review.status as 'pending' | 'rejected' | 'approved' | 'reported' | null) || 'pending'
+  }));
 
   const {
     isApplying,
@@ -99,20 +129,6 @@ const ProfessionalDashboard: React.FC<ProfessionalDashboardProps> = ({ userId })
     }
   };
 
-  // Transform applications with proper type safety
-  const typedApplications: Application[] = applications.map(app => ({
-    ...app,
-    project_id: app.project_id || '',
-    professional_id: app.professional_id || '',
-    status: app.status as 'pending' | 'accepted' | 'rejected' | 'withdrawn' | null
-  }));
-
-  // Transform reviews with proper type safety
-  const typedReviews: Review[] = reviews.map(review => ({
-    ...review,
-    status: (review.status as 'pending' | 'rejected' | 'approved' | 'reported' | null) || 'pending'
-  }));
-
   if (error) {
     return <DashboardError error={error} isLoading={isLoading} onRetry={fetchDashboardData} />;
   }
@@ -122,9 +138,9 @@ const ProfessionalDashboard: React.FC<ProfessionalDashboardProps> = ({ userId })
       userId={userId}
       isLoading={isLoading}
       projects={projects}
-      applications={typedApplications}
+      applications={applications}
       payments={payments}
-      reviews={typedReviews}
+      reviews={reviews}
       skills={skills}
       profile={profile}
       coverLetter={coverLetter}

@@ -1,13 +1,42 @@
+
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Project, ProjectStatus } from '@/types/database';
-import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 
+// Type that matches the actual database schema
+interface DatabaseProject {
+  id: string;
+  title: string;
+  description: string | null;
+  client_id: string | null;
+  professional_id: string | null;
+  status: string | null;
+  budget: number | null;
+  timeline: string | null;
+  location: string | null;
+  category: string | null;
+  urgency: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+  assigned_to: string | null;
+  deadline: string | null;
+  spent: number | null;
+  requirements: string[] | null;
+  recommended_skills: string[] | null;
+  rich_description: string | null;
+  scope: string | null;
+  industry_specific_fields: any;
+  location_coordinates: any;
+  project_start_time: string | null;
+  service_contract: string | null;
+  contract_template_id: string | null;
+  sla_terms: any;
+}
+
 interface ProjectCardProps {
-  project: Project;
+  project: DatabaseProject | any; // Allow both types for compatibility
   onClick?: () => void;
 }
 
@@ -89,7 +118,7 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
             <div>
               <span className="text-sm font-medium">Required Skills:</span>
               <div className="flex flex-wrap gap-2 mt-2">
-                {project.requirements.map((skill, index) => (
+                {project.requirements.map((skill: string, index: number) => (
                   <Badge 
                     key={index}
                     variant="outline"
