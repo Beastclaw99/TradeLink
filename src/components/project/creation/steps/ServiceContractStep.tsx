@@ -6,7 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Info, FileText, Clock, AlertTriangle } from 'lucide-react';
-import { ProjectData } from '../types';
+import { ProjectData } from '@/types/project';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 
@@ -18,14 +18,17 @@ interface ServiceContractStepProps {
 const ServiceContractStep: React.FC<ServiceContractStepProps> = ({ data, onUpdate }) => {
   // Ensure we have safe defaults for all data
   const safeData = {
-    service_contract: data.service_contract || '',
-    contract_template_id: data.contract_template_id || '',
-    payment_required: data.payment_required ?? true,
-    payment_due_date: data.payment_due_date || '',
-    project_start_time: data.project_start_time || '',
-    sla_terms: data.sla_terms || null,
-    requirements: data.requirements || [],
-    scope: data.scope || '',
+    service_contract: data?.service_contract || '',
+    contract_template_id: data?.contract_template_id || '',
+    payment_required: data?.payment_required ?? true,
+    payment_due_date: data?.payment_due_date || '',
+    project_start_time: data?.project_start_time || '',
+    sla_terms: data?.sla_terms || null,
+    requirements: data?.requirements || [],
+    scope: data?.scope || '',
+    title: data?.title || '',
+    budget: data?.budget || 0,
+    timeline: data?.timeline || '',
     ...data
   };
 
