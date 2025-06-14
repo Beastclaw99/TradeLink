@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
-import { MapPin, DollarSign, Calendar, Clock, User } from 'lucide-react';
+import { DollarSign, Calendar, Clock, User } from 'lucide-react';
 import { Application } from '@/types/database';
 
 interface ViewApplicationDialogProps {

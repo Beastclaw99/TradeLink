@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -23,8 +23,6 @@ const ProjectApplicationsView: React.FC<ProjectApplicationsViewProps> = ({
   onRejectApplication,
   isProcessing = false
 }) => {
-  const [selectedApplication, setSelectedApplication] = useState<Application | null>(null);
-
   if (applications.length === 0) {
     return (
       <Card>
