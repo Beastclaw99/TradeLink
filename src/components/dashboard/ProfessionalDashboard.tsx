@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useProfessionalDashboard } from "@/hooks/useProfessionalDashboard";
 import { useProfessionalProjectActions } from "@/hooks/dashboard/useProfessionalProjectActions";
@@ -45,13 +46,14 @@ const ProfessionalDashboard: React.FC<ProfessionalDashboardProps> = ({ userId })
   // Convert projects to expected format
   const projects = rawProjects.map(convertToProjectType);
 
-  // Convert applications to ensure proper types with null safety
+  // Convert applications to ensure proper types with null safety and provide defaults
   const applications = rawApplications.map(app => ({
     ...app,
     project_id: app.project_id || '',
     professional_id: app.professional_id || '',
     status: app.status as 'pending' | 'accepted' | 'rejected' | 'withdrawn' | null,
-    created_at: app.created_at || new Date().toISOString()
+    created_at: app.created_at || new Date().toISOString(),
+    updated_at: app.updated_at || new Date().toISOString() // Provide default for null updated_at
   }));
 
   // Convert reviews to ensure proper types with null safety

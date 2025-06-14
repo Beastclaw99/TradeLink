@@ -1,11 +1,25 @@
-import React from 'react';
+
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { Database } from '@/integrations/supabase/types';
 import ProjectStatusBadge from '@/components/shared/ProjectStatusBadge';
-import { Edit, Trash2, Send, Eye, Users } from 'lucide-react';
+import { Edit, Trash2, Eye, Users, Upload } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/components/ui/use-toast';
 
 type Project = Database['public']['Tables']['projects']['Row'];
 type Application = Database['public']['Tables']['applications']['Row'];
@@ -17,15 +31,19 @@ interface ProjectCardProps {
   applications: Application[];
   onEdit: (project: Project) => void;
   onDelete: (projectId: string) => void;
+  onStatusUpdate?: () => void; // Add callback for status updates
 }
 
 const ProjectCard: React.FC<ProjectCardProps> = ({ 
   project, 
   applications, 
   onEdit, 
-  onDelete 
+  onDelete,
+  onStatusUpdate
 }) => {
   const navigate = useNavigate();
+  const { toast } = useToast();
+  const [isPublishing, setIsPublishing] = useState(false);
   
   const projectApplications = applications.filter(app => app.project_id === project.id);
   const pendingApplications = projectApplications.filter(app => app.status === 'pending' as ApplicationStatus);
@@ -37,6 +55,42 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
 
   const handleViewApplications = () => {
     navigate(`/client/projects/${project.id}/applications`);
+  };
+
+  // Handle publishing project (draft -> open)
+  const handlePublishProject = async () => {
+    try {
+      setIsPublishing(true);
+      
+      const { error } = await supabase
+        .from('projects')
+        .update({ 
+          status: 'open' as ProjectStatus,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', project.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Project Published",
+        description: "Your project has been published and is now open for applications."
+      });
+
+      // Call the status update callback to refresh the data
+      if (onStatusUpdate) {
+        onStatusUpdate();
+      }
+    } catch (error: any) {
+      console.error('Error publishing project:', error);
+      toast({
+        title: "Error",
+        description: "Failed to publish project. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsPublishing(false);
+    }
   };
 
   return (
@@ -82,7 +136,7 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
           )}
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <Button 
             variant="outline" 
             size="sm"
@@ -103,6 +157,37 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
               <Users className="h-4 w-4 mr-1" />
               View Applications
             </Button>
+          )}
+
+          {/* Publish button - only show for draft projects */}
+          {project.status === 'draft' as ProjectStatus && (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button 
+                  variant="default" 
+                  size="sm"
+                  className="flex-1"
+                  disabled={isPublishing}
+                >
+                  <Upload className="h-4 w-4 mr-1" />
+                  {isPublishing ? 'Publishing...' : 'Publish'}
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Publish Project</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Are you sure you want to publish this project? Once published, it will be visible to professionals and they can start submitting applications.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={handlePublishProject}>
+                    Publish Project
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           )}
           
           <Button 

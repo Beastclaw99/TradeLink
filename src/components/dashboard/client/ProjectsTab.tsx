@@ -43,6 +43,8 @@ interface ProjectsTabProps {
   profile: Profile | null;
   handleAddMilestone: (projectId: string, milestone: any) => Promise<any>;
   handleEditMilestone: (projectId: string, milestoneId: string, updates: any) => Promise<any>;
+  // Add callback for data refresh after status updates
+  onDataRefresh?: () => void;
 }
 
 const ProjectsTab: React.FC<ProjectsTabProps> = ({
@@ -50,7 +52,8 @@ const ProjectsTab: React.FC<ProjectsTabProps> = ({
   projects,
   applications,
   handleEditInitiate,
-  handleDeleteInitiate
+  handleDeleteInitiate,
+  onDataRefresh
 }) => {
   if (isLoading) {
     return (
@@ -104,6 +107,7 @@ const ProjectsTab: React.FC<ProjectsTabProps> = ({
             applications={applications}
             onEdit={handleEditInitiate}
             onDelete={handleDeleteInitiate}
+            onStatusUpdate={onDataRefresh} // Pass the refresh callback
           />
         ))}
       </div>

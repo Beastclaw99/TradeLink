@@ -106,7 +106,8 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ userId, initialTab = 
     ...app,
     project_id: app.project_id || '',
     professional_id: app.professional_id || '',
-    status: app.status as 'pending' | 'accepted' | 'rejected' | 'withdrawn' | null
+    status: app.status as 'pending' | 'accepted' | 'rejected' | 'withdrawn' | null,
+    updated_at: app.updated_at || new Date().toISOString() // Provide default value for null updated_at
   }));
 
   // Wrap handleApplicationUpdate to match expected signature
@@ -285,7 +286,9 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ userId, initialTab = 
     profile,
     // Add missing required props
     handleAddMilestone,
-    handleEditMilestone
+    handleEditMilestone,
+    // Add data refresh callback for status updates
+    onDataRefresh: fetchDashboardData
   };
   
   const applicationsTabProps = {
