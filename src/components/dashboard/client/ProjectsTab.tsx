@@ -6,43 +6,13 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Plus } from 'lucide-react';
 import { Project, Application, Profile } from '@/types/database';
 import ProjectCard from './projects/ProjectCard';
-
-interface EditedProject {
-  title: string;
-  description: string;
-  budget: string;
-}
+import { useNavigate } from 'react-router-dom';
 
 interface ProjectsTabProps {
   isLoading: boolean;
   projects: Project[];
   applications: Application[];
-  editProject: Project | null;
-  projectToDelete: string | null;
-  editedProject: EditedProject;
-  isSubmitting: boolean;
-  setEditedProject: (project: EditedProject) => void;
-  handleEditInitiate: (project: Project) => void;
-  handleEditCancel: () => void;
-  handleUpdateProject: (project: Project) => Promise<void>;
   handleDeleteInitiate: (projectId: string) => void;
-  handleDeleteCancel: () => void;
-  handleDeleteProject: (projectId: string) => Promise<void>;
-  selectedProject: Project | null;
-  setSelectedProject: (project: Project | null) => void;
-  onAddMilestone: (projectId: string, milestone: any) => Promise<any>;
-  onEditMilestone: (projectId: string, milestoneId: string, updates: any) => Promise<any>;
-  handleDeleteMilestone: (projectId: string, milestoneId: string) => Promise<void>;
-  handleAddTask: () => Promise<void>;
-  handleUpdateTask: () => Promise<void>;
-  handleDeleteTask: () => Promise<void>;
-  fetchProjectDetails: (projectId: string) => Promise<any>;
-  error: string | null;
-  onEditProject: (project: Project) => void;
-  onDeleteProject: (projectId: string) => void;
-  profile: Profile | null;
-  handleAddMilestone: (projectId: string, milestone: any) => Promise<any>;
-  handleEditMilestone: (projectId: string, milestoneId: string, updates: any) => Promise<any>;
   // Add callback for data refresh after status updates
   onDataRefresh?: () => void;
 }
@@ -51,10 +21,11 @@ const ProjectsTab: React.FC<ProjectsTabProps> = ({
   isLoading,
   projects,
   applications,
-  handleEditInitiate,
   handleDeleteInitiate,
   onDataRefresh
 }) => {
+  const navigate = useNavigate();
+
   if (isLoading) {
     return (
       <div className="space-y-4">
@@ -80,7 +51,7 @@ const ProjectsTab: React.FC<ProjectsTabProps> = ({
           <p className="text-gray-600 mb-4">
             Create your first project to start working with professionals.
           </p>
-          <Button>
+          <Button onClick={() => navigate('/create-project')}>
             <Plus className="w-4 h-4 mr-2" />
             Create Project
           </Button>
@@ -93,7 +64,7 @@ const ProjectsTab: React.FC<ProjectsTabProps> = ({
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold">Your Projects</h2>
-        <Button>
+        <Button onClick={() => navigate('/create-project')}>
           <Plus className="w-4 h-4 mr-2" />
           New Project
         </Button>
@@ -105,9 +76,8 @@ const ProjectsTab: React.FC<ProjectsTabProps> = ({
             key={project.id}
             project={project}
             applications={applications}
-            onEdit={handleEditInitiate}
             onDelete={handleDeleteInitiate}
-            onStatusUpdate={onDataRefresh} // Pass the refresh callback
+            onStatusUpdate={onDataRefresh}
           />
         ))}
       </div>
