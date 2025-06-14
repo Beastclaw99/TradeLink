@@ -118,8 +118,8 @@ const RecommendedSkillsStep: React.FC<RecommendedSkillsStepProps> = ({ data, onU
   const { toast } = useToast();
   const [newSkill, setNewSkill] = useState('');
 
-  // Ensure we have a valid skills array - handle both camelCase and snake_case
-  const currentSkills = data.recommended_skills || data.recommendedSkills || [];
+  // Ensure we have a valid skills array with proper null/undefined handling
+  const currentSkills = Array.isArray(data.recommended_skills) ? data.recommended_skills : [];
   
   console.log('RecommendedSkillsStep data:', data);
   console.log('Current skills:', currentSkills);
@@ -147,7 +147,7 @@ const RecommendedSkillsStep: React.FC<RecommendedSkillsStepProps> = ({ data, onU
   };
 
   // Get suggested skills based on the selected category
-  const suggestedSkills = data.category ? CATEGORY_SKILLS[data.category] || CATEGORY_SKILLS.other : CATEGORY_SKILLS.other;
+  const suggestedSkills = data.category ? CATEGORY_SKILLS[data.category.toLowerCase()] || CATEGORY_SKILLS.other : CATEGORY_SKILLS.other;
 
   return (
     <div className="space-y-6">
