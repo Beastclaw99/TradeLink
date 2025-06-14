@@ -119,8 +119,14 @@ export const useClientDataFetcher = (userId: string) => {
         `)
         .eq('projects.client_id', userId);
 
-      if (applicationsError) throw applicationsError;
+      if (applicationsError) {
+        console.error('Error fetching applications:', applicationsError);
+        throw applicationsError;
+      }
+      
+      console.log('Raw applications data:', applicationsData);
       const transformedApplications = transformApplications(applicationsData || []);
+      console.log('Transformed applications:', transformedApplications);
       setApplications(transformedApplications);
 
       // Only fetch other related data if there are projects

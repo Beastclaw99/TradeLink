@@ -14,6 +14,13 @@ type Application = Database['public']['Tables']['applications']['Row'] & {
     profile_image_url?: string;
     rating?: number;
   };
+  project?: {
+    id: string;
+    title: string;
+    status: string;
+    budget: number | null;
+    created_at: string;
+  };
 };
 
 type Project = Database['public']['Tables']['projects']['Row'];
@@ -71,14 +78,14 @@ const ApplicationsTab: React.FC<ApplicationsTabProps> = ({
       <div className="space-y-4">
         {applications.map((application) => {
           const project = projects.find(p => p.id === application.project_id);
-          if (!project) return null;
+          const projectTitle = project?.title || application.project?.title || 'Unknown Project';
 
           return (
             <Card key={application.id}>
               <CardContent className="p-6">
                 <div className="flex justify-between items-start mb-4">
                   <div>
-                    <h3 className="text-lg font-semibold">{project.title}</h3>
+                    <h3 className="text-lg font-semibold">{projectTitle}</h3>
                     {application.professional && (
                       <p className="text-gray-600">
                         {application.professional.first_name} {application.professional.last_name}
