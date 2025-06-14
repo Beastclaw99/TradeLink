@@ -1,10 +1,9 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { ChevronLeft, ChevronRight, Check, Save } from 'lucide-react';
-import { ProjectData, prepareProjectDataForDB } from '@/types/project';
+import { ProjectData } from './types';
 import BasicDetailsStep from './steps/BasicDetailsStep';
 import RecommendedSkillsStep from './steps/RecommendedSkillsStep';
 import BudgetTimelineStep from './steps/BudgetTimelineStep';
@@ -42,19 +41,7 @@ const ProjectCreationWizard: React.FC = () => {
     // Try to load draft data from localStorage
     const savedDraft = localStorage.getItem('projectDraft');
     if (savedDraft) {
-      try {
-        const parsed = JSON.parse(savedDraft);
-        // Ensure all required arrays are initialized
-        return {
-          ...parsed,
-          recommended_skills: parsed.recommended_skills || [],
-          milestones: parsed.milestones || [],
-          deliverables: parsed.deliverables || [],
-          requirements: parsed.requirements || []
-        };
-      } catch (error) {
-        console.error('Error parsing saved draft:', error);
-      }
+      return JSON.parse(savedDraft);
     }
     return {
       title: '',
@@ -97,19 +84,16 @@ const ProjectCreationWizard: React.FC = () => {
         // Save to database if we have a draft ID
         const draftId = localStorage.getItem('projectDraftId');
         if (draftId) {
-          const dbData = prepareProjectDataForDB(projectData);
           const { error } = await supabase
             .from('projects')
             .update({
-              ...dbData,
+              ...projectData,
               status: 'draft',
               updated_at: new Date().toISOString()
             })
             .eq('id', draftId);
             
-          if (error) {
-            console.error('Error auto-saving draft:', error);
-          }
+          if (error) throw error;
         }
       } catch (error) {
         console.error('Error auto-saving draft:', error);
@@ -133,15 +117,7 @@ const ProjectCreationWizard: React.FC = () => {
   const handleUpdateData = (updates: Partial<ProjectData>) => {
     console.log('Updating project data:', updates);
     setProjectData(prev => {
-      const newData = { 
-        ...prev, 
-        ...updates,
-        // Ensure arrays are always defined
-        recommended_skills: updates.recommended_skills || prev.recommended_skills || [],
-        milestones: updates.milestones || prev.milestones || [],
-        deliverables: updates.deliverables || prev.deliverables || [],
-        requirements: updates.requirements || prev.requirements || []
-      };
+      const newData = { ...prev, ...updates };
       console.log('New project data:', newData);
       return newData;
     });
@@ -245,7 +221,7 @@ const ProjectCreationWizard: React.FC = () => {
 
     if (!projectData.description?.trim()) {
       toast({
-        title: "Missing Required Field", 
+        title: "Missing Required Field",
         description: "Project description is required.",
         variant: "destructive"
       });
@@ -272,62 +248,60 @@ const ProjectCreationWizard: React.FC = () => {
 
     try {
       setIsSubmitting(true);
-      console.log('Starting project submission with data:', projectData);
-
-      // Prepare data for database
-      const dbData = prepareProjectDataForDB(projectData);
-      console.log('Prepared DB data:', dbData);
 
       // Get draft ID if exists
       const draftId = localStorage.getItem('projectDraftId');
       let projectId = draftId;
 
       if (!draftId) {
-        // Create new project
-        console.log('Creating new project...');
+        // Create new project as draft first
         const { data: project, error: projectError } = await supabase
           .from('projects')
           .insert([{
-            ...dbData,
-            status: 'open',
-            client_id: user.id
+            ...projectData,
+            status: 'draft',
+            client_id: user.id,
+            budget: Number(projectData.budget), // Ensure budget is a number
+            timeline: projectData.timeline || projectData.expected_timeline // Use either timeline field
           }])
           .select()
           .single();
 
-        if (projectError) {
-          console.error('Project creation error:', projectError);
-          throw projectError;
-        }
-        
-        console.log('Project created successfully:', project);
+        if (projectError) throw projectError;
         projectId = project.id;
-      } else {
-        // Update draft to open project
-        console.log('Updating existing draft...');
+
+        // Then update to open status
         const { error: updateError } = await supabase
           .from('projects')
           .update({
-            ...dbData,
             status: 'open',
             updated_at: new Date().toISOString()
           })
+          .eq('id', projectId);
+
+        if (updateError) throw updateError;
+      } else {
+        // Update draft to open project
+        const { error: updateError } = await supabase
+          .from('projects')
+          .update({
+            ...projectData,
+            status: 'open',
+            updated_at: new Date().toISOString(),
+            budget: Number(projectData.budget), // Ensure budget is a number
+            timeline: projectData.timeline || projectData.expected_timeline // Use either timeline field
+          })
           .eq('id', draftId);
 
-        if (updateError) {
-          console.error('Project update error:', updateError);
-          throw updateError;
-        }
-        console.log('Project updated successfully');
+        if (updateError) throw updateError;
       }
 
       // Create milestones if any
       if (projectData.milestones && projectData.milestones.length > 0) {
-        console.log('Creating milestones...');
         const milestonesData = projectData.milestones.map(milestone => ({
           title: milestone.title,
           description: milestone.description || '',
-          due_date: milestone.dueDate || milestone.due_date,
+          due_date: milestone.dueDate,
           status: milestone.status as 'not_started' | 'in_progress' | 'completed' | 'on_hold' | 'overdue',
           requires_deliverable: milestone.requires_deliverable || false,
           project_id: projectId,
@@ -339,19 +313,14 @@ const ProjectCreationWizard: React.FC = () => {
           .from('project_milestones')
           .insert(milestonesData);
 
-        if (milestonesError) {
-          console.error('Milestones creation error:', milestonesError);
-          throw milestonesError;
-        }
-        console.log('Milestones created successfully');
+        if (milestonesError) throw milestonesError;
       }
 
       // Create project-level deliverables if any
       if (projectData.deliverables && projectData.deliverables.length > 0) {
-        console.log('Creating deliverables...');
         const deliverablesData = projectData.deliverables.map(deliverable => ({
           description: deliverable.description,
-          deliverable_type: deliverable.deliverable_type || deliverable.type || 'file',
+          deliverable_type: deliverable.deliverable_type,
           content: deliverable.content || '',
           file_url: deliverable.file_url || '',
           project_id: projectId,
@@ -362,11 +331,7 @@ const ProjectCreationWizard: React.FC = () => {
           .from('project_deliverables')
           .insert(deliverablesData);
 
-        if (deliverablesError) {
-          console.error('Deliverables creation error:', deliverablesError);
-          throw deliverablesError;
-        }
-        console.log('Deliverables created successfully');
+        if (deliverablesError) throw deliverablesError;
       }
 
       // Clear draft data
@@ -384,10 +349,9 @@ const ProjectCreationWizard: React.FC = () => {
       console.error('Error creating project:', error);
       toast({
         title: "Error",
-        description: `Failed to create project: ${error.message || 'Unknown error'}`,
+        description: "Failed to create project. Please try again.",
         variant: "destructive"
       });
-    } finally {
       setIsSubmitting(false);
     }
   };
@@ -402,22 +366,13 @@ const ProjectCreationWizard: React.FC = () => {
     const Component = step.component;
     console.log('Rendering step component:', step.title, 'with data:', projectData);
     
-    // Ensure we pass clean data to each component
-    const safeProjectData = {
-      ...projectData,
-      recommended_skills: projectData.recommended_skills || [],
-      milestones: projectData.milestones || [],
-      deliverables: projectData.deliverables || [],
-      requirements: projectData.requirements || []
-    };
-    
     // Special handling for ReviewStep which doesn't need onUpdate
     if (step.id === 6) {
-      return <Component data={safeProjectData} onUpdate={handleUpdateData} />;
+      return <Component data={projectData} onUpdate={handleUpdateData} />;
     }
     
     // All other steps need both data and onUpdate props
-    return <Component data={safeProjectData} onUpdate={handleUpdateData} />;
+    return <Component data={projectData} onUpdate={handleUpdateData} />;
   };
 
   const isLastStep = currentStep === STEPS.length;
