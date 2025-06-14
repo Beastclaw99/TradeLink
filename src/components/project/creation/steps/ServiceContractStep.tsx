@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -5,11 +6,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { ProjectData } from '../types';
-import { FileText, Download, CheckCircle, AlertCircle, Upload, X } from 'lucide-react';
+import { Download, CheckCircle, AlertCircle } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useToast } from '@/components/ui/use-toast';
-import { supabase } from '@/integrations/supabase/client';
-import { Input } from '@/components/ui/input';
 
 interface ServiceContractStepProps {
   data: ProjectData;
@@ -19,16 +17,12 @@ interface ServiceContractStepProps {
 const ServiceContractStep: React.FC<ServiceContractStepProps> = ({ data, onUpdate }) => {
   const [accepted, setAccepted] = useState(false);
   const { user } = useAuth();
-  const { toast } = useToast();
-  const [selectedContractFile, setSelectedContractFile] = useState<File | null>(null);
-  const [selectedLegalFile, setSelectedLegalFile] = useState<File | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD'
-    }).format(amount);
+    }).format(amount || 0);
   };
 
   const getTimelineLabel = (value: string) => {
@@ -51,6 +45,11 @@ const ServiceContractStep: React.FC<ServiceContractStepProps> = ({ data, onUpdat
   };
 
   const generateContract = () => {
+    // Safely access arrays with fallbacks
+    const skills = data.recommended_skills || [];
+    const milestones = data.milestones || [];
+    const deliverables = data.deliverables || [];
+
     const contract = `
 PROLINKTT SERVICE AGREEMENT
 
@@ -63,16 +62,16 @@ Platform: ProLinkTT
 
 PROJECT DETAILS:
 ════════════════════════════════════════════════════════════════════════════════
-Title: ${data.title}
-Description: ${data.description}
-Location: ${data.location}
-Category: ${data.category}
+Title: ${data.title || 'N/A'}
+Description: ${data.description || 'N/A'}
+Location: ${data.location || 'N/A'}
+Category: ${data.category || 'N/A'}
 
 BUDGET AND TIMELINE:
 ════════════════════════════════════════════════════════════════════════════════
 Total Budget: ${formatCurrency(data.budget)}
-Expected Timeline: ${getTimelineLabel(data.timeline)}
-Urgency Level: ${getUrgencyLabel(data.urgency)}
+Expected Timeline: ${getTimelineLabel(data.timeline || '')}
+Urgency Level: ${getUrgencyLabel(data.urgency || '')}
 
 SCOPE OF WORK:
 ════════════════════════════════════════════════════════════════════════════════
@@ -82,22 +81,22 @@ RECOMMENDED SKILLS:
 ════════════════════════════════════════════════════════════════════════════════
 The Professional should possess the following skills:
 
-${data.recommendedSkills.map(skill => `• ${skill}`).join('\n')}
+${skills.map(skill => `• ${skill}`).join('\n')}
 
 MILESTONES AND DELIVERABLES:
 ════════════════════════════════════════════════════════════════════════════════
-${data.milestones.map(milestone => `
-Milestone: ${milestone.title}
+${milestones.map(milestone => `
+Milestone: ${milestone.title || 'Untitled'}
 • Description: ${milestone.description || 'N/A'}
-• Due Date: ${milestone.dueDate || 'TBD'}
+• Due Date: ${milestone.due_date || milestone.dueDate || 'TBD'}
 • Requires Deliverable: ${milestone.requires_deliverable ? 'Yes' : 'No'}
 `).join('\n')}
 
-${data.deliverables.length > 0 ? `
+${deliverables.length > 0 ? `
 DELIVERABLES:
-${data.deliverables.map(deliverable => `
-• ${deliverable.description}
-  Type: ${deliverable.deliverable_type}
+${deliverables.map(deliverable => `
+• ${deliverable.description || 'N/A'}
+  Type: ${deliverable.deliverable_type || deliverable.type || 'N/A'}
   Content: ${deliverable.content || 'N/A'}
 `).join('\n')}` : ''}
 
@@ -111,8 +110,8 @@ TERMS AND CONDITIONS:
    • Payment disputes must be reported within 7 days of payment
 
 2. Timeline and Deadlines
-   • Project duration: ${getTimelineLabel(data.timeline)}
-   • Urgency level: ${getUrgencyLabel(data.urgency)}
+   • Project duration: ${getTimelineLabel(data.timeline || '')}
+   • Urgency level: ${getUrgencyLabel(data.urgency || '')}
    • Milestone deadlines are as specified above
    • Delays must be communicated at least 48 hours in advance
 
@@ -163,121 +162,11 @@ Date: ${new Date().toLocaleDateString()}
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `service_contract_${data.title.replace(/\s+/g, '_')}.txt`;
+    a.download = `service_contract_${(data.title || 'project').replace(/\s+/g, '_')}.txt`;
     document.body.appendChild(a);
     a.click();
     window.URL.revokeObjectURL(url);
     document.body.removeChild(a);
-  };
-
-  const handleContractFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setSelectedContractFile(e.target.files[0]);
-    }
-  };
-
-  const handleLegalFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setSelectedLegalFile(e.target.files[0]);
-    }
-  };
-
-  const handleContractUpload = async () => {
-    if (!selectedContractFile) return;
-
-    try {
-      setIsUploading(true);
-      const fileExt = selectedContractFile.name.split('.').pop();
-      const fileName = `contract_${Date.now()}.${fileExt}`;
-      const filePath = `contracts/${fileName}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from('project-files')
-        .upload(filePath, selectedContractFile);
-
-      if (uploadError) throw uploadError;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('project-files')
-        .getPublicUrl(filePath);
-
-      onUpdate({
-        contract_template: {
-          ...data.contract_template,
-          file_url: publicUrl,
-          file_name: selectedContractFile.name
-        }
-      });
-      
-      setSelectedContractFile(null);
-      
-      toast({
-        title: "Contract Uploaded",
-        description: "Contract template has been uploaded successfully."
-      });
-    } catch (error) {
-      console.error('Error uploading contract:', error);
-      toast({
-        title: "Error",
-        description: "Failed to upload contract. Please try again.",
-        variant: "destructive"
-      });
-    } finally {
-      setIsUploading(false);
-    }
-  };
-
-  const handleLegalUpload = async () => {
-    if (!selectedLegalFile) return;
-
-    try {
-      setIsUploading(true);
-      const fileExt = selectedLegalFile.name.split('.').pop();
-      const fileName = `legal_${Date.now()}.${fileExt}`;
-      const filePath = `legal-documents/${fileName}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from('project-files')
-        .upload(filePath, selectedLegalFile);
-
-      if (uploadError) throw uploadError;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('project-files')
-        .getPublicUrl(filePath);
-
-      onUpdate({
-        legal_documents: [
-          ...(data.legal_documents || []),
-          {
-            name: selectedLegalFile.name,
-            url: publicUrl,
-            type: 'legal'
-          }
-        ]
-      });
-      
-      setSelectedLegalFile(null);
-      
-      toast({
-        title: "Document Uploaded",
-        description: "Legal document has been uploaded successfully."
-      });
-    } catch (error) {
-      console.error('Error uploading legal document:', error);
-      toast({
-        title: "Error",
-        description: "Failed to upload legal document. Please try again.",
-        variant: "destructive"
-      });
-    } finally {
-      setIsUploading(false);
-    }
-  };
-
-  const handleRemoveLegalDocument = (index: number) => {
-    const updatedDocuments = data.legal_documents?.filter((_, i) => i !== index);
-    onUpdate({ legal_documents: updatedDocuments });
   };
 
   return (
@@ -337,79 +226,6 @@ Date: ${new Date().toLocaleDateString()}
               <div className="flex items-center gap-2 text-green-600">
                 <CheckCircle className="h-4 w-4" />
                 <span className="text-sm">Contract accepted</span>
-              </div>
-            )}
-          </div>
-
-          <div className="space-y-4">
-            {/* Contract Template Upload */}
-            <div className="space-y-2">
-              <Label>Contract Template</Label>
-              <div className="flex gap-2">
-                <Input
-                  type="file"
-                  onChange={handleContractFileChange}
-                  accept=".pdf,.doc,.docx"
-                />
-                <Button
-                  onClick={handleContractUpload}
-                  disabled={!selectedContractFile || isUploading}
-                >
-                  <Upload className="h-4 w-4 mr-2" />
-                  {isUploading ? 'Uploading...' : 'Upload'}
-                </Button>
-              </div>
-              <p className="text-sm text-gray-500">
-                Supported formats: PDF, DOC, DOCX
-              </p>
-            </div>
-
-            {data.contract_template?.file_url && (
-              <div className="flex items-center gap-2 p-2 bg-gray-50 rounded">
-                <FileText className="h-4 w-4 text-blue-600" />
-                <span className="text-sm">{data.contract_template.file_name}</span>
-              </div>
-            )}
-
-            {/* Legal Documents Upload */}
-            <div className="space-y-2">
-              <Label>Additional Legal Documents</Label>
-              <div className="flex gap-2">
-                <Input
-                  type="file"
-                  onChange={handleLegalFileChange}
-                  accept=".pdf,.doc,.docx"
-                />
-                <Button
-                  onClick={handleLegalUpload}
-                  disabled={!selectedLegalFile || isUploading}
-                >
-                  <Upload className="h-4 w-4 mr-2" />
-                  {isUploading ? 'Uploading...' : 'Upload'}
-                </Button>
-              </div>
-              <p className="text-sm text-gray-500">
-                Upload any additional legal documents required for the project
-              </p>
-            </div>
-
-            {data.legal_documents && data.legal_documents.length > 0 && (
-              <div className="space-y-2">
-                {data.legal_documents.map((doc, index) => (
-                  <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded">
-                    <div className="flex items-center gap-2">
-                      <FileText className="h-4 w-4 text-blue-600" />
-                      <span className="text-sm">{doc.name}</span>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleRemoveLegalDocument(index)}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ))}
               </div>
             )}
           </div>

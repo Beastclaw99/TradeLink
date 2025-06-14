@@ -253,16 +253,36 @@ const ProjectCreationWizard: React.FC = () => {
       const draftId = localStorage.getItem('projectDraftId');
       let projectId = draftId;
 
+      // Prepare data for database - ensure proper types and field names
+      const dbProjectData = {
+        title: projectData.title,
+        description: projectData.description,
+        category: projectData.category,
+        location: projectData.location,
+        recommended_skills: projectData.recommended_skills || [],
+        budget: Number(projectData.budget),
+        timeline: projectData.timeline || projectData.expected_timeline,
+        urgency: projectData.urgency,
+        service_contract: projectData.service_contract,
+        requirements: projectData.requirements || [],
+        rich_description: projectData.rich_description,
+        expected_timeline: projectData.expected_timeline,
+        scope: projectData.scope,
+        industry_specific_fields: projectData.industry_specific_fields,
+        location_coordinates: projectData.location_coordinates,
+        contract_template_id: projectData.contract_template_id,
+        project_start_time: projectData.project_start_time,
+        client_id: user.id,
+        sla_terms: projectData.sla_terms
+      };
+
       if (!draftId) {
         // Create new project as draft first
         const { data: project, error: projectError } = await supabase
           .from('projects')
           .insert([{
-            ...projectData,
-            status: 'draft',
-            client_id: user.id,
-            budget: Number(projectData.budget), // Ensure budget is a number
-            timeline: projectData.timeline || projectData.expected_timeline // Use either timeline field
+            ...dbProjectData,
+            status: 'draft'
           }])
           .select()
           .single();
@@ -285,11 +305,9 @@ const ProjectCreationWizard: React.FC = () => {
         const { error: updateError } = await supabase
           .from('projects')
           .update({
-            ...projectData,
+            ...dbProjectData,
             status: 'open',
-            updated_at: new Date().toISOString(),
-            budget: Number(projectData.budget), // Ensure budget is a number
-            timeline: projectData.timeline || projectData.expected_timeline // Use either timeline field
+            updated_at: new Date().toISOString()
           })
           .eq('id', draftId);
 
@@ -301,7 +319,7 @@ const ProjectCreationWizard: React.FC = () => {
         const milestonesData = projectData.milestones.map(milestone => ({
           title: milestone.title,
           description: milestone.description || '',
-          due_date: milestone.dueDate,
+          due_date: milestone.dueDate || milestone.due_date,
           status: milestone.status as 'not_started' | 'in_progress' | 'completed' | 'on_hold' | 'overdue',
           requires_deliverable: milestone.requires_deliverable || false,
           project_id: projectId,
@@ -320,7 +338,7 @@ const ProjectCreationWizard: React.FC = () => {
       if (projectData.deliverables && projectData.deliverables.length > 0) {
         const deliverablesData = projectData.deliverables.map(deliverable => ({
           description: deliverable.description,
-          deliverable_type: deliverable.deliverable_type,
+          deliverable_type: deliverable.deliverable_type || deliverable.type,
           content: deliverable.content || '',
           file_url: deliverable.file_url || '',
           project_id: projectId,

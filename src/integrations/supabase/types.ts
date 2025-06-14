@@ -1456,8 +1456,12 @@ export type Database = {
           location: string | null
           location_coordinates: unknown | null
           professional_id: string | null
+          project_start_time: string | null
+          recommended_skills: string[] | null
           requirements: string[] | null
+          rich_description: string | null
           scope: string | null
+          service_contract: string | null
           sla_terms: Json | null
           spent: number | null
           status: Database["public"]["Enums"]["project_status_enum"] | null
@@ -1480,8 +1484,12 @@ export type Database = {
           location?: string | null
           location_coordinates?: unknown | null
           professional_id?: string | null
+          project_start_time?: string | null
+          recommended_skills?: string[] | null
           requirements?: string[] | null
+          rich_description?: string | null
           scope?: string | null
+          service_contract?: string | null
           sla_terms?: Json | null
           spent?: number | null
           status?: Database["public"]["Enums"]["project_status_enum"] | null
@@ -1504,8 +1512,12 @@ export type Database = {
           location?: string | null
           location_coordinates?: unknown | null
           professional_id?: string | null
+          project_start_time?: string | null
+          recommended_skills?: string[] | null
           requirements?: string[] | null
+          rich_description?: string | null
           scope?: string | null
+          service_contract?: string | null
           sla_terms?: Json | null
           spent?: number | null
           status?: Database["public"]["Enums"]["project_status_enum"] | null
@@ -1736,6 +1748,10 @@ export type Database = {
         Returns: Database["public"]["Enums"]["user_role"]
       }
       rollback_policies_and_indexes: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      rollback_project_creation_fields: {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
