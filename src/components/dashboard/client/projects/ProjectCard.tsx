@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -88,7 +87,34 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
 
       if (error) {
         console.error('Error publishing project:', error);
-        throw error;
+        
+        // Handle specific validation errors from the database trigger
+        if (error.message?.includes('Missing required fields')) {
+          toast({
+            title: "Cannot Publish Project",
+            description: "Please ensure all required fields (title, description, budget, timeline) are completed before publishing.",
+            variant: "destructive"
+          });
+        } else if (error.message?.includes('Invalid status transition')) {
+          toast({
+            title: "Cannot Publish Project",
+            description: "This project cannot be published in its current state. Please review the project details.",
+            variant: "destructive"
+          });
+        } else if (error.message?.includes('Invalid user role')) {
+          toast({
+            title: "Permission Denied",
+            description: "You don't have permission to publish this project.",
+            variant: "destructive"
+          });
+        } else {
+          toast({
+            title: "Error",
+            description: "Failed to publish project. Please try again.",
+            variant: "destructive"
+          });
+        }
+        return;
       }
 
       toast({
@@ -100,29 +126,13 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
       if (onStatusUpdate) {
         onStatusUpdate();
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error publishing project:', error);
-      
-      // Handle specific validation errors from the database trigger
-      if (error.message?.includes('Missing required fields')) {
-        toast({
-          title: "Cannot Publish Project",
-          description: "Please ensure all required fields (title, description, budget, timeline) are completed before publishing.",
-          variant: "destructive"
-        });
-      } else if (error.message?.includes('Invalid status transition')) {
-        toast({
-          title: "Cannot Publish Project",
-          description: "This project cannot be published in its current state. Please review the project details.",
-          variant: "destructive"
-        });
-      } else {
-        toast({
-          title: "Error",
-          description: "Failed to publish project. Please try again.",
-          variant: "destructive"
-        });
-      }
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive"
+      });
     } finally {
       setIsPublishing(false);
     }
