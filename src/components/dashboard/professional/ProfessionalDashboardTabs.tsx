@@ -9,18 +9,15 @@ import ReviewsTab from './ReviewsTab';
 import ProjectApplicationForm from './ProjectApplicationForm';
 import { Project, Application, Payment, Review } from '../types';
 
-interface ProjectWithMilestones extends Project {
-  timeline: string;
-  spent: number;
-}
-
 interface ProfessionalDashboardTabsProps {
+  userId: string;
   isLoading: boolean;
   projects: Project[];
   applications: Application[];
   payments: Payment[];
   reviews: Review[];
   skills?: string[];
+  profile: any;
   coverLetter: string;
   setCoverLetter: (value: string) => void;
   bidAmount: number | null;
@@ -34,17 +31,22 @@ interface ProfessionalDashboardTabsProps {
   markProjectComplete: (projectId: string) => Promise<void>;
   calculateAverageRating: () => number;
   calculatePaymentTotals: () => { total: number; pending: number; completed: number };
+  updateProfile: (data: any) => void;
+  isEditing: boolean;
+  setIsEditing: (value: boolean) => void;
   isSubmitting: boolean;
   onCancelApplication: () => void;
 }
 
 export const ProfessionalDashboardTabs: React.FC<ProfessionalDashboardTabsProps> = ({
+  userId,
   isLoading,
   projects,
   applications,
   payments,
   reviews,
   skills,
+  profile,
   coverLetter,
   setCoverLetter,
   bidAmount,
@@ -58,6 +60,9 @@ export const ProfessionalDashboardTabs: React.FC<ProfessionalDashboardTabsProps>
   markProjectComplete,
   calculateAverageRating,
   calculatePaymentTotals,
+  updateProfile,
+  isEditing,
+  setIsEditing,
   isSubmitting,
   onCancelApplication
 }) => {
@@ -81,19 +86,6 @@ export const ProfessionalDashboardTabs: React.FC<ProfessionalDashboardTabsProps>
     // Request revision for project
     console.log('Requesting revision for project:', projectId);
   };
-
-  // Transform projects to include required timeline and spent properties
-  const projectsWithMilestones: ProjectWithMilestones[] = projects.map(project => ({
-    ...project,
-    timeline: project.timeline || 'Not specified',
-    spent: typeof project.spent === 'number' ? project.spent : 0
-  }));
-
-  // Transform reviews to ensure rating is never null
-  const reviewsWithRatings = reviews.map(review => ({
-    ...review,
-    rating: review.rating || 0
-  }));
 
   return (
     <Tabs defaultValue="featured">
@@ -143,7 +135,7 @@ export const ProfessionalDashboardTabs: React.FC<ProfessionalDashboardTabsProps>
       <TabsContent value="active">
         <ActiveProjectsTab 
           isLoading={isLoading}
-          projects={projectsWithMilestones.filter(p => ['assigned', 'in_progress', 'work_submitted', 'work_revision_requested'].includes(p.status || ''))}
+          projects={projects.filter(p => ['assigned', 'in_progress', 'work_submitted', 'work_revision_requested'].includes(p.status || ''))}
           onViewProject={handleViewProject}
           onUpdateProjectStatus={handleUpdateProjectStatus}
           onSubmitWork={handleSubmitWork}
@@ -164,7 +156,7 @@ export const ProfessionalDashboardTabs: React.FC<ProfessionalDashboardTabsProps>
       <TabsContent value="reviews">
         <ReviewsTab 
           isLoading={isLoading}
-          reviews={reviewsWithRatings}
+          reviews={reviews}
           averageRating={calculateAverageRating()}
           totalReviews={reviews.length}
         />

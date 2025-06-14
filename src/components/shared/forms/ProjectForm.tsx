@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,6 +8,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Plus, X } from 'lucide-react';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from '@/components/ui/command';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { cn } from '@/lib/utils';
 import { Database } from '@/integrations/supabase/types';
 
 type Project = Database['public']['Tables']['projects']['Row'];
@@ -87,16 +89,12 @@ const REQUIREMENTS = [
   'Emergency Service'
 ];
 
-const TIMELINE_OPTIONS = [
-  { value: 'less_than_1_month', label: 'Less than 1 month' },
-  { value: '1_to_3_months', label: '1-3 months' },
-  { value: '3_to_6_months', label: '3-6 months' },
-  { value: 'more_than_6_months', label: 'More than 6 months' },
-  { value: 'asap', label: 'ASAP' },
-  { value: '1-week', label: 'Within 1 week' },
-  { value: '2-weeks', label: 'Within 2 weeks' },
-  { value: '1-month', label: 'Within 1 month' },
-  { value: 'flexible', label: 'Flexible' }
+const BUDGET_RANGES = [
+  { value: 'under-1000', label: 'Under $1,000', description: 'Small projects and repairs' },
+  { value: '1000-5000', label: '$1,000 - $5,000', description: 'Medium-sized projects' },
+  { value: '5000-10000', label: '$5,000 - $10,000', description: 'Large renovations' },
+  { value: '10000-25000', label: '$10,000 - $25,000', description: 'Major renovations' },
+  { value: 'over-25000', label: 'Over $25,000', description: 'Full-scale projects' }
 ];
 
 const ProjectForm: React.FC<ProjectFormProps> = ({
@@ -122,6 +120,7 @@ const ProjectForm: React.FC<ProjectFormProps> = ({
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [newSkill, setNewSkill] = useState('');
+  const [openSkillsPopover, setOpenSkillsPopover] = useState(false);
 
   const handleInputChange = (field: keyof ProjectFormData, value: string | number | string[] | boolean) => {
     setFormData(prev => ({
@@ -170,7 +169,7 @@ const ProjectForm: React.FC<ProjectFormProps> = ({
     if (!formData.title.trim()) newErrors.title = 'Project title is required';
     if (!formData.description.trim()) newErrors.description = 'Project description is required';
     if (!formData.category) newErrors.category = 'Project category is required';
-    if (!formData.budget || formData.budget <= 0) newErrors.budget = 'Valid budget is required';
+    if (!formData.budget) newErrors.budget = 'Budget is required';
     if (!formData.timeline) newErrors.timeline = 'Timeline is required';
     if (!formData.location.trim()) newErrors.location = 'Location is required';
 
@@ -244,12 +243,10 @@ const ProjectForm: React.FC<ProjectFormProps> = ({
               <Label htmlFor="budget">Budget *</Label>
               <Input
                 id="budget"
-                type="number"
-                value={formData.budget === 0 ? '' : formData.budget.toString()}
-                onChange={(e) => handleInputChange('budget', Number(e.target.value) || 0)}
-                placeholder="Enter budget amount"
+                value={formData.budget.toString()}
+                onChange={(e) => handleInputChange('budget', Number(e.target.value))}
+                placeholder="e.g., $5,000 or Negotiable"
                 className={errors.budget ? 'border-red-500' : ''}
-                min="1"
               />
               {errors.budget && <p className="text-red-500 text-sm mt-1">{errors.budget}</p>}
             </div>
@@ -264,11 +261,12 @@ const ProjectForm: React.FC<ProjectFormProps> = ({
                   <SelectValue placeholder="Select timeline" />
                 </SelectTrigger>
                 <SelectContent>
-                  {TIMELINE_OPTIONS.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
+                  <SelectItem value="asap">ASAP</SelectItem>
+                  <SelectItem value="1-week">Within 1 week</SelectItem>
+                  <SelectItem value="2-weeks">Within 2 weeks</SelectItem>
+                  <SelectItem value="1-month">Within 1 month</SelectItem>
+                  <SelectItem value="3-months">Within 3 months</SelectItem>
+                  <SelectItem value="flexible">Flexible</SelectItem>
                 </SelectContent>
               </Select>
               {errors.timeline && <p className="text-red-500 text-sm mt-1">{errors.timeline}</p>}
@@ -303,7 +301,7 @@ const ProjectForm: React.FC<ProjectFormProps> = ({
                     }
                   }}
                 />
-                <Button type="button" onClick={() => handleAddSkill(newSkill)} size="icon">
+                <Button onClick={() => handleAddSkill(newSkill)} size="icon">
                   <Plus className="h-4 w-4" />
                 </Button>
               </div>
