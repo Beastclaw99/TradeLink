@@ -220,7 +220,10 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ userId, initialTab = 
     error,
     onEditProject: handleEditInitiate,
     onDeleteProject: handleDeleteInitiate,
-    profile
+    profile,
+    // Add missing required props
+    handleAddMilestone,
+    handleEditMilestone
   };
   
   const applicationsTabProps = {
@@ -228,7 +231,10 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ userId, initialTab = 
     projects,
     applications,
     handleApplicationUpdate,
-    profile
+    profile,
+    // Add missing required props with default values
+    professionals: [],
+    userId
   };
   
   const paymentsTabProps = {
@@ -256,6 +262,17 @@ const ClientDashboard: React.FC<ClientDashboardProps> = ({ userId, initialTab = 
         rating: data.rating,
         comment: data.comment
       });
+    },
+    // Add missing required props with default implementations
+    payments: [],
+    onPaymentViewDetails: (paymentId: string) => {
+      console.log('Payment details for:', paymentId);
+    },
+    onPaymentApprove: async (paymentId: string) => {
+      console.log('Approve payment:', paymentId);
+    },
+    onPaymentReject: async (paymentId: string) => {
+      console.log('Reject payment:', paymentId);
     }
   };
   

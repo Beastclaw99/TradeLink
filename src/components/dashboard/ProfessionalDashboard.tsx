@@ -7,6 +7,7 @@ import { ProfessionalDashboardTabs } from './professional/ProfessionalDashboardT
 import DashboardError from './professional/DashboardError';
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
+import { Application, Review } from '@/types/database';
 
 interface ProfessionalDashboardProps {
   userId: string;
@@ -98,6 +99,20 @@ const ProfessionalDashboard: React.FC<ProfessionalDashboardProps> = ({ userId })
     }
   };
 
+  // Transform applications with proper type safety
+  const typedApplications: Application[] = applications.map(app => ({
+    ...app,
+    project_id: app.project_id || '',
+    professional_id: app.professional_id || '',
+    status: app.status as 'pending' | 'accepted' | 'rejected' | 'withdrawn' | null
+  }));
+
+  // Transform reviews with proper type safety
+  const typedReviews: Review[] = reviews.map(review => ({
+    ...review,
+    status: (review.status as 'pending' | 'rejected' | 'approved' | 'reported' | null) || 'pending'
+  }));
+
   if (error) {
     return <DashboardError error={error} isLoading={isLoading} onRetry={fetchDashboardData} />;
   }
@@ -107,9 +122,9 @@ const ProfessionalDashboard: React.FC<ProfessionalDashboardProps> = ({ userId })
       userId={userId}
       isLoading={isLoading}
       projects={projects}
-      applications={applications}
+      applications={typedApplications}
       payments={payments}
-      reviews={reviews}
+      reviews={typedReviews}
       skills={skills}
       profile={profile}
       coverLetter={coverLetter}

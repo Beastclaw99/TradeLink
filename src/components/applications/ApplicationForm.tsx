@@ -1,5 +1,6 @@
+
 import React, { useState } from 'react';
-import { useForm, Control } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Button } from "@/components/ui/button";
@@ -16,7 +17,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { Database } from '@/integrations/supabase/types';
 
 const formSchema = z.object({
   status: z.enum(['pending', 'accepted', 'rejected', 'withdrawn'] as const),
@@ -78,14 +78,11 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
         .insert({
           project_id: projectId,
           professional_id: user.id,
-          proposal: values.proposal,
-          budget: values.budget,
-          timeline: values.timeline,
+          proposal_message: values.proposal,
+          bid_amount: values.budget,
           availability: values.availability,
           status: values.status,
-          additional_notes: values.additional_notes,
-          attachments: values.attachments,
-          terms_accepted: values.terms_accepted,
+          cover_letter: values.additional_notes,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         });
@@ -116,7 +113,7 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        <FormField<FormValues>
+        <FormField
           control={form.control}
           name="proposal"
           render={({ field }) => (
@@ -126,7 +123,9 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
                 <Textarea
                   placeholder="Describe your approach, experience, and why you're the best fit for this project..."
                   className="min-h-[200px]"
-                  {...field}
+                  value={field.value || ''}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
                 />
               </FormControl>
               <FormMessage />
@@ -134,7 +133,7 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
           )}
         />
 
-        <FormField<FormValues>
+        <FormField
           control={form.control}
           name="budget"
           render={({ field }) => (
@@ -144,8 +143,9 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
                 <Input
                   type="number"
                   placeholder="Enter your proposed budget"
-                  {...field}
+                  value={field.value?.toString() || ''}
                   onChange={(e) => field.onChange(Number(e.target.value))}
+                  onBlur={field.onBlur}
                 />
               </FormControl>
               <FormMessage />
@@ -153,7 +153,7 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
           )}
         />
 
-        <FormField<FormValues>
+        <FormField
           control={form.control}
           name="timeline"
           render={({ field }) => (
@@ -162,7 +162,9 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
               <FormControl>
                 <Input
                   placeholder="e.g., 2 weeks, 1 month, etc."
-                  {...field}
+                  value={field.value || ''}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
                 />
               </FormControl>
               <FormMessage />
@@ -170,7 +172,7 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
           )}
         />
 
-        <FormField<FormValues>
+        <FormField
           control={form.control}
           name="availability"
           render={({ field }) => (
@@ -179,7 +181,9 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
               <FormControl>
                 <Input
                   placeholder="e.g., Immediate, Within 2 weeks, etc."
-                  {...field}
+                  value={field.value || ''}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
                 />
               </FormControl>
               <FormMessage />
@@ -187,7 +191,7 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
           )}
         />
 
-        <FormField<FormValues>
+        <FormField
           control={form.control}
           name="additional_notes"
           render={({ field }) => (
@@ -196,7 +200,9 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
               <FormControl>
                 <Textarea
                   placeholder="Any additional information you'd like to share..."
-                  {...field}
+                  value={field.value || ''}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
                 />
               </FormControl>
               <FormMessage />
@@ -204,7 +210,7 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
           )}
         />
 
-        <FormField<FormValues>
+        <FormField
           control={form.control}
           name="terms_accepted"
           render={({ field }) => (
@@ -212,8 +218,8 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
               <FormControl>
                 <input
                   type="checkbox"
-                  checked={field.value}
-                  onChange={field.onChange}
+                  checked={!!field.value}
+                  onChange={(e) => field.onChange(e.target.checked)}
                   className="h-4 w-4 rounded border-gray-300"
                 />
               </FormControl>
@@ -233,4 +239,4 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
   );
 };
 
-export default ApplicationForm; 
+export default ApplicationForm;

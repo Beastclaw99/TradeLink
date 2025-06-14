@@ -1,324 +1,191 @@
-import React, { useState } from 'react';
-import { AlertDialog, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Button } from "@/components/ui/button";
-import { Database } from '@/integrations/supabase/types';
-import { Milestone } from '@/components/project/creation/types';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Separator } from "@/components/ui/separator";
-import { 
-  Briefcase, 
-  ChevronDown, 
-  ChevronUp, 
-  Clock, 
-  MapPin, 
-  DollarSign,
-  Calendar,
-  AlertTriangle,
-  CheckCircle,
-  Target,
-  FileText,
-  Edit,
-  Eye,
-  User,
-  Tag
-} from "lucide-react";
-import EditProjectForm from './projects/EditProjectForm';
-import EmptyProjectState from './projects/EmptyProjectState';
-import ProjectUpdateTimeline from "@/components/project/ProjectUpdateTimeline";
-import ProjectMilestones from "@/components/project/ProjectMilestones";
-import ProjectDeliverables from "@/components/project/ProjectDeliverables";
-import { ProgressIndicator } from "@/components/ui/progress-indicator";
-import ProjectProgressOverview from '@/components/project/ProjectProgressOverview';
-import { useToast } from "@/components/ui/use-toast";
-import { Badge } from "@/components/ui/badge";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Progress } from "@/components/ui/progress";
+import React from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Plus, Calendar, DollarSign, MapPin, User, AlertCircle } from 'lucide-react';
+import { Project, Application, Profile } from '@/types/database';
 
-type Project = Database['public']['Tables']['projects']['Row'];
-type ProjectMilestone = Database['public']['Tables']['project_milestones']['Row'];
-type ProjectStatus = Database['public']['Enums']['project_status_enum'];
-type MilestoneStatus = Database['public']['Enums']['milestone_status'];
-
-interface ExtendedProject extends Project {
-  milestones?: ProjectMilestone[];
-  deliverables?: Database['public']['Tables']['project_deliverables']['Row'][];
-  client?: {
-    first_name: string | null;
-    last_name: string | null;
-    profile_image_url: string | null;
-  };
-  professional?: {
-    first_name: string | null;
-    last_name: string | null;
-    profile_image_url: string | null;
-  };
+interface EditedProject {
+  title: string;
+  description: string;
+  budget: string;
 }
 
 interface ProjectsTabProps {
   isLoading: boolean;
-  projects: ExtendedProject[];
-  applications: Database['public']['Tables']['applications']['Row'][];
-  selectedProject: ExtendedProject | null;
-  setSelectedProject: (project: ExtendedProject | null) => void;
-  handleAddMilestone: (projectId: string, milestone: Omit<ProjectMilestone, 'id' | 'created_at' | 'updated_at'>) => Promise<void>;
-  handleEditMilestone: (projectId: string, milestoneId: string, updates: Partial<ProjectMilestone>) => Promise<void>;
+  projects: Project[];
+  applications: Application[];
+  editProject: Project | null;
+  projectToDelete: string | null;
+  editedProject: EditedProject;
+  isSubmitting: boolean;
+  setEditedProject: (project: EditedProject) => void;
+  handleEditInitiate: (project: Project) => void;
+  handleEditCancel: () => void;
+  handleUpdateProject: (project: Project) => Promise<void>;
+  handleDeleteInitiate: (projectId: string) => void;
+  handleDeleteCancel: () => void;
+  handleDeleteProject: (projectId: string) => Promise<void>;
+  selectedProject: Project | null;
+  setSelectedProject: (project: Project | null) => void;
+  onAddMilestone: (projectId: string, milestone: any) => Promise<any>;
+  onEditMilestone: (projectId: string, milestoneId: string, updates: any) => Promise<any>;
   handleDeleteMilestone: (projectId: string, milestoneId: string) => Promise<void>;
-  fetchProjectDetails: (projectId: string) => Promise<ExtendedProject>;
+  handleAddTask: () => Promise<void>;
+  handleUpdateTask: () => Promise<void>;
+  handleDeleteTask: () => Promise<void>;
+  fetchProjectDetails: (projectId: string) => Promise<any>;
   error: string | null;
-  onEditProject: (project: ExtendedProject) => void;
+  onEditProject: (project: Project) => void;
   onDeleteProject: (projectId: string) => void;
-  onAddMilestone: (projectId: string, milestone: Omit<ProjectMilestone, 'id' | 'created_at' | 'updated_at'>) => Promise<void>;
-  onEditMilestone: (projectId: string, milestoneId: string, updates: Partial<ProjectMilestone>) => Promise<void>;
+  profile: Profile | null;
+  handleAddMilestone: (projectId: string, milestone: any) => Promise<any>;
+  handleEditMilestone: (projectId: string, milestoneId: string, updates: any) => Promise<any>;
 }
 
-const getStatusVariant = (status: ProjectStatus | null): "default" | "destructive" | "secondary" | "outline" => {
-  switch (status) {
-    case 'completed': return 'default';
-    case 'in_progress': return 'default';
-    case 'assigned': return 'secondary';
-    case 'open': return 'outline';
-    case 'cancelled': return 'destructive';
-    default: return 'default';
-  }
-};
-
-const getProjectSteps = (project: ExtendedProject) => {
-  const steps = [
-    { id: 'draft', title: 'Draft', status: project?.status === 'draft' ? 'current' as const : 'completed' as const },
-    { id: 'open', title: 'Open', status: project?.status === 'open' ? 'current' as const : 
-      ['draft'].includes(project?.status || '') ? 'pending' as const : 'completed' as const },
-    { id: 'assigned', title: 'Assigned', status: project?.status === 'assigned' ? 'current' as const : 
-      ['draft', 'open'].includes(project?.status || '') ? 'pending' as const : 'completed' as const },
-    { id: 'in_progress', title: 'In Progress', status: project?.status === 'in_progress' ? 'current' as const : 
-      ['draft', 'open', 'assigned'].includes(project?.status || '') ? 'pending' as const : 'completed' as const },
-    { id: 'work_submitted', title: 'Work Submitted', status: project?.status === 'work_submitted' ? 'current' as const : 
-      ['draft', 'open', 'assigned', 'in_progress'].includes(project?.status || '') ? 'pending' as const : 'completed' as const },
-    { id: 'work_approved', title: 'Work Approved', status: project?.status === 'work_approved' ? 'current' as const : 
-      ['draft', 'open', 'assigned', 'in_progress', 'work_submitted', 'work_revision_requested'].includes(project?.status || '') ? 'pending' as const : 'completed' as const },
-    { id: 'completed', title: 'Completed', status: project?.status === 'completed' ? 'completed' as const : 'pending' as const }
-  ];
-  return steps;
-};
-
-const getProjectProgress = (project: ExtendedProject): number => {
-  if (!project?.milestones?.length) return 0;
-  const completedMilestones = project.milestones.filter(m => m?.is_complete).length;
-  return Math.round((completedMilestones / project.milestones.length) * 100);
-};
-
-const convertToMilestone = (milestone: ProjectMilestone): Milestone => ({
-  id: milestone?.id || '',
-  title: milestone?.title || '',
-  description: milestone?.description || '',
-  due_date: milestone?.due_date || null,
-  status: milestone?.status || 'not_started',
-  deliverables: [],
-  tasks: []
-});
-
-export const ProjectsTab: React.FC<ProjectsTabProps> = ({
-  projects = [],
-  isLoading, 
+const ProjectsTab: React.FC<ProjectsTabProps> = ({
+  isLoading,
+  projects,
+  applications,
+  editProject,
+  projectToDelete,
+  editedProject,
+  isSubmitting,
+  setEditedProject,
+  handleEditInitiate,
+  handleEditCancel,
+  handleUpdateProject,
+  handleDeleteInitiate,
+  handleDeleteCancel,
+  handleDeleteProject,
+  selectedProject,
+  setSelectedProject,
+  onAddMilestone,
+  onEditMilestone,
+  handleDeleteMilestone,
+  handleAddTask,
+  handleUpdateTask,
+  handleDeleteTask,
+  fetchProjectDetails,
   error,
   onEditProject,
   onDeleteProject,
-  selectedProject,
-  setSelectedProject,
+  profile,
   handleAddMilestone,
-  handleEditMilestone,
-  handleDeleteMilestone,
-  fetchProjectDetails
+  handleEditMilestone
 }) => {
-  const [expandedProjectId, setExpandedProjectId] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<Record<string, string>>({});
-  const [loadingDetails, setLoadingDetails] = useState<string | null>(null);
-  const [projectToDelete, setProjectToDelete] = useState<string | null>(null);
-
-  const handleProjectSelect = async (projectId: string) => {
-    if (expandedProjectId === projectId) {
-      setExpandedProjectId(null);
-      setSelectedProject(null);
-      return;
-    }
-    setLoadingDetails(projectId);
-    try {
-      const projectDetails = await fetchProjectDetails(projectId);
-      setSelectedProject(projectDetails);
-      setExpandedProjectId(projectId);
-      setActiveTab((prev) => ({ ...prev, [projectId]: 'timeline' }));
-    } catch (e) {
-      setExpandedProjectId(null);
-      setSelectedProject(null);
-    } finally {
-      setLoadingDetails(null);
-    }
-  };
-
-  const handleDeleteClick = (projectId: string) => {
-    setProjectToDelete(projectId);
-  };
-
-  const handleDeleteCancel = () => {
-    setProjectToDelete(null);
-  };
-
-  const handleDeleteConfirm = async () => {
-    if (projectToDelete) {
-      await onDeleteProject(projectToDelete);
-      setProjectToDelete(null);
-    }
-  };
-
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-[200px]">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-        <span className="ml-2">Loading projects...</span>
+      <div className="space-y-4">
+        {[1, 2, 3].map((i) => (
+          <Card key={i}>
+            <CardContent className="p-6">
+              <Skeleton className="h-4 w-3/4 mb-2" />
+              <Skeleton className="h-4 w-1/2 mb-4" />
+              <Skeleton className="h-20 w-full" />
+            </CardContent>
+          </Card>
+        ))}
       </div>
     );
   }
 
-  if (error) {
+  if (projects.length === 0) {
     return (
-      <Alert variant="destructive">
-        <AlertTitle>Error</AlertTitle>
-        <AlertDescription>{error}</AlertDescription>
-      </Alert>
+      <Card>
+        <CardContent className="p-6 text-center">
+          <Plus className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 mb-2">No Projects Yet</h3>
+          <p className="text-gray-600 mb-4">
+            Create your first project to start working with professionals.
+          </p>
+          <Button>
+            <Plus className="w-4 h-4 mr-2" />
+            Create Project
+          </Button>
+        </CardContent>
+      </Card>
     );
   }
 
-  if (!projects?.length) {
-    return <EmptyProjectState message="No projects found" />;
-  }
-
   return (
-    <div className="space-y-4">
-      {projects.map((project) => (
-        <Card key={project?.id}>
-          <CardHeader className="pb-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="flex-1">
-                  <CardTitle className="text-xl">{project?.title || 'Untitled Project'}</CardTitle>
-                  <CardDescription className="mt-1">
-                    {project?.description || 'No description provided'}
-                  </CardDescription>
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold">Your Projects</h2>
+        <Button>
+          <Plus className="w-4 h-4 mr-2" />
+          New Project
+        </Button>
+      </div>
+
+      <div className="grid gap-6">
+        {projects.map((project) => {
+          const projectApplications = applications.filter(app => app.project_id === project.id);
+          
+          return (
+            <Card key={project.id}>
+              <CardHeader>
+                <div className="flex justify-between items-start">
+                  <div>
+                    <CardTitle className="text-xl">{project.title}</CardTitle>
+                    <div className="flex items-center space-x-4 mt-2 text-sm text-gray-600">
+                      <span className="flex items-center">
+                        <Calendar className="w-4 h-4 mr-1" />
+                        {project.created_at && new Date(project.created_at).toLocaleDateString()}
+                      </span>
+                      <span className="flex items-center">
+                        <DollarSign className="w-4 h-4 mr-1" />
+                        ${project.budget}
+                      </span>
+                      {project.location && (
+                        <span className="flex items-center">
+                          <MapPin className="w-4 h-4 mr-1" />
+                          {project.location}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <Badge 
+                    variant={
+                      project.status === 'completed' ? 'default' :
+                      project.status === 'in_progress' ? 'secondary' :
+                      project.status === 'open' ? 'outline' :
+                      'destructive'
+                    }
+                  >
+                    {project.status}
+                  </Badge>
                 </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => project && onEditProject(project)}
-                >
-                  <Edit className="h-4 w-4 mr-2" />
-                  Edit
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => project && setSelectedProject(project)}
-                >
-                  <Eye className="h-4 w-4 mr-2" />
-                  View Details
-                </Button>
-              </div>
-            </div>
-          </CardHeader>
-
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-              <div className="flex items-center gap-2">
-                <DollarSign className="h-4 w-4 text-gray-500" />
-                <span>Budget: ${project?.budget?.toLocaleString() || '0'}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <MapPin className="h-4 w-4 text-gray-500" />
-                <span>Location: {project?.location || 'Remote'}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Calendar className="h-4 w-4 text-gray-500" />
-                <span>Timeline: {project?.expected_timeline || 'Not specified'}</span>
-              </div>
-            </div>
-
-            <div className="mt-4">
-              <div className="flex items-center justify-between text-sm">
-                <span className="font-medium">Project Progress</span>
-                <span className="text-gray-600">{getProjectProgress(project)}%</span>
-              </div>
-              <Progress value={getProjectProgress(project)} className="h-2 mt-2" />
-              <ProgressIndicator 
-                steps={getProjectSteps(project)}
-                orientation="horizontal"
-              />
-            </div>
-          </CardContent>
-
-          {expandedProjectId === project?.id && selectedProject && (
-            <CardContent>
-              <Tabs value={activeTab[project.id] || 'timeline'} onValueChange={(value) => setActiveTab((prev) => ({ ...prev, [project.id]: value }))}>
-                <TabsList>
-                  <TabsTrigger value="timeline">Timeline</TabsTrigger>
-                  <TabsTrigger value="milestones">Milestones</TabsTrigger>
-                  <TabsTrigger value="deliverables">Deliverables</TabsTrigger>
-                </TabsList>
-
-                <TabsContent value="timeline">
-                  <ProjectUpdateTimeline 
-                    projectId={project.id} 
-                    isProfessional={false}
-                    projectStatus={selectedProject?.status || 'open'}
-                  />
-                </TabsContent>
-
-                <TabsContent value="milestones">
-                  <ProjectMilestones 
-                    milestones={selectedProject?.milestones?.map(convertToMilestone) || []}
-                    isClient={true}
-                    onAddMilestone={async (milestone) => {
-                      if (!selectedProject) return;
-                      await handleAddMilestone(selectedProject.id, {
-                        title: milestone.title,
-                        description: milestone.description,
-                        due_date: milestone.due_date,
-                        status: milestone.status as MilestoneStatus,
-                        project_id: selectedProject.id,
-                        created_by: selectedProject.client_id || null,
-                        is_complete: false,
-                        requires_deliverable: false
-                      });
-                    }}
-                    onEditMilestone={async (milestoneId, updates) => {
-                      if (!selectedProject) return;
-                      await handleEditMilestone(selectedProject.id, milestoneId, {
-                        title: updates.title,
-                        description: updates.description,
-                        due_date: updates.due_date,
-                        status: updates.status as MilestoneStatus
-                      });
-                    }}
-                    onDeleteMilestone={async (milestoneId) => {
-                      if (!selectedProject) return;
-                      await handleDeleteMilestone(selectedProject.id, milestoneId);
-                    }}
-                    onUpdateTaskStatus={async (milestoneId, taskId, completed) => {
-                      // Implement task status update logic here
-                    }}
-                    projectId={selectedProject.id}
-                    projectStatus={selectedProject?.status || 'open'}
-                  />
-                </TabsContent>
-
-                <TabsContent value="deliverables">
-                  <ProjectDeliverables projectId={project.id} />
-                </TabsContent>
-              </Tabs>
-            </CardContent>
-          )}
-        </Card>
-      ))}
+              </CardHeader>
+              
+              <CardContent>
+                <p className="text-gray-700 mb-4">{project.description}</p>
+                
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <User className="w-4 h-4 text-gray-500" />
+                    <span className="text-sm text-gray-600">
+                      {projectApplications.length} application{projectApplications.length !== 1 ? 's' : ''}
+                    </span>
+                  </div>
+                  
+                  <div className="flex space-x-2">
+                    <Button variant="outline" size="sm">
+                      View Details
+                    </Button>
+                    {project.status === 'draft' && (
+                      <Button size="sm">
+                        Edit
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
     </div>
   );
 };

@@ -1,259 +1,320 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { ProfileData } from '@/components/profile/types';
-import { Project } from '../types';
-import { useToast } from "@/components/ui/use-toast";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertCircle } from "lucide-react";
+
+import React, { useState } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Separator } from '@/components/ui/separator';
+import { MapPin, Phone, Mail, Calendar, User, Building, Star, Award, CheckCircle } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/components/ui/use-toast';
+import { Profile } from '@/types/database';
 
 interface ProfileTabProps {
-  navigate?: (path: string) => void;
-  userId?: string;
-  profileData?: ProfileData | null;
-  projects?: Project[];
+  profile: Profile | null;
+  isLoading: boolean;
+  onProfileUpdate: () => void;
 }
 
-const ProfileTab: React.FC<ProfileTabProps> = ({ 
-  profileData: propProfileData, 
-  projects: propProjects, 
-  navigate: propNavigate,
-  userId
-}: ProfileTabProps) => {
-  const navigateHook = useNavigate();
-  const navigate = propNavigate || navigateHook;
+const ProfileTab: React.FC<ProfileTabProps> = ({ profile, isLoading, onProfileUpdate }) => {
+  const [isEditing, setIsEditing] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [editData, setEditData] = useState({
+    first_name: profile?.first_name || '',
+    last_name: profile?.last_name || '',
+    email: profile?.email || '',
+    phone: profile?.phone || '',
+    location: profile?.location || '',
+    bio: profile?.bio || '',
+    business_name: profile?.business_name || '',
+    business_description: profile?.business_description || ''
+  });
   const { toast } = useToast();
-  
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [profileData, setProfileData] = useState<ProfileData | null>(propProfileData || null);
-  const [projects, setProjects] = useState<Project[]>(propProjects || []);
-  
-  useEffect(() => {
-    if (propProfileData) setProfileData(propProfileData);
-    if (propProjects) setProjects(propProjects);
-  }, [propProfileData, propProjects]);
-  
-  useEffect(() => {
-    if (!userId) {
-      setError('User ID is required to load profile information');
-      return;
-    }
-    if (!propProfileData || !propProjects) {
-      fetchData();
-    }
-  }, [userId]);
-  
-  const fetchData = async () => {
-    if (!userId) return;
-    
+
+  const handleEdit = () => {
+    setEditData({
+      first_name: profile?.first_name || '',
+      last_name: profile?.last_name || '',
+      email: profile?.email || '',
+      phone: profile?.phone || '',
+      location: profile?.location || '',
+      bio: profile?.bio || '',
+      business_name: profile?.business_name || '',
+      business_description: profile?.business_description || ''
+    });
+    setIsEditing(true);
+  };
+
+  const handleSave = async () => {
+    if (!profile?.id) return;
+
     try {
-      setLoading(true);
-      setError(null);
-      
-      // Fetch profile data
-      const { data: profileData, error: profileError } = await supabase
+      setIsSubmitting(true);
+      const { error } = await supabase
         .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .single();
-      
-      if (profileError) {
-        console.error('Profile fetch error:', profileError);
-        throw new Error('Failed to load profile information. Please try again.');
-      }
-      
-      if (!profileData) {
-        throw new Error('Profile not found. Please complete your profile setup.');
-      }
-      
-      // Cast the database profile to our ProfileData type with proper type casting
-      const typedProfileData: ProfileData = {
-        ...profileData,
-        bio: profileData.bio || null,
-        location: profileData.location || null,
-        phone: profileData.phone || null,
-        email: profileData.email || null,
-        hourly_rate: profileData.hourly_rate || null,
-        availability: (profileData.availability as 'available' | 'busy' | 'unavailable') || null,
-        skills: profileData.skills || null,
-        certifications: profileData.certifications || null,
-        completed_projects: profileData.completed_projects || null,
-        response_rate: profileData.response_rate || null,
-        on_time_completion: profileData.on_time_completion || null,
-        profile_visibility: profileData.profile_visibility ?? true,
-        show_email: profileData.show_email ?? true,
-        show_phone: profileData.show_phone ?? true,
-        allow_messages: profileData.allow_messages ?? true,
-        profile_image_url: profileData.profile_image_url || '',
-        verification_status: (profileData.verification_status as 'unverified' | 'pending' | 'verified') || null,
-        years_of_experience: profileData.years_of_experience || null,
-        rating: profileData.rating || null,
-        portfolio_images: profileData.portfolio_images || null,
-      };
-      
-      setProfileData(typedProfileData);
-      
-      // Fetch projects if client
-      if (profileData.account_type === 'client') {
-        const { data: projectsData, error: projectsError } = await supabase
-          .from('projects')
-          .select('*')
-          .eq('client_id', userId);
-        
-        if (projectsError) {
-          console.error('Projects fetch error:', projectsError);
-          throw new Error('Failed to load projects information. Please try again.');
-        }
-        
-        // Transform projects to match Project interface
-        const transformedProjects: Project[] = (projectsData || []).map((project: any) => ({
-          id: project.id,
-          title: project.title,
-          description: project.description,
-          category: project.category,
-          budget: project.budget,
-          expected_timeline: project.expected_timeline,
-          location: project.location,
-          urgency: project.urgency,
-          requirements: project.requirements,
-          recommended_skills: project.recommended_skills || null,
-          status: project.status,
-          created_at: project.created_at,
-          updated_at: project.updated_at,
-          client_id: project.client_id,
-          assigned_to: project.assigned_to,
-          professional_id: project.professional_id,
-          contract_template_id: project.contract_template_id,
-          deadline: project.deadline,
-          industry_specific_fields: project.industry_specific_fields,
-          location_coordinates: project.location_coordinates,
-          project_start_time: project.project_start_time,
-          rich_description: project.rich_description,
-          scope: project.scope,
-          service_contract: project.service_contract,
-          sla_terms: project.sla_terms,
-          spent: project.spent || 0
-        }));
-        
-        setProjects(transformedProjects);
-      }
-      
+        .update(editData)
+        .eq('id', profile.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Profile Updated",
+        description: "Your profile has been updated successfully."
+      });
+
+      setIsEditing(false);
+      onProfileUpdate();
     } catch (error: any) {
-      console.error('Error fetching profile data:', error);
-      setError(error.message || 'An unexpected error occurred while loading profile information');
+      console.error('Error updating profile:', error);
       toast({
         title: "Error",
-        description: error.message || 'An unexpected error occurred while loading profile information',
+        description: "Failed to update profile. Please try again.",
         variant: "destructive"
       });
     } finally {
-      setLoading(false);
+      setIsSubmitting(false);
     }
   };
-  
-  if (loading) {
+
+  const handleCancel = () => {
+    setIsEditing(false);
+    setEditData({
+      first_name: profile?.first_name || '',
+      last_name: profile?.last_name || '',
+      email: profile?.email || '',
+      phone: profile?.phone || '',
+      location: profile?.location || '',
+      bio: profile?.bio || '',
+      business_name: profile?.business_name || '',
+      business_description: profile?.business_description || ''
+    });
+  };
+
+  if (isLoading) {
     return (
-      <div className="flex items-center justify-center p-4">
-        <p className="text-gray-600">Loading profile information...</p>
-      </div>
-    );
-  }
-  
-  if (error) {
-    return (
-      <Alert variant="destructive" className="mb-4">
-        <AlertCircle className="h-4 w-4" />
-        <AlertTitle>Error</AlertTitle>
-        <AlertDescription>{error}</AlertDescription>
-        <Button 
-          onClick={fetchData} 
-          variant="outline" 
-          className="mt-2"
-        >
-          Try Again
-        </Button>
-      </Alert>
-    );
-  }
-  
-  return (
-    <>
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold">Your Profile</h2>
-        <Button 
-          onClick={() => navigate('/profile')}
-          className="bg-ttc-blue-700 hover:bg-ttc-blue-800"
-        >
-          View Full Profile
-        </Button>
-      </div>
-      
-      {profileData ? (
-        <div className="grid gap-6 md:grid-cols-2">
-          <Card>
-            <CardHeader>
-              <CardTitle>Profile Information</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div>
-                  <h3 className="text-sm font-medium text-gray-500">Name</h3>
-                  <p>{profileData.first_name} {profileData.last_name}</p>
-                </div>
-                <div>
-                  <h3 className="text-sm font-medium text-gray-500">Account Type</h3>
-                  <p className="capitalize">{profileData.account_type}</p>
-                </div>
-                <div>
-                  <h3 className="text-sm font-medium text-gray-500">Member Since</h3>
-                  <p>{new Date(profileData.created_at).toLocaleDateString()}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader>
-              <CardTitle>Account Statistics</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div>
-                  <h3 className="text-sm font-medium text-gray-500">Projects Posted</h3>
-                  <p>{projects.length}</p>
-                </div>
-                <div>
-                  <h3 className="text-sm font-medium text-gray-500">Active Projects</h3>
-                  <p>{projects.filter(p => p.status === 'assigned').length}</p>
-                </div>
-                <div>
-                  <h3 className="text-sm font-medium text-gray-500">Completed Projects</h3>
-                  <p>{projects.filter(p => p.status === 'completed').length}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+      <div className="flex items-center justify-center p-8">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-2 text-gray-600">Loading profile...</p>
         </div>
-      ) : (
-        <Alert>
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>No Profile Information</AlertTitle>
-          <AlertDescription>
-            Your profile information could not be found. Please complete your profile setup.
-          </AlertDescription>
-          <Button 
-            onClick={() => navigate('/profile/edit')} 
-            variant="outline" 
-            className="mt-2"
-          >
-            Complete Profile
-          </Button>
-        </Alert>
-      )}
-    </>
+      </div>
+    );
+  }
+
+  if (!profile) {
+    return (
+      <Card>
+        <CardContent className="p-6">
+          <p className="text-center text-gray-600">Profile not found.</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Profile Header */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <Avatar className="w-20 h-20">
+                <AvatarImage src={profile.profile_image_url || undefined} />
+                <AvatarFallback>
+                  {(profile.first_name?.[0] || '') + (profile.last_name?.[0] || '')}
+                </AvatarFallback>
+              </Avatar>
+              <div>
+                <CardTitle className="text-2xl">
+                  {profile.first_name || ''} {profile.last_name || ''}
+                </CardTitle>
+                <CardDescription>
+                  {profile.business_name && (
+                    <span className="flex items-center gap-1">
+                      <Building className="w-4 h-4" />
+                      {profile.business_name}
+                    </span>
+                  )}
+                </CardDescription>
+              </div>
+            </div>
+            {!isEditing && (
+              <Button onClick={handleEdit}>
+                <User className="w-4 h-4 mr-2" />
+                Edit Profile
+              </Button>
+            )}
+          </div>
+        </CardHeader>
+
+        <CardContent className="space-y-6">
+          {isEditing ? (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="first_name">First Name</Label>
+                  <Input
+                    id="first_name"
+                    value={editData.first_name}
+                    onChange={(e) => setEditData({ ...editData, first_name: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="last_name">Last Name</Label>
+                  <Input
+                    id="last_name"
+                    value={editData.last_name}
+                    onChange={(e) => setEditData({ ...editData, last_name: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={editData.email}
+                  onChange={(e) => setEditData({ ...editData, email: e.target.value })}
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="phone">Phone</Label>
+                <Input
+                  id="phone"
+                  value={editData.phone}
+                  onChange={(e) => setEditData({ ...editData, phone: e.target.value })}
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="location">Location</Label>
+                <Input
+                  id="location"
+                  value={editData.location}
+                  onChange={(e) => setEditData({ ...editData, location: e.target.value })}
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="business_name">Business Name</Label>
+                <Input
+                  id="business_name"
+                  value={editData.business_name}
+                  onChange={(e) => setEditData({ ...editData, business_name: e.target.value })}
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="bio">Bio</Label>
+                <Textarea
+                  id="bio"
+                  value={editData.bio}
+                  onChange={(e) => setEditData({ ...editData, bio: e.target.value })}
+                  rows={4}
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="business_description">Business Description</Label>
+                <Textarea
+                  id="business_description"
+                  value={editData.business_description}
+                  onChange={(e) => setEditData({ ...editData, business_description: e.target.value })}
+                  rows={4}
+                />
+              </div>
+
+              <div className="flex space-x-2">
+                <Button onClick={handleSave} disabled={isSubmitting}>
+                  {isSubmitting ? 'Saving...' : 'Save Changes'}
+                </Button>
+                <Button variant="outline" onClick={handleCancel}>
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {/* Contact Information */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {profile.email && (
+                  <div className="flex items-center space-x-2">
+                    <Mail className="w-4 h-4 text-gray-500" />
+                    <span>{profile.email}</span>
+                  </div>
+                )}
+                {profile.phone && (
+                  <div className="flex items-center space-x-2">
+                    <Phone className="w-4 h-4 text-gray-500" />
+                    <span>{profile.phone}</span>
+                  </div>
+                )}
+                {profile.location && (
+                  <div className="flex items-center space-x-2">
+                    <MapPin className="w-4 h-4 text-gray-500" />
+                    <span>{profile.location}</span>
+                  </div>
+                )}
+                <div className="flex items-center space-x-2">
+                  <Calendar className="w-4 h-4 text-gray-500" />
+                  <span>Member since {new Date(profile.created_at).toLocaleDateString()}</span>
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Bio */}
+              {profile.bio && (
+                <div>
+                  <h3 className="font-semibold mb-2">About</h3>
+                  <p className="text-gray-700">{profile.bio}</p>
+                </div>
+              )}
+
+              {/* Business Description */}
+              {profile.business_description && (
+                <div>
+                  <h3 className="font-semibold mb-2">Business Description</h3>
+                  <p className="text-gray-700">{profile.business_description}</p>
+                </div>
+              )}
+
+              {/* Account Stats */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="text-center">
+                  <div className="flex items-center justify-center space-x-1">
+                    <Star className="w-4 h-4 text-yellow-500" />
+                    <span className="font-semibold">{profile.rating || 0}</span>
+                  </div>
+                  <p className="text-sm text-gray-600">Rating</p>
+                </div>
+                <div className="text-center">
+                  <div className="flex items-center justify-center space-x-1">
+                    <CheckCircle className="w-4 h-4 text-green-500" />
+                    <span className="font-semibold">{profile.completed_projects || 0}</span>
+                  </div>
+                  <p className="text-sm text-gray-600">Projects Completed</p>
+                </div>
+                <div className="text-center">
+                  <div className="flex items-center justify-center space-x-1">
+                    <Award className="w-4 h-4 text-blue-500" />
+                    <Badge variant={profile.verification_status === 'verified' ? 'default' : 'secondary'}>
+                      {profile.verification_status || 'pending'}
+                    </Badge>
+                  </div>
+                  <p className="text-sm text-gray-600">Status</p>
+                </div>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
   );
 };
 

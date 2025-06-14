@@ -1,216 +1,142 @@
-import React, { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-import { useToast } from "@/components/ui/use-toast";
-import { supabase } from "@/integrations/supabase/client";
-import { Project } from '../types';
-import ApplicationCard from '@/components/shared/cards/ApplicationCard';
-import { Database } from '@/integrations/supabase/types';
-
-type Profile = Database['public']['Tables']['profiles']['Row'];
-type Application = Database['public']['Tables']['applications']['Row'];
-type ApplicationStatus = Database['public']['Enums']['application_status'];
+import React from 'react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
+import { CheckCircle, XCircle, Clock, Eye, User } from 'lucide-react';
+import { Application, Project, Profile } from '@/types/database';
 
 interface ApplicationsTabProps {
   isLoading: boolean;
-  applications: Application[];
   projects: Project[];
-  professionals: Profile[];
+  applications: Application[];
+  handleApplicationUpdate: (applicationId: string, status: 'accepted' | 'rejected') => Promise<void>;
+  profile: Profile | null;
+  professionals: any[];
   userId: string;
 }
 
 const ApplicationsTab: React.FC<ApplicationsTabProps> = ({
   isLoading,
-  applications = [],
-  projects = [],
-  professionals = [],
-  userId
+  projects,
+  applications,
+  handleApplicationUpdate,
+  profile
 }) => {
-  const { toast } = useToast();
-  const [selectedApplication, setSelectedApplication] = useState<Application | null>(null);
-  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
-  const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
-  const [actionType, setActionType] = useState<'accept' | 'reject' | null>(null);
-
-  const handleViewDetails = (application: Application) => {
-    setSelectedApplication(application);
-    setIsViewDialogOpen(true);
-  };
-
-  const handleApplicationUpdate = async (applicationId: string, newStatus: ApplicationStatus) => {
-    try {
-      const { error } = await supabase
-        .from('applications')
-        .update({ status: newStatus })
-        .eq('id', applicationId);
-
-      if (error) throw error;
-
-      toast({
-        title: "Application Updated",
-        description: `Application has been ${newStatus}.`,
-      });
-
-      // Refresh the applications list
-      window.location.reload();
-    } catch (error) {
-      console.error('Error updating application:', error);
-      toast({
-        title: "Error",
-        description: "Failed to update application. Please try again.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleConfirmAction = async () => {
-    if (!selectedApplication || !actionType) return;
-
-    await handleApplicationUpdate(
-      selectedApplication.id,
-      actionType === 'accept' ? 'accepted' : 'rejected'
-    );
-    setIsConfirmDialogOpen(false);
-    setIsViewDialogOpen(false);
-  };
-
   if (isLoading) {
-    return <div>Loading applications...</div>;
+    return (
+      <div className="space-y-4">
+        {[1, 2, 3].map((i) => (
+          <Card key={i}>
+            <CardContent className="p-6">
+              <Skeleton className="h-4 w-3/4 mb-2" />
+              <Skeleton className="h-4 w-1/2 mb-4" />
+              <Skeleton className="h-20 w-full" />
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    );
+  }
+
+  if (applications.length === 0) {
+    return (
+      <Card>
+        <CardContent className="p-6 text-center">
+          <User className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 mb-2">No Applications Yet</h3>
+          <p className="text-gray-600">
+            Applications for your projects will appear here.
+          </p>
+        </CardContent>
+      </Card>
+    );
   }
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold mb-4">Applications</h2>
-        {!applications?.length ? (
-          <Card>
-            <CardContent className="text-center py-8">
-              <p className="text-gray-500">No applications yet.</p>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="grid gap-4">
-            {applications.map((application) => {
-              const project = projects?.find(p => p?.id === application?.project_id);
-              const professional = professionals?.find(p => p?.id === application?.professional_id);
-    
-              return (
-                <ApplicationCard
-                  key={application?.id}
-                  application={application}
-                  project={project || undefined}
-                  professional={professional || undefined}
-                  onViewDetails={handleViewDetails}
-                  onAccept={(app: Application) => {
-                    if (!app?.id) return;
-                    setSelectedApplication(app);
-                    setActionType('accept');
-                    setIsConfirmDialogOpen(true);
-                  }}
-                  onReject={(app: Application) => {
-                    if (!app?.id) return;
-                    setSelectedApplication(app);
-                    setActionType('reject');
-                    setIsConfirmDialogOpen(true);
-                  }}
-                />
-              );
-            })}
-          </div>
-        )}
-      </div>
+      <h2 className="text-2xl font-bold">Project Applications</h2>
+      
+      <div className="space-y-4">
+        {applications.map((application) => {
+          const project = projects.find(p => p.id === application.project_id);
+          if (!project) return null;
 
-      <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
-        <DialogContent className="max-w-3xl">
-          <DialogHeader>
-            <DialogTitle>Application Details</DialogTitle>
-          </DialogHeader>
-          {selectedApplication && (
-            <div className="space-y-4">
-              <div className="flex justify-between items-start">
-                <div>
-                  <h3 className="font-semibold">
-                    {projects?.find(p => p?.id === selectedApplication?.project_id)?.title || 'Unknown Project'}
-                  </h3>
-                  <p className="text-sm text-gray-500">
-                    Applied on {selectedApplication?.created_at ? new Date(selectedApplication.created_at).toLocaleDateString() : 'Unknown date'}
-                  </p>
+          return (
+            <Card key={application.id}>
+              <CardContent className="p-6">
+                <div className="flex justify-between items-start mb-4">
+                  <div>
+                    <h3 className="text-lg font-semibold">{project.title}</h3>
+                    <p className="text-gray-600">Professional ID: {application.professional_id}</p>
+                  </div>
+                  <Badge 
+                    variant={
+                      application.status === 'accepted' ? 'default' :
+                      application.status === 'rejected' ? 'destructive' :
+                      'secondary'
+                    }
+                  >
+                    {application.status || 'pending'}
+                  </Badge>
                 </div>
-                <Badge variant="outline">
-                  {selectedApplication?.status || 'Unknown'}
-                </Badge>
-              </div>
-            
-              <div>
-                <h4 className="font-medium mb-2">Cover Letter</h4>
-                <p className="text-sm text-gray-600 whitespace-pre-wrap">
-                  {selectedApplication?.cover_letter || 'No cover letter provided'}
-                </p>
-              </div>
 
-              {selectedApplication?.proposal_message && (
-                <div>
-                  <h4 className="font-medium mb-2">Proposal Message</h4>
-                  <p className="text-sm text-gray-600 whitespace-pre-wrap">
-                    {selectedApplication.proposal_message}
-                  </p>
+                {application.proposal_message && (
+                  <div className="mb-4">
+                    <h4 className="font-medium mb-2">Proposal</h4>
+                    <p className="text-gray-700">{application.proposal_message}</p>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-2 gap-4 mb-4">
+                  {application.bid_amount && (
+                    <div>
+                      <span className="font-medium">Bid Amount: </span>
+                      <span>${application.bid_amount}</span>
+                    </div>
+                  )}
+                  {application.availability && (
+                    <div>
+                      <span className="font-medium">Availability: </span>
+                      <span>{application.availability}</span>
+                    </div>
+                  )}
                 </div>
-              )}
-            
-              <div className="flex justify-between items-center">
-                <div>
-                  <p className="text-sm font-medium">Bid Amount</p>
-                  <p className="text-lg">
-                    ${selectedApplication?.bid_amount?.toLocaleString() || '0'}
-                  </p>
-                </div>
-                {selectedApplication?.status === 'pending' && (
-                  <div className="space-x-2">
-                    <Button
-                      variant="outline"
-                      onClick={() => {
-                        setActionType('reject');
-                        setIsConfirmDialogOpen(true);
-                      }}
+
+                {application.status === 'pending' && (
+                  <div className="flex space-x-2">
+                    <Button 
+                      size="sm"
+                      onClick={() => handleApplicationUpdate(application.id, 'accepted')}
+                      className="flex items-center gap-2"
                     >
+                      <CheckCircle className="w-4 h-4" />
+                      Accept
+                    </Button>
+                    <Button 
+                      size="sm"
+                      variant="destructive"
+                      onClick={() => handleApplicationUpdate(application.id, 'rejected')}
+                      className="flex items-center gap-2"
+                    >
+                      <XCircle className="w-4 h-4" />
                       Reject
                     </Button>
-                    <Button
-                      onClick={() => {
-                        setActionType('accept');
-                        setIsConfirmDialogOpen(true);
-                      }}
+                    <Button 
+                      size="sm"
+                      variant="outline"
+                      className="flex items-center gap-2"
                     >
-                      Accept
+                      <Eye className="w-4 h-4" />
+                      View Details
                     </Button>
                   </div>
                 )}
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={isConfirmDialogOpen} onOpenChange={setIsConfirmDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Confirm Action</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to {actionType} this application?
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsConfirmDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleConfirmAction}>
-              Confirm
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
     </div>
   );
 };
