@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -17,12 +16,22 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
+const TIMELINE_OPTIONS = [
+  { value: 'less_than_1_month', label: 'Less than 1 month' },
+  { value: '1_to_3_months', label: '1-3 months' },
+  { value: '3_to_6_months', label: '3-6 months' },
+  { value: 'more_than_6_months', label: 'More than 6 months' }
+] as const;
+
+type TimelineOption = typeof TIMELINE_OPTIONS[number]['value'];
 
 const formSchema = z.object({
   status: z.enum(['pending', 'accepted', 'rejected', 'withdrawn'] as const),
   proposal: z.string().min(100, 'Proposal must be at least 100 characters'),
   budget: z.number().min(0, 'Budget must be a positive number'),
-  timeline: z.string().min(1, 'Please specify the timeline'),
+  timeline: z.enum(['less_than_1_month', '1_to_3_months', '3_to_6_months', 'more_than_6_months'] as const),
   availability: z.string().min(1, 'Please specify your availability'),
   additional_notes: z.string().optional(),
   attachments: z.array(z.string()).optional(),
@@ -51,7 +60,7 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
     defaultValues: {
       proposal: '',
       budget: 0,
-      timeline: '',
+      timeline: 'less_than_1_month',
       availability: '',
       status: 'pending',
       additional_notes: '',
@@ -160,12 +169,21 @@ const ApplicationForm: React.FC<ApplicationFormProps> = ({
             <FormItem>
               <FormLabel>Timeline</FormLabel>
               <FormControl>
-                <Input
-                  placeholder="e.g., 2 weeks, 1 month, etc."
-                  value={field.value || ''}
-                  onChange={field.onChange}
-                  onBlur={field.onBlur}
-                />
+                <Select
+                  value={field.value}
+                  onValueChange={field.onChange}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select timeline" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {TIMELINE_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </FormControl>
               <FormMessage />
             </FormItem>

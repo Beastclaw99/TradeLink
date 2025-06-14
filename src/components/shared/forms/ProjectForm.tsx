@@ -261,12 +261,10 @@ const ProjectForm: React.FC<ProjectFormProps> = ({
                   <SelectValue placeholder="Select timeline" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="asap">ASAP</SelectItem>
-                  <SelectItem value="1-week">Within 1 week</SelectItem>
-                  <SelectItem value="2-weeks">Within 2 weeks</SelectItem>
-                  <SelectItem value="1-month">Within 1 month</SelectItem>
-                  <SelectItem value="3-months">Within 3 months</SelectItem>
-                  <SelectItem value="flexible">Flexible</SelectItem>
+                  <SelectItem value="less_than_1_month">Less than 1 month</SelectItem>
+                  <SelectItem value="1_to_3_months">1-3 months</SelectItem>
+                  <SelectItem value="3_to_6_months">3-6 months</SelectItem>
+                  <SelectItem value="more_than_6_months">More than 6 months</SelectItem>
                 </SelectContent>
               </Select>
               {errors.timeline && <p className="text-red-500 text-sm mt-1">{errors.timeline}</p>}
