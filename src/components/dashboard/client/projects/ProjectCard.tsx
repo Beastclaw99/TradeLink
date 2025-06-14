@@ -66,7 +66,7 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
       if (!project.title) missingFields.push('title');
       if (!project.description) missingFields.push('description');
       if (!project.budget) missingFields.push('budget');
-      if (!project.timeline) missingFields.push('timeline');
+      if (!project.timeline || project.timeline.trim() === '') missingFields.push('timeline');
       
       if (missingFields.length > 0) {
         toast({
