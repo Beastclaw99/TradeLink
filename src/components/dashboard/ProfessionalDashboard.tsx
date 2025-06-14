@@ -46,18 +46,20 @@ const ProfessionalDashboard: React.FC<ProfessionalDashboardProps> = ({ userId })
   // Convert projects to expected format
   const projects = rawProjects.map(convertToProjectType);
 
-  // Convert applications to ensure proper types
+  // Convert applications to ensure proper types with fallbacks
   const applications = rawApplications.map(app => ({
     ...app,
     project_id: app.project_id || '',
     professional_id: app.professional_id || '',
-    status: app.status as 'pending' | 'accepted' | 'rejected' | 'withdrawn' | null
+    status: app.status as 'pending' | 'accepted' | 'rejected' | 'withdrawn' | null,
+    created_at: app.created_at || new Date().toISOString()
   }));
 
-  // Convert reviews to ensure proper types
+  // Convert reviews to ensure proper types with fallbacks
   const reviews = rawReviews.map(review => ({
     ...review,
-    status: (review.status as 'pending' | 'rejected' | 'approved' | 'reported' | null) || 'pending'
+    status: (review.status as 'pending' | 'rejected' | 'approved' | 'reported' | null) || 'pending',
+    is_verified: review.is_verified || false
   }));
 
   const {
