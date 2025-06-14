@@ -113,7 +113,7 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
   const handleEdit = () => {
     // Store the project data in localStorage for the wizard to use
     localStorage.setItem('editProjectData', JSON.stringify(project));
-    navigate('/client/create-project?mode=edit');
+    navigate('/create-project?mode=edit');
   };
 
   return (
