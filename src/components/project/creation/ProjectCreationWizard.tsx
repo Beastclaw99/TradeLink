@@ -49,8 +49,9 @@ const ProjectCreationWizard: React.FC = () => {
         const parsedData = JSON.parse(editData);
         return {
           ...parsedData,
-          // Map database fields to ProjectData format
+          // Ensure timeline is one of the valid options
           timeline: parsedData.timeline || '',
+          // Ensure other required fields have default values
           recommended_skills: parsedData.recommended_skills || [],
           requirements: parsedData.requirements || [],
           urgency: parsedData.urgency || 'medium',
@@ -63,9 +64,7 @@ const ProjectCreationWizard: React.FC = () => {
           contract_template_id: parsedData.contract_template_id || '',
           payment_required: parsedData.payment_required ?? true,
           payment_due_date: parsedData.payment_due_date || '',
-          sla_terms: parsedData.sla_terms || null,
-          milestones: parsedData.milestones || [],
-          deliverables: parsedData.deliverables || []
+          sla_terms: parsedData.sla_terms || null
         };
       }
     }
@@ -338,7 +337,7 @@ const ProjectCreationWizard: React.FC = () => {
       const draftId = localStorage.getItem('projectDraftId');
       let projectId = draftId;
 
-      // Prepare data for database - ensure all fields are properly mapped
+      // Prepare data for database - ensure proper types and field names
       const dbProjectData = {
         title: projectData.title.trim(),
         description: projectData.description.trim(),
@@ -357,8 +356,7 @@ const ProjectCreationWizard: React.FC = () => {
         project_start_time: cleanUuidField(projectData.project_start_time),
         client_id: user.id,
         sla_terms: projectData.sla_terms,
-        status: isEditing ? projectData.status : 'draft' as const,
-        contract_template_id: cleanUuidField(projectData.contract_template_id)
+        status: isEditing ? projectData.status : 'draft' as const
       };
 
       if (isEditing) {

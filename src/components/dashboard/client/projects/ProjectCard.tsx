@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -29,13 +28,15 @@ type ApplicationStatus = Database['public']['Enums']['application_status'];
 interface ProjectCardProps {
   project: Project;
   applications: Application[];
+  onEdit: (project: Project) => void;
   onDelete: (projectId: string) => void;
-  onStatusUpdate?: () => void;
+  onStatusUpdate?: () => void; // Add callback for status updates
 }
 
 const ProjectCard: React.FC<ProjectCardProps> = ({ 
   project, 
   applications, 
+  onEdit, 
   onDelete,
   onStatusUpdate
 }) => {
@@ -134,24 +135,6 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
             <div className="flex justify-between text-sm">
               <span className="text-gray-500">Budget:</span>
               <span className="font-medium">${project.budget.toLocaleString()}</span>
-            </div>
-          )}
-          {project.timeline && (
-            <div className="flex justify-between text-sm">
-              <span className="text-gray-500">Timeline:</span>
-              <span className="font-medium">{project.timeline.replace(/_/g, ' ')}</span>
-            </div>
-          )}
-          {project.category && (
-            <div className="flex justify-between text-sm">
-              <span className="text-gray-500">Category:</span>
-              <span className="font-medium">{project.category}</span>
-            </div>
-          )}
-          {project.location && (
-            <div className="flex justify-between text-sm">
-              <span className="text-gray-500">Location:</span>
-              <span className="font-medium">{project.location}</span>
             </div>
           )}
           <div className="flex justify-between text-sm">
