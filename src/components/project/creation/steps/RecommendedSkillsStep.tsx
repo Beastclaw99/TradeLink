@@ -118,23 +118,23 @@ const RecommendedSkillsStep: React.FC<RecommendedSkillsStepProps> = ({ data, onU
   const [newSkill, setNewSkill] = useState('');
 
   const addSkill = (skill: string) => {
-    if (skill.trim() && !data.recommended_skills.includes(skill.trim())) {
+    if (skill.trim() && !(data.recommended_skills || []).includes(skill.trim())) {
       onUpdate({
-        recommended_skills: [...data.recommended_skills, skill.trim()]
+        recommended_skills: [...(data.recommended_skills || []), skill.trim()]
       });
       setNewSkill('');
     }
   };
 
   const removeSkill = (index: number) => {
-    const updatedSkills = data.recommended_skills.filter((_, i) => i !== index);
+    const updatedSkills = (data.recommended_skills || []).filter((_, i) => i !== index);
     onUpdate({ recommended_skills: updatedSkills });
   };
 
   const addSuggestedSkill = (skill: string) => {
-    if (!data.recommended_skills.includes(skill)) {
+    if (!(data.recommended_skills || []).includes(skill)) {
       onUpdate({
-        recommended_skills: [...data.recommended_skills, skill]
+        recommended_skills: [...(data.recommended_skills || []), skill]
       });
     }
   };
