@@ -1,10 +1,9 @@
 
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Calendar, DollarSign, Clock } from 'lucide-react';
+import { Clock } from 'lucide-react';
+import UnifiedProjectCard from '@/components/shared/UnifiedProjectCard';
 
 // Simplified interface for the component
 interface ProjectWithMilestones {
@@ -18,6 +17,22 @@ interface ProjectWithMilestones {
   created_at: string | null;
   client_id: string | null;
   professional_id: string | null;
+  assigned_to: string | null;
+  category: string | null;
+  location: string | null;
+  urgency: string | null;
+  requirements: string[] | null;
+  recommended_skills: string[] | null;
+  deadline: string | null;
+  updated_at: string | null;
+  contract_template_id: string | null;
+  industry_specific_fields: any;
+  location_coordinates: any;
+  project_start_time: string | null;
+  rich_description: string | null;
+  scope: string | null;
+  service_contract: string | null;
+  sla_terms: any;
   milestones?: any[];
 }
 
@@ -71,92 +86,25 @@ const ActiveProjectsTab: React.FC<ActiveProjectsTabProps> = ({
     );
   }
 
+  const handleUpdateStatus = (projectId: string, newStatus: any) => {
+    onUpdateProjectStatus(projectId, newStatus);
+  };
+
   return (
     <div className="space-y-6">
       <h2 className="text-2xl font-bold">Active Projects</h2>
       
       <div className="space-y-4">
         {projects.map((project) => (
-          <Card key={project.id} className="hover:shadow-md transition-shadow">
-            <CardContent className="p-6">
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex-1">
-                  <h3 className="text-lg font-semibold mb-2">{project.title}</h3>
-                  <Badge variant="outline" className="mb-3">
-                    {project.status?.replace('_', ' ') || 'Active'}
-                  </Badge>
-                </div>
-              </div>
-
-              {project.description && (
-                <p className="text-gray-600 mb-4 line-clamp-2">{project.description}</p>
-              )}
-
-              <div className="grid grid-cols-2 gap-4 mb-4 text-sm">
-                {project.budget && (
-                  <div className="flex items-center gap-2">
-                    <DollarSign className="h-4 w-4 text-gray-400" />
-                    <span className="text-gray-500">Budget:</span>
-                    <span className="font-medium">${project.budget.toLocaleString()}</span>
-                  </div>
-                )}
-                {project.timeline && (
-                  <div className="flex items-center gap-2">
-                    <Clock className="h-4 w-4 text-gray-400" />
-                    <span className="text-gray-500">Timeline:</span>
-                    <span className="font-medium">{project.timeline}</span>
-                  </div>
-                )}
-                <div className="flex items-center gap-2">
-                  <Calendar className="h-4 w-4 text-gray-400" />
-                  <span className="text-gray-500">Started:</span>
-                  <span className="font-medium">
-                    {project.created_at ? new Date(project.created_at).toLocaleDateString() : 'N/A'}
-                  </span>
-                </div>
-              </div>
-
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => onViewProject(project.id)}
-                >
-                  View Details
-                </Button>
-                
-                {project.status === 'assigned' && (
-                  <Button
-                    size="sm"
-                    onClick={() => onUpdateProjectStatus(project.id, 'in_progress')}
-                    disabled={isSubmitting}
-                  >
-                    Start Project
-                  </Button>
-                )}
-                
-                {project.status === 'in_progress' && (
-                  <Button
-                    size="sm"
-                    onClick={() => onSubmitWork(project.id)}
-                    disabled={isSubmitting}
-                  >
-                    Submit Work
-                  </Button>
-                )}
-
-                {project.status === 'work_revision_requested' && (
-                  <Button
-                    size="sm"
-                    onClick={() => onRequestRevision(project.id)}
-                    disabled={isSubmitting}
-                  >
-                    Resubmit Work
-                  </Button>
-                )}
-              </div>
-            </CardContent>
-          </Card>
+          <UnifiedProjectCard
+            key={project.id}
+            project={project}
+            onViewDetails={onViewProject}
+            onUpdateStatus={handleUpdateStatus}
+            isProfessional={true}
+            userType="professional"
+            variant="card"
+          />
         ))}
       </div>
     </div>
