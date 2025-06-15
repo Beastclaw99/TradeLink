@@ -11,6 +11,8 @@ export type ProjectStatus =
   | 'cancelled'
   | 'disputed';
 
+export type MilestoneStatus = 'not_started' | 'in_progress' | 'completed' | 'on_hold' | 'overdue';
+
 export interface ProjectData {
   id?: string;
   title: string;
@@ -44,7 +46,7 @@ export interface Milestone {
   description?: string;
   due_date?: string;
   dueDate?: string; // Support both formats for backwards compatibility
-  status: string;
+  status: MilestoneStatus;
   requires_deliverable?: boolean;
   deliverables: Deliverable[];
   tasks: Task[];
