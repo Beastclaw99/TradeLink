@@ -18,7 +18,15 @@ export type UpdateType =
   | 'payment_processed'      // Payment processed
   | 'schedule_updated'       // Schedule updated
   | 'task_completed'         // Task completed
-  | 'custom_field_updated';  // Custom field updated
+  | 'custom_field_updated'   // Custom field updated
+  | 'photo_update'           // Photo update
+  | 'milestone_completed'    // Milestone completed
+  | 'on_track'              // Project on track
+  | 'meeting'               // Meeting update
+  | 'document_uploaded'     // Document uploaded
+  | 'document_reviewed'     // Document reviewed
+  | 'issue_reported'        // Issue reported
+  | 'issue_resolved';       // Issue resolved
 
 export interface StatusMetadata {
   previous_status?: ProjectStatus;

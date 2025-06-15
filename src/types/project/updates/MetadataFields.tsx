@@ -1,13 +1,29 @@
-
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { UpdateType } from '@/types/projectUpdates';
 
+interface ExpenseMetadata {
+  amount: string;
+  description: string;
+}
+
+interface DelayMetadata {
+  delay_reason: string;
+}
+
+interface LocationMetadata {
+  latitude: number;
+  longitude: number;
+  accuracy?: number;
+}
+
+type Metadata = ExpenseMetadata | DelayMetadata | LocationMetadata | Record<string, never>;
+
 interface MetadataFieldsProps {
   selectedType: UpdateType;
-  metadata: any;
-  setMetadata: (metadata: any) => void;
+  metadata: Metadata;
+  setMetadata: (metadata: Metadata) => void;
 }
 
 export default function MetadataFields({ selectedType, metadata, setMetadata }: MetadataFieldsProps) {
@@ -22,8 +38,12 @@ export default function MetadataFields({ selectedType, metadata, setMetadata }: 
               <Input
                 id="amount"
                 type="number"
-                value={metadata.amount || ''}
-                onChange={(e) => setMetadata({ ...metadata, amount: e.target.value })}
+                value={(metadata as ExpenseMetadata).amount || ''}
+                onChange={(e) => setMetadata({ 
+                  ...metadata, 
+                  amount: e.target.value,
+                  description: (metadata as ExpenseMetadata).description || ''
+                })}
                 placeholder="Enter amount"
               />
             </div>
@@ -31,8 +51,12 @@ export default function MetadataFields({ selectedType, metadata, setMetadata }: 
               <Label htmlFor="description">Description</Label>
               <Textarea
                 id="description"
-                value={metadata.description || ''}
-                onChange={(e) => setMetadata({ ...metadata, description: e.target.value })}
+                value={(metadata as ExpenseMetadata).description || ''}
+                onChange={(e) => setMetadata({ 
+                  ...metadata, 
+                  amount: (metadata as ExpenseMetadata).amount || '',
+                  description: e.target.value 
+                })}
                 placeholder="Enter expense description"
               />
             </div>
@@ -45,8 +69,8 @@ export default function MetadataFields({ selectedType, metadata, setMetadata }: 
             <Label htmlFor="delay_reason">Reason for Delay</Label>
             <Textarea
               id="delay_reason"
-              value={metadata.delay_reason || ''}
-              onChange={(e) => setMetadata({ ...metadata, delay_reason: e.target.value })}
+              value={(metadata as DelayMetadata).delay_reason || ''}
+              onChange={(e) => setMetadata({ delay_reason: e.target.value })}
               placeholder="Enter reason for delay"
             />
           </div>

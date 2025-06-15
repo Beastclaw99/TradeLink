@@ -1,7 +1,6 @@
-
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { UPDATE_TYPE_GROUPS, UpdateGroup } from '../constants/updateTypes';
+import { UPDATE_TYPE_GROUPS, UpdateGroup } from '@/components/project/updates/constants/updateTypes';
 import { UpdateType } from '@/types/projectUpdates';
 
 interface UpdateTypeSelectorProps {
