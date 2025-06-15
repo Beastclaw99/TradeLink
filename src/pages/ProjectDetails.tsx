@@ -1,18 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from '@/integrations/supabase/client';
 import { Project } from '@/types/database';
-import { MapPin, DollarSign, Calendar, User, Clock, AlertTriangle, FileText, CheckCircle } from 'lucide-react';
+import { MapPin, DollarSign, Calendar, User, Clock, AlertTriangle, FileText, CheckCircle, BadgeInfo, Layers, Pen } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Separator } from '@/components/ui/separator';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { formatDateToLocale } from '@/utils/dateUtils';
+
+const labelClass = "font-medium text-gray-700";
+const valueClass = "text-gray-600";
 
 const ProjectDetails: React.FC = () => {
   const { projectId } = useParams<{ projectId: string }>();
@@ -170,99 +171,160 @@ const ProjectDetails: React.FC = () => {
     );
   }
 
-  const requiredSkills = project.recommended_skills && typeof project.recommended_skills === 'string' 
-    ? project.recommended_skills.split(',').map(skill => skill.trim())
+  const requirements = project.requirements && Array.isArray(project.requirements)
+    ? project.requirements
     : [];
-
   const recommendedSkills = project.recommended_skills && typeof project.recommended_skills === 'string'
-    ? project.recommended_skills.split(',').map(skill => skill.trim())
-    : [];
+    ? project.recommended_skills.split(',').map(skill => skill.trim()).filter(Boolean)
+    : Array.isArray(project.recommended_skills)
+      ? project.recommended_skills
+      : [];
+
+  // Add improved display helpers
+  const formatCurrency = (value: number | null) =>
+    value ? new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value) : 'Not specified';
+  const notSpecified = <span className="italic text-gray-400">Not specified</span>;
 
   return (
     <Layout>
-      <div className="bg-gray-50 py-8">
+      <div className="bg-gray-50 py-8 min-h-[96vh]">
         <div className="container-custom">
           <Button 
             variant="outline" 
             onClick={() => navigate('/project-marketplace')}
-            className="mb-6"
+            className="mb-8"
           >
             ← Back to Projects
           </Button>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
             {/* Main Content */}
-            <div className="lg:col-span-2 space-y-6">
+            <div className="lg:col-span-2 flex flex-col space-y-8">
+              {/* Title and Meta */}
               <Card>
                 <CardHeader>
-                  <div className="flex justify-between items-start">
+                  <div className="flex flex-col gap-2 md:flex-row md:justify-between md:items-center">
                     <div>
-                      <CardTitle className="text-2xl mb-2">{project.title}</CardTitle>
-                      <div className="flex items-center gap-4 text-sm text-gray-600">
+                      <CardTitle className="text-3xl mb-1 flex items-center gap-2">
+                        <BadgeInfo className="h-6 w-6 text-ttc-blue-700" />
+                        {project.title}
+                      </CardTitle>
+                      <CardDescription className="text-base flex gap-3 flex-wrap">
                         <span className="flex items-center gap-1">
                           <Calendar className="h-4 w-4" />
-                          Posted {formatDateToLocale(project.created_at)}
+                          <span>Posted {formatDateToLocale(project.created_at)}</span>
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Layers className="h-4 w-4" />
+                          <span>{project.category || "Uncategorized"}</span>
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Badge variant="outline" className="ml-1">{project.status ? project.status.replace(/_/g, ' ').toUpperCase() : "Open"}</Badge>
                         </span>
                         <span className="flex items-center gap-1">
                           <User className="h-4 w-4" />
-                          {project.client?.first_name || 'Anonymous'} {project.client?.last_name || ''}
+                          Client: {project.client?.first_name || 'Anonymous'} {project.client?.last_name || ''}
                         </span>
-                      </div>
+                      </CardDescription>
+                    </div>
+                    <div className="flex gap-3 mt-4 md:mt-0">
+                      <Badge variant={project.urgency === 'high' ? 'destructive' : 'outline'}>
+                        {project.urgency ?
+                          `${project.urgency.charAt(0).toUpperCase()}${project.urgency.slice(1)}` :
+                          'Normal'} Priority
+                      </Badge>
                     </div>
                   </div>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-6">
+                    {/* Description */}
                     <div>
-                      <h3 className="font-semibold mb-2">Description</h3>
-                      <p className="text-gray-700">{project.description || 'No description provided'}</p>
+                      <h3 className="font-semibold mb-2 text-lg flex items-center gap-1">
+                        <FileText className="h-4 w-4" /> Description
+                      </h3>
+                      <p className="text-gray-800">{project.description || 'No description provided'}</p>
                     </div>
 
-                    {project.requirements && project.requirements.length > 0 && (
+                    {/* Requirements / Recommended Skills */}
+                    {(requirements && requirements.length > 0) && (
                       <div>
-                        <h3 className="font-semibold mb-2">Requirements</h3>
-                        <ul className="list-disc pl-5 space-y-1">
-                          {project.requirements.map((req, index) => (
-                            <li key={index} className="text-gray-700">{req}</li>
+                        <h3 className="font-semibold mb-2 text-lg flex items-center gap-1">
+                          <Pen className="h-4 w-4" /> Requirements
+                        </h3>
+                        <ul className="list-disc pl-5 space-y-1 text-gray-700">
+                          {requirements.map((req, index) => (
+                            <li key={index}>{req}</li>
                           ))}
                         </ul>
                       </div>
                     )}
-
                     {recommendedSkills.length > 0 && (
                       <div>
-                        <h3 className="font-semibold mb-2">Recommended Skills</h3>
+                        <h3 className="font-semibold mb-2 text-lg flex items-center gap-1">
+                          <Layers className="h-4 w-4" /> Recommended Skills
+                        </h3>
                         <div className="flex flex-wrap gap-2">
                           {recommendedSkills.map((skill, index) => (
-                            <Badge key={index} variant="outline">
+                            <Badge key={index} variant="secondary">
                               {skill}
                             </Badge>
                           ))}
                         </div>
                       </div>
                     )}
+
+                    {/* Scope */}
+                    {project.scope && (
+                      <div>
+                        <h3 className="font-semibold mb-2 text-lg flex items-center gap-1">
+                          <BadgeInfo className="h-4 w-4" /> Project Scope
+                        </h3>
+                        <p className="text-gray-700">{project.scope}</p>
+                      </div>
+                    )}
+
+                    {/* Timeline, Start, Deadline in grid */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                      <div className="flex flex-col gap-1">
+                        <span className={labelClass}>Timeline:</span>
+                        <span className={valueClass}>{project.timeline || notSpecified}</span>
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <span className={labelClass}>Start Time:</span>
+                        <span className={valueClass}>{project.project_start_time ? formatDateToLocale(project.project_start_time) : notSpecified}</span>
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <span className={labelClass}>Deadline:</span>
+                        <span className={valueClass}>{project.deadline ? formatDateToLocale(project.deadline) : notSpecified}</span>
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <span className={labelClass}>Last Updated:</span>
+                        <span className={valueClass}>{project.updated_at ? formatDateToLocale(project.updated_at) : notSpecified}</span>
+                      </div>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
 
-              {/* Service Contract Card */}
-              <Card>
+              {/* Service Contract */}
+              <Card className="border-blue-100">
                 <CardHeader>
-                  <CardTitle>Service Contract</CardTitle>
+                  <CardTitle className="flex items-center gap-2">
+                    <FileText className="h-5 w-5 text-ttc-blue-700" /> Service Contract
+                  </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                  <Alert>
+                  <Alert className="bg-blue-50 border-blue-200">
                     <AlertDescription>
                       Please review the service contract carefully. By applying to this project, you agree to all terms and conditions.
                     </AlertDescription>
                   </Alert>
-
-                  <ScrollArea className="h-[400px] rounded-md border p-4">
+                  <ScrollArea className="h-[300px] rounded border p-4 bg-gray-50">
                     <pre className="whitespace-pre-wrap font-mono text-sm">
                       {project.service_contract || 'No service contract available'}
                     </pre>
                   </ScrollArea>
-
                   <div className="flex items-center space-x-2">
                     <input
                       type="checkbox"
@@ -280,64 +342,42 @@ const ProjectDetails: React.FC = () => {
             </div>
 
             {/* Sidebar */}
-            <div className="space-y-6">
+            <div className="flex flex-col space-y-6">
+              {/* Project Detail Card */}
               <Card>
                 <CardHeader>
                   <CardTitle>Project Details</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex items-center gap-2">
-                    <DollarSign className="h-4 w-4 text-gray-500" />
+                <CardContent className="space-y-5">
+                  <div className="flex items-center gap-3">
+                    <DollarSign className="h-5 w-5 text-green-500" />
                     <span className="font-medium">Budget:</span>
-                    <span>{project.budget ? new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(project.budget) : 'Not specified'}</span>
+                    <span className="ml-1">{formatCurrency(project.budget)}</span>
                   </div>
-
-                  {project.location && (
-                    <div className="flex items-center gap-2">
-                      <MapPin className="h-4 w-4 text-gray-500" />
-                      <span className="font-medium">Location:</span>
-                      <span>{project.location}</span>
-                    </div>
-                  )}
-
-                  {project.timeline && (
-                    <div className="flex items-center gap-2">
-                      <Clock className="h-4 w-4 text-gray-500" />
-                      <span>{project.timeline}</span>
-                    </div>
-                  )}
-
-                  {project.urgency && (
-                    <div className="flex items-center gap-2">
-                      <AlertTriangle className="h-4 w-4 text-gray-500" />
-                      <span className="font-medium">Urgency:</span>
-                      <span>{project.urgency}</span>
-                    </div>
-                  )}
+                  <div className="flex items-center gap-3">
+                    <MapPin className="h-5 w-5 text-rose-500" />
+                    <span className="font-medium">Location:</span>
+                    <span className="ml-1">{project.location || "Remote"}</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Layers className="h-5 w-5 text-indigo-500" />
+                    <span className="font-medium">Category:</span>
+                    <span className="ml-1">{project.category || notSpecified}</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <BadgeInfo className="h-5 w-5 text-ttc-blue-700" />
+                    <span className="font-medium">Status:</span>
+                    <Badge variant="outline" className="ml-1">{project.status ? project.status.replace(/_/g, ' ').toUpperCase() : "Open"}</Badge>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <AlertTriangle className="h-5 w-5 text-yellow-500" />
+                    <span className="font-medium">Urgency:</span>
+                    <span className="ml-1">{project.urgency || "Normal"}</span>
+                  </div>
                 </CardContent>
               </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>Apply for Project</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <Button 
-                    onClick={handleApplyToProject}
-                    disabled={isApplying || !hasAcceptedContract}
-                    className="w-full bg-ttc-blue-700 hover:bg-ttc-blue-800"
-                  >
-                    {isApplying ? "Applying..." : "Apply for this Project"}
-                  </Button>
-                  
-                  {!hasAcceptedContract && (
-                    <p className="text-sm text-yellow-600">
-                      Please review and accept the service contract before applying
-                    </p>
-                  )}
-                </CardContent>
-              </Card>
-
+              
+              {/* Assigned Professional */}
               {project.professional && (
                 <Card>
                   <CardHeader>
@@ -353,6 +393,42 @@ const ProjectDetails: React.FC = () => {
                   </CardContent>
                 </Card>
               )}
+              
+              {/* Client Info */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <User className="h-5 w-5 text-gray-500"/>
+                    Client
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div>
+                    <span className="font-medium">{project.client?.first_name || 'Anonymous'} {project.client?.last_name || ''}</span>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Application */}
+              <Card className="border-green-100">
+                <CardHeader>
+                  <CardTitle>Apply for Project</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <Button 
+                    onClick={handleApplyToProject}
+                    disabled={isApplying || !hasAcceptedContract}
+                    className="w-full bg-ttc-blue-700 hover:bg-ttc-blue-800 transition-colors"
+                  >
+                    {isApplying ? "Applying..." : "Apply for this Project"}
+                  </Button>
+                  {!hasAcceptedContract && (
+                    <p className="text-sm text-yellow-600">
+                      Please review and accept the service contract before applying
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
             </div>
           </div>
         </div>
