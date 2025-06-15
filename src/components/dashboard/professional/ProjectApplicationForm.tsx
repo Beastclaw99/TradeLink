@@ -40,8 +40,9 @@ interface ProjectApplicationFormProps {
   }) => Promise<void>;
   onCancel: () => void;
   userSkills?: string[];
-  additionalNotes?: string;
-  setAdditionalNotes?: (value: string) => void;
+  // Remove unused props for AdditionalNotes
+  // additionalNotes?: string;
+  // setAdditionalNotes?: (value: string) => void;
   termsAccepted?: boolean;
   setTermsAccepted?: (value: boolean) => void;
 }
@@ -67,8 +68,6 @@ const ProjectApplicationForm: React.FC<ProjectApplicationFormProps> = ({
   handleApplyToProject,
   onCancel,
   userSkills = [],
-  additionalNotes = '',
-  setAdditionalNotes = () => {},
   termsAccepted = false,
   setTermsAccepted = () => {}
 }) => {
@@ -208,7 +207,7 @@ const ProjectApplicationForm: React.FC<ProjectApplicationFormProps> = ({
           </Select>
         </div>
         
-        {/* Enhanced Proposal Section */}
+        {/* Proposal Section */}
         <div className="space-y-3">
           <label className="block text-sm font-medium text-gray-700">
             Proposal Message *
@@ -219,34 +218,9 @@ const ProjectApplicationForm: React.FC<ProjectApplicationFormProps> = ({
             value={coverLetter}
             onChange={(e) => setCoverLetter(e.target.value)}
           />
-          <div className="bg-gray-50 p-3 rounded-lg">
-            <p className="text-sm font-medium text-gray-700 mb-2">💡 Tips for a winning proposal:</p>
-            <ul className="text-xs text-gray-600 space-y-1">
-              <li>• Explain your relevant experience with similar projects</li>
-              <li>• Address how you'll handle the specific requirements</li>
-              <li>• Mention your approach and timeline</li>
-              <li>• Include any questions about the project</li>
-              {missingSkills.length > 0 && (
-                <li className="text-amber-600">• Explain how your experience relates to: {missingSkills.join(', ')}</li>
-              )}
-            </ul>
-          </div>
           <div className="text-xs text-gray-500">
             {coverLetter.length}/500 characters (aim for at least 200 for a competitive proposal)
           </div>
-        </div>
-
-        {/* Additional Notes Section */}
-        <div className="space-y-3">
-          <label className="block text-sm font-medium text-gray-700">
-            Additional Notes (Optional)
-          </label>
-          <Textarea 
-            placeholder="Any additional information you'd like to share..."
-            className="min-h-[100px]"
-            value={additionalNotes}
-            onChange={(e) => setAdditionalNotes(e.target.value)}
-          />
         </div>
 
         {/* Terms and Conditions */}
@@ -275,7 +249,6 @@ const ProjectApplicationForm: React.FC<ProjectApplicationFormProps> = ({
             bidAmount,
             coverLetter,
             availability,
-            additionalNotes,
             termsAccepted
           })}
           disabled={isApplying || !coverLetter.trim() || !bidAmount || !availability || !termsAccepted}
