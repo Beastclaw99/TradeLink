@@ -1,13 +1,10 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import type { Database } from '@/integrations/supabase/types';
-import type { Milestone, Deliverable } from '@/components/project/creation/types';
-
-type DBMilestone = Database['public']['Tables']['project_milestones']['Insert'];
 
 // Import step components
 import BasicDetailsStep from './steps/BasicDetailsStep';
@@ -18,15 +15,15 @@ import ServiceContractStep from './steps/ServiceContractStep';
 import ReviewStep from './steps/ReviewStep';
 
 // Import extracted hooks and components
-import { useProjectData } from '@/components/project/creation/hooks/useProjectData';
-import { useWizardNavigation } from '@/components/project/creation/hooks/useWizardNavigation';
-import { useDraftOperations } from '@/components/project/creation/hooks/useDraftOperations';
-import { WizardHeader } from '@/components/project/creation/components/WizardHeader';
-import { NavigationButtons } from '@/components/project/creation/components/NavigationButtons';
+import { useProjectData } from './hooks/useProjectData';
+import { useWizardNavigation } from './hooks/useWizardNavigation';
+import { useDraftOperations } from './hooks/useDraftOperations';
+import { WizardHeader } from './components/WizardHeader';
+import { NavigationButtons } from './components/NavigationButtons';
 
 // Import utilities
-import { validateProjectData } from '@/components/project/creation/utils/validation';
-import { transformProjectDataForDatabase } from '@/components/project/creation/utils/dataTransformers';
+import { validateProjectData } from './utils/validation';
+import { transformProjectDataForDatabase } from './utils/dataTransformers';
 
 const STEPS = [
   { id: 1, title: 'Basic Details', component: BasicDetailsStep },
@@ -151,34 +148,16 @@ const ProjectCreationWizard: React.FC = () => {
 
       // Create milestones if any
       if (projectData.milestones && projectData.milestones.length > 0 && projectId) {
-        const milestonesData: DBMilestone[] = projectData.milestones.map((milestone: Milestone) => {
-          if (!milestone.title) {
-            throw new Error('Milestone title is required');
-          }
-          const title = milestone.title.trim();
-          if (!title) {
-            throw new Error('Milestone title cannot be empty');
-          }
-          if (!milestone.status) {
-            throw new Error('Milestone status is required');
-          }
-          const status = milestone.status as Database['public']['Enums']['milestone_status'];
-          if (!['not_started', 'in_progress', 'completed', 'on_hold', 'overdue'].includes(status)) {
-            throw new Error(`Invalid milestone status: ${status}`);
-          }
-          return {
-            title,
-            description: milestone.description || null,
-            due_date: milestone.due_date || milestone.dueDate || null,
-            status,
-            requires_deliverable: milestone.requires_deliverable || false,
-            project_id: projectId || null,
-            created_by: user.id,
-            is_complete: false,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          };
-        });
+        const milestonesData = projectData.milestones.map(milestone => ({
+          title: milestone.title.trim(),
+          description: milestone.description?.trim() || '',
+          due_date: milestone.dueDate || milestone.due_date,
+          status: milestone.status as 'not_started' | 'in_progress' | 'completed' | 'on_hold' | 'overdue',
+          requires_deliverable: milestone.requires_deliverable || false,
+          project_id: projectId,
+          created_by: user.id,
+          is_complete: false
+        }));
 
         const { error: milestonesError } = await supabase
           .from('project_milestones')
@@ -192,7 +171,7 @@ const ProjectCreationWizard: React.FC = () => {
 
       // Create project-level deliverables if any
       if (projectData.deliverables && projectData.deliverables.length > 0 && projectId) {
-        const deliverablesData = projectData.deliverables.map((deliverable: Deliverable) => ({
+        const deliverablesData = projectData.deliverables.map(deliverable => ({
           description: deliverable.description.trim(),
           deliverable_type: deliverable.deliverable_type || deliverable.type || 'document',
           content: deliverable.content?.trim() || '',

@@ -2,12 +2,12 @@
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { UpdateType, ProjectUpdateMetadata, ExpenseMetadata, DelayMetadata } from '@/types/projectUpdates';
+import { UpdateType } from '@/types/projectUpdates';
 
 interface MetadataFieldsProps {
   selectedType: UpdateType;
-  metadata: ProjectUpdateMetadata;
-  setMetadata: (metadata: ProjectUpdateMetadata) => void;
+  metadata: any;
+  setMetadata: (metadata: any) => void;
 }
 
 export default function MetadataFields({ selectedType, metadata, setMetadata }: MetadataFieldsProps) {
@@ -22,11 +22,8 @@ export default function MetadataFields({ selectedType, metadata, setMetadata }: 
               <Input
                 id="amount"
                 type="number"
-                value={(metadata as ExpenseMetadata).amount || ''}
-                onChange={(e) => setMetadata({
-                  amount: e.target.value,
-                  description: (metadata as ExpenseMetadata).description || ''
-                })}
+                value={metadata.amount || ''}
+                onChange={(e) => setMetadata({ ...metadata, amount: e.target.value })}
                 placeholder="Enter amount"
               />
             </div>
@@ -34,30 +31,27 @@ export default function MetadataFields({ selectedType, metadata, setMetadata }: 
               <Label htmlFor="description">Description</Label>
               <Textarea
                 id="description"
-                value={(metadata as ExpenseMetadata).description || ''}
-                onChange={(e) => setMetadata({
-                  amount: (metadata as ExpenseMetadata).amount || '',
-                  description: e.target.value
-                })}
+                value={metadata.description || ''}
+                onChange={(e) => setMetadata({ ...metadata, description: e.target.value })}
                 placeholder="Enter expense description"
               />
             </div>
           </div>
         );
-
+      
       case 'delayed':
         return (
           <div>
             <Label htmlFor="delay_reason">Reason for Delay</Label>
             <Textarea
               id="delay_reason"
-              value={(metadata as DelayMetadata).delay_reason || ''}
-              onChange={(e) => setMetadata({ delay_reason: e.target.value })}
+              value={metadata.delay_reason || ''}
+              onChange={(e) => setMetadata({ ...metadata, delay_reason: e.target.value })}
               placeholder="Enter reason for delay"
             />
           </div>
         );
-
+      
       default:
         return null;
     }

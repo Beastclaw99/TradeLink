@@ -1,5 +1,6 @@
+
 import { Button } from "@/components/ui/button";
-import { QUICK_ACTIONS } from '@/components/project/updates/constants/quickActions';
+import { QUICK_ACTIONS } from '../constants/quickActions';
 import { UpdateType } from '@/types/projectUpdates';
 
 interface QuickActionsBarProps {

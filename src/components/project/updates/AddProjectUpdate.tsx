@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useToast } from "@/components/ui/use-toast";
 import { Button } from "@/components/ui/button";
@@ -8,19 +9,18 @@ import { UpdateType } from '@/types/projectUpdates';
 import { useAuth } from '@/contexts/AuthContext';
 
 // Import extracted components
-import QuickActionsBar from '@/types/project/updates/QuickActionsBar';
-import UpdateTypeSelector from '@/types/project/updates/UpdateTypeSelector';
-import MetadataFields from '@/types/project/updates/MetadataFields';
-import FileUploadSection from '@/types/project/updates/FileUploadSection';
+import QuickActionsBar from './types/QuickActionsBar';
+import UpdateTypeSelector from './types/UpdateTypeSelector';
+import MetadataFields from './types/MetadataFields';
+import FileUploadSection from './types/FileUploadSection';
 
 // Import extracted hooks
-import { useGeolocation } from '@/components/project/updates/hooks/useGeolocation';
-import { useFileUpload } from '@/components/project/updates/hooks/useFileUpload';
-import { useUpdateSubmission } from '@/components/project/updates/hooks/useUpdateSubmission';
+import { useGeolocation } from './hooks/useGeolocation';
+import { useFileUpload } from './hooks/useFileUpload';
+import { useUpdateSubmission } from './hooks/useUpdateSubmission';
 
 // Import types
-import { UpdateGroup } from '@/components/project/updates/constants/updateTypes';
-import type { ProjectUpdateMetadata, UpdateType, UpdateGroup } from '@/types/projectUpdates';
+import { UpdateGroup } from './constants/updateTypes';
 
 interface AddProjectUpdateProps {
   projectId: string;
@@ -29,27 +29,17 @@ interface AddProjectUpdateProps {
   isProfessional: boolean;
 }
 
-// Use explicit type for UpdateState
-interface UpdateState {
-  selectedGroup: UpdateGroup;
-  selectedType: UpdateType;
-  message: string;
-  metadata: ProjectUpdateMetadata;
-}
-
-export default function AddProjectUpdate({
-  projectId,
+export default function AddProjectUpdate({ 
+  projectId, 
   onUpdateAdded,
   projectStatus,
-  isProfessional
+  isProfessional 
 }: AddProjectUpdateProps) {
   const { user } = useAuth();
-  const [updateState, setUpdateState] = useState<UpdateState>({
-    selectedGroup: 'activity',
-    selectedType: 'message',
-    message: '',
-    metadata: {}
-  });
+  const [selectedGroup, setSelectedGroup] = useState<UpdateGroup>('activity');
+  const [selectedType, setSelectedType] = useState<UpdateType>('message');
+  const [message, setMessage] = useState('');
+  const [metadata, setMetadata] = useState<any>({});
 
   // Use extracted hooks
   const { location, setLocation, getLocationForUpdate } = useGeolocation();
@@ -70,11 +60,11 @@ export default function AddProjectUpdate({
   const isVisible = isProfessional && ['assigned', 'in_progress', 'revision'].includes(projectStatus);
 
   const handleQuickAction = async (type: UpdateType) => {
-    let locationData: ProjectUpdateMetadata | null = null;
+    let locationData = null;
     if (type === 'site_check') {
       locationData = await getLocationForUpdate();
     }
-
+    
     const success = await submitQuickAction(type, locationData || undefined);
     if (success) {
       resetForm();
@@ -83,27 +73,18 @@ export default function AddProjectUpdate({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    const success = await submitUpdate(
-      updateState.selectedType,
-      updateState.message,
-      file,
-      updateState.metadata
-    );
+    
+    const success = await submitUpdate(selectedType, message, file, metadata);
     if (success) {
       resetForm();
     }
   };
 
   const resetForm = () => {
-    setUpdateState({
-      selectedGroup: 'activity',
-      selectedType: 'message',
-      message: '',
-      metadata: {}
-    });
+    setMessage('');
     clearFile();
     setLocation(null);
+    setMetadata({});
   };
 
   if (!isVisible) {
@@ -113,10 +94,11 @@ export default function AddProjectUpdate({
   return (
     <div className="space-y-6">
       {/* Quick Actions */}
-      <QuickActionsBar
+      <QuickActionsBar 
         onQuickAction={handleQuickAction}
         isSubmitting={isSubmitting}
       />
+
       {/* Main Update Form */}
       <Card>
         <CardHeader>
@@ -126,22 +108,24 @@ export default function AddProjectUpdate({
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Update Type Selection */}
             <UpdateTypeSelector
-              selectedGroup={updateState.selectedGroup}
-              setSelectedGroup={(group) => setUpdateState(prev => ({ ...prev, selectedGroup: group }))}
-              selectedType={updateState.selectedType}
-              setSelectedType={(type) => setUpdateState(prev => ({ ...prev, selectedType: type }))}
+              selectedGroup={selectedGroup}
+              setSelectedGroup={setSelectedGroup}
+              selectedType={selectedType}
+              setSelectedType={setSelectedType}
             />
+
             {/* Message Input */}
             <div className="space-y-2">
               <Label htmlFor="message">Message</Label>
               <Textarea
                 id="message"
-                value={updateState.message}
-                onChange={(e) => setUpdateState(prev => ({ ...prev, message: e.target.value }))}
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
                 placeholder="Enter your update message"
                 className="min-h-[100px]"
               />
             </div>
+
             {/* File Upload */}
             <FileUploadSection
               file={file}
@@ -149,15 +133,17 @@ export default function AddProjectUpdate({
               onFileChange={handleFileChange}
               onClearFile={clearFile}
             />
+
             {/* Metadata Fields */}
             <MetadataFields
-              selectedType={updateState.selectedType}
-              metadata={updateState.metadata}
-              setMetadata={(metadata: ProjectUpdateMetadata) => setUpdateState(prev => ({ ...prev, metadata }))}
+              selectedType={selectedType}
+              metadata={metadata}
+              setMetadata={setMetadata}
             />
+
             <Button
               type="submit"
-              disabled={isSubmitting || (!updateState.message && !file)}
+              disabled={isSubmitting || (!message && !file)}
               className="w-full"
             >
               {isSubmitting ? 'Adding Update...' : 'Add Update'}
