@@ -1,30 +1,31 @@
-
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import MarketplaceProjectCard from './MarketplaceProjectCard';
 import ProjectListItem from './ProjectListItem';
+import { Project } from '@/types/database';
+import { Loader2 } from 'lucide-react';
 
 interface ProjectsDisplayProps {
-  projects: any[];
+  projects: Project[];
   loading: boolean;
   viewMode: 'grid' | 'list';
   userType: 'professional' | 'client';
   userSkills?: string[];
 }
 
-const ProjectsDisplay: React.FC<ProjectsDisplayProps> = ({
-  projects,
-  loading,
+const ProjectsDisplay: React.FC<ProjectsDisplayProps> = ({ 
+  projects, 
+  loading, 
   viewMode,
   userType,
   userSkills = []
 }) => {
   const navigate = useNavigate();
-
+  
   const handleProjectClick = (projectId: string) => {
     navigate(`/projects/${projectId}`);
   };
-
+  
   if (loading) {
     return (
       <div className="my-8">
@@ -41,34 +42,34 @@ const ProjectsDisplay: React.FC<ProjectsDisplayProps> = ({
       </div>
     );
   }
-
+  
   if (projects.length === 0) {
     return (
       <div className="my-8 text-center py-12 bg-gray-50 rounded-lg border border-gray-200">
         <h3 className="text-xl font-semibold text-gray-700 mb-2">No projects found</h3>
         <p className="text-gray-500">
-          {userType === 'professional'
+          {userType === 'professional' 
             ? "Try adjusting your filters or search term to find projects matching your skills."
             : "Try adjusting your filters or search term."}
         </p>
       </div>
     );
   }
-
+  
   return (
     <div className="my-8">
       {viewMode === 'grid' ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {projects.map(project => (
             userType === 'client' ? (
-              <MarketplaceProjectCard
-                key={project.id}
-                project={project}
+              <MarketplaceProjectCard 
+                key={project.id} 
+                project={project} 
                 onClick={() => handleProjectClick(project.id)}
               />
             ) : (
-              <ProjectListItem
-                key={project.id}
+              <ProjectListItem 
+                key={project.id} 
                 project={project}
                 onClick={() => handleProjectClick(project.id)}
                 userSkills={userSkills}
@@ -80,14 +81,14 @@ const ProjectsDisplay: React.FC<ProjectsDisplayProps> = ({
         <div className="space-y-4">
           {projects.map(project => (
             userType === 'client' ? (
-              <MarketplaceProjectCard
-                key={project.id}
-                project={project}
+              <MarketplaceProjectCard 
+                key={project.id} 
+                project={project} 
                 onClick={() => handleProjectClick(project.id)}
               />
             ) : (
-              <ProjectListItem
-                key={project.id}
+              <ProjectListItem 
+                key={project.id} 
                 project={project}
                 onClick={() => handleProjectClick(project.id)}
                 userSkills={userSkills}

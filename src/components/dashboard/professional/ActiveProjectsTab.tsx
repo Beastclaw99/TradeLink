@@ -4,14 +4,47 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Clock } from 'lucide-react';
 import UnifiedProjectCard from '@/components/shared/UnifiedProjectCard';
-import { Project } from '@/types/database';
+
+// Simplified interface for the component
+interface ProjectWithMilestones {
+  id: string;
+  title: string;
+  description: string | null;
+  status: string | null;
+  budget: number | null;
+  timeline: string | null;
+  spent: number | null;
+  created_at: string | null;
+  client_id: string | null;
+  professional_id: string | null;
+  assigned_to: string | null;
+  category: string | null;
+  location: string | null;
+  urgency: string | null;
+  requirements: string[] | null;
+  recommended_skills: string[] | null;
+  deadline: string | null;
+  updated_at: string | null;
+  contract_template_id: string | null;
+  industry_specific_fields: any;
+  location_coordinates: any;
+  project_start_time: string | null;
+  rich_description: string | null;
+  scope: string | null;
+  service_contract: string | null;
+  sla_terms: any;
+  milestones?: any[];
+}
 
 interface ActiveProjectsTabProps {
   isLoading: boolean;
-  projects: Project[];
+  projects: ProjectWithMilestones[];
   onViewProject: (projectId: string) => void;
   onUpdateProjectStatus: (projectId: string, status: string) => Promise<void>;
+  onSubmitWork: (projectId: string) => void;
+  onRequestRevision: (projectId: string) => void;
   markProjectComplete: (projectId: string) => Promise<void>;
+  isSubmitting: boolean;
 }
 
 const ActiveProjectsTab: React.FC<ActiveProjectsTabProps> = ({
@@ -19,6 +52,9 @@ const ActiveProjectsTab: React.FC<ActiveProjectsTabProps> = ({
   projects,
   onViewProject,
   onUpdateProjectStatus,
+  onSubmitWork,
+  onRequestRevision,
+  isSubmitting
 }) => {
   if (isLoading) {
     return (
