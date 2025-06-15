@@ -23,12 +23,22 @@ const ProjectDetails: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [isApplying, setIsApplying] = useState(false);
   const [hasAcceptedContract, setHasAcceptedContract] = useState(false);
+  const [bidAmount, setBidAmount] = useState<number | ''>('');
+  const [proposalMessage, setProposalMessage] = useState('');
 
   useEffect(() => {
     if (projectId) {
       fetchProjectDetails();
     }
   }, [projectId]);
+
+  useEffect(() => {
+    if (project && project.budget != null && bidAmount === '') {
+      setBidAmount(Number(project.budget));
+    }
+    // Only set on first load to avoid overwriting user changes
+    // eslint-disable-next-line
+  }, [project]);
 
   const fetchProjectDetails = async () => {
     try {
@@ -99,6 +109,15 @@ const ProjectDetails: React.FC = () => {
       return;
     }
 
+    if (typeof bidAmount !== 'number' || isNaN(bidAmount) || bidAmount <= 0) {
+      toast({
+        title: "Invalid Bid Amount",
+        description: "Please enter a valid bid amount.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     try {
       setIsApplying(true);
       
@@ -118,7 +137,9 @@ const ProjectDetails: React.FC = () => {
           {
             project_id: projectId,
             professional_id: user.id,
-            status: 'pending'
+            status: 'pending',
+            bid_amount: bidAmount,
+            proposal_message: proposalMessage,
           }
         ]);
 
@@ -128,6 +149,9 @@ const ProjectDetails: React.FC = () => {
         title: "Application submitted",
         description: "Your application has been submitted successfully!"
       });
+      // Reset form
+      setProposalMessage('');
+      setBidAmount(project?.budget || '');
 
       fetchProjectDetails();
     } catch (error) {
@@ -415,13 +439,59 @@ const ProjectDetails: React.FC = () => {
                   <CardTitle>Apply for Project</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <Button 
-                    onClick={handleApplyToProject}
-                    disabled={isApplying || !hasAcceptedContract}
-                    className="w-full bg-ttc-blue-700 hover:bg-ttc-blue-800 transition-colors"
+                  <form
+                    onSubmit={e => {
+                      e.preventDefault();
+                      handleApplyToProject();
+                    }}
+                    className="space-y-4"
                   >
-                    {isApplying ? "Applying..." : "Apply for this Project"}
-                  </Button>
+                    <div>
+                      <label htmlFor="bid-amount" className="block text-sm font-medium mb-1">
+                        Bid Amount <span className="text-gray-500 text-xs">(You can match or adjust the budget)</span>
+                      </label>
+                      <div className="relative">
+                        <input
+                          id="bid-amount"
+                          type="number"
+                          min={1}
+                          step="0.01"
+                          value={bidAmount}
+                          onChange={e => setBidAmount(e.target.value === '' ? '' : Number(e.target.value))}
+                          className="w-full border border-gray-300 rounded px-3 py-2 focus:ring-ttc-blue-300 focus:border-ttc-blue-500 transition"
+                          placeholder={project.budget ? String(project.budget) : 'Enter your bid'}
+                          disabled={isApplying}
+                          required
+                        />
+                        {project.budget && (
+                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">
+                            USD
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div>
+                      <label htmlFor="proposal-message" className="block text-sm font-medium mb-1">
+                        Proposal Message
+                      </label>
+                      <textarea
+                        id="proposal-message"
+                        value={proposalMessage}
+                        onChange={e => setProposalMessage(e.target.value)}
+                        className="w-full border border-gray-300 rounded px-3 py-2 focus:ring-ttc-blue-300 focus:border-ttc-blue-500 transition min-h-[80px] text-sm"
+                        placeholder="Add a message with your bid (optional)"
+                        maxLength={1200}
+                        disabled={isApplying}
+                      />
+                    </div>
+                    <Button 
+                      type="submit"
+                      disabled={isApplying || !hasAcceptedContract}
+                      className="w-full bg-ttc-blue-700 hover:bg-ttc-blue-800 transition-colors"
+                    >
+                      {isApplying ? "Applying..." : "Apply for this Project"}
+                    </Button>
+                  </form>
                   {!hasAcceptedContract && (
                     <p className="text-sm text-yellow-600">
                       Please review and accept the service contract before applying
