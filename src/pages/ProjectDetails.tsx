@@ -11,6 +11,7 @@ import { MapPin, DollarSign, Calendar, User, Clock, AlertTriangle, FileText, Che
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { formatDateToLocale } from '@/utils/dateUtils';
+import ProjectApplicationForm from '@/components/dashboard/professional/ProjectApplicationForm';
 
 const labelClass = "font-medium text-gray-700";
 const valueClass = "text-gray-600";
@@ -25,6 +26,7 @@ const ProjectDetails: React.FC = () => {
   const [hasAcceptedContract, setHasAcceptedContract] = useState(false);
   const [bidAmount, setBidAmount] = useState<number | ''>('');
   const [proposalMessage, setProposalMessage] = useState('');
+  const [showApplicationForm, setShowApplicationForm] = useState(false); // If you want to use a modal in the future
 
   useEffect(() => {
     if (projectId) {
@@ -99,8 +101,23 @@ const ProjectDetails: React.FC = () => {
     }
   };
 
-  const handleApplyToProject = async () => {
-    if (!hasAcceptedContract) {
+  // Clean up application logic; now only the callback
+  const handleApplyToProject = async ({
+    bidAmount,
+    coverLetter,
+    availability,
+    additionalNotes,
+    termsAccepted,
+    proposalMessage // support proposalMessage from new form
+  }: {
+    bidAmount: number;
+    coverLetter: string;
+    availability: string;
+    additionalNotes?: string;
+    termsAccepted: boolean;
+    proposalMessage?: string;
+  }) => {
+    if (!termsAccepted) {
       toast({
         title: "Contract Required",
         description: "Please review and accept the service contract before applying",
@@ -109,7 +126,7 @@ const ProjectDetails: React.FC = () => {
       return;
     }
 
-    if (typeof bidAmount !== 'number' || isNaN(bidAmount) || bidAmount <= 0) {
+    if (typeof bidAmount !== "number" || bidAmount <= 0) {
       toast({
         title: "Invalid Bid Amount",
         description: "Please enter a valid bid amount.",
@@ -120,7 +137,6 @@ const ProjectDetails: React.FC = () => {
 
     try {
       setIsApplying(true);
-      
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         toast({
@@ -130,29 +146,23 @@ const ProjectDetails: React.FC = () => {
         });
         return;
       }
-
       const { error } = await supabase
         .from('applications')
-        .insert([
-          {
-            project_id: projectId,
-            professional_id: user.id,
-            status: 'pending',
-            bid_amount: bidAmount,
-            proposal_message: proposalMessage,
-          }
-        ]);
-
+        .insert([{
+          project_id: projectId,
+          professional_id: user.id,
+          status: 'pending',
+          bid_amount: bidAmount,
+          proposal_message: proposalMessage ?? coverLetter, // use either, fallback to coverLetter
+          cover_letter: coverLetter,
+          availability: availability,
+          additional_notes: additionalNotes,
+        }]);
       if (error) throw error;
-
       toast({
         title: "Application submitted",
         description: "Your application has been submitted successfully!"
       });
-      // Reset form
-      setProposalMessage('');
-      setBidAmount(project?.budget || '');
-
       fetchProjectDetails();
     } catch (error) {
       console.error('Error applying to project:', error);
@@ -433,72 +443,42 @@ const ProjectDetails: React.FC = () => {
                 </CardContent>
               </Card>
 
-              {/* Application */}
-              <Card className="border-green-100">
-                <CardHeader>
-                  <CardTitle>Apply for Project</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <form
-                    onSubmit={e => {
-                      e.preventDefault();
-                      handleApplyToProject();
-                    }}
-                    className="space-y-4"
-                  >
-                    <div>
-                      <label htmlFor="bid-amount" className="block text-sm font-medium mb-1">
-                        Bid Amount <span className="text-gray-500 text-xs">(You can match or adjust the budget)</span>
-                      </label>
-                      <div className="relative">
-                        <input
-                          id="bid-amount"
-                          type="number"
-                          min={1}
-                          step="0.01"
-                          value={bidAmount}
-                          onChange={e => setBidAmount(e.target.value === '' ? '' : Number(e.target.value))}
-                          className="w-full border border-gray-300 rounded px-3 py-2 focus:ring-ttc-blue-300 focus:border-ttc-blue-500 transition"
-                          placeholder={project.budget ? String(project.budget) : 'Enter your bid'}
-                          disabled={isApplying}
-                          required
-                        />
-                        {project.budget && (
-                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">
-                            USD
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    <div>
-                      <label htmlFor="proposal-message" className="block text-sm font-medium mb-1">
-                        Proposal Message
-                      </label>
-                      <textarea
-                        id="proposal-message"
-                        value={proposalMessage}
-                        onChange={e => setProposalMessage(e.target.value)}
-                        className="w-full border border-gray-300 rounded px-3 py-2 focus:ring-ttc-blue-300 focus:border-ttc-blue-500 transition min-h-[80px] text-sm"
-                        placeholder="Add a message with your bid (optional)"
-                        maxLength={1200}
-                        disabled={isApplying}
-                      />
-                    </div>
-                    <Button 
-                      type="submit"
-                      disabled={isApplying || !hasAcceptedContract}
-                      className="w-full bg-ttc-blue-700 hover:bg-ttc-blue-800 transition-colors"
-                    >
-                      {isApplying ? "Applying..." : "Apply for this Project"}
-                    </Button>
-                  </form>
-                  {!hasAcceptedContract && (
-                    <p className="text-sm text-yellow-600">
-                      Please review and accept the service contract before applying
-                    </p>
-                  )}
-                </CardContent>
-              </Card>
+              {/* Unified Project Application Form Integration */}
+              {project && (
+                <ProjectApplicationForm
+                  selectedProject={project.id}
+                  projects={[project]}
+                  coverLetter={proposalMessage}
+                  setCoverLetter={setProposalMessage}
+                  bidAmount={typeof bidAmount === 'number' ? bidAmount : null}
+                  setBidAmount={val => setBidAmount(val ?? '')}
+                  availability={''} // You can add an availability field to the state if needed
+                  setAvailability={() => {}} // Add to state and pass here as needed
+                  isApplying={isApplying}
+                  handleApplyToProject={({
+                    bidAmount,
+                    coverLetter,
+                    availability,
+                    additionalNotes,
+                    termsAccepted
+                  }) =>
+                    handleApplyToProject({
+                      bidAmount,
+                      coverLetter,
+                      availability,
+                      additionalNotes,
+                      termsAccepted,
+                      proposalMessage: proposalMessage
+                    })
+                  }
+                  onCancel={() => {}} // Optional: you could collapse/hide the form
+                  userSkills={[]} // Pass real user skills if you have them in state/context
+                  additionalNotes={''}
+                  setAdditionalNotes={() => {}} // Add to state and pass here as needed
+                  termsAccepted={hasAcceptedContract}
+                  setTermsAccepted={setHasAcceptedContract}
+                />
+              )}
             </div>
           </div>
         </div>
