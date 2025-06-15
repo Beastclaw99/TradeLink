@@ -20,6 +20,7 @@ import { useUpdateSubmission } from '@/components/project/updates/hooks/useUpdat
 
 // Import types
 import { UpdateGroup } from '@/components/project/updates/constants/updateTypes';
+import type { ProjectUpdateMetadata, UpdateType, UpdateGroup } from '@/types/projectUpdates';
 
 interface AddProjectUpdateProps {
   projectId: string;
@@ -28,18 +29,19 @@ interface AddProjectUpdateProps {
   isProfessional: boolean;
 }
 
+// Use explicit type for UpdateState
 interface UpdateState {
   selectedGroup: UpdateGroup;
   selectedType: UpdateType;
   message: string;
-  metadata: Record<string, any>;
+  metadata: ProjectUpdateMetadata;
 }
 
-export default function AddProjectUpdate({ 
-  projectId, 
+export default function AddProjectUpdate({
+  projectId,
   onUpdateAdded,
   projectStatus,
-  isProfessional 
+  isProfessional
 }: AddProjectUpdateProps) {
   const { user } = useAuth();
   const [updateState, setUpdateState] = useState<UpdateState>({
@@ -68,11 +70,11 @@ export default function AddProjectUpdate({
   const isVisible = isProfessional && ['assigned', 'in_progress', 'revision'].includes(projectStatus);
 
   const handleQuickAction = async (type: UpdateType) => {
-    let locationData = null;
+    let locationData: ProjectUpdateMetadata | null = null;
     if (type === 'site_check') {
       locationData = await getLocationForUpdate();
     }
-    
+
     const success = await submitQuickAction(type, locationData || undefined);
     if (success) {
       resetForm();
@@ -81,11 +83,11 @@ export default function AddProjectUpdate({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     const success = await submitUpdate(
-      updateState.selectedType, 
-      updateState.message, 
-      file, 
+      updateState.selectedType,
+      updateState.message,
+      file,
       updateState.metadata
     );
     if (success) {
@@ -111,11 +113,10 @@ export default function AddProjectUpdate({
   return (
     <div className="space-y-6">
       {/* Quick Actions */}
-      <QuickActionsBar 
+      <QuickActionsBar
         onQuickAction={handleQuickAction}
         isSubmitting={isSubmitting}
       />
-
       {/* Main Update Form */}
       <Card>
         <CardHeader>
@@ -130,7 +131,6 @@ export default function AddProjectUpdate({
               selectedType={updateState.selectedType}
               setSelectedType={(type) => setUpdateState(prev => ({ ...prev, selectedType: type }))}
             />
-
             {/* Message Input */}
             <div className="space-y-2">
               <Label htmlFor="message">Message</Label>
@@ -142,7 +142,6 @@ export default function AddProjectUpdate({
                 className="min-h-[100px]"
               />
             </div>
-
             {/* File Upload */}
             <FileUploadSection
               file={file}
@@ -150,14 +149,12 @@ export default function AddProjectUpdate({
               onFileChange={handleFileChange}
               onClearFile={clearFile}
             />
-
             {/* Metadata Fields */}
             <MetadataFields
               selectedType={updateState.selectedType}
               metadata={updateState.metadata}
-              setMetadata={(metadata) => setUpdateState(prev => ({ ...prev, metadata }))}
+              setMetadata={(metadata: ProjectUpdateMetadata) => setUpdateState(prev => ({ ...prev, metadata }))}
             />
-
             <Button
               type="submit"
               disabled={isSubmitting || (!updateState.message && !file)}

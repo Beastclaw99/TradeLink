@@ -1,29 +1,13 @@
+
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { UpdateType } from '@/types/projectUpdates';
-
-interface ExpenseMetadata {
-  amount: string;
-  description: string;
-}
-
-interface DelayMetadata {
-  delay_reason: string;
-}
-
-interface LocationMetadata {
-  latitude: number;
-  longitude: number;
-  accuracy?: number;
-}
-
-type Metadata = ExpenseMetadata | DelayMetadata | LocationMetadata | Record<string, never>;
+import { UpdateType, ProjectUpdateMetadata, ExpenseMetadata, DelayMetadata } from '@/types/projectUpdates';
 
 interface MetadataFieldsProps {
   selectedType: UpdateType;
-  metadata: Metadata;
-  setMetadata: (metadata: Metadata) => void;
+  metadata: ProjectUpdateMetadata;
+  setMetadata: (metadata: ProjectUpdateMetadata) => void;
 }
 
 export default function MetadataFields({ selectedType, metadata, setMetadata }: MetadataFieldsProps) {
@@ -39,8 +23,7 @@ export default function MetadataFields({ selectedType, metadata, setMetadata }: 
                 id="amount"
                 type="number"
                 value={(metadata as ExpenseMetadata).amount || ''}
-                onChange={(e) => setMetadata({ 
-                  ...metadata, 
+                onChange={(e) => setMetadata({
                   amount: e.target.value,
                   description: (metadata as ExpenseMetadata).description || ''
                 })}
@@ -52,17 +35,16 @@ export default function MetadataFields({ selectedType, metadata, setMetadata }: 
               <Textarea
                 id="description"
                 value={(metadata as ExpenseMetadata).description || ''}
-                onChange={(e) => setMetadata({ 
-                  ...metadata, 
+                onChange={(e) => setMetadata({
                   amount: (metadata as ExpenseMetadata).amount || '',
-                  description: e.target.value 
+                  description: e.target.value
                 })}
                 placeholder="Enter expense description"
               />
             </div>
           </div>
         );
-      
+
       case 'delayed':
         return (
           <div>
@@ -75,7 +57,7 @@ export default function MetadataFields({ selectedType, metadata, setMetadata }: 
             />
           </div>
         );
-      
+
       default:
         return null;
     }

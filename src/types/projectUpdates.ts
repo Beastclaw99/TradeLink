@@ -35,6 +35,29 @@ export interface StatusMetadata {
   revision_notes?: string;
 }
 
+// Metadata types for project update actions
+export interface ExpenseMetadata {
+  amount: string;
+  description: string;
+}
+
+export interface DelayMetadata {
+  delay_reason: string;
+}
+
+export interface LocationMetadata {
+  latitude: number;
+  longitude: number;
+  accuracy?: number;
+}
+
+// Union type for project update metadata
+export type ProjectUpdateMetadata =
+  | ExpenseMetadata
+  | DelayMetadata
+  | LocationMetadata
+  | Record<string, never>;
+
 export interface ExtendedProjectUpdate extends Omit<ProjectStatusUpdate, 'metadata'> {
   metadata: StatusMetadata;
   profiles?: {
