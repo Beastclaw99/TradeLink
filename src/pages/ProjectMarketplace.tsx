@@ -93,7 +93,7 @@ const ProjectMarketplace: React.FC = () => {
 
   useEffect(() => {
     if (!user) {
-      setLoading(false);
+      navigate('/login');
       return;
     }
 

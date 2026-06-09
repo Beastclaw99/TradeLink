@@ -82,7 +82,7 @@ const ProfessionalProjectMarketplace: React.FC = () => {
 
   useEffect(() => {
     if (!user) {
-      setLoading(false);
+      navigate('/login');
       return;
     }
 

@@ -1,8 +1,8 @@
 
 import React, { useEffect, useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useToast } from "@/components/ui/use-toast";
-import { BYPASS_AUTH, useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import Layout from '@/components/layout/Layout';
 import ClientDashboard from '@/components/dashboard/ClientDashboard';
@@ -11,6 +11,7 @@ import ErrorBoundary from '@/components/common/ErrorBoundary';
 
 const Dashboard: React.FC = () => {
   const { user, isLoading } = useAuth();
+  const navigate = useNavigate();
   const { toast } = useToast();
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -65,16 +66,12 @@ const Dashboard: React.FC = () => {
         }
       } catch (error: any) {
         console.error('Error in profile handling:', error);
-        if (BYPASS_AUTH) {
-          setAccountType(user.user_metadata?.account_type || 'client');
-        } else {
-          setError('Failed to load your profile. Please try again later.');
-          toast({
-            title: "Error",
-            description: "Failed to load your profile. Please try again later.",
-            variant: "destructive"
-          });
-        }
+        setError('Failed to load your profile. Please try again later.');
+        toast({
+          title: "Error",
+          description: "Failed to load your profile. Please try again later.",
+          variant: "destructive"
+        });
       } finally {
         setIsLoadingProfile(false);
       }
@@ -133,24 +130,17 @@ const Dashboard: React.FC = () => {
         }
       } catch (error: any) {
         console.error('Error retrying profile fetch:', error);
-        if (BYPASS_AUTH) {
-          setAccountType(user.user_metadata?.account_type || 'client');
-        } else {
-          setError('Failed to load your profile. Please try again later.');
-          toast({
-            title: "Error",
-            description: "Failed to load your profile. Please try again later.",
-            variant: "destructive"
-          });
-        }
+        setError('Failed to load your profile. Please try again later.');
+        toast({
+          title: "Error",
+          description: "Failed to load your profile. Please try again later.",
+          variant: "destructive"
+        });
       } finally {
         setIsLoadingProfile(false);
       }
     }
   };
-
-  const resolvedAccountType =
-    accountType ?? (BYPASS_AUTH ? (user?.user_metadata?.account_type || 'client') : null);
 
   if (isLoading || isLoadingProfile) {
     return (
@@ -158,6 +148,10 @@ const Dashboard: React.FC = () => {
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
         </div>
     );
+  }
+
+  if (!user) {
+    return <Navigate to="/login" replace />;
   }
 
   return (
@@ -171,10 +165,10 @@ const Dashboard: React.FC = () => {
             </div>
           )}
           <ErrorBoundary>
-            {resolvedAccountType === 'client' ? (
-              <ClientDashboard userId={user!.id} initialTab={activeTab} />
-            ) : resolvedAccountType === 'professional' ? (
-              <ProfessionalDashboard userId={user!.id} />
+            {accountType === 'client' ? (
+              <ClientDashboard userId={user.id} initialTab={activeTab} />
+            ) : accountType === 'professional' ? (
+              <ProfessionalDashboard userId={user.id} />
             ) : (
               <div>Loading dashboard...</div>
             )}
