@@ -27,7 +27,6 @@ const ProjectDetails: React.FC = () => {
   const [bidAmount, setBidAmount] = useState<number | ''>('');
   const [proposalMessage, setProposalMessage] = useState('');
   const [showApplicationForm, setShowApplicationForm] = useState(false); // If you want to use a modal in the future
-  const [availability, setAvailability] = useState('');
 
   useEffect(() => {
     if (projectId) {
@@ -453,25 +452,29 @@ const ProjectDetails: React.FC = () => {
                   setCoverLetter={setProposalMessage}
                   bidAmount={typeof bidAmount === 'number' ? bidAmount : null}
                   setBidAmount={val => setBidAmount(val ?? '')}
-                  availability={availability}
-                  setAvailability={setAvailability}
+                  availability={''} // You can add an availability field to the state if needed
+                  setAvailability={() => {}} // Add to state and pass here as needed
                   isApplying={isApplying}
                   handleApplyToProject={({
                     bidAmount,
                     coverLetter,
                     availability,
+                    additionalNotes,
                     termsAccepted
                   }) =>
                     handleApplyToProject({
                       bidAmount,
                       coverLetter,
                       availability,
+                      additionalNotes,
                       termsAccepted,
                       proposalMessage: proposalMessage
                     })
                   }
-                  onCancel={() => {}} // Optional: collapse/hide form
-                  userSkills={[]} // Real user skills if available
+                  onCancel={() => {}} // Optional: you could collapse/hide the form
+                  userSkills={[]} // Pass real user skills if you have them in state/context
+                  additionalNotes={''}
+                  setAdditionalNotes={() => {}} // Add to state and pass here as needed
                   termsAccepted={hasAcceptedContract}
                   setTermsAccepted={setHasAcceptedContract}
                 />
