@@ -31,13 +31,7 @@ interface ProjectApplicationFormProps {
   availability: string;
   setAvailability: (value: string) => void;
   isApplying: boolean;
-  handleApplyToProject: (args: {
-    bidAmount: number;
-    coverLetter: string;
-    availability: string;
-    additionalNotes?: string;
-    termsAccepted: boolean;
-  }) => Promise<void>;
+  handleApplyToProject: () => Promise<void>;
   onCancel: () => void;
   userSkills?: string[];
   additionalNotes?: string;
@@ -271,13 +265,7 @@ const ProjectApplicationForm: React.FC<ProjectApplicationFormProps> = ({
           Cancel
         </Button>
         <Button 
-          onClick={() => handleApplyToProject({
-            bidAmount,
-            coverLetter,
-            availability,
-            additionalNotes,
-            termsAccepted
-          })}
+          onClick={handleApplyToProject}
           disabled={isApplying || !coverLetter.trim() || !bidAmount || !availability || !termsAccepted}
           size="lg"
           className="px-8"
